@@ -486,12 +486,12 @@ export default function CarInOutPage() {
         carData={
           selectedCar
             ? {
-              vehicleNo: selectedCar.vehicleNo,
+              vehicleNo: selectedCar.vehicleNo || "",
               model: selectedCar.model,
               customer: selectedCar.customer,
               phone: selectedCar.phone,
               service: selectedCar.service,
-              technician: selectedCar.technician,
+              technician: selectedCar.technician || "",
             }
             : undefined
         }
@@ -500,7 +500,7 @@ export default function CarInOutPage() {
       <CarDetailsDialog
         isOpen={isDetailsDialogOpen}
         onClose={() => setIsDetailsDialogOpen(false)}
-        carData={selectedCar ? { ...selectedCar } : undefined}
+        carData={selectedCar ? { ...selectedCar, vehicleNo: selectedCar.vehicleNo || "", technician: selectedCar.technician || "" } : undefined}
       />
 
       {/* Success Popup */}

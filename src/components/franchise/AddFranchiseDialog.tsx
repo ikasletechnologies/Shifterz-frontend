@@ -13,6 +13,15 @@ interface FranchiseData {
   startDate: string;
   royalty: string;
   status: string;
+  adminUsername?: string;
+  adminPassword?: string;
+  businessName?: string;
+  gstNumber?: string;
+  email?: string;
+  address?: string;
+  state?: string;
+  pinCode?: string;
+  licenseStatus?: string;
 }
 
 interface AddFranchiseDialogProps {
@@ -32,6 +41,15 @@ export default function AddFranchiseDialog({ isOpen, onClose, franchiseData, onS
     startDate: new Date().toISOString().split("T")[0],
     royalty: "5",
     status: "Active",
+    adminUsername: "",
+    adminPassword: "",
+    businessName: "",
+    gstNumber: "",
+    email: "",
+    address: "",
+    state: "",
+    pinCode: "",
+    licenseStatus: "Active",
   });
 
   useEffect(() => {
@@ -50,6 +68,15 @@ export default function AddFranchiseDialog({ isOpen, onClose, franchiseData, onS
         startDate: new Date().toISOString().split("T")[0],
         royalty: "5",
         status: "Active",
+        adminUsername: "",
+        adminPassword: "",
+        businessName: "",
+        gstNumber: "",
+        email: "",
+        address: "",
+        state: "",
+        pinCode: "",
+        licenseStatus: "Active",
       });
     }
   }, [franchiseData, isOpen]);
@@ -87,87 +114,219 @@ export default function AddFranchiseDialog({ isOpen, onClose, franchiseData, onS
         </div>
         
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          <div className="grid grid-cols-2 gap-x-6 gap-y-4">
-            <div className="col-span-2 sm:col-span-1 space-y-1.5">
-              <label className="text-[11px] font-bold text-[#64748b] uppercase tracking-wider">Franchise Name *</label>
-              <input 
-                required
-                type="text" 
-                value={formData.name}
-                onChange={e => setFormData({...formData, name: e.target.value})}
-                className="w-full px-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm text-[#334155] focus:outline-none focus:ring-2 focus:ring-[#f59e0b] focus:bg-white transition-colors"
-                placeholder="Shifterz Chennai"
-              />
-            </div>
-            
-            <div className="col-span-2 sm:col-span-1 space-y-1.5">
-              <label className="text-[11px] font-bold text-[#64748b] uppercase tracking-wider">City *</label>
-              <input 
-                required
-                type="text" 
-                value={formData.city}
-                onChange={e => setFormData({...formData, city: e.target.value})}
-                className="w-full px-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm text-[#334155] focus:outline-none focus:ring-2 focus:ring-[#f59e0b] focus:bg-white transition-colors"
-                placeholder="Chennai"
-              />
+          <div className="space-y-6 max-h-[70vh] overflow-y-auto pr-2">
+            {/* Basic Details */}
+            <div>
+              <h3 className="text-sm font-bold text-gray-900 mb-4 pb-2 border-b border-gray-100 flex items-center gap-2">
+                <span className="w-1.5 h-4 bg-yellow-400 rounded-full"></span>
+                Basic Details
+              </h3>
+              <div className="grid grid-cols-2 gap-x-6 gap-y-4">
+                <div className="col-span-2 sm:col-span-1 space-y-1.5">
+                  <label className="text-[11px] font-bold text-[#64748b] uppercase tracking-wider">Franchise Name *</label>
+                  <input 
+                    required
+                    type="text" 
+                    value={formData.name}
+                    onChange={e => setFormData({...formData, name: e.target.value})}
+                    className="w-full px-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm text-[#334155] focus:outline-none focus:ring-2 focus:ring-[#f59e0b] focus:bg-white transition-colors"
+                    placeholder="Shifterz Chennai"
+                  />
+                </div>
+                
+                <div className="col-span-2 sm:col-span-1 space-y-1.5">
+                  <label className="text-[11px] font-bold text-[#64748b] uppercase tracking-wider">Owner Name</label>
+                  <input 
+                    type="text" 
+                    value={formData.owner}
+                    onChange={e => setFormData({...formData, owner: e.target.value})}
+                    className="w-full px-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm text-[#334155] focus:outline-none focus:ring-2 focus:ring-[#f59e0b] focus:bg-white transition-colors"
+                    placeholder="Full name"
+                  />
+                </div>
+
+                <div className="col-span-2 sm:col-span-1 space-y-1.5">
+                  <label className="text-[11px] font-bold text-[#64748b] uppercase tracking-wider">Phone</label>
+                  <input 
+                    type="text" 
+                    value={formData.phone}
+                    onChange={e => setFormData({...formData, phone: e.target.value.replace(/\D/g, "").slice(0, 10)})}
+                    className="w-full px-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm text-[#334155] focus:outline-none focus:ring-2 focus:ring-[#f59e0b] focus:bg-white transition-colors"
+                    placeholder="+91 XXXXX XXXXX"
+                  />
+                </div>
+                
+                <div className="col-span-2 sm:col-span-1 space-y-1.5">
+                  <label className="text-[11px] font-bold text-[#64748b] uppercase tracking-wider">Start Date</label>
+                  <input 
+                    type="date" 
+                    value={formData.startDate}
+                    onChange={e => setFormData({...formData, startDate: e.target.value})}
+                    className="w-full px-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm text-[#334155] focus:outline-none focus:ring-2 focus:ring-[#f59e0b] focus:bg-white transition-colors"
+                  />
+                </div>
+
+                <div className="col-span-2 sm:col-span-1 space-y-1.5">
+                  <label className="text-[11px] font-bold text-[#64748b] uppercase tracking-wider">Royalty %</label>
+                  <input 
+                    type="number" 
+                    value={formData.royalty}
+                    onChange={e => setFormData({...formData, royalty: e.target.value})}
+                    className="w-full px-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm text-[#334155] focus:outline-none focus:ring-2 focus:ring-[#f59e0b] focus:bg-white transition-colors"
+                    placeholder="5"
+                  />
+                </div>
+
+                <div className="col-span-2 sm:col-span-1 space-y-1.5">
+                  <label className="text-[11px] font-bold text-[#64748b] uppercase tracking-wider">Status</label>
+                  <select 
+                    value={formData.status}
+                    onChange={e => setFormData({...formData, status: e.target.value})}
+                    className="w-full px-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm text-[#334155] focus:outline-none focus:ring-2 focus:ring-[#f59e0b] focus:bg-white transition-colors"
+                  >
+                    <option value="Active">Active</option>
+                    <option value="Trial">Trial</option>
+                    <option value="Inactive">Inactive</option>
+                  </select>
+                </div>
+                
+                <div className="col-span-2 sm:col-span-1 space-y-1.5">
+                  <label className="text-[11px] font-bold text-[#64748b] uppercase tracking-wider">License Status</label>
+                  <select 
+                    value={formData.licenseStatus || "Active"}
+                    onChange={e => setFormData({...formData, licenseStatus: e.target.value})}
+                    className="w-full px-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm text-[#334155] focus:outline-none focus:ring-2 focus:ring-[#f59e0b] focus:bg-white transition-colors"
+                  >
+                    <option value="Active">Active</option>
+                    <option value="Suspended">Suspended</option>
+                    <option value="Revoked">Revoked</option>
+                  </select>
+                </div>
+              </div>
             </div>
 
-            <div className="col-span-2 sm:col-span-1 space-y-1.5">
-              <label className="text-[11px] font-bold text-[#64748b] uppercase tracking-wider">Owner Name</label>
-              <input 
-                type="text" 
-                value={formData.owner}
-                onChange={e => setFormData({...formData, owner: e.target.value})}
-                className="w-full px-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm text-[#334155] focus:outline-none focus:ring-2 focus:ring-[#f59e0b] focus:bg-white transition-colors"
-                placeholder="Full name"
-              />
+            {/* Location & Business Details */}
+            <div>
+              <h3 className="text-sm font-bold text-gray-900 mb-4 pb-2 border-b border-gray-100 flex items-center gap-2">
+                <span className="w-1.5 h-4 bg-yellow-400 rounded-full"></span>
+                Location & Business Details
+              </h3>
+              <div className="grid grid-cols-2 gap-x-6 gap-y-4">
+                <div className="col-span-2 sm:col-span-1 space-y-1.5">
+                  <label className="text-[11px] font-bold text-[#64748b] uppercase tracking-wider">Business Name</label>
+                  <input 
+                    type="text" 
+                    value={formData.businessName || ""}
+                    onChange={e => setFormData({...formData, businessName: e.target.value})}
+                    className="w-full px-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm text-[#334155] focus:outline-none focus:ring-2 focus:ring-[#f59e0b] focus:bg-white transition-colors"
+                    placeholder="Legal Entity Name"
+                  />
+                </div>
+                
+                <div className="col-span-2 sm:col-span-1 space-y-1.5">
+                  <label className="text-[11px] font-bold text-[#64748b] uppercase tracking-wider">GST Number</label>
+                  <input 
+                    type="text" 
+                    value={formData.gstNumber || ""}
+                    onChange={e => setFormData({...formData, gstNumber: e.target.value})}
+                    className="w-full px-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm text-[#334155] focus:outline-none focus:ring-2 focus:ring-[#f59e0b] focus:bg-white transition-colors"
+                    placeholder="22AAAAA0000A1Z5"
+                  />
+                </div>
+
+                <div className="col-span-2 sm:col-span-1 space-y-1.5">
+                  <label className="text-[11px] font-bold text-[#64748b] uppercase tracking-wider">Email Address</label>
+                  <input 
+                    type="email" 
+                    value={formData.email || ""}
+                    onChange={e => setFormData({...formData, email: e.target.value})}
+                    className="w-full px-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm text-[#334155] focus:outline-none focus:ring-2 focus:ring-[#f59e0b] focus:bg-white transition-colors"
+                    placeholder="branch@shifterz.in"
+                  />
+                </div>
+
+                <div className="col-span-2 space-y-1.5">
+                  <label className="text-[11px] font-bold text-[#64748b] uppercase tracking-wider">Business Address</label>
+                  <input 
+                    type="text" 
+                    value={formData.address || ""}
+                    onChange={e => setFormData({...formData, address: e.target.value})}
+                    className="w-full px-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm text-[#334155] focus:outline-none focus:ring-2 focus:ring-[#f59e0b] focus:bg-white transition-colors"
+                    placeholder="Street, Building, etc."
+                  />
+                </div>
+
+                <div className="col-span-2 sm:col-span-1 space-y-1.5">
+                  <label className="text-[11px] font-bold text-[#64748b] uppercase tracking-wider">City *</label>
+                  <input 
+                    required
+                    type="text" 
+                    value={formData.city}
+                    onChange={e => setFormData({...formData, city: e.target.value})}
+                    className="w-full px-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm text-[#334155] focus:outline-none focus:ring-2 focus:ring-[#f59e0b] focus:bg-white transition-colors"
+                    placeholder="Chennai"
+                  />
+                </div>
+                
+                <div className="col-span-2 sm:col-span-1 space-y-1.5">
+                  <label className="text-[11px] font-bold text-[#64748b] uppercase tracking-wider">State</label>
+                  <input 
+                    type="text" 
+                    value={formData.state || ""}
+                    onChange={e => setFormData({...formData, state: e.target.value})}
+                    className="w-full px-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm text-[#334155] focus:outline-none focus:ring-2 focus:ring-[#f59e0b] focus:bg-white transition-colors"
+                    placeholder="Tamil Nadu"
+                  />
+                </div>
+
+                <div className="col-span-2 sm:col-span-1 space-y-1.5">
+                  <label className="text-[11px] font-bold text-[#64748b] uppercase tracking-wider">PIN Code</label>
+                  <input 
+                    type="text" 
+                    value={formData.pinCode || ""}
+                    onChange={e => setFormData({...formData, pinCode: e.target.value.replace(/\D/g, "").slice(0, 6)})}
+                    className="w-full px-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm text-[#334155] focus:outline-none focus:ring-2 focus:ring-[#f59e0b] focus:bg-white transition-colors"
+                    placeholder="600001"
+                  />
+                </div>
+              </div>
             </div>
 
-            <div className="col-span-2 sm:col-span-1 space-y-1.5">
-              <label className="text-[11px] font-bold text-[#64748b] uppercase tracking-wider">Phone</label>
-              <input 
-                type="text" 
-                value={formData.phone}
-                onChange={e => setFormData({...formData, phone: e.target.value.replace(/\D/g, "").slice(0, 10)})}
-                className="w-full px-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm text-[#334155] focus:outline-none focus:ring-2 focus:ring-[#f59e0b] focus:bg-white transition-colors"
-                placeholder="+91 XXXXX XXXXX"
-              />
-            </div>
-            
-            <div className="col-span-2 sm:col-span-1 space-y-1.5">
-              <label className="text-[11px] font-bold text-[#64748b] uppercase tracking-wider">Start Date</label>
-              <input 
-                type="date" 
-                value={formData.startDate}
-                onChange={e => setFormData({...formData, startDate: e.target.value})}
-                className="w-full px-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm text-[#334155] focus:outline-none focus:ring-2 focus:ring-[#f59e0b] focus:bg-white transition-colors"
-              />
-            </div>
-
-            <div className="col-span-2 sm:col-span-1 space-y-1.5">
-              <label className="text-[11px] font-bold text-[#64748b] uppercase tracking-wider">Royalty %</label>
-              <input 
-                type="number" 
-                value={formData.royalty}
-                onChange={e => setFormData({...formData, royalty: e.target.value})}
-                className="w-full px-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm text-[#334155] focus:outline-none focus:ring-2 focus:ring-[#f59e0b] focus:bg-white transition-colors"
-                placeholder="5"
-              />
-            </div>
-
-            <div className="col-span-2 sm:col-span-1 space-y-1.5">
-              <label className="text-[11px] font-bold text-[#64748b] uppercase tracking-wider">Status</label>
-              <select 
-                value={formData.status}
-                onChange={e => setFormData({...formData, status: e.target.value})}
-                className="w-full px-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm text-[#334155] focus:outline-none focus:ring-2 focus:ring-[#f59e0b] focus:bg-white transition-colors"
-              >
-                <option value="Active">Active</option>
-                <option value="Trial">Trial</option>
-                <option value="Inactive">Inactive</option>
-              </select>
-            </div>
+            {!isEditing && (
+              <div>
+                <h3 className="text-sm font-bold text-gray-900 mb-4 pb-2 border-b border-gray-100 flex items-center gap-2 mt-2">
+                  <span className="w-1.5 h-4 bg-yellow-400 rounded-full"></span>
+                  Administrator Account
+                </h3>
+                <div className="grid grid-cols-2 gap-x-6 gap-y-4">
+                  <div className="col-span-2 sm:col-span-1 space-y-1.5">
+                    <label className="text-[11px] font-bold text-[#64748b] uppercase tracking-wider">Admin Username *</label>
+                    <input 
+                      required={!isEditing}
+                      type="text" 
+                      value={formData.adminUsername || ""}
+                      onChange={e => setFormData({...formData, adminUsername: e.target.value})}
+                      className="w-full px-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm text-[#334155] focus:outline-none focus:ring-2 focus:ring-[#f59e0b] focus:bg-white transition-colors"
+                      placeholder="branch_admin"
+                    />
+                  </div>
+                  
+                  <div className="col-span-2 sm:col-span-1 space-y-1.5">
+                    <label className="text-[11px] font-bold text-[#64748b] uppercase tracking-wider">Admin Password *</label>
+                    <input 
+                      required={!isEditing}
+                      type="password" 
+                      value={formData.adminPassword || ""}
+                      onChange={e => setFormData({...formData, adminPassword: e.target.value})}
+                      className="w-full px-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm text-[#334155] focus:outline-none focus:ring-2 focus:ring-[#f59e0b] focus:bg-white transition-colors"
+                      placeholder="••••••••"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
+
           
           <button 
             type="submit"

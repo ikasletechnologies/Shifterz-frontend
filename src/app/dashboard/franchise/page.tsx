@@ -14,13 +14,6 @@ export default function FranchisePage() {
   const [editingFranchise, setEditingFranchise] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isLocked] = useState(true);
-
-  useEffect(() => {
-    if (isLocked) {
-      router.push("/dashboard");
-    }
-  }, [isLocked, router]);
 
   const fetchFranchises = useCallback(async () => {
     try {
