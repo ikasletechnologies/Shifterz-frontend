@@ -99,11 +99,7 @@ export default function AddLeadDialog({
         assigned: formData.assigned,
         budget: `₹${formData.budget}`,
         status: "New",
-        date: new Date().toLocaleDateString("en-GB", {
-          day: "2-digit",
-          month: "short",
-          year: "numeric",
-        }),
+        date: new Date().toISOString().split("T")[0],
       };
       onSubmit(newLead);
     }
