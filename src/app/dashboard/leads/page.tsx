@@ -278,14 +278,14 @@ export default function LeadsPage() {
 
       {/* Filters */}
       <div className="flex items-center justify-between mb-6">
-        <div className="flex gap-2">
+        <div className="rounded-lg px-2 py-0.5 flex text-sm items-center gap-2 w-fit" style={{ backgroundColor: "#ebebebff" }}>
           {["All", "New", "Follow Up", "Converted", "Lost"].map((tab) => (
             <button
               key={tab}
               onClick={() => setFilter(tab)}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${filter === tab
-                ? "bg-gray-900 text-white"
-                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+              className={`px-2 py-1.5 rounded-lg font-medium transition-colors ${filter === tab
+                ? "bg-white px-1 py-1 text-gray-900 font-bold shadow-sm"
+                : " text-gray-700 hover:bg-[#ebebebff]"
                 }`}
             >
               {tab}

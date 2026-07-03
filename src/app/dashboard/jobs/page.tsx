@@ -10,7 +10,7 @@ export default function JobCardsPage() {
   const [jobs, setJobs] = useState<any[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null); 
   const [selectedJob, setSelectedJob] = useState<any>(null);
   const [priorityFilter, setPriorityFilter] = useState<string>("All");
 
@@ -112,11 +112,10 @@ export default function JobCardsPage() {
           <button
             key={level}
             onClick={() => setPriorityFilter(level)}
-            className={`text-sm px-3 py-1 rounded-md transition-colors ${
-              priorityFilter === level
-                ? 'bg-white text-gray-900 font-bold shadow-sm'
-                : 'text-gray-600 hover:text-gray-900 font-medium'
-            }`}
+            className={`text-sm px-3 py-1 rounded-md transition-colors ${priorityFilter === level
+              ? 'bg-white text-gray-900 font-bold shadow-sm'
+              : 'text-gray-600 hover:text-gray-900 font-medium'
+              }`}
           >
             {level}
           </button>

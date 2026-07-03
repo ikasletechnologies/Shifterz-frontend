@@ -307,7 +307,7 @@ export default function CarInOutPage() {
             <span className="text-purple-600 font-semibold text-sm md:text-base">Delivered: {delivered}</span>
           </div>
         </div>
-        
+
         <div className="md:ml-auto flex flex-col sm:flex-row w-full md:w-auto gap-3">
           <div className="relative group w-full sm:w-auto">
             <button
