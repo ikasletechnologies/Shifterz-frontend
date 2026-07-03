@@ -115,7 +115,7 @@ export default function FranchisePage() {
       ) : (
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
           <table className="w-full text-sm text-left">
-            <thead className="bg-gray-50/50 border-b border-gray-100 text-[10px] text-gray-400 uppercase font-bold tracking-wider">
+            <thead className="bg-gray-50/50 border-b border-gray-100 text-[10px] text-gray-800 uppercase font-bold tracking-wider">
               <tr>
                 <th className="px-6 py-4">ID</th>
                 <th className="px-6 py-4">Franchise</th>

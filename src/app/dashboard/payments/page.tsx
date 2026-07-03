@@ -182,15 +182,15 @@ export default function PaymentsPage() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-100 bg-gray-50">
-                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Pay ID</th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Invoice / Ref</th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Client</th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Amount</th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Mode</th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Date</th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Reference</th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Actions</th>
+              <tr className="border-b border-gray-100 bg-gray-50/75">
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-800 uppercase tracking-wider">Pay ID</th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-800 uppercase tracking-wider">Invoice / Ref</th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-800 uppercase tracking-wider">Client</th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-800 uppercase tracking-wider">Amount</th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-800 uppercase tracking-wider">Mode</th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-800 uppercase tracking-wider">Date</th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-800 uppercase tracking-wider">Reference</th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-800 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">

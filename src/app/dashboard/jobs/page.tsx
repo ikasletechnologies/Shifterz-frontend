@@ -128,7 +128,7 @@ export default function JobCardsPage() {
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-left min-w-[900px]">
-              <thead className="bg-gray-50/50 border-b border-gray-100 text-xs text-gray-400 uppercase font-bold tracking-wider">
+              <thead className="bg-gray-50/50 border-b border-gray-100 text-xs text-gray-800 uppercase font-bold tracking-wider">
                 <tr>
                   <th className="px-4 py-4 whitespace-nowrap">Job ID</th>
                   <th className="px-4 py-4 whitespace-nowrap">Vehicle</th>

@@ -364,38 +364,41 @@ export default function CarInOutPage() {
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-gray-200 bg-gray-50">
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+              <tr className="border-b border-gray-200 bg-gray-50/75">
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-800 uppercase tracking-wider">
                   Entry ID
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-800 uppercase tracking-wider">
                   Vehicle No.
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-800 uppercase tracking-wider">
                   Model
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-800 uppercase tracking-wider">
                   Customer
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-800 uppercase tracking-wider">
+                  Mobile No.
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-800 uppercase tracking-wider">
                   Service
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-800 uppercase tracking-wider">
                   Technician
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-800 uppercase tracking-wider">
                   In Time
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-800 uppercase tracking-wider">
                   Out Time
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-800 uppercase tracking-wider">
                   Duration
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-800 uppercase tracking-wider">
                   Status
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-800 uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
@@ -410,9 +413,11 @@ export default function CarInOutPage() {
                     {entry.vehicleNo || entry.vehicle || entry.vehicleNumber || ""}
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-700">{entry.model}</td>
-                  <td className="px-6 py-4 text-sm">
-                    <div className="font-semibold text-gray-900">{entry.customer}</div>
-                    <div className="text-xs text-gray-500">{entry.phone}</div>
+                  <td className="px-6 py-4 text-sm font-semibold text-gray-900 whitespace-nowrap">
+                    {entry.customer}
+                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-600 whitespace-nowrap">
+                    {entry.phone || "—"}
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-700">{entry.service}</td>
                   <td className="px-6 py-4 text-sm text-gray-700">{entry.technician || entry.technicianIn || ""}</td>
@@ -437,12 +442,14 @@ export default function CarInOutPage() {
                       {entry.status === "Ongoing" || entry.status === "In Workshop" ? (
                         <button
                           onClick={() => handlePassCar(entry)}
-                          className="bg-green-100 text-green-700 hover:bg-green-200 px-3 py-1 rounded font-semibold text-xs transition-colors flex items-center gap-1"
+                          className="bg-green-100 text-green-700 hover:bg-green-200 px-3 py-1 rounded font-semibold text-xs transition-colors flex items-center gap-1 w-[58px] justify-center"
                           title="Mark car as Out and create pass"
                         >
                           → Out
                         </button>
-                      ) : null}
+                      ) : (
+                        <div className="w-[58px]" />
+                      )}
                       <button
                         onClick={() => handleEditCar(entry)}
                         className="p-1.5 hover:bg-blue-50 rounded transition-colors text-blue-500"

@@ -89,7 +89,7 @@ export default function ServicesPage() {
       ) : (
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
           <table className="w-full text-sm text-left">
-            <thead className="bg-gray-50/50 border-b border-gray-100 text-xs text-gray-400 uppercase font-bold tracking-wider">
+            <thead className="bg-gray-50/50 border-b border-gray-100 text-xs text-gray-800 uppercase font-bold tracking-wider">
               <tr>
                 <th className="px-6 py-4">Service Name</th>
                 <th className="px-6 py-4">Category</th>
