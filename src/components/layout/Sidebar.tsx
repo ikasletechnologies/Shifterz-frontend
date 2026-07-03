@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { useContext } from "react";
+import { useContext, useEffect, useState } from "react";
 import {
   Car,
   Ticket,
@@ -24,7 +24,7 @@ import {
 } from "lucide-react";
 import { SidebarContext } from "@/lib/context/SidebarContext";
 
-const sidebarSections = [
+const hqSidebarSections = [
   {
     label: "OVERVIEW",
     items: [
@@ -32,11 +32,38 @@ const sidebarSections = [
     ],
   },
   {
-    label: "WORKSHOP MANAGEMENT",
+    label: "MANAGEMENT",
+    items: [
+      { label: "Franchises", icon: Building2, href: "/dashboard/franchise" },
+      { label: "Services", icon: Wrench, href: "/dashboard/services" },
+    ],
+  },
+  {
+    label: "ANALYTICS",
+    items: [
+      { label: "Global Reports", icon: PieChart, href: "/dashboard/reports" },
+    ],
+  },
+  {
+    label: "ADMINISTRATION",
+    items: [
+      { label: "Settings", icon: Settings, href: "/dashboard/settings" },
+    ],
+  },
+];
+
+const franchiseSidebarSections = [
+  {
+    label: "OVERVIEW",
+    items: [
+      { label: "Dashboard", icon: Grid3x3, href: "/dashboard" },
+    ],
+  },
+  {
+    label: "WORKSHOP",
     items: [
       { label: "Car In / Out", icon: Car, href: "/dashboard/carin" },
       { label: "Job Cards", icon: Briefcase, href: "/dashboard/jobs" },
-      { label: "Services", icon: Wrench, href: "/dashboard/services" },
       { label: "Out Pass", icon: Ticket, href: "/dashboard/outpass" },
     ],
   },
@@ -45,7 +72,6 @@ const sidebarSections = [
     items: [
       { label: "Leads", icon: Users, href: "/dashboard/leads" },
       { label: "Customers", icon: Users2, href: "/dashboard/customers" },
-      { label: "Franchise", icon: Building2, href: "/dashboard/franchise", locked: true },
     ],
   },
   {
@@ -67,17 +93,24 @@ const sidebarSections = [
       { label: "Reports", icon: PieChart, href: "/dashboard/reports" },
     ],
   },
-  {
-    label: "ADMINISTRATION",
-    items: [
-      { label: "Settings", icon: Settings, href: "/dashboard/settings" },
-    ],
-  },
 ];
 
 export default function Sidebar() {
   const pathname = usePathname();
   const { toggleSidebar } = useContext(SidebarContext);
+  const [userRole, setUserRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    const userStr = localStorage.getItem("user");
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        setUserRole(user.role);
+      } catch (e) {
+        console.error("Failed to parse user from localStorage", e);
+      }
+    }
+  }, []);
 
   return (
     <aside className="w-64 bg-linear-to-b from-white to-gray-50 border-r border-gray-200 h-screen overflow-y-auto flex flex-col">
@@ -98,9 +131,9 @@ export default function Sidebar() {
       </div>
 
       {/* Navigation Sections */}
-      <nav className="flex-1 px-4 py-6">
-        {sidebarSections.map((section) => (
-          <div key={section.label} className="mb-8">
+      <nav className="flex-1 px-4 py-6 space-y-8">
+        {(userRole === "SUPER_ADMIN" || userRole === "HQ_USER" ? hqSidebarSections : franchiseSidebarSections).map((section, idx) => (
+          <div key={idx} className="mb-8">
             <h3 className="px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
               {section.label}
             </h3>
@@ -108,21 +141,6 @@ export default function Sidebar() {
               {section.items.map((item) => {
                 const isActive = pathname === item.href;
                 const Icon = item.icon;
-                const isLocked = (item as any).locked;
-
-                if (isLocked) {
-                  return (
-                    <div
-                      key={item.href}
-                      className="flex items-center gap-3 px-4 py-2.5 rounded-lg text-gray-600 cursor-not-allowed"
-                      title="This section is locked"
-                    >
-                      <Icon className="w-5 h-5 shrink-0" />
-                      <span className="text-sm font-medium flex-1">{item.label}</span>
-                      <Lock className="w-4 h-4 shrink-0 text-red-500" />
-                    </div>
-                  );
-                }
 
                 return (
                   <Link
@@ -138,7 +156,7 @@ export default function Sidebar() {
                   </Link>
                 );
               })}
-            </div>
+              </div>
           </div>
         ))}
       </nav>

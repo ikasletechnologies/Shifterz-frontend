@@ -172,6 +172,10 @@ export async function getDashboardData() {
   return apiCall("/dashboard");
 }
 
+export async function getHQDashboardData() {
+  return apiCall("/hq/dashboard");
+}
+
 // ═══════════════════════════════════════════════════════════════
 // CAR IN/OUT
 // ═══════════════════════════════════════════════════════════════
@@ -286,25 +290,25 @@ export async function deleteJob(id: string) {
 // FRANCHISE
 // ═══════════════════════════════════════════════════════════════
 export async function getFranchises() {
-  return apiCall("/franchise");
+  return apiCall("/hq/franchises");
 }
 
 export async function createFranchise(franchise: any) {
-  return apiCall("/franchise", {
+  return apiCall("/hq/franchises", {
     method: "POST",
     body: JSON.stringify(franchise),
   });
 }
 
 export async function updateFranchise(id: string, franchise: any) {
-  return apiCall(`/franchise/${id}`, {
+  return apiCall(`/hq/franchises/${id}`, {
     method: "PUT",
     body: JSON.stringify(franchise),
   });
 }
 
 export async function deleteFranchise(id: string) {
-  return apiCall(`/franchise/${id}`, { method: "DELETE" });
+  return apiCall(`/hq/franchises/${id}`, { method: "DELETE" });
 }
 
 // ═══════════════════════════════════════════════════════════════

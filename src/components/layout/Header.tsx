@@ -83,8 +83,19 @@ export default function Header() {
   const [currentTime, setCurrentTime] = useState<string>("");
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [companyInitials, setCompanyInitials] = useState("AD");
+  const [userName, setUserName] = useState<string>("");
+  const [userRole, setUserRole] = useState<string>("");
 
   useEffect(() => {
+    const userStr = localStorage.getItem("user");
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        setUserName(user.username);
+        setUserRole(user.role);
+      } catch (e) {}
+    }
+
     setCurrentTime(getCurrentTime());
     const timer = setInterval(() => {
       setCurrentTime(getCurrentTime());
@@ -138,10 +149,20 @@ export default function Header() {
 
         <div className="flex items-center gap-6">
           {/* Current Time Display */}
-          <div className="flex items-center gap-2 px-4 py-2 bg-gray-50 rounded-lg border border-gray-200">
+          <div className="flex items-center gap-2 px-4 py-2 bg-gray-50 rounded-lg border border-gray-200 hidden md:flex">
             <Clock className="w-4 h-4 text-gray-600" />
             <span className="text-sm font-semibold text-gray-700">{currentTime}</span>
           </div>
+
+          <div className="h-8 w-px bg-gray-200 mx-2 hidden md:block"></div>
+
+          <div className="flex items-center text-right hidden md:block">
+            <p className="text-sm font-bold text-gray-900 capitalize">{userName || "User"}</p>
+            <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
+              {userRole === "SUPER_ADMIN" ? "Headquarters" : userRole === "FRANCHISE_ADMIN" ? "Franchise Admin" : userRole?.replace("_", " ")}
+            </p>
+          </div>
+
           <div className="relative">
             <button 
               onClick={() => setIsProfileOpen(!isProfileOpen)}
