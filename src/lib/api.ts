@@ -8,7 +8,14 @@ export async function apiCall(
 ) {
   const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
 
-  const response = await fetch(`${API_URL}${endpoint}`, {
+  const isGet = !options.method || options.method.toUpperCase() === 'GET';
+  const url = new URL(endpoint.startsWith('http') ? endpoint : `${API_URL}${endpoint}`);
+  if (isGet) {
+    url.searchParams.append('_t', Date.now().toString());
+  }
+
+  const response = await fetch(url.toString(), {
+    cache: "no-store",
     ...options,
     headers: {
       "Content-Type": "application/json",

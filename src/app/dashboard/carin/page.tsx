@@ -3,7 +3,7 @@
 
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Eye, Circle, Edit, Download, Check, Briefcase, Trash2 } from "lucide-react";
+import { Plus, Eye, Circle, Edit, Download, Check, Briefcase, Trash2, Search } from "lucide-react";
 import { toast } from "react-hot-toast";
 import CarCheckInDialog from "@/components/carin/CarCheckInDialog";
 import PassCarDialog from "@/components/carin/PassCarDialog";
@@ -41,6 +41,7 @@ export default function CarInOutPage() {
   const [cars, setCars] = useState<CarEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [successCar, setSuccessCar] = useState<CarEntry | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const fetchCars = useCallback(async () => {
     try {
@@ -286,10 +287,18 @@ export default function CarInOutPage() {
   };
 
   const filteredCars = cars.filter((car) => {
-    if (filter === "All") return true;
-    if (filter === "In Workshop") return car.status === "Ongoing" || car.status === "In Workshop";
-    if (filter === "Delivered") return car.status === "Out" || car.status === "Delivered";
-    return true;
+    const statusMatch =
+      filter === "All" ||
+      (filter === "In Workshop" && (car.status === "Ongoing" || car.status === "In Workshop")) ||
+      (filter === "Delivered" && (car.status === "Out" || car.status === "Delivered"));
+    
+    const searchMatch =
+      (car.vehicleNo || car.vehicle || car.vehicleNumber || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      car.model.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      car.customer.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      car.phone.includes(searchQuery);
+
+    return statusMatch && searchMatch;
   });
 
   return (
@@ -343,20 +352,32 @@ export default function CarInOutPage() {
         </div>
       </div>
 
-      {/* Filter Tabs */}
-      <div className="mb-6 flex overflow-x-auto gap-2 sm:gap-4 border-b border-gray-200 scrollbar-hide">
-        {["All", "In Workshop", "Delivered"].map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setFilter(tab)}
-            className={`px-3 sm:px-4 py-3 font-medium transition-colors whitespace-nowrap text-sm sm:text-base ${filter === tab
-              ? "text-gray-900 border-b-2 border-gray-900"
-              : "text-gray-600 hover:text-gray-900"
-              }`}
-          >
-            {tab}
-          </button>
-        ))}
+      {/* Filter Tabs and Search */}
+      <div className="mb-6 flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between border-b border-gray-200 pb-2 md:pb-0">
+        <div className="flex overflow-x-auto gap-2 sm:gap-4 scrollbar-hide">
+          {["All", "In Workshop", "Delivered"].map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setFilter(tab)}
+              className={`px-3 sm:px-4 py-3 font-medium transition-colors whitespace-nowrap text-sm sm:text-base ${filter === tab
+                ? "text-gray-900 border-b-2 border-gray-900"
+                : "text-gray-600 hover:text-gray-900"
+                }`}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
+        <div className="relative w-full max-w-md md:mb-1">
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search check-in logs by vehicle, customer, or phone..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-9 pr-4 py-2 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400 text-sm"
+          />
+        </div>
       </div>
 
       {/* Table */}

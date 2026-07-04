@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Plus, Edit2, Trash2, Lock } from "lucide-react";
 import AddFranchiseDialog from "@/components/franchise/AddFranchiseDialog";
 import { getFranchises, createFranchise, updateFranchise, deleteFranchise } from "@/lib/api";
+import { toast } from "react-hot-toast";
 
 export default function FranchisePage() {
   const router = useRouter();
@@ -44,11 +45,14 @@ export default function FranchisePage() {
   };
 
   const handleDelete = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this franchise?")) return;
     try {
       await deleteFranchise(id);
       setFranchises(franchises.filter(f => f.id !== id));
-    } catch (err) {
+      toast.success("Franchise deleted successfully");
+    } catch (err: any) {
       console.error("Failed to delete franchise:", err);
+      toast.error("Failed to delete franchise: " + err.message);
     }
   };
 
@@ -56,12 +60,15 @@ export default function FranchisePage() {
     try {
       if (data.id) {
         await updateFranchise(data.id, data);
+        toast.success("Franchise updated successfully");
       } else {
         await createFranchise(data);
+        toast.success("Franchise created successfully");
       }
       await fetchFranchises();
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to save franchise:", err);
+      toast.error("Failed to save franchise: " + err.message);
     }
   };
 
@@ -114,7 +121,8 @@ export default function FranchisePage() {
         <div className="text-center py-12 text-gray-500">No franchises found</div>
       ) : (
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-          <table className="w-full text-sm text-left">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm text-left min-w-[1100px]">
             <thead className="bg-gray-50/50 border-b border-gray-100 text-[10px] text-gray-800 uppercase font-bold tracking-wider">
               <tr>
                 <th className="px-6 py-4">ID</th>
@@ -138,7 +146,7 @@ export default function FranchisePage() {
                   <td className="px-6 py-4 font-bold text-gray-900">{f.name}</td>
                   <td className="px-6 py-4 text-gray-600">{f.city}</td>
                   <td className="px-6 py-4 text-gray-600">{f.owner}</td>
-                  <td className="px-6 py-4 text-gray-600 font-mono text-xs">{f.phone}</td>
+                  <td className="px-6 py-4 text-gray-600 font-mono text-xs whitespace-nowrap">{f.phone ? f.phone.replace(/\s+/g, '') : ''}</td>
                   <td className="px-6 py-4 text-gray-500 text-xs">{f.startDate}</td>
                   <td className="px-6 py-4 font-bold text-gray-900 text-center">{f.jobs}</td>
                   <td className="px-6 py-4 font-bold text-yellow-500">₹{(f.revenue || 0).toLocaleString("en-IN")}</td>
@@ -149,14 +157,17 @@ export default function FranchisePage() {
                       {f.status}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-right flex items-center justify-end gap-2">
-                    <button onClick={() => handleEdit(f)} className="p-1.5 hover:bg-gray-100 rounded border border-gray-200 text-gray-500 transition-colors bg-white"><Edit2 className="w-3 h-3" /></button>
-                    <button onClick={() => handleDelete(f.id)} className="p-1.5 hover:bg-red-50 rounded border border-red-200 text-red-500 transition-colors bg-red-50/50"><Trash2 className="w-3 h-3" /></button>
+                  <td className="px-6 py-4 text-right">
+                    <div className="flex items-center justify-end gap-2">
+                      <button onClick={() => handleEdit(f)} className="p-1.5 hover:bg-gray-100 rounded border border-gray-200 text-gray-500 transition-colors bg-white" title="Edit Franchise"><Edit2 className="w-3.5 h-3.5" /></button>
+                      <button onClick={() => handleDelete(f.id)} className="p-1.5 hover:bg-red-50 rounded border border-red-200 text-red-500 transition-colors bg-red-50/50" title="Delete Franchise"><Trash2 className="w-3.5 h-3.5" /></button>
+                    </div>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 

@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { useState, useEffect, useCallback } from "react";
-import { Plus, Trash2, Edit } from "lucide-react";
+import { Plus, Trash2, Edit, Search } from "lucide-react";
 import NewJobCardDialog from "@/components/jobs/NewJobCardDialog";
 import { getJobs, createJob, updateJob, deleteJob } from "@/lib/api";
 
@@ -13,6 +13,7 @@ export default function JobCardsPage() {
   const [error, setError] = useState<string | null>(null); 
   const [selectedJob, setSelectedJob] = useState<any>(null);
   const [priorityFilter, setPriorityFilter] = useState<string>("All");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const fetchJobs = useCallback(async () => {
     try {
@@ -106,20 +107,32 @@ export default function JobCardsPage() {
         </div>
       </div>
 
-      {/* Priority Filter Buttons - outside the card section, below Cancelled */}
-      <div className="rounded-lg px-2 py-1.5 flex items-center gap-1 w-fit" style={{ backgroundColor: "#ebebebff" }}>
-        {["All", "Normal", "High", "Low"].map(level => (
-          <button
-            key={level}
-            onClick={() => setPriorityFilter(level)}
-            className={`text-sm px-3 py-1 rounded-md transition-colors ${priorityFilter === level
-              ? 'bg-white text-gray-900 font-bold shadow-sm'
-              : 'text-gray-600 hover:text-gray-900 font-medium'
-              }`}
-          >
-            {level}
-          </button>
-        ))}
+      {/* Priority Filter and Search */}
+      <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-center justify-between">
+        <div className="rounded-lg px-2 py-1.5 flex items-center gap-1 w-fit" style={{ backgroundColor: "#ebebebff" }}>
+          {["All", "Normal", "High", "Low"].map(level => (
+            <button
+              key={level}
+              onClick={() => setPriorityFilter(level)}
+              className={`text-sm px-3 py-1 rounded-md transition-colors ${priorityFilter === level
+                ? 'bg-white text-gray-900 font-bold shadow-sm'
+                : 'text-gray-600 hover:text-gray-900 font-medium'
+                }`}
+            >
+              {level}
+            </button>
+          ))}
+        </div>
+        <div className="relative w-full max-w-md">
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search job cards by ID, vehicle, customer, or tech..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-9 pr-4 py-2 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400 text-sm"
+          />
+        </div>
       </div>
 
       {jobs.length === 0 ? (
@@ -145,7 +158,17 @@ export default function JobCardsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
-                {jobs.filter(j => priorityFilter === "All" || j.priority === priorityFilter).map(j => (
+                {jobs
+                  .filter(j => {
+                    const priorityMatch = priorityFilter === "All" || j.priority === priorityFilter;
+                    const searchMatch =
+                      j.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                      j.vehicle.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                      j.customer.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                      (j.technician && j.technician.toLowerCase().includes(searchQuery.toLowerCase()));
+                    return priorityMatch && searchMatch;
+                  })
+                  .map(j => (
                   <tr key={j.id} className="hover:bg-gray-50/50">
                     <td className="px-6 py-4 font-mono text-xs font-bold whitespace-nowrap" style={{ color: "#F0B100" }}>{j.id}</td>
                     <td className="px-4 py-4 font-bold text-gray-900 whitespace-nowrap">{j.vehicle}</td>

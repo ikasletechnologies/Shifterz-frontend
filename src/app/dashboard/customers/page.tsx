@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { useState, useEffect } from "react";
-import { Plus, FileText, Trash2 } from "lucide-react";
+import { Plus, FileText, Trash2, Search } from "lucide-react";
 import AddCustomerDialog from "@/components/customers/AddCustomerDialog";
 import { getCustomers, createCustomer, deleteCustomer } from "@/lib/api";
 import { useRouter } from "next/navigation";
@@ -24,7 +24,10 @@ export default function CustomersPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     async function fetchCustomers() {
@@ -54,20 +57,35 @@ export default function CustomersPage() {
     }
   };
 
-  const handleDeleteCustomer = (id: string) => {
-    if (!confirm("Delete this customer?")) return;
-    deleteCustomer(id)
+  const confirmDelete = (customer: Customer) => {
+    setCustomerToDelete(customer);
+  };
+
+  const executeDelete = () => {
+    if (!customerToDelete) return;
+    setIsDeleting(true);
+    deleteCustomer(customerToDelete.id)
       .then(() => {
-        setCustomers(customers.filter((customer) => customer.id !== id));
+        setCustomers(customers.filter((c) => c.id !== customerToDelete.id));
+        setCustomerToDelete(null);
       })
       .catch((err: any) => {
         alert("Failed to delete customer: " + err.message);
+      })
+      .finally(() => {
+        setIsDeleting(false);
       });
   };
 
   const handleViewBilling = (customerId: string, customerName: string) => {
     router.push(`/dashboard/billing?customer=${customerId}&name=${customerName}`);
   };
+
+  const filteredCustomers = customers.filter(customer => 
+    customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    customer.phone.includes(searchQuery) ||
+    customer.vehicle.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   if (isLoading) return <div className="p-8">Loading customers...</div>;
 
@@ -80,10 +98,20 @@ export default function CustomersPage() {
       )}
 
       {/* Action Bar */}
-      <div className="flex justify-end">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+        <div className="relative w-full max-w-md">
+          <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search customers by name, phone, or vehicle..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent transition-all text-sm"
+          />
+        </div>
         <button
           onClick={() => setIsDialogOpen(true)}
-          className="bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-bold px-4 py-2.5 rounded-lg flex items-center gap-2 transition-colors shadow-sm"
+          className="w-full sm:w-auto bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-bold px-4 py-2.5 rounded-lg flex items-center justify-center gap-2 transition-colors shadow-sm"
         >
           <Plus className="w-4 h-4 stroke-3" />
           Add Customer
@@ -109,7 +137,7 @@ export default function CustomersPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {customers.map((customer) => (
+              {filteredCustomers.map((customer) => (
                 <tr key={customer.id} className="hover:bg-gray-50/50 transition-colors">
                   <td className="px-3 py-3 text-xs font-mono font-bold whitespace-nowrap" style={{ color: "#F0B100" }}>{customer.id}</td>
                   <td className="px-3 py-3 whitespace-nowrap">
@@ -143,8 +171,9 @@ export default function CustomersPage() {
                         <FileText className="w-3.5 h-3.5" />
                       </button>
                       <button
-                        onClick={() => handleDeleteCustomer(customer.id)}
+                        onClick={() => confirmDelete(customer)}
                         className="p-1.5 hover:bg-red-50 text-red-400 rounded-md border border-red-100 transition-colors shadow-sm"
+                        title="Delete Customer"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -157,13 +186,45 @@ export default function CustomersPage() {
         </div>
       </div>
 
-      {/* Dialog */}
+      {/* Dialogs */}
       <AddCustomerDialog
         isOpen={isDialogOpen}
         onClose={() => setIsDialogOpen(false)}
         onSubmit={handleAddCustomer}
         existingCustomers={customers}
       />
+
+      {customerToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-6">
+              <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mb-4">
+                <Trash2 className="w-6 h-6 text-red-600" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Delete Customer</h3>
+              <p className="text-gray-500 mb-6">
+                Are you sure you want to delete <span className="font-semibold text-gray-900">{customerToDelete.name}</span> (ID: <span className="font-mono font-semibold text-yellow-600">{customerToDelete.id}</span>, Vehicle: <span className="font-semibold text-gray-700">{customerToDelete.vehicle || 'N/A'}</span>)? This action will remove them from the list.
+              </p>
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => setCustomerToDelete(null)}
+                  disabled={isDeleting}
+                  className="px-4 py-2 font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={executeDelete}
+                  disabled={isDeleting}
+                  className="px-4 py-2 font-bold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50"
+                >
+                  {isDeleting ? "Deleting..." : "Delete"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

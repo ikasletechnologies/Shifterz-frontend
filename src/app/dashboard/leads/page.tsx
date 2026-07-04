@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { useState, useEffect, useRef } from "react";
-import { Plus, ChevronDown, Trash2, Pencil } from "lucide-react";
+import { Plus, ChevronDown, Trash2, Pencil, Search } from "lucide-react";
 import AddLeadDialog from "@/components/leads/AddLeadDialog";
 import EditLeadDialog from "@/components/leads/EditLeadDialog";
 import { getLeads, createLead, deleteLead, updateLead, createCustomer } from "@/lib/api";
@@ -120,6 +120,7 @@ export default function LeadsPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [leadToEdit, setLeadToEdit] = useState<Lead | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Load leads from backend
   useEffect(() => {
@@ -224,7 +225,12 @@ export default function LeadsPage() {
     const statusMatch = filter === "All" || lead.status === filter;
     const sourceMatch =
       sourceFilter === "All Sources" || lead.source === sourceFilter;
-    return statusMatch && sourceMatch;
+    const searchMatch =
+      lead.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      lead.phone.includes(searchQuery) ||
+      lead.vehicle.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (lead.email && lead.email.toLowerCase().includes(searchQuery.toLowerCase()));
+    return statusMatch && sourceMatch && searchMatch;
   });
 
   const totalLeads = leads.length;
@@ -277,20 +283,32 @@ export default function LeadsPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="rounded-lg px-2 py-0.5 flex text-sm items-center gap-2 w-fit" style={{ backgroundColor: "#ebebebff" }}>
-          {["All", "New", "Follow Up", "Converted", "Lost"].map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setFilter(tab)}
-              className={`px-2 py-1.5 rounded-lg font-medium transition-colors ${filter === tab
-                ? "bg-white px-1 py-1 text-gray-900 font-bold shadow-sm"
-                : " text-gray-700 hover:bg-[#ebebebff]"
-                }`}
-            >
-              {tab}
-            </button>
-          ))}
+      <div className="flex flex-col lg:flex-row gap-4 items-stretch lg:items-center justify-between mb-6">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 flex-1">
+          <div className="rounded-lg px-2 py-0.5 flex text-sm items-center gap-2 w-fit" style={{ backgroundColor: "#ebebebff" }}>
+            {["All", "New", "Follow Up", "Converted", "Lost"].map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setFilter(tab)}
+                className={`px-2 py-1.5 rounded-lg font-medium transition-colors ${filter === tab
+                  ? "bg-white px-1 py-1 text-gray-900 font-bold shadow-sm"
+                  : " text-gray-700 hover:bg-[#ebebebff]"
+                  }`}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
+          <div className="relative w-full max-w-xs">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search leads by name, phone, or vehicle..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-9 pr-4 py-2 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400 text-sm"
+            />
+          </div>
         </div>
 
         <div className="flex items-center gap-4">
