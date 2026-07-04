@@ -21,6 +21,8 @@ import {
   LogOut,
   Lock,
   X,
+  UserCheck,
+  Clock,
 } from "lucide-react";
 import { SidebarContext } from "@/lib/context/SidebarContext";
 
@@ -36,6 +38,8 @@ const hqSidebarSections = [
     items: [
       { label: "Franchises", icon: Building2, href: "/dashboard/franchise" },
       { label: "Services", icon: Wrench, href: "/dashboard/services" },
+      { label: "Employees", icon: UserCheck, href: "/dashboard/employees" },
+      { label: "Attendance", icon: Clock, href: "/dashboard/attendance" },
     ],
   },
   {
@@ -93,6 +97,28 @@ const franchiseSidebarSections = [
       { label: "Reports", icon: PieChart, href: "/dashboard/reports" },
     ],
   },
+  {
+    label: "HR & STAFF",
+    items: [
+      { label: "Employees", icon: UserCheck, href: "/dashboard/employees" },
+      { label: "Attendance", icon: Clock, href: "/dashboard/attendance" },
+    ],
+  },
+];
+
+const employeeSidebarSections = [
+  {
+    label: "OVERVIEW",
+    items: [
+      { label: "My Dashboard", icon: Grid3x3, href: "/dashboard" },
+    ],
+  },
+  {
+    label: "HR & STAFF",
+    items: [
+      { label: "My Attendance", icon: Clock, href: "/dashboard/attendance" },
+    ],
+  },
 ];
 
 export default function Sidebar() {
@@ -132,7 +158,12 @@ export default function Sidebar() {
 
       {/* Navigation Sections */}
       <nav className="flex-1 px-4 py-6 space-y-8">
-        {(userRole === "SUPER_ADMIN" || userRole === "HQ_USER" ? hqSidebarSections : franchiseSidebarSections).map((section, idx) => (
+        {(userRole === "SUPER_ADMIN" || userRole === "HQ_USER" 
+          ? hqSidebarSections 
+          : userRole === "FRANCHISE_ADMIN" || userRole === "BRANCH_MANAGER"
+            ? franchiseSidebarSections
+            : employeeSidebarSections
+        ).map((section, idx) => (
           <div key={idx} className="mb-8">
             <h3 className="px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
               {section.label}

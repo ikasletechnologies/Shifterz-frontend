@@ -5,7 +5,7 @@ import { apiCall } from "@/lib/api";
 import { Loader2, Car, Calendar, CheckCircle2, Clock, MapPin, Search } from "lucide-react";
 import JobActionDialog from "./JobActionDialog";
 
-export default function TechnicianDashboard() {
+export default function EmployeeDashboard() {
   const [jobs, setJobs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedJob, setSelectedJob] = useState<any | null>(null);
