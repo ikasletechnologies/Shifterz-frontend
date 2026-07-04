@@ -322,8 +322,8 @@ export default function LeadsPage() {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-        <div className="overflow-x-auto">
+      <div className="bg-white rounded-lg border border-gray-200 overflow-visible">
+        <div className="overflow-visible">
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-200 bg-gray-50/75">
