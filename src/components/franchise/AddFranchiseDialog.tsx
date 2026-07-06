@@ -89,14 +89,33 @@ export default function AddFranchiseDialog({ isOpen, onClose, franchiseData, onS
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validate GST Number format if it has been filled in
-    if (formData.gstNumber) {
-      if (!isValidGST(formData.gstNumber)) {
-        toast.error("Wrong GST Number format. Format must match: 29ABCDE1234F1Z5");
-        return;
-      }
-      // Store GST Number as uppercase
-      formData.gstNumber = formData.gstNumber.toUpperCase();
+    // Validate Email Address (Compulsory)
+    if (!formData.email || !formData.email.trim()) {
+      toast.error("Email Address is compulsory");
+      return;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      toast.error("Invalid Email Address format");
+      return;
+    }
+
+    // Validate GST Number (Compulsory)
+    if (!formData.gstNumber || !formData.gstNumber.trim()) {
+      toast.error("GST Number is compulsory");
+      return;
+    }
+    if (!isValidGST(formData.gstNumber)) {
+      toast.error("Wrong GST Number format. Format must match: 29ABCDE1234F1Z5");
+      return;
+    }
+    // Store GST Number as uppercase
+    formData.gstNumber = formData.gstNumber.toUpperCase();
+
+    // Validate Business Address (Compulsory)
+    if (!formData.address || !formData.address.trim()) {
+      toast.error("Business Address is compulsory");
+      return;
     }
 
     if (onSave) onSave(formData);
@@ -231,14 +250,14 @@ export default function AddFranchiseDialog({ isOpen, onClose, franchiseData, onS
                   <input 
                     type="text" 
                     value={formData.businessName || ""}
-                    onChange={e => setFormData({...formData, businessName: e.target.value})}
+                    onChange={e => setFormData({...formData, businessName: e.target.value.replace(/[^A-Za-z\s]/g, "")})}
                     className="w-full px-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm text-[#334155] focus:outline-none focus:ring-2 focus:ring-[#f59e0b] focus:bg-white transition-colors"
                     placeholder="Legal Entity Name"
                   />
                 </div>
                 
                 <div className="col-span-2 sm:col-span-1 space-y-1.5">
-                  <label className="text-[11px] font-bold text-[#64748b] uppercase tracking-wider">GST Number</label>
+                  <label className="text-[11px] font-bold text-[#64748b] uppercase tracking-wider">GST Number *</label>
                   <input 
                     type="text" 
                     value={formData.gstNumber || ""}
@@ -249,7 +268,7 @@ export default function AddFranchiseDialog({ isOpen, onClose, franchiseData, onS
                 </div>
 
                 <div className="col-span-2 sm:col-span-1 space-y-1.5">
-                  <label className="text-[11px] font-bold text-[#64748b] uppercase tracking-wider">Email Address</label>
+                  <label className="text-[11px] font-bold text-[#64748b] uppercase tracking-wider">Email Address *</label>
                   <input 
                     type="email" 
                     value={formData.email || ""}
@@ -260,7 +279,7 @@ export default function AddFranchiseDialog({ isOpen, onClose, franchiseData, onS
                 </div>
 
                 <div className="col-span-2 space-y-1.5">
-                  <label className="text-[11px] font-bold text-[#64748b] uppercase tracking-wider">Business Address</label>
+                  <label className="text-[11px] font-bold text-[#64748b] uppercase tracking-wider">Business Address *</label>
                   <input 
                     type="text" 
                     value={formData.address || ""}
