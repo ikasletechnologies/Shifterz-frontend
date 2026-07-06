@@ -332,3 +332,56 @@ export async function fetchVehicleDetails(vehicleNo: string) {
   return apiCall(`/vehicle/${vehicleNo}`);
 }
 
+// ═══════════════════════════════════════════════════════════════
+// EMPLOYEES
+// ═══════════════════════════════════════════════════════════════
+export async function getEmployees() {
+  return apiCall("/employees");
+}
+
+export async function createEmployee(employee: any) {
+  return apiCall("/employees", {
+    method: "POST",
+    body: JSON.stringify(employee),
+  });
+}
+
+export async function updateEmployee(id: string, employee: any) {
+  return apiCall(`/employees/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(employee),
+  });
+}
+
+export async function deleteEmployee(id: string) {
+  return apiCall(`/employees/${id}`, { method: "DELETE" });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ATTENDANCE
+// ═══════════════════════════════════════════════════════════════
+export async function getAttendance() {
+  return apiCall("/attendance");
+}
+
+export async function checkIn(employeeId: string) {
+  return apiCall("/attendance/check-in", {
+    method: "POST",
+    body: JSON.stringify({ employeeId }),
+  });
+}
+
+export async function checkOut(employeeId: string) {
+  return apiCall("/attendance/check-out", {
+    method: "PUT",
+    body: JSON.stringify({ employeeId }),
+  });
+}
+
+export async function updateAttendance(id: string, data: any) {
+  return apiCall(`/attendance/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+}
+

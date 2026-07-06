@@ -32,7 +32,7 @@ export default function LoginPage() {
       if (response.token) {
         // Token is automatically stored in localStorage by login function
         // Redirect based on role
-        if (response.user && response.user.role === "technician") {
+        if (response.user && response.user.role === "TECHNICIAN") {
           router.push("/technician");
         } else {
           router.push("/dashboard");
