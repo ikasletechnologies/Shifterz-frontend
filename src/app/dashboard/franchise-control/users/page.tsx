@@ -37,32 +37,32 @@ import { toast } from "react-hot-toast";
 
 // ── Role config ───────────────────────────────────────────────────────────────
 const ROLES = [
-  { value: "SUPER_ADMIN",         label: "Super Admin",         color: "#ef4444", bg: "bg-red-100 text-red-700" },
-  { value: "HQ_USER",             label: "HQ User",             color: "#f59e0b", bg: "bg-amber-100 text-amber-700" },
-  { value: "FRANCHISE_ADMIN",     label: "Franchise Admin",     color: "#3b82f6", bg: "bg-blue-100 text-blue-700" },
-  { value: "BRANCH_MANAGER",      label: "Branch Manager",      color: "#8b5cf6", bg: "bg-violet-100 text-violet-700" },
+  { value: "SUPER_ADMIN", label: "Super Admin", color: "#ef4444", bg: "bg-red-100 text-red-700" },
+  { value: "HQ_USER", label: "HQ User", color: "#f59e0b", bg: "bg-amber-100 text-amber-700" },
+  { value: "FRANCHISE_ADMIN", label: "Franchise Admin", color: "#3b82f6", bg: "bg-blue-100 text-blue-700" },
+  { value: "BRANCH_MANAGER", label: "Branch Manager", color: "#8b5cf6", bg: "bg-violet-100 text-violet-700" },
   { value: "RECEPTION_EXECUTIVE", label: "Reception Executive", color: "#06b6d4", bg: "bg-cyan-100 text-cyan-700" },
-  { value: "SERVICE_ADVISOR",     label: "Service Advisor",     color: "#3b82f6", bg: "bg-blue-100 text-blue-700" },
-  { value: "TECHNICIAN",          label: "Technician",          color: "#10b981", bg: "bg-emerald-100 text-emerald-700" },
-  { value: "QUALITY_INSPECTOR",   label: "Quality Inspector",   color: "#a855f7", bg: "bg-purple-100 text-purple-700" },
-  { value: "BILLING_EXECUTIVE",   label: "Billing Executive",   color: "#f97316", bg: "bg-orange-100 text-orange-700" },
+  { value: "SERVICE_ADVISOR", label: "Service Advisor", color: "#3b82f6", bg: "bg-blue-100 text-blue-700" },
+  { value: "TECHNICIAN", label: "Technician", color: "#10b981", bg: "bg-emerald-100 text-emerald-700" },
+  { value: "QUALITY_INSPECTOR", label: "Quality Inspector", color: "#a855f7", bg: "bg-purple-100 text-purple-700" },
+  { value: "BILLING_EXECUTIVE", label: "Billing Executive", color: "#f97316", bg: "bg-orange-100 text-orange-700" },
   { value: "INVENTORY_EXECUTIVE", label: "Inventory Executive", color: "#14b8a6", bg: "bg-teal-100 text-teal-700" },
 ];
 
 // ── Module options for checkable list ──────────────────────────────────────────
 const MODULE_OPTIONS = [
-  { value: "dashboard",  label: "Dashboard",       icon: Grid3x3 },
-  { value: "carin",      label: "Car In / Out",    icon: Car },
-  { value: "jobs",       label: "Job Cards",       icon: Briefcase },
-  { value: "outpass",    label: "Out Pass",        icon: Ticket },
-  { value: "leads",      label: "Leads",           icon: Users },
-  { value: "customers",  label: "Customers",       icon: Users },
-  { value: "billing",    label: "Billing",         icon: FileText },
-  { value: "payments",   label: "Payments",        icon: CreditCard },
-  { value: "inventory",  label: "Inventory",       icon: Package },
-  { value: "reports",    label: "Reports",         icon: PieChart },
-  { value: "employees",  label: "Employees",       icon: UserCheck },
-  { value: "attendance", label: "Attendance",      icon: Clock },
+  { value: "dashboard", label: "Dashboard", icon: Grid3x3 },
+  { value: "carin", label: "Car In / Out", icon: Car },
+  { value: "jobs", label: "Job Cards", icon: Briefcase },
+  { value: "outpass", label: "Out Pass", icon: Ticket },
+  { value: "leads", label: "Leads", icon: Users },
+  { value: "customers", label: "Customers", icon: Users },
+  { value: "billing", label: "Billing", icon: FileText },
+  { value: "payments", label: "Payments", icon: CreditCard },
+  { value: "inventory", label: "Inventory", icon: Package },
+  { value: "reports", label: "Reports", icon: PieChart },
+  { value: "employees", label: "Employees", icon: UserCheck },
+  { value: "attendance", label: "Attendance", icon: Clock },
 ];
 
 // ── Default dashboard modules per role ─────────────────────────────────────────
@@ -169,11 +169,10 @@ function DashboardCustomizer({
               key={opt.value}
               disabled={disabled}
               onClick={() => handleToggle(opt.value)}
-              className={`flex items-center gap-2 p-2 rounded-xl border text-left transition-all ${
-                isSelected
+              className={`flex items-center gap-2 p-2 rounded-xl border text-left transition-all ${isSelected
                   ? "bg-white border-yellow-400 shadow-sm"
                   : "bg-gray-50/50 border-gray-100 opacity-60 text-gray-400"
-              }`}
+                }`}
             >
               <div
                 className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
@@ -201,21 +200,21 @@ function DashboardCustomizer({
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function UserManagementPage() {
-  const [users, setUsers]           = useState<User[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [franchises, setFranchises] = useState<any[]>([]);
-  const [loading, setLoading]       = useState(true);
-  const [search, setSearch]         = useState("");
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("ALL");
 
   // Role guard
   const [authorized, setAuthorized] = useState<boolean | null>(null); // null = loading
 
   // Modal state
-  const [modalMode, setModalMode]   = useState<"create" | "edit" | "view" | null>(null);
-  const [selected, setSelected]     = useState<User | null>(null);
-  const [form, setForm]             = useState<FormData>(EMPTY_FORM);
-  const [saving, setSaving]         = useState(false);
-  const [deleting, setDeleting]     = useState<string | null>(null);
+  const [modalMode, setModalMode] = useState<"create" | "edit" | "view" | null>(null);
+  const [selected, setSelected] = useState<User | null>(null);
+  const [form, setForm] = useState<FormData>(EMPTY_FORM);
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState<string | null>(null);
 
   // ── Role guard + data load ──
   useEffect(() => {
@@ -347,7 +346,11 @@ export default function UserManagementPage() {
         if (!body.password) delete body.password;
         const updated = await updateEmployee(selected.id, body);
         setUsers((prev) => prev.map((u) => (u.id === updated.id ? updated : u)));
-        toast.success("User updated!");
+        if (updated.transferPending) {
+          toast.success("User updated. Branch transfer is pending approval.");
+        } else {
+          toast.success("User updated!");
+        }
       }
       closeModal();
     } catch (e: any) {

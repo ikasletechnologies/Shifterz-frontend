@@ -160,7 +160,7 @@ export default function AddFranchiseDialog({ isOpen, onClose, franchiseData, onS
                   <input 
                     required
                     type="text" 
-                    value={formData.name}
+                    value={formData.name || ""}
                     onChange={e => setFormData({...formData, name: e.target.value})}
                     className="w-full px-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm text-[#334155] focus:outline-none focus:ring-2 focus:ring-[#f59e0b] focus:bg-white transition-colors"
                     placeholder="Shifterz Chennai"
@@ -171,7 +171,7 @@ export default function AddFranchiseDialog({ isOpen, onClose, franchiseData, onS
                   <label className="text-[11px] font-bold text-[#64748b] uppercase tracking-wider">Owner Name</label>
                   <input 
                     type="text" 
-                    value={formData.owner}
+                    value={formData.owner || ""}
                     onChange={e => setFormData({...formData, owner: e.target.value})}
                     className="w-full px-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm text-[#334155] focus:outline-none focus:ring-2 focus:ring-[#f59e0b] focus:bg-white transition-colors"
                     placeholder="Full name"
@@ -182,7 +182,7 @@ export default function AddFranchiseDialog({ isOpen, onClose, franchiseData, onS
                   <label className="text-[11px] font-bold text-[#64748b] uppercase tracking-wider">Phone</label>
                   <input 
                     type="text" 
-                    value={formData.phone}
+                    value={formData.phone || ""}
                     onChange={e => setFormData({...formData, phone: e.target.value.replace(/\D/g, "").slice(0, 10)})}
                     className="w-full px-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm text-[#334155] focus:outline-none focus:ring-2 focus:ring-[#f59e0b] focus:bg-white transition-colors"
                     placeholder="+91 XXXXX XXXXX"
@@ -193,7 +193,7 @@ export default function AddFranchiseDialog({ isOpen, onClose, franchiseData, onS
                   <label className="text-[11px] font-bold text-[#64748b] uppercase tracking-wider">Start Date</label>
                   <input 
                     type="date" 
-                    value={formData.startDate}
+                    value={formData.startDate || ""}
                     onChange={e => setFormData({...formData, startDate: e.target.value})}
                     className="w-full px-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm text-[#334155] focus:outline-none focus:ring-2 focus:ring-[#f59e0b] focus:bg-white transition-colors"
                   />
@@ -203,7 +203,7 @@ export default function AddFranchiseDialog({ isOpen, onClose, franchiseData, onS
                   <label className="text-[11px] font-bold text-[#64748b] uppercase tracking-wider">Royalty %</label>
                   <input 
                     type="number" 
-                    value={formData.royalty}
+                    value={formData.royalty || ""}
                     onChange={e => setFormData({...formData, royalty: e.target.value})}
                     className="w-full px-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm text-[#334155] focus:outline-none focus:ring-2 focus:ring-[#f59e0b] focus:bg-white transition-colors"
                     placeholder="5"
@@ -213,7 +213,7 @@ export default function AddFranchiseDialog({ isOpen, onClose, franchiseData, onS
                 <div className="col-span-2 sm:col-span-1 space-y-1.5">
                   <label className="text-[11px] font-bold text-[#64748b] uppercase tracking-wider">Status</label>
                   <select 
-                    value={formData.status}
+                    value={formData.status || "Active"}
                     onChange={e => setFormData({...formData, status: e.target.value})}
                     className="w-full px-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm text-[#334155] focus:outline-none focus:ring-2 focus:ring-[#f59e0b] focus:bg-white transition-colors"
                   >
@@ -294,7 +294,7 @@ export default function AddFranchiseDialog({ isOpen, onClose, franchiseData, onS
                   <input 
                     required
                     type="text" 
-                    value={formData.city}
+                    value={formData.city || ""}
                     onChange={e => setFormData({...formData, city: e.target.value})}
                     className="w-full px-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm text-[#334155] focus:outline-none focus:ring-2 focus:ring-[#f59e0b] focus:bg-white transition-colors"
                     placeholder="Chennai"

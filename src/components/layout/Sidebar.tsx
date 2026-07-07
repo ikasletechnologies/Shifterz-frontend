@@ -63,9 +63,9 @@ interface NavSection {
 
 // ── FRANCHISE CONTROL sub-items ───────────────────────────────────────────────
 const franchiseControlChildren: Omit<NavItem, "children">[] = [
-  { label: "Franchise Requests", icon: GitPullRequest, href: "/dashboard/franchise-control/requests" },
-  { label: "Franchise Approval", icon: CheckSquare, href: "/dashboard/franchise-control/approval" },
-  { label: "Franchise Management", icon: LayoutList, href: "/dashboard/franchise-control/management" },
+  // { label: "Franchise Requests", icon: GitPullRequest, href: "/dashboard/franchise-control/requests" },
+  // { label: "Franchise Approval", icon: CheckSquare, href: "/dashboard/franchise-control/approval" },
+  // { label: "Franchise Management", icon: LayoutList, href: "/dashboard/franchise-control/management" },
   { label: "Add Franchise", icon: PlusSquare, href: "/dashboard/franchise-control/add" },
   { label: "Franchise Employees", icon: UsersRound, href: "/dashboard/franchise-control/employees" },
   { label: "Employee Approval", icon: UserCog, href: "/dashboard/franchise-control/employee-approval" },
@@ -292,16 +292,16 @@ function NavLink({
                 style={
                   childActive
                     ? {
-                        background: "linear-gradient(90deg, rgba(250,204,21,0.14) 0%, rgba(250,204,21,0.04) 100%)",
-                        borderLeft: "2px solid #facc15",
-                        color: "#facc15",
-                        marginLeft: "-2px",
-                      }
+                      background: "linear-gradient(90deg, rgba(250,204,21,0.14) 0%, rgba(250,204,21,0.04) 100%)",
+                      borderLeft: "2px solid #facc15",
+                      color: "#facc15",
+                      marginLeft: "-2px",
+                    }
                     : {
-                        borderLeft: "2px solid transparent",
-                        color: "rgba(255,255,255,0.5)",
-                        marginLeft: "-2px",
-                      }
+                      borderLeft: "2px solid transparent",
+                      color: "rgba(255,255,255,0.5)",
+                      marginLeft: "-2px",
+                    }
                 }
                 className={`
                   flex items-center gap-2.5 px-3 py-2 rounded-r-lg
