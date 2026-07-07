@@ -292,14 +292,14 @@ export default function BillingPage() {
       {/* Filters */}
       <div className="flex flex-col gap-4 mb-6">
         <div className="flex items-center justify-between">
-          <div className="flex gap-2">
+          <div className="rounded-lg px-2 py-1.5 flex items-center gap-1 w-fit" style={{ backgroundColor: "#ebebebff" }}>
             {["All", "Estimate", "Quotation", "Invoice"].map((tab) => (
               <button
                 key={tab}
                 onClick={() => setFilter(tab)}
-                className={`px-4 py-2 rounded-lg font-medium transition-colors text-sm ${filter === tab
-                    ? "bg-gray-900 text-white"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                className={`text-sm px-3 py-1 rounded-md transition-colors ${filter === tab
+                  ? "bg-white text-gray-900 font-bold shadow-sm"
+                  : "text-gray-600 hover:text-gray-900 font-medium"
                   }`}
               >
                 {tab}

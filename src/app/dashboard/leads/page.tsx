@@ -121,6 +121,8 @@ export default function LeadsPage() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [leadToEdit, setLeadToEdit] = useState<Lead | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [pendingStatusChange, setPendingStatusChange] = useState<{ id: string; newStatus: string; lead: Lead } | null>(null);
 
   // Load leads from backend
   useEffect(() => {
@@ -193,7 +195,7 @@ export default function LeadsPage() {
   };
 
   // Change Status
-  const handleStatusChange = async (id: string, newStatus: string, currentLead: Lead) => {
+  const executeStatusChange = async (id: string, newStatus: string, currentLead: Lead) => {
     try {
       const updatedLead = { ...currentLead, status: newStatus };
       const updated = await updateLead(id, updatedLead);
@@ -219,6 +221,15 @@ export default function LeadsPage() {
       alert("Failed to update status: " + err.message);
       console.error(err);
     }
+  };
+
+  const handleStatusChange = async (id: string, newStatus: string, currentLead: Lead) => {
+    if (newStatus === "Converted") {
+      setPendingStatusChange({ id, newStatus, lead: currentLead });
+      setShowConfirmModal(true);
+      return;
+    }
+    await executeStatusChange(id, newStatus, currentLead);
   };
 
   const filteredLeads = leads.filter((lead) => {
@@ -285,14 +296,14 @@ export default function LeadsPage() {
       {/* Filters */}
       <div className="flex flex-col lg:flex-row gap-4 items-stretch lg:items-center justify-between mb-6">
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 flex-1">
-          <div className="rounded-lg px-2 py-0.5 flex text-sm items-center gap-2 w-fit" style={{ backgroundColor: "#ebebebff" }}>
+          <div className="rounded-lg px-2 py-1.5 flex items-center gap-1 w-fit" style={{ backgroundColor: "#ebebebff" }}>
             {["All", "New", "Follow Up", "Converted", "Lost"].map((tab) => (
               <button
                 key={tab}
                 onClick={() => setFilter(tab)}
-                className={`px-2 py-1.5 rounded-lg font-medium transition-colors ${filter === tab
-                  ? "bg-white px-1 py-1 text-gray-900 font-bold shadow-sm"
-                  : " text-gray-700 hover:bg-[#ebebebff]"
+                className={`text-sm px-3 py-1 rounded-md transition-colors ${filter === tab
+                  ? "bg-white text-gray-900 font-bold shadow-sm"
+                  : "text-gray-600 hover:text-gray-900 font-medium"
                   }`}
               >
                 {tab}
@@ -415,6 +426,41 @@ export default function LeadsPage() {
         onSubmit={handleEditLead}
         lead={leadToEdit}
       />
+
+      {/* Confirmation Dialog for Converted Status */}
+      {showConfirmModal && pendingStatusChange && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] p-4">
+          <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-2xl animate-in fade-in zoom-in duration-200 text-gray-900">
+            <h3 className="text-lg font-bold text-gray-900 mb-2">Convert Lead to Customer?</h3>
+            <p className="text-sm text-gray-600 mb-6">
+              Are you sure you want to convert <strong className="text-gray-800">{pendingStatusChange.lead.name}</strong> to a customer? This will create a customer profile automatically.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setShowConfirmModal(false);
+                  setPendingStatusChange(null);
+                }}
+                className="px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  setShowConfirmModal(false);
+                  if (pendingStatusChange) {
+                    await executeStatusChange(pendingStatusChange.id, pendingStatusChange.newStatus, pendingStatusChange.lead);
+                  }
+                  setPendingStatusChange(null);
+                }}
+                className="px-4 py-2 text-sm font-semibold text-gray-900 bg-yellow-400 hover:bg-yellow-500 rounded-lg transition-colors shadow-sm"
+              >
+                Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

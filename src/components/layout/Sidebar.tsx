@@ -373,10 +373,16 @@ export default function Sidebar() {
   }
 
   // 1. Choose root list
-  const rawSections =
+  let rawSections =
     baseRole === "SUPER_ADMIN" || baseRole === "HQ_USER"
       ? hqSidebarSections
       : franchiseSidebarSections;
+
+  if (baseRole === "BILLING") {
+    rawSections = rawSections.filter(
+      (sec) => sec.label === "OVERVIEW" || sec.label === "SALES & BILLING"
+    );
+  }
 
   // 2. Filter list based on custom modules (if present)
   const sections = rawSections

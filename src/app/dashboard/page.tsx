@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { FranchiseDashboard } from "@/components/dashboard/FranchiseDashboard";
 import { HQDashboard } from "@/components/dashboard/HQDashboard";
 import EmployeeDashboard from "@/components/technician/EmployeeDashboard";
+import BillingDashboard from "@/components/dashboard/BillingDashboard";
 
 export default function DashboardPage() {
   const [userRole, setUserRole] = useState<string | null>(null);
@@ -34,6 +35,7 @@ export default function DashboardPage() {
   }
 
   const isHQ = baseRole === "SUPER_ADMIN" || baseRole === "HQ_USER";
+  const isBilling = baseRole === "BILLING";
   const isFranchiseAdmin = baseRole === "FRANCHISE_ADMIN" || baseRole === "BRANCH_MANAGER";
   
   // Decide if they should see the detailed Technician Dashboard (assigned jobs list)
@@ -53,7 +55,9 @@ export default function DashboardPage() {
 
   return (
     <div className="p-8 max-w-7xl mx-auto">
-      {isHQ ? (
+      {isBilling ? (
+        <BillingDashboard />
+      ) : isHQ ? (
         <HQDashboard />
       ) : onlyJobsDashboard ? (
         <EmployeeDashboard />

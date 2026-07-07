@@ -1,3 +1,6 @@
+"use client";
+
+import { useState, useEffect } from "react";
 import {
   Users,
   Plus,
@@ -371,7 +374,10 @@ export default function UserManagementPage() {
   // ── Filter ──
   const filtered = users.filter((u) => {
     const q = search.toLowerCase();
-    const matchSearch = u.name.toLowerCase().includes(q) || u.username.toLowerCase().includes(q) || u.email.toLowerCase().includes(q);
+    const matchSearch =
+      (u.name || "").toLowerCase().includes(q) ||
+      (u.username || "").toLowerCase().includes(q) ||
+      (u.email || "").toLowerCase().includes(q);
     const matchRole = roleFilter === "ALL" || u.role === roleFilter;
     return matchSearch && matchRole;
   });

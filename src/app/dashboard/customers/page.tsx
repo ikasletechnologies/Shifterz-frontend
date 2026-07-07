@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { useState, useEffect } from "react";
-import { Plus, FileText, Trash2, Search } from "lucide-react";
+import { Plus, FileText, Trash2, Search, Download } from "lucide-react";
 import AddCustomerDialog from "@/components/customers/AddCustomerDialog";
 import { getCustomers, createCustomer, deleteCustomer } from "@/lib/api";
 import { useRouter } from "next/navigation";
@@ -28,6 +28,9 @@ export default function CustomersPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [periodFilter, setPeriodFilter] = useState("All");
+  const [customFromDate, setCustomFromDate] = useState("");
+  const [customToDate, setCustomToDate] = useState("");
 
   useEffect(() => {
     async function fetchCustomers() {
@@ -81,11 +84,91 @@ export default function CustomersPage() {
     router.push(`/dashboard/billing?customer=${customerId}&name=${customerName}`);
   };
 
-  const filteredCustomers = customers.filter(customer => 
-    customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    customer.phone.includes(searchQuery) ||
-    customer.vehicle.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filterByPeriod = (customerDateStr: string, period: string) => {
+    if (period === "All") return true;
+    if (!customerDateStr) return false;
+
+    const customerDate = new Date(customerDateStr);
+    if (isNaN(customerDate.getTime())) return false;
+
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    const checkDate = new Date(customerDate.getFullYear(), customerDate.getMonth(), customerDate.getDate());
+
+    switch (period) {
+      case "Today":
+        return checkDate.getTime() === today.getTime();
+      case "Yesterday":
+        return checkDate.getTime() === yesterday.getTime();
+      case "Custom": {
+        if (!customFromDate && !customToDate) return true;
+        
+        let start = null;
+        if (customFromDate) {
+          const fromParts = customFromDate.split("-");
+          if (fromParts.length === 3) {
+            start = new Date(parseInt(fromParts[0], 10), parseInt(fromParts[1], 10) - 1, parseInt(fromParts[2], 10));
+          }
+        }
+        
+        let end = null;
+        if (customToDate) {
+          const toParts = customToDate.split("-");
+          if (toParts.length === 3) {
+            end = new Date(parseInt(toParts[0], 10), parseInt(toParts[1], 10) - 1, parseInt(toParts[2], 10));
+          }
+        }
+        
+        if (start && end) {
+          return checkDate >= start && checkDate <= end;
+        } else if (start) {
+          return checkDate >= start;
+        } else if (end) {
+          return checkDate <= end;
+        }
+        return true;
+      }
+      default:
+        return true;
+    }
+  };
+
+  const filteredCustomers = customers.filter(customer => {
+    const matchesSearch = 
+      customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      customer.phone.includes(searchQuery) ||
+      customer.vehicle.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    const matchesPeriod = filterByPeriod(customer.lastVisit, periodFilter);
+    return matchesSearch && matchesPeriod;
+  }).sort((a, b) => {
+    const dateA = new Date(a.lastVisit).getTime();
+    const dateB = new Date(b.lastVisit).getTime();
+    if (dateA !== dateB) {
+      return dateB - dateA;
+    }
+    return b.id.localeCompare(a.id);
+  });
+
+  const downloadCSV = () => {
+    let csvContent = "ID,Name,Phone,Email,Vehicle,Car Model,Visits,Total Spend,Last Visit\n";
+    filteredCustomers.forEach((c) => {
+      csvContent += `"${c.id}","${c.name}","${c.phone}","${c.email}","${c.vehicle}","${c.model}",${c.visits},${c.totalSpend},"${c.lastVisit}"\n`;
+    });
+    
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `customers_report_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   if (isLoading) return <div className="p-8">Loading customers...</div>;
 
@@ -98,24 +181,82 @@ export default function CustomersPage() {
       )}
 
       {/* Action Bar */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-        <div className="relative w-full max-w-md">
-          <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Search customers by name, phone, or vehicle..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent transition-all text-sm"
-          />
+      <div className="flex flex-col gap-4 bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="relative w-full max-w-md">
+            <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search customers by name, phone, or vehicle..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent transition-all text-sm"
+            />
+          </div>
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            {/* Period Filter Buttons */}
+            <div className="rounded-lg px-2 py-1.5 flex items-center gap-1 w-fit" style={{ backgroundColor: "#ebebebff" }}>
+              {["All", "Today", "Yesterday", "Custom"].map((period) => {
+                const isCustom = period === "Custom";
+                return (
+                  <div key={period} className="relative">
+                    <button
+                      onClick={() => setPeriodFilter(period)}
+                      className={`text-sm px-3 py-1 rounded-md transition-colors ${periodFilter === period
+                        ? 'bg-white text-gray-900 font-bold shadow-sm'
+                        : 'text-gray-600 hover:text-gray-900 font-medium'
+                        }`}
+                    >
+                      {period}
+                    </button>
+                    {isCustom && periodFilter === "Custom" && (
+                      <div className="absolute bottom-full right-0 mb-3 z-50 flex items-center gap-2 border border-gray-200 bg-white p-3 rounded-xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.15)] animate-in fade-in slide-in-from-bottom-2 duration-150 whitespace-nowrap min-w-[260px]">
+                        <div className="flex flex-col gap-1.5 w-full">
+                          <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider text-left">Date Range</span>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="date"
+                              value={customFromDate}
+                              onChange={(e) => setCustomFromDate(e.target.value)}
+                              className="px-2 py-1 bg-gray-50 border border-gray-200 rounded-md text-xs text-gray-700 outline-none focus:border-yellow-400 w-[110px]"
+                              placeholder="From"
+                            />
+                            <span className="text-xs text-gray-400">to</span>
+                            <input
+                              type="date"
+                              value={customToDate}
+                              onChange={(e) => setCustomToDate(e.target.value)}
+                              className="px-2 py-1 bg-gray-50 border border-gray-200 rounded-md text-xs text-gray-700 outline-none focus:border-yellow-400 w-[110px]"
+                              placeholder="To"
+                            />
+                          </div>
+                        </div>
+                        <div className="absolute top-full right-6 -mt-1 w-2.5 h-2.5 bg-white border-r border-b border-gray-200 rotate-45"></div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Download Button */}
+            <button
+              onClick={downloadCSV}
+              className="p-2.5 hover:bg-gray-100 text-gray-900 rounded-lg border border-gray-200 transition-colors shadow-sm bg-gray-50"
+              title="Download CSV"
+            >
+              <Download className="w-4 h-4 text-black" />
+            </button>
+
+            <button
+              onClick={() => setIsDialogOpen(true)}
+              className="w-full sm:w-auto bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-bold px-4 py-2.5 rounded-lg flex items-center justify-center gap-2 transition-colors shadow-sm whitespace-nowrap"
+            >
+              <Plus className="w-4 h-4 stroke-3" />
+              Add Customer
+            </button>
+          </div>
         </div>
-        <button
-          onClick={() => setIsDialogOpen(true)}
-          className="w-full sm:w-auto bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-bold px-4 py-2.5 rounded-lg flex items-center justify-center gap-2 transition-colors shadow-sm"
-        >
-          <Plus className="w-4 h-4 stroke-3" />
-          Add Customer
-        </button>
       </div>
 
       {/* Table */}
