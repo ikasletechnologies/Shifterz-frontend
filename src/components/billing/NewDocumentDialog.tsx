@@ -430,7 +430,8 @@ export default function NewDocumentDialog({
                                 <div
                                   key={service.id}
                                   className="px-4 py-3 hover:bg-yellow-100 cursor-pointer text-sm text-gray-800 font-semibold transition-colors border-b border-gray-100 last:border-0 bg-yellow-50/50"
-                                  onClick={() => {
+                                  onMouseDown={(e) => {
+                                    e.preventDefault(); // Prevents input onBlur from closing the dropdown before selection is registered
                                     const newItems = [...items];
                                     newItems[index].desc = service.name;
                                     newItems[index].price = service.price || 0;
