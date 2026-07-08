@@ -243,9 +243,8 @@ export default function EmployeesPage() {
           {!canManageEmployees && currentUser?.franchiseId && (
             <button
               onClick={() => setIsTransferOpen(true)}
-              className="bg-yellow-500 hover:bg-yellow-600 text-gray-900 px-4 py-2 rounded-xl text-sm font-semibold transition-colors flex items-center gap-2 shadow-sm"
+              className="bg-yellow-400 hover:bg-yellow-400 text-gray-900 px-4 py-2 rounded-xl text-sm font-semibold transition-colors flex items-center justify-center shadow-sm"
             >
-              <ArrowLeftRight className="w-4 h-4" />
               Request members
             </button>
           )}
@@ -336,7 +335,7 @@ export default function EmployeesPage() {
                       ? "bg-green-100 text-green-700" 
                       : r.status === "Rejected" 
                       ? "bg-red-100 text-red-700" 
-                      : "bg-yellow-100 text-yellow-700";
+                      : "bg-yellow-50 text-yellow-700";
 
                   // Display branch name only 1 time (avoid tenkasi (tenkasi) if city is same as name)
                   const branchDisplay = 
@@ -554,7 +553,7 @@ export default function EmployeesPage() {
                 <button
                   type="submit"
                   disabled={transferLoading}
-                  className="px-5 py-2.5 rounded-xl bg-yellow-500 hover:bg-yellow-600 text-gray-900 font-semibold text-sm transition-colors disabled:opacity-50"
+                  className="px-5 py-2.5 rounded-xl bg-yellow-400 hover:bg-yellow-400 text-gray-900 font-semibold text-sm transition-colors disabled:opacity-50"
                 >
                   {transferLoading ? "Processing..." : (isEditRequest ? "Save Changes" : "Submit Request")}
                 </button>

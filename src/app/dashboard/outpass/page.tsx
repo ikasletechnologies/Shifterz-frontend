@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { useState, useEffect, useCallback } from "react";
-import { Plus, Printer, Edit2, Search } from "lucide-react";
+import { Plus, Printer, Edit2, Search, X } from "lucide-react";
 import NewOutPassDialog from "@/components/outpass/NewOutPassDialog";
 import PrintPassDialog from "@/components/outpass/PrintPassDialog";
 import { getOutPasses, createOutPass, updateOutPass } from "@/lib/api";
@@ -102,8 +102,16 @@ export default function OutPassPage() {
               placeholder="Search out passes by ID, vehicle, customer, or phone..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400 text-sm"
+              className="w-full pl-9 pr-9 py-2 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400 text-sm"
             />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
           </div>
         </div>
         <button

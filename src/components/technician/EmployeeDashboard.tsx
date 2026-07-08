@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { apiCall } from "@/lib/api";
-import { Loader2, Car, Calendar, CheckCircle2, Clock, MapPin, Search } from "lucide-react";
+import { Loader2, Car, Calendar, CheckCircle2, Clock, MapPin, Search, X } from "lucide-react";
 import JobActionDialog from "./JobActionDialog";
 
 export default function EmployeeDashboard() {
@@ -65,8 +65,16 @@ export default function EmployeeDashboard() {
             placeholder="Search vehicle or service..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-10 pr-4 py-2 border rounded-xl w-full md:w-64 focus:ring-2 focus:ring-yellow-400 focus:border-transparent outline-none"
+            className="pl-10 pr-10 py-2 border rounded-xl w-full md:w-64 focus:ring-2 focus:ring-yellow-400 focus:border-transparent outline-none"
           />
+          {search && (
+            <button
+              onClick={() => setSearch("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
         </div>
       </div>
 

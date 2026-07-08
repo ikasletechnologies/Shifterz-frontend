@@ -3,7 +3,7 @@
 
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Eye, Circle, Edit, Download, Check, Briefcase, Trash2, Search } from "lucide-react";
+import { Plus, Eye, Circle, Edit, Download, Check, Briefcase, Trash2, Search, X } from "lucide-react";
 import { toast } from "react-hot-toast";
 import CarCheckInDialog from "@/components/carin/CarCheckInDialog";
 import PassCarDialog from "@/components/carin/PassCarDialog";
@@ -375,8 +375,16 @@ export default function CarInOutPage() {
             placeholder="Search check-in logs by vehicle, customer, or phone..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400 text-sm"
+            className="w-full pl-9 pr-9 py-2 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400 text-sm"
           />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
         </div>
       </div>
 
