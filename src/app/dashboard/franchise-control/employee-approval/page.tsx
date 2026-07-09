@@ -9,6 +9,19 @@ export default function EmployeeApprovalPage() {
   const [requests, setRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
+  
+  // Custom confirmation modal state
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    type: "approve" | "reject" | null;
+    requestId: string | null;
+    employeeName: string;
+  }>({
+    isOpen: false,
+    type: null,
+    requestId: null,
+    employeeName: ""
+  });
 
   async function fetchRequests() {
     try {
@@ -26,29 +39,42 @@ export default function EmployeeApprovalPage() {
     fetchRequests();
   }, []);
 
-  const handleApprove = async (id: string) => {
-    if (!confirm("Are you sure you want to approve this transfer?")) return;
-    setProcessingId(id);
-    try {
-      await approveMemberTransfer(id);
-      toast.success("Transfer request approved successfully!");
-      fetchRequests();
-    } catch (err: any) {
-      toast.error("Failed to approve transfer: " + err.message);
-    } finally {
-      setProcessingId(null);
-    }
+  const triggerApproveConfirm = (id: string, name: string) => {
+    setConfirmModal({
+      isOpen: true,
+      type: "approve",
+      requestId: id,
+      employeeName: name
+    });
   };
 
-  const handleReject = async (id: string) => {
-    if (!confirm("Are you sure you want to reject this transfer?")) return;
-    setProcessingId(id);
+  const triggerRejectConfirm = (id: string, name: string) => {
+    setConfirmModal({
+      isOpen: true,
+      type: "reject",
+      requestId: id,
+      employeeName: name
+    });
+  };
+
+  const handleConfirmAction = async () => {
+    const { type, requestId } = confirmModal;
+    if (!requestId || !type) return;
+
+    setConfirmModal(prev => ({ ...prev, isOpen: false }));
+    setProcessingId(requestId);
+
     try {
-      await rejectMemberTransfer(id);
-      toast.success("Transfer request rejected.");
+      if (type === "approve") {
+        await approveMemberTransfer(requestId);
+        toast.success("Transfer request approved successfully!");
+      } else {
+        await rejectMemberTransfer(requestId);
+        toast.success("Transfer request rejected.");
+      }
       fetchRequests();
     } catch (err: any) {
-      toast.error("Failed to reject transfer: " + err.message);
+      toast.error(`Failed to ${type} transfer: ` + err.message);
     } finally {
       setProcessingId(null);
     }
@@ -176,7 +202,7 @@ export default function EmployeeApprovalPage() {
                       <td className="px-4 py-4 text-right">
                         <div className="flex items-center justify-end gap-2">
                           <button
-                            onClick={() => handleApprove(r.id)}
+                            onClick={() => triggerApproveConfirm(r.id, r.employeeName)}
                             disabled={processingId !== null}
                             className="px-3 py-1.5 rounded-lg bg-green-600 hover:bg-green-700 text-white font-semibold text-xs transition-colors"
                             title="Approve & Transfer"
@@ -184,7 +210,7 @@ export default function EmployeeApprovalPage() {
                             Approve
                           </button>
                           <button
-                            onClick={() => handleReject(r.id)}
+                            onClick={() => triggerRejectConfirm(r.id, r.employeeName)}
                             disabled={processingId !== null}
                             className="px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white font-semibold text-xs transition-colors"
                             title="Reject Request"
@@ -201,6 +227,45 @@ export default function EmployeeApprovalPage() {
           )}
         </div>
       </div>
+
+      {/* Confirmation Modal */}
+      {confirmModal.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-gray-100">
+            <div className="flex items-center gap-3 mb-4">
+              <div className={`p-3 rounded-full ${confirmModal.type === 'approve' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
+                <ShieldAlert className="w-6 h-6" />
+              </div>
+              <h3 className="text-lg font-bold text-gray-900 capitalize">
+                {confirmModal.type} Transfer Request
+              </h3>
+            </div>
+            
+            <p className="text-sm text-gray-600 mb-6">
+              Are you sure you want to <span className="font-semibold text-gray-900">{confirmModal.type}</span> the recruitment/transfer request for <span className="font-semibold text-gray-900">{confirmModal.employeeName}</span>?
+            </p>
+            
+            <div className="flex items-center justify-end gap-3">
+              <button
+                onClick={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+                className="px-4 py-2 text-sm font-semibold text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmAction}
+                className={`px-4 py-2 text-sm font-semibold text-white rounded-lg shadow-sm transition-colors ${
+                  confirmModal.type === 'approve' 
+                    ? 'bg-green-600 hover:bg-green-700' 
+                    : 'bg-red-600 hover:bg-red-700'
+                }`}
+              >
+                Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

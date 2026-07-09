@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Trash2, Pencil, ArrowLeftRight, X } from "lucide-react";
+import { Plus, Trash2, Pencil, ArrowLeftRight, X, Eye, EyeOff } from "lucide-react";
 import AddEmployeeDialog from "@/components/employees/AddEmployeeDialog";
 import EditEmployeeDialog from "@/components/employees/EditEmployeeDialog";
 import { getEmployees, createEmployee, updateEmployee, deleteEmployee, getFranchises, createMemberTransfer, uploadFile, getMemberTransfers, updateMemberTransfer, deleteMemberTransfer } from "@/lib/api";
@@ -30,6 +30,8 @@ export default function EmployeesPage() {
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [currentUser, setCurrentUser] = useState<any>(null);
 
+  const [showPassword, setShowPassword] = useState(false);
+
   // States for Request Member (Recruitment) Form
   const [newMemberForm, setNewMemberForm] = useState({
     name: "",
@@ -37,7 +39,10 @@ export default function EmployeesPage() {
     email: "",
     panNumber: "",
     aadharNumber: "",
-    address: ""
+    address: "",
+    role: "TECHNICIAN",
+    username: "",
+    password: ""
   });
   const [panFile, setPanFile] = useState<File | null>(null);
   const [aadharFile, setAadharFile] = useState<File | null>(null);
@@ -111,8 +116,8 @@ export default function EmployeesPage() {
 
   const handleRequestMemberSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMemberForm.name || !newMemberForm.phone || !newMemberForm.email || !newMemberForm.panNumber || !newMemberForm.aadharNumber) {
-      toast.error("Required fields (Name, Phone, Email, PAN Number, Aadhar Number) must be filled.");
+    if (!newMemberForm.name || !newMemberForm.phone || !newMemberForm.email || !newMemberForm.panNumber || !newMemberForm.aadharNumber || !newMemberForm.username || !newMemberForm.password) {
+      toast.error("Required fields (Name, Phone, Email, PAN Number, Aadhar Number, Username, Password) must be filled.");
       return;
     }
 
@@ -141,7 +146,10 @@ export default function EmployeesPage() {
         aadharNumber: newMemberForm.aadharNumber,
         address: newMemberForm.address || null,
         panDocUrl,
-        aadharDocUrl
+        aadharDocUrl,
+        role: newMemberForm.role,
+        username: newMemberForm.username,
+        password: newMemberForm.password
       };
       
       if (isEditRequest && editingRequestId) {
@@ -167,7 +175,10 @@ export default function EmployeesPage() {
         email: "",
         panNumber: "",
         aadharNumber: "",
-        address: ""
+        address: "",
+        role: "TECHNICIAN",
+        username: "",
+        password: ""
       });
       setPanFile(null);
       setAadharFile(null);
@@ -187,7 +198,10 @@ export default function EmployeesPage() {
       email: r.newMemberEmail || "",
       panNumber: r.panNumber || "",
       aadharNumber: r.aadharNumber || "",
-      address: r.address || ""
+      address: r.address || "",
+      role: r.role || "TECHNICIAN",
+      username: r.username || "",
+      password: r.password || ""
     });
     setIsTransferOpen(true);
   };
@@ -496,6 +510,22 @@ export default function EmployeesPage() {
                   </div>
 
                   <div>
+                    <label className="block text-xs font-semibold text-gray-500 mb-1.5">Role *</label>
+                    <select
+                      required
+                      value={newMemberForm.role}
+                      onChange={(e) => setNewMemberForm({ ...newMemberForm, role: e.target.value })}
+                      className="w-full px-4 py-2 bg-gray-50/50 border border-gray-200 rounded-lg text-sm text-[#334155] focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:bg-white transition-colors"
+                    >
+                      <option value="TECHNICIAN">Technician</option>
+                      <option value="FRANCHISE_ADMIN">Franchise Admin</option>
+                      <option value="RECEPTIONIST">Receptionist</option>
+                      <option value="SERVICE_ADVISOR">Service Advisor</option>
+                      <option value="BILLING">Billing</option>
+                    </select>
+                  </div>
+
+                  <div>
                     <label className="block text-xs font-semibold text-gray-500 mb-1.5">PAN Number *</label>
                     <input
                       type="text"
@@ -517,6 +547,39 @@ export default function EmployeesPage() {
                       placeholder="123456789012"
                       className="w-full px-4 py-2 bg-gray-50/50 border border-gray-200 rounded-lg text-sm text-[#334155] focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:bg-white transition-colors font-mono"
                     />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 mb-1.5">Username *</label>
+                    <input
+                      type="text"
+                      required
+                      value={newMemberForm.username}
+                      onChange={(e) => setNewMemberForm({ ...newMemberForm, username: e.target.value })}
+                      placeholder="username123"
+                      className="w-full px-4 py-2 bg-gray-50/50 border border-gray-200 rounded-lg text-sm text-[#334155] focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:bg-white transition-colors"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 mb-1.5">Password *</label>
+                    <div className="relative">
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        required
+                        value={newMemberForm.password}
+                        onChange={(e) => setNewMemberForm({ ...newMemberForm, password: e.target.value })}
+                        placeholder="••••••••"
+                        className="w-full px-4 py-2 pr-10 bg-gray-50/50 border border-gray-200 rounded-lg text-sm text-[#334155] focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:bg-white transition-colors"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+                      >
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
                   </div>
 
                   <div>

@@ -30,14 +30,14 @@ export function middleware(request: NextRequest) {
 
   // If trying to access login with token, redirect to appropriate portal
   if (pathname === "/login" && token) {
-    if (userRole === "technician") {
+    if (userRole === "TECHNICIAN" || userRole === "technician") {
       return NextResponse.redirect(new URL("/technician", request.url));
     }
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
   // Prevent technicians from accessing admin dashboard
-  if (pathname.startsWith("/dashboard") && userRole === "technician") {
+  if (pathname.startsWith("/dashboard") && (userRole === "TECHNICIAN" || userRole === "technician")) {
     return NextResponse.redirect(new URL("/technician", request.url));
   }
 

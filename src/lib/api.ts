@@ -179,6 +179,14 @@ export async function getDashboardData() {
   return apiCall("/dashboard");
 }
 
+export async function getDashboardStats() {
+  return apiCall("/dashboard/stats");
+}
+
+export async function getTechnicianDashboardStats() {
+  return apiCall("/technician/dashboard");
+}
+
 export async function getHQDashboardData() {
   return apiCall("/hq/dashboard");
 }

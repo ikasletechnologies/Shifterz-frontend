@@ -202,6 +202,47 @@ const franchiseSidebarSections: NavSection[] = [
   },
 ];
 
+// ── Billing role sidebar ──────────────────────────────────────────────────────
+const billingSidebarSections: NavSection[] = [
+  {
+    label: "OVERVIEW",
+    items: [
+      { label: "Dashboard", icon: Grid3x3, href: "/dashboard", module: "dashboard" },
+      { label: "Attendance", icon: Clock, href: "/dashboard/attendance", module: "attendance" },
+    ],
+  },
+  {
+    label: "SALES & BILLING",
+    items: [
+      { label: "Billing", icon: FileText, href: "/dashboard/billing", module: "billing" },
+      { label: "Payments", icon: CreditCard, href: "/dashboard/payments", module: "payments" },
+    ],
+  },
+];
+
+// ── Technician role sidebar ────────────────────────────────────────────
+const technicianSidebarSections: NavSection[] = [
+  {
+    label: "OVERVIEW",
+    items: [
+      { label: "Dashboard", icon: Grid3x3, href: "/technician", module: "dashboard" },
+    ],
+  },
+  {
+    label: "HR & STAFF",
+    items: [
+      { label: "Attendance", icon: Clock, href: "/dashboard/attendance", module: "attendance" },
+      { label: "My Jobs", icon: Briefcase, href: "/technician/my-jobs" },
+    ],
+  },
+  {
+    label: "SETTINGS",
+    items: [
+      { label: "Profile", icon: User, href: "/technician/profile" },
+    ],
+  },
+];
+
 // ── NavLink component ────────────────────────────────────────────────────────
 function NavLink({
   item,
@@ -221,8 +262,8 @@ function NavLink({
   const [open, setOpen] = useState(anyChildActive ?? false);
 
   const isActive =
-    item.href === "/dashboard"
-      ? pathname === "/dashboard"
+    item.href === "/dashboard" || item.href === "/technician"
+      ? pathname === item.href
       : pathname.startsWith(item.href) && !hasChildren;
 
   const Icon = item.icon;
@@ -378,10 +419,10 @@ export default function Sidebar() {
       ? hqSidebarSections
       : franchiseSidebarSections;
 
-  if (baseRole === "BILLING") {
-    rawSections = rawSections.filter(
-      (sec) => sec.label === "OVERVIEW" || sec.label === "SALES & BILLING"
-    );
+  if (baseRole === "TECHNICIAN" || baseRole === "EMPLOYEE") {
+    rawSections = technicianSidebarSections;
+  } else if (baseRole === "BILLING") {
+    rawSections = billingSidebarSections;
   }
 
   // 2. Filter list based on custom modules (if present)
