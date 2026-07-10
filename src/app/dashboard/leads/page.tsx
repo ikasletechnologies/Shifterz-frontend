@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { useState, useEffect, useRef } from "react";
-import { Plus, ChevronDown, Trash2, Pencil } from "lucide-react";
+import { Plus, ChevronDown, Trash2, Pencil, Search, X } from "lucide-react";
 import AddLeadDialog from "@/components/leads/AddLeadDialog";
 import EditLeadDialog from "@/components/leads/EditLeadDialog";
 import { getLeads, createLead, deleteLead, updateLead, createCustomer } from "@/lib/api";
@@ -120,6 +120,9 @@ export default function LeadsPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [leadToEdit, setLeadToEdit] = useState<Lead | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [pendingStatusChange, setPendingStatusChange] = useState<{ id: string; newStatus: string; lead: Lead } | null>(null);
 
   // Load leads from backend
   useEffect(() => {
@@ -192,7 +195,7 @@ export default function LeadsPage() {
   };
 
   // Change Status
-  const handleStatusChange = async (id: string, newStatus: string, currentLead: Lead) => {
+  const executeStatusChange = async (id: string, newStatus: string, currentLead: Lead) => {
     try {
       const updatedLead = { ...currentLead, status: newStatus };
       const updated = await updateLead(id, updatedLead);
@@ -220,11 +223,25 @@ export default function LeadsPage() {
     }
   };
 
+  const handleStatusChange = async (id: string, newStatus: string, currentLead: Lead) => {
+    if (newStatus === "Converted") {
+      setPendingStatusChange({ id, newStatus, lead: currentLead });
+      setShowConfirmModal(true);
+      return;
+    }
+    await executeStatusChange(id, newStatus, currentLead);
+  };
+
   const filteredLeads = leads.filter((lead) => {
     const statusMatch = filter === "All" || lead.status === filter;
     const sourceMatch =
       sourceFilter === "All Sources" || lead.source === sourceFilter;
-    return statusMatch && sourceMatch;
+    const searchMatch =
+      lead.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      lead.phone.includes(searchQuery) ||
+      lead.vehicle.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (lead.email && lead.email.toLowerCase().includes(searchQuery.toLowerCase()));
+    return statusMatch && sourceMatch && searchMatch;
   });
 
   const totalLeads = leads.length;
@@ -277,20 +294,40 @@ export default function LeadsPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex gap-2">
-          {["All", "New", "Follow Up", "Converted", "Lost"].map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setFilter(tab)}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${filter === tab
-                ? "bg-gray-900 text-white"
-                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                }`}
-            >
-              {tab}
-            </button>
-          ))}
+      <div className="flex flex-col lg:flex-row gap-4 items-stretch lg:items-center justify-between mb-6">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 flex-1">
+          <div className="rounded-lg px-2 py-1.5 flex items-center gap-1 w-fit" style={{ backgroundColor: "#ebebebff" }}>
+            {["All", "New", "Follow Up", "Converted", "Lost"].map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setFilter(tab)}
+                className={`text-sm px-3 py-1 rounded-md transition-colors ${filter === tab
+                  ? "bg-white text-gray-900 font-bold shadow-sm"
+                  : "text-gray-600 hover:text-gray-900 font-medium"
+                  }`}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
+          <div className="relative w-full max-w-xs">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search leads by name, phone, or vehicle..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-9 pr-9 py-2 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400 text-sm"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="flex items-center gap-4">
@@ -326,15 +363,15 @@ export default function LeadsPage() {
         <div className="overflow-visible">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-gray-200 bg-gray-50">
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">ID</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Name</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Phone</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Source</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Service</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Vehicle</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
+              <tr className="border-b border-gray-200 bg-gray-50/75">
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-800 uppercase tracking-wider">ID</th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-800 uppercase tracking-wider">Name</th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-800 uppercase tracking-wider">Phone</th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-800 uppercase tracking-wider">Source</th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-800 uppercase tracking-wider">Service</th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-800 uppercase tracking-wider">Vehicle</th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-800 uppercase tracking-wider">Status</th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-800 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
@@ -397,6 +434,41 @@ export default function LeadsPage() {
         onSubmit={handleEditLead}
         lead={leadToEdit}
       />
+
+      {/* Confirmation Dialog for Converted Status */}
+      {showConfirmModal && pendingStatusChange && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] p-4">
+          <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-2xl animate-in fade-in zoom-in duration-200 text-gray-900">
+            <h3 className="text-lg font-bold text-gray-900 mb-2">Convert Lead to Customer?</h3>
+            <p className="text-sm text-gray-600 mb-6">
+              Are you sure you want to convert <strong className="text-gray-800">{pendingStatusChange.lead.name}</strong> to a customer? This will create a customer profile automatically.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setShowConfirmModal(false);
+                  setPendingStatusChange(null);
+                }}
+                className="px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  setShowConfirmModal(false);
+                  if (pendingStatusChange) {
+                    await executeStatusChange(pendingStatusChange.id, pendingStatusChange.newStatus, pendingStatusChange.lead);
+                  }
+                  setPendingStatusChange(null);
+                }}
+                className="px-4 py-2 text-sm font-semibold text-gray-900 bg-yellow-400 hover:bg-yellow-500 rounded-lg transition-colors shadow-sm"
+              >
+                Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

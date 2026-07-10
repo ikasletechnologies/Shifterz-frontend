@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { X, Car, Clock, Calendar, Plus } from "lucide-react";
 import { toast } from "react-hot-toast";
-import { getServices, fetchVehicleDetails } from "@/lib/api";
+import { getServices, fetchVehicleDetails, getEmployees } from "@/lib/api";
 import { formatVehicleNumber, getVehicleType, normalizeVehicleNumber } from "@/utils/vehicleNumber";
 import AddTechnicianDialog from "./AddTechnicianDialog";
 
@@ -120,6 +120,34 @@ export default function CarCheckInDialog({
     };
     fetchServices();
   }, []);
+
+  useEffect(() => {
+    const loadTechnicians = async () => {
+      try {
+        const emps = await getEmployees();
+        const techNames = emps
+          .filter((emp: any) => emp.role === "TECHNICIAN" && emp.status === "Active")
+          .map((emp: any) => emp.name);
+        
+        if (techNames.length > 0) {
+          setTechnicians(techNames);
+          // Set first active technician as default if not already initialized
+          setFormData((prev) => {
+            if (!prev.technician || !techNames.includes(prev.technician)) {
+              return { ...prev, technician: techNames[0] };
+            }
+            return prev;
+          });
+        }
+      } catch (err) {
+        console.error("Failed to load technicians:", err);
+      }
+    };
+
+    if (isOpen) {
+      loadTechnicians();
+    }
+  }, [isOpen]);
 
 
 

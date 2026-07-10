@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { 
-  Users, UserPlus, UserCheck, Calendar, 
+import {
+  Users, UserPlus, UserCheck, Calendar,
   Car, Wrench, CheckCircle, Search,
   DollarSign, CreditCard, Receipt, FileText,
   User, Clock, CheckSquare, Percent,
@@ -56,7 +56,7 @@ export function FranchiseDashboard({ allowedModules }: { allowedModules?: string
 
   return (
     <div className="space-y-10">
-      
+
       {/* 1. CRM Section */}
       {showCRM && (
         <section>

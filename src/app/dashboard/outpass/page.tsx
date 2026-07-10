@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { useState, useEffect, useCallback } from "react";
-import { Plus, Printer, Edit2 } from "lucide-react";
+import { Plus, Printer, Edit2, Search, X } from "lucide-react";
 import NewOutPassDialog from "@/components/outpass/NewOutPassDialog";
 import PrintPassDialog from "@/components/outpass/PrintPassDialog";
 import { getOutPasses, createOutPass, updateOutPass } from "@/lib/api";
@@ -30,6 +30,7 @@ export default function OutPassPage() {
   const [editingPass, setEditingPass] = useState<OutPass | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const fetchOutPasses = useCallback(async () => {
     try {
@@ -71,6 +72,13 @@ export default function OutPassPage() {
     setIsPrintOpen(true);
   };
 
+  const filteredOutPasses = outPasses.filter(pass =>
+    (pass.passId || pass.id || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+    pass.vehicle.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    pass.customer.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    pass.phone.includes(searchQuery)
+  );
+
   if (isLoading) {
     return <div className="p-8 text-center text-gray-500">Loading out passes...</div>;
   }
@@ -81,17 +89,37 @@ export default function OutPassPage() {
 
   return (
     <div className="p-8">
-      {/* Stats Bar */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="bg-yellow-100 text-yellow-700 font-semibold px-4 py-2 rounded-lg inline-block">
-          🟨 Total Passes: {totalPasses}
+      {/* Stats and Search Bar */}
+      <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-center justify-between mb-6">
+        <div className="flex flex-wrap items-center gap-4 flex-1">
+          <div className="bg-yellow-100 text-yellow-700 font-semibold px-4 py-2 rounded-lg inline-block">
+            🟨 Total Passes: {totalPasses}
+          </div>
+          <div className="relative w-full max-w-md">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search out passes by ID, vehicle, customer, or phone..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-9 pr-9 py-2 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400 text-sm"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
         </div>
         <button
           onClick={() => {
             setEditingPass(null);
             setIsDialogOpen(true);
           }}
-          className="bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-semibold px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+          className="bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-semibold px-4 py-2 rounded-lg flex items-center gap-2 transition-colors whitespace-nowrap"
         >
           <Plus className="w-5 h-5" />
           New Out Pass
@@ -99,7 +127,7 @@ export default function OutPassPage() {
       </div>
 
       {/* Table */}
-      {outPasses.length === 0 ? (
+      {filteredOutPasses.length === 0 ? (
         <div className="text-center py-12 text-gray-500">No out passes found</div>
       ) : (
         <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
@@ -140,7 +168,7 @@ export default function OutPassPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {outPasses.map((pass) => (
+                {filteredOutPasses.map((pass) => (
                   <tr key={pass.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-3 py-3 text-xs font-mono font-bold" style={{ color: "#F0B100" }}>
                       {pass.passId || pass.id}

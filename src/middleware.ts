@@ -49,13 +49,13 @@ export function middleware(request: NextRequest) {
   if (pathname.startsWith("/dashboard/") && userRole) {
     const parts = pathname.split("/");
     const moduleName = parts[2];
-    
+
     const protectedModules = [
-      "carin", "jobs", "outpass", "leads", "customers", 
-      "billing", "payments", "inventory", "reports", 
+      "carin", "jobs", "outpass", "leads", "customers",
+      "billing", "payments", "inventory", "reports",
       "employees", "attendance", "settings", "roles"
     ];
-    
+
     if (protectedModules.includes(moduleName)) {
       if (userPermissions.length > 0 && !userPermissions.includes(moduleName)) {
         return NextResponse.redirect(new URL("/dashboard", request.url));

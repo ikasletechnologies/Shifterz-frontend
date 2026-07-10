@@ -4,6 +4,7 @@
 import { X, Check, ClipboardList } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
+import { getEmployees } from "@/lib/api";
 
 interface JobData {
   id?: string;
@@ -20,13 +21,6 @@ interface JobData {
   notes: string;
 }
 
-// Hardcoded technician mapping - can be fetched from API later
-const TECHNICIANS = [
-  { id: "TECH-001", name: "Arjun" },
-  { id: "TECH-002", name: "Sathish" },
-  { id: "TECH-003", name: "Mani" },
-];
-
 interface NewJobCardDialogProps {
   isOpen: boolean;
   onClose: () => void;
@@ -37,6 +31,12 @@ interface NewJobCardDialogProps {
 export default function NewJobCardDialog({ isOpen, onClose, onSave, initialData }: NewJobCardDialogProps) {
   const [mounted, setMounted] = useState(false);
   const isEditing = !!initialData?.id;
+
+  const [technicians, setTechnicians] = useState<any[]>([
+    { id: "TECH-001", name: "Arjun" },
+    { id: "TECH-002", name: "Sathish" },
+    { id: "TECH-003", name: "Mani" },
+  ]);
 
   const [formData, setFormData] = useState<JobData>({
     vehicle: "",
@@ -50,6 +50,34 @@ export default function NewJobCardDialog({ isOpen, onClose, onSave, initialData 
     actualCompletion: "",
     notes: "",
   });
+
+  useEffect(() => {
+    const loadTechnicians = async () => {
+      try {
+        const emps = await getEmployees();
+        const techList = emps
+          .filter((emp: any) => emp.role === "TECHNICIAN" && emp.status === "Active")
+          .map((emp: any) => ({ id: emp.id, name: emp.name }));
+        
+        if (techList.length > 0) {
+          setTechnicians(techList);
+          // Set first active technician as default if not already initialized
+          setFormData((prev) => {
+            if (!prev.technician || !techList.some((t: any) => t.name === prev.technician)) {
+              return { ...prev, technician: techList[0].name, technicianId: techList[0].id };
+            }
+            return prev;
+          });
+        }
+      } catch (err) {
+        console.error("Failed to load technicians:", err);
+      }
+    };
+
+    if (isOpen) {
+      loadTechnicians();
+    }
+  }, [isOpen]);
 
   useEffect(() => {
     setMounted(true);
@@ -177,7 +205,7 @@ export default function NewJobCardDialog({ isOpen, onClose, onSave, initialData 
               <select
                 value={formData.technician}
                 onChange={(e) => {
-                  const selected = TECHNICIANS.find(t => t.name === e.target.value);
+                  const selected = technicians.find((t: any) => t.name === e.target.value);
                   setFormData({
                     ...formData,
                     technician: e.target.value,
@@ -187,7 +215,7 @@ export default function NewJobCardDialog({ isOpen, onClose, onSave, initialData 
                 className="w-full px-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm text-[#334155] focus:outline-none focus:ring-2 focus:ring-[#f59e0b] focus:bg-white transition-colors"
               >
                 <option value="">Select Technician</option>
-                {TECHNICIANS.map((tech) => (
+                {technicians.map((tech) => (
                   <option key={tech.id} value={tech.name}>{tech.name}</option>
                 ))}
               </select>

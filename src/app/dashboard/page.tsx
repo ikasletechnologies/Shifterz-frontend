@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { FranchiseDashboard } from "@/components/dashboard/FranchiseDashboard";
 import { HQDashboard } from "@/components/dashboard/HQDashboard";
 import EmployeeDashboard from "@/components/technician/EmployeeDashboard";
+import BillingDashboard from "@/components/dashboard/BillingDashboard";
 
 export default function DashboardPage() {
   const [userRole, setUserRole] = useState<string | null>(null);
@@ -29,7 +30,7 @@ export default function DashboardPage() {
   // Parse custom role serialization
   let baseRole = userRole;
   let allowedModules: string[] | null = userPermissions;
-  
+
   // Fallback for legacy database rows without permissions column:
   if (!allowedModules && baseRole.includes("|")) {
     const parts = baseRole.split("|");
@@ -38,39 +39,27 @@ export default function DashboardPage() {
   }
 
   const isHQ = baseRole === "SUPER_ADMIN" || baseRole === "HQ_USER";
-  
-  // Default permissions fallback matrix
-  const defaultPermissions: Record<string, string[]> = {
-    SUPER_ADMIN: ["dashboard", "carin", "jobs", "outpass", "leads", "customers", "billing", "payments", "inventory", "reports", "employees", "attendance", "settings", "roles"],
-    HQ_USER: ["dashboard", "carin", "jobs", "outpass", "leads", "customers", "billing", "payments", "inventory", "reports", "employees", "attendance", "settings"],
-    FRANCHISE_ADMIN: ["dashboard", "carin", "jobs", "outpass", "leads", "customers", "billing", "payments", "inventory", "reports", "employees", "attendance"],
-    BRANCH_MANAGER: ["dashboard", "carin", "jobs", "outpass", "leads", "customers", "billing", "payments", "inventory", "reports", "attendance"],
-    RECEPTION_EXECUTIVE: ["dashboard", "carin", "outpass", "customers", "leads"],
-    SERVICE_ADVISOR: ["dashboard", "carin", "jobs", "customers", "leads"],
-    TECHNICIAN: ["dashboard", "jobs", "attendance"],
-    QUALITY_INSPECTOR: ["dashboard", "jobs", "carin"],
-    BILLING_EXECUTIVE: ["dashboard", "billing", "payments", "reports"],
-    INVENTORY_EXECUTIVE: ["dashboard", "inventory", "reports"],
-  };
+  const isFranchiseAdmin = baseRole === "FRANCHISE_ADMIN" || baseRole === "BRANCH_MANAGER";
 
-  const effectivePermissions = allowedModules || defaultPermissions[baseRole] || [];
-
-  const hasBusinessModules = 
-    effectivePermissions.includes("leads") ||
-    effectivePermissions.includes("customers") ||
-    effectivePermissions.includes("billing") ||
-    effectivePermissions.includes("payments") ||
-    effectivePermissions.includes("inventory") ||
-    effectivePermissions.includes("reports") ||
-    effectivePermissions.includes("employees") ||
-    effectivePermissions.includes("settings");
-
-  const onlyJobsDashboard = !hasBusinessModules && effectivePermissions.includes("jobs");
+  // Decide if they should see the detailed Technician Dashboard (assigned jobs list)
+  // If the user's base role is TECHNICIAN or QUALITY_INSPECTOR, OR if their allowedModules
+  // only includes "jobs" (and "dashboard"/"attendance" but no other business modules),
+  // we show the jobs-focused EmployeeDashboard.
+  const onlyJobsDashboard =
+    baseRole === "TECHNICIAN" ||
+    baseRole === "QUALITY_INSPECTOR" ||
+    (allowedModules &&
+      allowedModules.includes("jobs") &&
+      !allowedModules.includes("carin") &&
+      !allowedModules.includes("leads") &&
+      !allowedModules.includes("customers") &&
+      !allowedModules.includes("billing") &&
+      !allowedModules.includes("inventory"));
 
   return (
     <div className="p-8 max-w-7xl mx-auto">
       {isHQ ? (
-        <HQDashboard allowedModules={allowedModules} />
+        <HQDashboard />
       ) : onlyJobsDashboard ? (
         <EmployeeDashboard />
       ) : (

@@ -187,18 +187,18 @@ export default function InventoryPage() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-100 bg-gray-50">
-                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Item Name</th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Category</th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Stock</th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Unit</th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Cost/Unit</th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Total Value</th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Reorder At</th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Supplier</th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Location</th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Actions</th>
+              <tr className="border-b border-gray-100 bg-gray-50/75">
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-800 uppercase tracking-wider">Item Name</th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-800 uppercase tracking-wider">Category</th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-800 uppercase tracking-wider">Stock</th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-800 uppercase tracking-wider">Unit</th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-800 uppercase tracking-wider">Cost/Unit</th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-800 uppercase tracking-wider">Total Value</th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-800 uppercase tracking-wider">Reorder At</th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-800 uppercase tracking-wider">Supplier</th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-800 uppercase tracking-wider">Location</th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-800 uppercase tracking-wider">Status</th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-800 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">

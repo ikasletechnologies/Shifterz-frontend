@@ -63,9 +63,9 @@ interface NavSection {
 
 // ── FRANCHISE CONTROL sub-items ───────────────────────────────────────────────
 const franchiseControlChildren: Omit<NavItem, "children">[] = [
-  { label: "Franchise Requests", icon: GitPullRequest, href: "/dashboard/franchise-control/requests" },
-  { label: "Franchise Approval", icon: CheckSquare, href: "/dashboard/franchise-control/approval" },
-  { label: "Franchise Management", icon: LayoutList, href: "/dashboard/franchise-control/management" },
+  // { label: "Franchise Requests", icon: GitPullRequest, href: "/dashboard/franchise-control/requests" },
+  // { label: "Franchise Approval", icon: CheckSquare, href: "/dashboard/franchise-control/approval" },
+  // { label: "Franchise Management", icon: LayoutList, href: "/dashboard/franchise-control/management" },
   { label: "Add Franchise", icon: PlusSquare, href: "/dashboard/franchise-control/add" },
   { label: "Franchise Employees", icon: UsersRound, href: "/dashboard/franchise-control/employees" },
   { label: "Employee Approval", icon: UserCog, href: "/dashboard/franchise-control/employee-approval" },
@@ -202,6 +202,47 @@ const franchiseSidebarSections: NavSection[] = [
   },
 ];
 
+// ── Billing role sidebar ──────────────────────────────────────────────────────
+const billingSidebarSections: NavSection[] = [
+  {
+    label: "OVERVIEW",
+    items: [
+      { label: "Dashboard", icon: Grid3x3, href: "/dashboard", module: "dashboard" },
+      { label: "Attendance", icon: Clock, href: "/dashboard/attendance", module: "attendance" },
+    ],
+  },
+  {
+    label: "SALES & BILLING",
+    items: [
+      { label: "Billing", icon: FileText, href: "/dashboard/billing", module: "billing" },
+      { label: "Payments", icon: CreditCard, href: "/dashboard/payments", module: "payments" },
+    ],
+  },
+];
+
+// ── Technician role sidebar ────────────────────────────────────────────
+const technicianSidebarSections: NavSection[] = [
+  {
+    label: "OVERVIEW",
+    items: [
+      { label: "Dashboard", icon: Grid3x3, href: "/technician", module: "dashboard" },
+    ],
+  },
+  {
+    label: "HR & STAFF",
+    items: [
+      { label: "Attendance", icon: Clock, href: "/technician/attendance", module: "attendance" },
+      { label: "My Jobs", icon: Briefcase, href: "/technician/my-jobs" },
+    ],
+  },
+  {
+    label: "SETTINGS",
+    items: [
+      { label: "Profile", icon: User, href: "/technician/profile" },
+    ],
+  },
+];
+
 // ── NavLink component ────────────────────────────────────────────────────────
 function NavLink({
   item,
@@ -221,8 +262,8 @@ function NavLink({
   const [open, setOpen] = useState(anyChildActive ?? false);
 
   const isActive =
-    item.href === "/dashboard"
-      ? pathname === "/dashboard"
+    item.href === "/dashboard" || item.href === "/technician"
+      ? pathname === item.href
       : pathname.startsWith(item.href) && !hasChildren;
 
   const Icon = item.icon;
@@ -292,16 +333,16 @@ function NavLink({
                 style={
                   childActive
                     ? {
-                        background: "linear-gradient(90deg, rgba(250,204,21,0.14) 0%, rgba(250,204,21,0.04) 100%)",
-                        borderLeft: "2px solid #facc15",
-                        color: "#facc15",
-                        marginLeft: "-2px",
-                      }
+                      background: "linear-gradient(90deg, rgba(250,204,21,0.14) 0%, rgba(250,204,21,0.04) 100%)",
+                      borderLeft: "2px solid #facc15",
+                      color: "#facc15",
+                      marginLeft: "-2px",
+                    }
                     : {
-                        borderLeft: "2px solid transparent",
-                        color: "rgba(255,255,255,0.5)",
-                        marginLeft: "-2px",
-                      }
+                      borderLeft: "2px solid transparent",
+                      color: "rgba(255,255,255,0.5)",
+                      marginLeft: "-2px",
+                    }
                 }
                 className={`
                   flex items-center gap-2.5 px-3 py-2 rounded-r-lg
@@ -377,10 +418,16 @@ export default function Sidebar() {
   }
 
   // 1. Choose root list
-  const rawSections =
+  let rawSections =
     baseRole === "SUPER_ADMIN" || baseRole === "HQ_USER"
       ? hqSidebarSections
       : franchiseSidebarSections;
+
+  if (baseRole === "TECHNICIAN" || baseRole === "EMPLOYEE") {
+    rawSections = technicianSidebarSections;
+  } else if (baseRole === "BILLING") {
+    rawSections = billingSidebarSections;
+  }
 
   // 2. Filter list based on custom modules (if present)
   const sections = rawSections

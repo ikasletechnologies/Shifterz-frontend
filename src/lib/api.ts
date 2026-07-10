@@ -8,7 +8,14 @@ export async function apiCall(
 ) {
   const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
 
-  const response = await fetch(`${API_URL}${endpoint}`, {
+  const isGet = !options.method || options.method.toUpperCase() === 'GET';
+  const url = new URL(endpoint.startsWith('http') ? endpoint : `${API_URL}${endpoint}`);
+  if (isGet) {
+    url.searchParams.append('_t', Date.now().toString());
+  }
+
+  const response = await fetch(url.toString(), {
+    cache: "no-store",
     ...options,
     headers: {
       "Content-Type": "application/json",
@@ -181,6 +188,14 @@ export async function deleteInventoryItem(id: string) {
 // ═══════════════════════════════════════════════════════════════
 export async function getDashboardData() {
   return apiCall("/dashboard");
+}
+
+export async function getDashboardStats() {
+  return apiCall("/dashboard/stats");
+}
+
+export async function getTechnicianDashboardStats() {
+  return apiCall("/technician/dashboard");
 }
 
 export async function getHQDashboardData() {
@@ -386,6 +401,71 @@ export async function updateAttendance(id: string, data: any) {
   return apiCall(`/attendance/${id}`, {
     method: "PUT",
     body: JSON.stringify(data),
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MEMBER / BRANCH TRANSFERS
+// ═══════════════════════════════════════════════════════════════
+export async function getMemberTransfers() {
+  return apiCall("/member-transfers");
+}
+
+export async function approveMemberTransfer(id: string) {
+  return apiCall(`/member-transfers/${id}/approve`, {
+    method: "POST"
+  });
+}
+
+export async function rejectMemberTransfer(id: string) {
+  return apiCall(`/member-transfers/${id}/reject`, {
+    method: "POST"
+  });
+}
+
+export async function getHQEmployees() {
+  return apiCall("/hq-employees");
+}
+
+export async function createMemberTransfer(data: any) {
+  return apiCall("/member-transfers", {
+    method: "POST",
+    body: JSON.stringify(data)
+  });
+}
+
+export async function uploadFile(file: File) {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+
+  const response = await fetch(`${API_URL}/upload`, {
+    method: "POST",
+    headers: {
+      ...(token && { Authorization: `Bearer ${token}` }),
+    },
+    body: formData,
+  });
+
+  if (!response.ok) {
+    throw new Error("File upload failed");
+  }
+
+  return response.json();
+}
+
+export async function updateMemberTransfer(id: string, data: any) {
+  return apiCall(`/member-transfers/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(data)
+  });
+}
+
+export async function deleteMemberTransfer(id: string) {
+  return apiCall(`/member-transfers/${id}`, {
+    method: "DELETE"
   });
 }
 

@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { useState, useEffect } from "react";
-import { Plus, Eye, Check, Trash2, Search, Receipt, ArrowRight, History } from "lucide-react";
+import { Plus, Eye, Check, Trash2, Search, Receipt, ArrowRight, History, X } from "lucide-react";
 import NewDocumentDialog from "@/components/billing/NewDocumentDialog";
 import DocumentPreviewDialog from "@/components/billing/DocumentPreviewDialog";
 import ConvertDocumentDialog from "@/components/billing/ConvertDocumentDialog";
@@ -292,14 +292,14 @@ export default function BillingPage() {
       {/* Filters */}
       <div className="flex flex-col gap-4 mb-6">
         <div className="flex items-center justify-between">
-          <div className="flex gap-2">
+          <div className="rounded-lg px-2 py-1.5 flex items-center gap-1 w-fit" style={{ backgroundColor: "#ebebebff" }}>
             {["All", "Estimate", "Quotation", "Invoice"].map((tab) => (
               <button
                 key={tab}
                 onClick={() => setFilter(tab)}
-                className={`px-4 py-2 rounded-lg font-medium transition-colors text-sm ${filter === tab
-                    ? "bg-gray-900 text-white"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                className={`text-sm px-3 py-1 rounded-md transition-colors ${filter === tab
+                  ? "bg-white text-gray-900 font-bold shadow-sm"
+                  : "text-gray-600 hover:text-gray-900 font-medium"
                   }`}
               >
                 {tab}
@@ -324,8 +324,16 @@ export default function BillingPage() {
               placeholder="Search by client, vehicle or doc no..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400"
+              className="w-full pl-9 pr-9 py-2 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400"
             />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
           </div>
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium text-gray-600">From:</span>
@@ -353,16 +361,16 @@ export default function BillingPage() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-200 bg-gray-50">
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Doc No.</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Type</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Client</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Total Amount</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Paid Amount</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Pending Amount</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Date</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
+              <tr className="border-b border-gray-200 bg-gray-50/75">
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-800 uppercase tracking-wider">Doc No.</th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-800 uppercase tracking-wider">Type</th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-800 uppercase tracking-wider">Client</th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-800 uppercase tracking-wider">Total Amount</th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-800 uppercase tracking-wider">Paid Amount</th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-800 uppercase tracking-wider">Pending Amount</th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-800 uppercase tracking-wider">Date</th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-800 uppercase tracking-wider">Status</th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-800 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
