@@ -231,7 +231,7 @@ const technicianSidebarSections: NavSection[] = [
   {
     label: "HR & STAFF",
     items: [
-      { label: "Attendance", icon: Clock, href: "/dashboard/attendance", module: "attendance" },
+      { label: "Attendance", icon: Clock, href: "/technician/attendance", module: "attendance" },
       { label: "My Jobs", icon: Briefcase, href: "/technician/my-jobs" },
     ],
   },
