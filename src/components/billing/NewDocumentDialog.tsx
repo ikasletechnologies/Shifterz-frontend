@@ -359,7 +359,6 @@ export default function NewDocumentDialog({
                 name="invoiceDate"
                 value={formData.invoiceDate}
                 onChange={handleChange}
-                min={new Date().toISOString().split("T")[0]}
                 className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400 bg-gray-50 uppercase"
               />
             </div>
@@ -372,7 +371,7 @@ export default function NewDocumentDialog({
                 name="dueDate"
                 value={formData.dueDate}
                 onChange={handleChange}
-                min={new Date().toISOString().split("T")[0]}
+                min={formData.invoiceDate}
                 className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400 bg-gray-50 uppercase"
               />
             </div>

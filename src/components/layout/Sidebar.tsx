@@ -66,6 +66,7 @@ const franchiseControlChildren: Omit<NavItem, "children">[] = [
   // { label: "Franchise Requests", icon: GitPullRequest, href: "/dashboard/franchise-control/requests" },
   // { label: "Franchise Approval", icon: CheckSquare, href: "/dashboard/franchise-control/approval" },
   // { label: "Franchise Management", icon: LayoutList, href: "/dashboard/franchise-control/management" },
+  { label: "All Franchises", icon: Building2, href: "/dashboard/franchise-control/all" },
   { label: "Add Franchise", icon: PlusSquare, href: "/dashboard/franchise-control/add" },
   { label: "Franchise Employees", icon: UsersRound, href: "/dashboard/franchise-control/employees" },
   { label: "Employee Approval", icon: UserCog, href: "/dashboard/franchise-control/employee-approval" },
@@ -241,6 +242,21 @@ const technicianSidebarSections: NavSection[] = [
       { label: "Profile", icon: User, href: "/technician/profile" },
     ],
   },
+];
+
+// ── Service Advisor role sidebar ──────────────────────────────────────
+const serviceAdvisorSidebarSections: NavSection[] = [
+  {
+    label: "MAIN MENU",
+    items: [
+      { label: "Dashboard", icon: Grid3x3, href: "/dashboard", module: "dashboard" },
+      { label: "Customers", icon: Users2, href: "/dashboard/customers", module: "customers" },
+      { label: "Car In / Out", icon: Car, href: "/dashboard/carin", module: "carin" },
+      { label: "Job Cards", icon: Briefcase, href: "/dashboard/jobs", module: "jobs" },
+      { label: "My Assigned Jobs", icon: ClipboardCheck, href: "/technician/my-jobs" },
+      { label: "My  Profile", icon: User, href: "/dashboard/profile" },
+    ],
+  }
 ];
 
 // ── NavLink component ────────────────────────────────────────────────────────
@@ -423,6 +439,8 @@ export default function Sidebar() {
     rawSections = technicianSidebarSections;
   } else if (baseRole === "BILLING") {
     rawSections = billingSidebarSections;
+  } else if (baseRole === "SERVICE_ADVISOR") {
+    rawSections = serviceAdvisorSidebarSections;
   }
 
   // 2. Filter list based on custom modules (if present)
