@@ -1,16 +1,22 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ShieldCheck, Shield, Users, Lock, Check, X } from "lucide-react";
+import { getRolePermissions, updateRolePermissions } from "@/lib/api";
+import { toast } from "react-hot-toast";
 
 // ── Role definitions ─────────────────────────────────────────────────────────
 const ROLES = [
-  { id: "SUPER_ADMIN",     label: "Super Admin",      color: "#ef4444", badge: "bg-red-100 text-red-700" },
-  { id: "HQ_USER",         label: "HQ User",          color: "#f59e0b", badge: "bg-amber-100 text-amber-700" },
-  { id: "FRANCHISE_ADMIN", label: "Franchise Admin",  color: "#3b82f6", badge: "bg-blue-100 text-blue-700" },
-  { id: "BRANCH_MANAGER",  label: "Branch Manager",   color: "#8b5cf6", badge: "bg-violet-100 text-violet-700" },
-  { id: "TECHNICIAN",      label: "Technician",       color: "#10b981", badge: "bg-emerald-100 text-emerald-700" },
-  { id: "RECEPTIONIST",    label: "Receptionist",     color: "#06b6d4", badge: "bg-cyan-100 text-cyan-700" },
+  { id: "SUPER_ADMIN",         label: "Super Admin",      color: "#ef4444", badge: "bg-red-100 text-red-700" },
+  { id: "HQ_USER",             label: "HQ User",          color: "#f59e0b", badge: "bg-amber-100 text-amber-700" },
+  { id: "FRANCHISE_ADMIN",     label: "Franchise Admin",  color: "#3b82f6", badge: "bg-blue-100 text-blue-700" },
+  { id: "BRANCH_MANAGER",      label: "Branch Manager",   color: "#8b5cf6", badge: "bg-violet-100 text-violet-700" },
+  { id: "RECEPTION_EXECUTIVE", label: "Reception Executive", color: "#06b6d4", badge: "bg-cyan-100 text-cyan-700" },
+  { id: "SERVICE_ADVISOR",     label: "Service Advisor",  color: "#3b82f6", badge: "bg-blue-100 text-blue-700" },
+  { id: "TECHNICIAN",          label: "Technician",       color: "#10b981", badge: "bg-emerald-100 text-emerald-700" },
+  { id: "QUALITY_INSPECTOR",   label: "Quality Inspector", color: "#a855f7", badge: "bg-purple-100 text-purple-700" },
+  { id: "BILLING_EXECUTIVE",   label: "Billing Executive", color: "#f97316", badge: "bg-orange-100 text-orange-700" },
+  { id: "INVENTORY_EXECUTIVE", label: "Inventory Executive", color: "#14b8a6", badge: "bg-teal-100 text-teal-700" },
 ];
 
 // ── Permission matrix ────────────────────────────────────────────────────────
@@ -37,22 +43,77 @@ const DEFAULT_MATRIX: Record<string, Record<string, boolean>> = {
   HQ_USER:         Object.fromEntries(PERMISSIONS.map(p => [p.key, !["roles"].includes(p.key)])),
   FRANCHISE_ADMIN: Object.fromEntries(PERMISSIONS.map(p => [p.key, !["settings", "roles"].includes(p.key)])),
   BRANCH_MANAGER:  Object.fromEntries(PERMISSIONS.map(p => [p.key, !["settings", "roles", "employees"].includes(p.key)])),
+  RECEPTION_EXECUTIVE: Object.fromEntries(PERMISSIONS.map(p => [p.key, ["dashboard", "carin", "outpass", "customers", "leads"].includes(p.key)])),
+  SERVICE_ADVISOR: Object.fromEntries(PERMISSIONS.map(p => [p.key, ["dashboard", "carin", "jobs", "customers", "leads"].includes(p.key)])),
   TECHNICIAN:      Object.fromEntries(PERMISSIONS.map(p => [p.key, ["dashboard", "jobs", "attendance"].includes(p.key)])),
-  RECEPTIONIST:    Object.fromEntries(PERMISSIONS.map(p => [p.key, ["dashboard", "carin", "outpass", "customers", "leads"].includes(p.key)])),
+  QUALITY_INSPECTOR: Object.fromEntries(PERMISSIONS.map(p => [p.key, ["dashboard", "jobs", "carin"].includes(p.key)])),
+  BILLING_EXECUTIVE: Object.fromEntries(PERMISSIONS.map(p => [p.key, ["dashboard", "billing", "payments", "reports"].includes(p.key)])),
+  INVENTORY_EXECUTIVE: Object.fromEntries(PERMISSIONS.map(p => [p.key, ["dashboard", "inventory", "reports"].includes(p.key)])),
 };
 
 export default function RolesPermissionsPage() {
   const [selected, setSelected] = useState("FRANCHISE_ADMIN");
   const [matrix, setMatrix] = useState(DEFAULT_MATRIX);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    async function fetchPermissions() {
+      setIsLoading(true);
+      try {
+        const data = await getRolePermissions();
+        if (Array.isArray(data) && data.length > 0) {
+          const newMatrix: Record<string, Record<string, boolean>> = {};
+          // Initialize for all roles
+          for (const r of ROLES) {
+            newMatrix[r.id] = Object.fromEntries(PERMISSIONS.map(p => [p.key, false]));
+          }
+          // Populate from server responses
+          for (const item of data) {
+            newMatrix[item.role] = Object.fromEntries(
+              PERMISSIONS.map(p => [p.key, item.permissions.includes(p.key)])
+            );
+          }
+          setMatrix(newMatrix);
+        }
+      } catch (err: any) {
+        console.error("Failed to load role permissions:", err);
+        toast.error("Failed to load permissions from backend: " + err.message);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchPermissions();
+  }, []);
 
   const toggle = (roleId: string, permKey: string) => {
-    setMatrix(prev => ({
-      ...prev,
-      [roleId]: { ...prev[roleId], [permKey]: !prev[roleId][permKey] },
-    }));
+    setMatrix(prev => {
+      const current = prev[roleId] || {};
+      return {
+        ...prev,
+        [roleId]: { ...current, [permKey]: !current[permKey] },
+      };
+    });
   };
 
-  const activeRole = ROLES.find(r => r.id === selected)!;
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      const currentRolePerms = Object.entries(matrix[selected] || {})
+        .filter(([_, val]) => val)
+        .map(([key]) => key);
+        
+      await updateRolePermissions(selected, currentRolePerms);
+      toast.success(`Successfully saved permissions for ${activeRole.label}`);
+    } catch (err: any) {
+      console.error(err);
+      toast.error("Failed to save permissions: " + err.message);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const activeRole = ROLES.find(r => r.id === selected) || ROLES[0];
 
   return (
     <div className="p-6 max-w-6xl mx-auto">
@@ -114,14 +175,14 @@ export default function RolesPermissionsPage() {
                 {activeRole.label}
               </span>
               <span className="text-sm text-gray-500">
-                — {Object.values(matrix[selected]).filter(Boolean).length} / {PERMISSIONS.length} modules enabled
+                — {Object.values(matrix[selected] || {}).filter(Boolean).length} / {PERMISSIONS.length} modules enabled
               </span>
             </div>
 
             {/* Permission rows */}
             <div className="divide-y divide-gray-50">
               {PERMISSIONS.map(perm => {
-                const enabled = matrix[selected][perm.key];
+                const enabled = (matrix[selected] || {})[perm.key] || false;
                 return (
                   <div
                     key={perm.key}
@@ -134,6 +195,7 @@ export default function RolesPermissionsPage() {
                         relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200
                         ${enabled ? "bg-green-500" : "bg-gray-200"}
                       `}
+                      disabled={isLoading || isSaving}
                     >
                       <span
                         className={`
@@ -151,23 +213,32 @@ export default function RolesPermissionsPage() {
             <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 flex justify-end gap-3">
               <button
                 onClick={() => setMatrix(prev => ({ ...prev, [selected]: Object.fromEntries(PERMISSIONS.map(p => [p.key, false])) }))}
-                className="px-4 py-2 rounded-lg text-sm font-medium text-gray-600 border border-gray-200 hover:bg-gray-100 transition-colors"
+                className="px-4 py-2 rounded-lg text-sm font-medium text-gray-600 border border-gray-200 hover:bg-gray-100 transition-colors disabled:opacity-50"
+                disabled={isLoading || isSaving}
               >
                 Revoke All
               </button>
               <button
                 onClick={() => setMatrix(prev => ({ ...prev, [selected]: Object.fromEntries(PERMISSIONS.map(p => [p.key, true])) }))}
-                className="px-4 py-2 rounded-lg text-sm font-medium text-white transition-colors"
-                style={{ background: "linear-gradient(135deg, #facc15, #f59e0b)", color: "#1a1a1a" }}
+                className="px-4 py-2 rounded-lg text-sm font-medium text-gray-600 border border-gray-200 hover:bg-gray-100 transition-colors disabled:opacity-50"
+                disabled={isLoading || isSaving}
               >
                 Grant All
+              </button>
+              <button
+                onClick={handleSave}
+                className="px-6 py-2 rounded-lg text-sm font-semibold text-white transition-all shadow hover:shadow-md disabled:opacity-50"
+                style={{ background: "linear-gradient(135deg, #facc15, #f59e0b)", color: "#1a1a1a" }}
+                disabled={isLoading || isSaving}
+              >
+                {isSaving ? "Saving..." : "Save Changes"}
               </button>
             </div>
           </div>
 
           {/* Info note */}
           <p className="text-xs text-gray-400 mt-3 px-1">
-            ⚠️ Changes here are UI-level previews. Connect to the backend to persist role permissions.
+            ⚠️ Changes here are saved to the database and will take effect upon the user's next login or profile reload.
           </p>
         </div>
       </div>

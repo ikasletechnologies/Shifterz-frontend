@@ -5,6 +5,7 @@ export function middleware(request: NextRequest) {
   const token = request.cookies.get("token")?.value;
 
   let userRole = null;
+  let userPermissions: string[] = [];
   if (token) {
     try {
       // Decode JWT payload (Edge runtime safe)
@@ -17,6 +18,7 @@ export function middleware(request: NextRequest) {
       const decodedJson = atob(base64);
       const payload = JSON.parse(decodedJson);
       userRole = payload.role;
+      userPermissions = payload.permissions || [];
     } catch (e) {
       console.error("Token decode error in middleware:", e);
     }
@@ -28,17 +30,37 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
+  const isTech = userRole?.toUpperCase() === "TECHNICIAN";
+
   // If trying to access login with token, redirect to appropriate portal
   if (pathname === "/login" && token) {
-    if (userRole === "technician") {
+    if (isTech) {
       return NextResponse.redirect(new URL("/technician", request.url));
     }
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
   // Prevent technicians from accessing admin dashboard
-  if (pathname.startsWith("/dashboard") && userRole === "technician") {
+  if (pathname.startsWith("/dashboard") && isTech) {
     return NextResponse.redirect(new URL("/technician", request.url));
+  }
+
+  // Enforce module-level permission guards
+  if (pathname.startsWith("/dashboard/") && userRole) {
+    const parts = pathname.split("/");
+    const moduleName = parts[2];
+    
+    const protectedModules = [
+      "carin", "jobs", "outpass", "leads", "customers", 
+      "billing", "payments", "inventory", "reports", 
+      "employees", "attendance", "settings", "roles"
+    ];
+    
+    if (protectedModules.includes(moduleName)) {
+      if (userPermissions.length > 0 && !userPermissions.includes(moduleName)) {
+        return NextResponse.redirect(new URL("/dashboard", request.url));
+      }
+    }
   }
 
   return NextResponse.next();

@@ -1,3 +1,6 @@
+"use client";
+
+import { useState, useEffect } from "react";
 import {
   Users,
   Plus,
@@ -84,6 +87,7 @@ interface User {
   phone: string;
   username: string;
   role: string;
+  permissions?: string[];
   status: string;
   franchiseId?: string | null;
   franchise?: { id: string; name: string };
@@ -294,12 +298,19 @@ export default function UserManagementPage() {
   const openEdit = (u: User) => {
     setSelected(u);
     let baseRole = u.role;
-    let selectedModules = DEFAULT_ROLE_MODULES[u.role] || [];
-    if (u.role.includes("|")) {
-      const parts = u.role.split("|");
-      baseRole = parts[0];
-      selectedModules = parts[1].split(",").filter(Boolean);
+    let selectedModules = u.permissions || [];
+    
+    // Fallback: If permissions is empty/undefined, try splitting role
+    if (!u.permissions || u.permissions.length === 0) {
+      if (u.role.includes("|")) {
+        const parts = u.role.split("|");
+        baseRole = parts[0];
+        selectedModules = parts[1].split(",").filter(Boolean);
+      } else {
+        selectedModules = DEFAULT_ROLE_MODULES[u.role] || [];
+      }
     }
+
     setForm({
       name: u.name,
       email: u.email || "",
@@ -317,25 +328,28 @@ export default function UserManagementPage() {
   const closeModal = () => { setModalMode(null); setSelected(null); };
 
   const handleSave = async () => {
-    if (!form.name || !form.username || !form.role) {
-      toast.error("Name, username and role are required.");
+    if (!form.name || !form.role) {
+      toast.error("Name and role are required.");
+      return;
+    }
+    if (form.username && modalMode === "create" && !form.password) {
+      toast.error("Password is required when a username is specified.");
       return;
     }
     setSaving(true);
     try {
-      const serializedRole = `${form.role}|${form.selectedModules.join(",")}`;
       const payload = {
         name: form.name,
         email: form.email,
         phone: form.phone,
-        username: form.username,
+        username: form.username ? form.username.trim() : "",
         password: form.password,
-        role: serializedRole,
+        role: form.role,
+        permissions: form.selectedModules,
         franchiseId: form.franchiseId || null,
       };
 
       if (modalMode === "create") {
-        if (!form.password) { toast.error("Password is required for new users."); setSaving(false); return; }
         const created = await createEmployee(payload);
         setUsers((prev) => [created, ...prev]);
         toast.success("User created successfully!");
@@ -371,8 +385,11 @@ export default function UserManagementPage() {
   // ── Filter ──
   const filtered = users.filter((u) => {
     const q = search.toLowerCase();
-    const matchSearch = u.name.toLowerCase().includes(q) || u.username.toLowerCase().includes(q) || u.email.toLowerCase().includes(q);
-    const matchRole = roleFilter === "ALL" || u.role === roleFilter;
+    const matchSearch =
+      (u.name?.toLowerCase() || "").includes(q) ||
+      (u.username?.toLowerCase() || "").includes(q) ||
+      (u.email?.toLowerCase() || "").includes(q);
+    const matchRole = roleFilter === "ALL" || u.role.split("|")[0] === roleFilter;
     return matchSearch && matchRole;
   });
 
@@ -403,7 +420,7 @@ export default function UserManagementPage() {
       {/* Role summary cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3 mb-6">
         {ROLES.map((r) => {
-          const count = users.filter((u) => u.role === r.value).length;
+          const count = users.filter((u) => u.role.split("|")[0] === r.value).length;
           return (
             <button
               key={r.value}

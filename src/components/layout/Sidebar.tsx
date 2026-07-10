@@ -340,6 +340,7 @@ export default function Sidebar() {
   const pathname = usePathname();
   const { toggleSidebar } = useContext(SidebarContext);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [userPermissions, setUserPermissions] = useState<string[] | null>(null);
   const [userName, setUserName] = useState<string>("");
 
   useEffect(() => {
@@ -348,6 +349,7 @@ export default function Sidebar() {
       try {
         const user = JSON.parse(userStr);
         setUserRole(user.role);
+        setUserPermissions(user.permissions || null);
         setUserName(user.name || user.username || "");
       } catch (e) {
         console.error("Failed to parse user from localStorage", e);
@@ -365,8 +367,10 @@ export default function Sidebar() {
 
   // Filter sections dynamically based on role + optional custom modules
   let baseRole = userRole || "";
-  let allowedModules: string[] | null = null;
-  if (baseRole.includes("|")) {
+  let allowedModules: string[] | null = userPermissions;
+  
+  // Fallback for legacy database rows without permissions column:
+  if (!allowedModules && baseRole.includes("|")) {
     const parts = baseRole.split("|");
     baseRole = parts[0];
     allowedModules = parts[1].split(",").filter(Boolean);

@@ -9,6 +9,34 @@ interface EditEmployeeDialogProps {
   franchises: any[];
 }
 
+const MODULE_OPTIONS = [
+  { value: "dashboard",  label: "Dashboard" },
+  { value: "carin",      label: "Car In / Out" },
+  { value: "jobs",       label: "Job Cards" },
+  { value: "outpass",    label: "Out Pass" },
+  { value: "leads",      label: "Leads" },
+  { value: "customers",  label: "Customers" },
+  { value: "billing",    label: "Billing" },
+  { value: "payments",   label: "Payments" },
+  { value: "inventory",  label: "Inventory" },
+  { value: "reports",    label: "Reports" },
+  { value: "employees",  label: "Employees" },
+  { value: "attendance", label: "Attendance" },
+];
+
+const DEFAULT_ROLE_MODULES: Record<string, string[]> = {
+  SUPER_ADMIN: ["dashboard", "carin", "jobs", "outpass", "leads", "customers", "billing", "payments", "inventory", "reports", "employees", "attendance"],
+  HQ_USER: ["dashboard", "carin", "jobs", "outpass", "leads", "customers", "billing", "payments", "inventory", "reports", "employees", "attendance"],
+  FRANCHISE_ADMIN: ["dashboard", "carin", "jobs", "outpass", "leads", "customers", "billing", "payments", "inventory", "employees", "attendance"],
+  BRANCH_MANAGER: ["dashboard", "carin", "jobs", "outpass", "customers", "billing", "payments", "inventory"],
+  RECEPTION_EXECUTIVE: ["dashboard", "carin", "outpass", "customers", "leads"],
+  SERVICE_ADVISOR: ["dashboard", "carin", "jobs", "customers", "leads"],
+  TECHNICIAN: ["dashboard", "jobs", "attendance"],
+  QUALITY_INSPECTOR: ["dashboard", "jobs", "carin"],
+  BILLING_EXECUTIVE: ["dashboard", "billing", "payments", "reports"],
+  INVENTORY_EXECUTIVE: ["dashboard", "inventory", "reports"],
+};
+
 export default function EditEmployeeDialog({ isOpen, onClose, onEdit, employee, franchises }: EditEmployeeDialogProps) {
   const [formData, setFormData] = useState({
     name: "",
@@ -20,6 +48,8 @@ export default function EditEmployeeDialog({ isOpen, onClose, onEdit, employee, 
     franchiseId: "",
     status: "Active"
   });
+
+  const [selectedModules, setSelectedModules] = useState<string[]>([]);
 
   useEffect(() => {
     if (employee) {
@@ -33,6 +63,7 @@ export default function EditEmployeeDialog({ isOpen, onClose, onEdit, employee, 
         franchiseId: employee.franchiseId || "",
         status: employee.status || "Active"
       });
+      setSelectedModules(employee.permissions || []);
     }
   }, [employee]);
 
@@ -40,17 +71,34 @@ export default function EditEmployeeDialog({ isOpen, onClose, onEdit, employee, 
     "SUPER_ADMIN",
     "HQ_USER",
     "FRANCHISE_ADMIN",
-    "RECEPTIONIST",
+    "BRANCH_MANAGER",
+    "RECEPTION_EXECUTIVE",
     "SERVICE_ADVISOR",
     "TECHNICIAN",
-    "BILLING",
+    "QUALITY_INSPECTOR",
+    "BILLING_EXECUTIVE",
+    "INVENTORY_EXECUTIVE",
   ];
 
   if (!isOpen) return null;
 
+  const handleRoleChange = (role: string) => {
+    setFormData(prev => ({ ...prev, role }));
+    setSelectedModules(DEFAULT_ROLE_MODULES[role] || []);
+  };
+
+  const handleToggleModule = (modValue: string) => {
+    setSelectedModules(prev =>
+      prev.includes(modValue) ? prev.filter(m => m !== modValue) : [...prev, modValue]
+    );
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onEdit(employee.id, formData);
+    onEdit(employee.id, {
+      ...formData,
+      permissions: selectedModules,
+    });
   };
 
   return (
@@ -126,7 +174,7 @@ export default function EditEmployeeDialog({ isOpen, onClose, onEdit, employee, 
                 <select
                   required
                   value={formData.role}
-                  onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                  onChange={(e) => handleRoleChange(e.target.value)}
                   className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all outline-none bg-white"
                 >
                   {roles.map(r => <option key={r} value={r}>{r.replace("_", " ")}</option>)}
@@ -157,6 +205,39 @@ export default function EditEmployeeDialog({ isOpen, onClose, onEdit, employee, 
                   <option value="Active">Active</option>
                   <option value="Inactive">Inactive</option>
                 </select>
+              </div>
+
+              {/* Permissions customizer */}
+              <div className="col-span-2 mt-4 pt-4 border-t border-gray-100">
+                <label className="text-sm font-semibold text-gray-700 block mb-2">
+                  Customize Dashboard Access
+                </label>
+                <p className="text-xs text-gray-400 mb-3">Toggled options overrides standard role permissions.</p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {MODULE_OPTIONS.map((opt) => {
+                    const isChecked = selectedModules.includes(opt.value);
+                    return (
+                      <button
+                        type="button"
+                        key={opt.value}
+                        onClick={() => handleToggleModule(opt.value)}
+                        className={`flex items-center gap-2 p-2 rounded-xl border text-left transition-all ${
+                          isChecked
+                            ? "bg-blue-50/50 border-blue-300 text-blue-700 font-semibold"
+                            : "bg-gray-50 border-gray-100 text-gray-400"
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          readOnly
+                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-3.5 h-3.5 shrink-0"
+                        />
+                        <span className="text-[11px] leading-tight">{opt.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           </form>

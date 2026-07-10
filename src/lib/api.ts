@@ -54,6 +54,17 @@ export async function getCurrentUser() {
   }
 }
 
+export async function getRolePermissions() {
+  return apiCall("/auth/roles/permissions");
+}
+
+export async function updateRolePermissions(role: string, permissions: string[]) {
+  return apiCall(`/auth/roles/permissions/${role}`, {
+    method: "PUT",
+    body: JSON.stringify({ permissions }),
+  });
+}
+
 // ═══════════════════════════════════════════════════════════════
 // LEADS
 // ═══════════════════════════════════════════════════════════════
