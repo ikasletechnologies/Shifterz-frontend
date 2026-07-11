@@ -1,6 +1,8 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { X, Printer } from "lucide-react";
+import { getSettings } from "@/lib/api";
 
 interface PaymentReceiptDialogProps {
   isOpen: boolean;
@@ -25,6 +27,16 @@ export default function PaymentReceiptDialog({
   onClose,
   payment,
 }: PaymentReceiptDialogProps) {
+  const [companyInfo, setCompanyInfo] = useState<any>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      getSettings().then(data => {
+        if (data?.companyInfo) setCompanyInfo(data.companyInfo);
+      }).catch(console.error);
+    }
+  }, [isOpen]);
+
   if (!isOpen || !payment) return null;
 
   const handlePrint = () => {
@@ -93,7 +105,7 @@ export default function PaymentReceiptDialog({
         <div id="print-receipt-content" className="border-4 border-yellow-400 rounded-xl overflow-hidden bg-white max-w-sm mx-auto">
           {/* Header */}
           <div className="bg-yellow-400 text-gray-900 px-6 py-5 text-center">
-            <h1 className="text-3xl font-black mb-2 tracking-wide">SHIFTERZ</h1>
+            <h1 className="text-3xl font-black mb-2 tracking-wide">{companyInfo?.name || 'SHIFTERZ'}</h1>
             <h2 className="text-sm font-bold mb-1 tracking-widest">PAYMENT RECEIPT</h2>
             <p className="text-xs font-semibold text-red-600">{payment.id}</p>
           </div>

@@ -234,7 +234,7 @@ export default function DocumentPreviewDialog({
             <div class="document">
               <div class="header">
                 <div class="header-left">
-                  <h1>SHIFTERZ</h1>
+                  <h1>${companyInfo?.name || 'SHIFTERZ'}</h1>
                   <p>${companyInfo?.address || '42, Race Course Rd, Coimbatore - 641018'}</p>
                 </div>
                 <div class="header-right">
@@ -264,7 +264,7 @@ export default function DocumentPreviewDialog({
                     <p><strong>Date:</strong> ${document.date}</p>
                     <p><strong>Due:</strong> ${document.due}</p>
                     ${document.gstNumber ? `<p><strong>Client GSTIN:</strong> ${document.gstNumber}</p>` : ''}
-                    <p><strong>Our GSTIN:</strong> 33AAAAAO000A1Z5</p>
+                    <p><strong>Our GSTIN:</strong> ${companyInfo?.gstin || '33AAAAAO000A1Z5'}</p>
                   </div>
                 </div>
 
@@ -376,7 +376,7 @@ export default function DocumentPreviewDialog({
             {/* Header */}
             <div className="bg-yellow-400 text-gray-900 px-4 sm:px-6 md:px-8 py-4 sm:py-6 flex justify-between items-start rounded-t-lg gap-4">
               <div>
-                <h1 className="text-3xl font-bold mb-1 tracking-tight">SHIFTERZ</h1>
+                <h1 className="text-3xl font-bold mb-1 tracking-tight">{companyInfo?.name || 'SHIFTERZ'}</h1>
                 <p className="text-sm font-medium">{companyInfo?.address || '42, Race Course Rd, Coimbatore - 641018'}</p>
               </div>
               <div className="text-right">
@@ -433,7 +433,7 @@ export default function DocumentPreviewDialog({
                       )}
                       <tr>
                         <td className="pr-4 text-gray-500 font-medium">Our GSTIN:</td>
-                        <td className="text-gray-900 font-semibold">33AAAAAO000A1Z5</td>
+                        <td className="text-gray-900 font-semibold">{companyInfo?.gstin || '33AAAAAO000A1Z5'}</td>
                       </tr>
                     </tbody>
                   </table>
