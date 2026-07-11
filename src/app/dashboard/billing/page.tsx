@@ -147,12 +147,19 @@ export default function BillingPage() {
 
   const handleConvertDocument = async (convertedData: any) => {
     try {
+      const date = new Date();
+      const year = date.getFullYear();
+      const month = date.getMonth();
+      const startYear = month >= 3 ? year : year - 1;
+      const endYear = startYear + 1;
+      const fy = `${startYear.toString().slice(2)}-${endYear.toString().slice(2)}`;
+
       const docTypeMap: Record<string, string> = {
-        Invoice: "INV",
-        Quotation: "QT",
-        Estimate: "EST",
+        Invoice: `STZ-${fy}-`,
+        Quotation: `STZ-QT-${fy}-`,
+        Estimate: `STZ-EST-${fy}-`,
       };
-      const docTypePrefix = docTypeMap[convertedData.type] || "DOC";
+      const docTypePrefix = docTypeMap[convertedData.type] || `STZ-DOC-${fy}-`;
 
       // Get the next sequential ID based on document type
       let maxId = 0;
@@ -164,7 +171,7 @@ export default function BillingPage() {
           maxId = num;
         }
       });
-      const newDocId = `${docTypePrefix}${String(maxId + 1).padStart(3, "0")}`;
+      const newDocId = `${docTypePrefix}${maxId + 1}`;
 
       const newDoc = {
         ...convertedData,

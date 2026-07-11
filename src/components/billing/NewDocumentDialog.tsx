@@ -1,7 +1,7 @@
 "use client";
 /* eslint-disable react-hooks/exhaustive-deps, @typescript-eslint/no-explicit-any */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { X, FileText, Plus, Trash2, Loader2 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { fetchVehicleDetails, getServices } from "@/lib/api";
@@ -56,6 +56,32 @@ export default function NewDocumentDialog({
   const [gstAmount, setGstAmount] = useState(0);
   const [isFetchingVehicle, setIsFetchingVehicle] = useState(false);
   const [availableServices, setAvailableServices] = useState<any[]>([]);
+
+  const nextDocNo = useMemo(() => {
+    const date = new Date(formData.invoiceDate || Date.now());
+    const year = date.getFullYear();
+    const month = date.getMonth(); // 0-indexed, 0 = Jan, 3 = Apr
+    const startYear = month >= 3 ? year : year - 1;
+    const endYear = startYear + 1;
+    const fy = `${startYear.toString().slice(2)}-${endYear.toString().slice(2)}`;
+
+    const docTypePrefix = {
+      Invoice: `STZ-${fy}-`,
+      Quotation: `STZ-QT-${fy}-`,
+      Estimate: `STZ-EST-${fy}-`,
+    }[formData.type] || `STZ-DOC-${fy}-`;
+
+    let maxId = 0;
+    const relevantDocs = existingDocuments.filter((doc) => doc.id?.startsWith(docTypePrefix));
+    relevantDocs.forEach((doc) => {
+      const numStr = doc.id.replace(docTypePrefix, "");
+      const num = parseInt(numStr, 10);
+      if (!isNaN(num) && num > maxId) {
+        maxId = num;
+      }
+    });
+    return `${docTypePrefix}${maxId + 1}`;
+  }, [formData.type, formData.invoiceDate, existingDocuments]);
 
   const handleVehicleBlur = async () => {
     const vNo = formData.vehicle.trim().toUpperCase();
@@ -195,25 +221,8 @@ export default function NewDocumentDialog({
       const discountPercent = parseFloat(formData.discount) || 0;
       const discountAmount = (baseAmount * discountPercent) / 100;
 
-      const docTypePrefix = {
-        Invoice: "INV",
-        Quotation: "QT",
-        Estimate: "EST",
-      }[formData.type] || "DOC";
-
-      // Get the next sequential ID based on document type
-      let maxId = 0;
-      const relevantDocs = existingDocuments.filter((doc) => doc.id?.startsWith(docTypePrefix));
-      relevantDocs.forEach((doc) => {
-        const numStr = doc.id.replace(docTypePrefix, "");
-        const num = parseInt(numStr, 10);
-        if (!isNaN(num) && num > maxId) {
-          maxId = num;
-        }
-      });
-      const docNo = `${docTypePrefix}${String(maxId + 1).padStart(3, "0")}`;
-
       const newDoc = {
+        id: nextDocNo,
         type: formData.type,
         client: formData.client,
         phone: formData.phone,
@@ -249,6 +258,9 @@ export default function NewDocumentDialog({
           <div className="flex items-center gap-2 sm:gap-3">
             <FileText className="w-5 sm:w-6 h-5 sm:h-6 text-yellow-500" />
             <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">New Document</h2>
+            <span className="ml-2 px-3 py-1 bg-yellow-100 text-yellow-800 text-xs font-bold rounded-full border border-yellow-200 uppercase tracking-wider">
+              {nextDocNo}
+            </span>
           </div>
           <button
             onClick={onClose}
