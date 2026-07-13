@@ -3,18 +3,18 @@
 import { useState, useEffect } from "react";
 import { X, Car, Clock, Calendar, Plus } from "lucide-react";
 import { toast } from "react-hot-toast";
-import { getServices, fetchVehicleDetails, getEmployees } from "@/lib/api";
+import { apiCall } from "@/services/api.client";
 import { formatVehicleNumber, getVehicleType, normalizeVehicleNumber } from "@/utils/vehicleNumber";
 import AddTechnicianDialog from "./AddTechnicianDialog";
 
-interface CarCheckInDialogProps {
+interface VehicleCheckInDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit?: (data: any) => void;
   initialData?: any;
 }
 
-export default function CarCheckInDialog({
+export default function VehicleCheckInDialog({
   isOpen,
   onClose,
   onSubmit,
@@ -100,15 +100,13 @@ export default function CarCheckInDialog({
   useEffect(() => {
     const fetchServices = async () => {
       try {
-        const data = await getServices();
+        const data = await apiCall("/services");
         setServices(data || []);
-        // Set first service as default if available and no initialData
         if (data && data.length > 0 && !initialData) {
           setFormData(prev => ({ ...prev, service: data[0].name }));
         }
       } catch (err) {
         console.error("Failed to fetch services:", err);
-        // Fallback to default services if API fails
         setServices([
           { id: "1", name: "PPF Full Body" },
           { id: "2", name: "PPF Bonnet" },
@@ -124,14 +122,12 @@ export default function CarCheckInDialog({
   useEffect(() => {
     const loadTechnicians = async () => {
       try {
-        const emps = await getEmployees();
+        const emps = await apiCall("/employees");
         const techNames = emps
           .filter((emp: any) => emp.role === "TECHNICIAN" && emp.status === "Active")
           .map((emp: any) => emp.name);
-        
         if (techNames.length > 0) {
           setTechnicians(techNames);
-          // Set first active technician as default if not already initialized
           setFormData((prev) => {
             if (!prev.technician || !techNames.includes(prev.technician)) {
               return { ...prev, technician: techNames[0] };
@@ -143,10 +139,7 @@ export default function CarCheckInDialog({
         console.error("Failed to load technicians:", err);
       }
     };
-
-    if (isOpen) {
-      loadTechnicians();
-    }
+    if (isOpen) loadTechnicians();
   }, [isOpen]);
 
 
@@ -167,11 +160,10 @@ export default function CarCheckInDialog({
   };
 
   const handleVehicleBlur = async () => {
-    // We can also normalize the vehicle number before passing it to the API
     const normalized = normalizeVehicleNumber(formData.vehicleNumber);
     if (normalized.length > 4 && (!formData.customerName || !formData.phone)) {
       try {
-        const details = await fetchVehicleDetails(normalized);
+        const details = await apiCall(`/customers/vehicle/${normalized}`);
         if (details && details.name) {
           setFormData((prev) => ({
             ...prev,
@@ -181,7 +173,7 @@ export default function CarCheckInDialog({
           }));
           toast.success("Customer details auto-filled!");
         }
-      } catch (error) {
+      } catch {
         // Ignore if vehicle not found
       }
     }
