@@ -40,7 +40,7 @@ export default function DashboardPage() {
   }
 
   const isHQ = baseRole === "SUPER_ADMIN" || baseRole === "HQ_USER";
-  const isBilling = baseRole === "BILLING";
+  const isBilling = baseRole === "BILLING" || baseRole === "BILLING_EXECUTIVE";
   const isServiceAdvisor = baseRole === "SERVICE_ADVISOR";
   const isFranchiseAdmin = baseRole === "FRANCHISE_ADMIN" || baseRole === "BRANCH_MANAGER";
 
@@ -63,6 +63,8 @@ export default function DashboardPage() {
     <div className="p-8 max-w-7xl mx-auto">
       {isHQ ? (
         <HQDashboard />
+      ) : isBilling ? (
+        <BillingDashboard />
       ) : isServiceAdvisor ? (
         <ServiceAdvisorDashboard />
       ) : onlyJobsDashboard ? (

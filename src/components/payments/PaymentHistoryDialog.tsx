@@ -27,6 +27,7 @@ interface Payment {
   date: string;
   ref: string;
   notes?: string;
+  createdBy?: string;
 }
 
 export default function PaymentHistoryDialog({
@@ -330,7 +331,7 @@ export default function PaymentHistoryDialog({
                     <Printer className="w-4 h-4" />
                   </button>
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs sm:text-sm">
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs sm:text-sm">
                   <div>
                     <p className="text-xs text-gray-500">Amount</p>
                     <p className="font-bold text-green-600">₹{Number(payment.amount).toLocaleString("en-IN")}</p>
@@ -346,6 +347,10 @@ export default function PaymentHistoryDialog({
                   <div>
                     <p className="text-xs text-gray-500">Phone</p>
                     <p className="font-semibold text-gray-900">{payment.phone || "-"}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">Collected By</p>
+                    <p className="font-semibold text-gray-900">{payment.createdBy || "System"}</p>
                   </div>
                 </div>
                 {payment.notes && (

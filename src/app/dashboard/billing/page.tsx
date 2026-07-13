@@ -111,17 +111,21 @@ export default function BillingPage() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "Paid":
+      case "Completed":
         return "bg-green-100 text-green-700";
-      case "Pending":
-        return "bg-yellow-100 text-yellow-700";
       case "Partially Paid":
-        return "bg-orange-100 text-orange-700";
-      case "Overdue":
-        return "bg-red-100 text-red-700";
+        return "bg-amber-100 text-amber-700";
+      case "Invoice Generated":
+        return "bg-indigo-100 text-indigo-700";
       case "Approved":
         return "bg-blue-100 text-blue-700";
-      case "Converted":
-        return "bg-purple-100 text-purple-700";
+      case "Estimate":
+      case "Quotation":
+        return "bg-cyan-100 text-cyan-700";
+      case "Cancelled":
+        return "bg-red-100 text-red-700";
+      case "Draft":
+        return "bg-gray-100 text-gray-700";
       default:
         return "bg-gray-100 text-gray-700";
     }
@@ -401,8 +405,14 @@ export default function BillingPage() {
                     <td className="px-6 py-4 text-sm font-semibold text-gray-900">
                       ₹{totalAmount.toLocaleString("en-IN")}
                     </td>
-                    <td className="px-6 py-4 text-sm font-semibold text-green-600">
-                      ₹{paidAmount.toLocaleString("en-IN")}
+                    <td className="px-6 py-4 text-sm font-semibold text-green-600 min-w-[120px]">
+                      <div>₹{paidAmount.toLocaleString("en-IN")}</div>
+                      <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1.5 overflow-hidden">
+                        <div 
+                          className={`h-full rounded-full ${paidAmount >= totalAmount ? 'bg-green-500' : paidAmount > 0 ? 'bg-amber-400' : 'bg-transparent'}`} 
+                          style={{ width: `${Math.min(100, (totalAmount > 0 ? (paidAmount / totalAmount) * 100 : 0))}%` }}
+                        ></div>
+                      </div>
                     </td>
                     <td className="px-6 py-4 text-sm font-semibold">
                       <span className={remainingAmount > 0 ? "text-red-600" : "text-green-600"}>

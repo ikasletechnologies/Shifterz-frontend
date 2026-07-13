@@ -14,13 +14,36 @@ export async function apiCall(
     url.searchParams.append('_t', Date.now().toString());
   }
 
+  let finalOptions = { ...options };
+
+  if (typeof window !== "undefined") {
+    const userStr = localStorage.getItem("user");
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        if (finalOptions.method && ["POST", "PUT"].includes(finalOptions.method.toUpperCase()) && finalOptions.body) {
+          const bodyObj = JSON.parse(finalOptions.body as string);
+          if (finalOptions.method.toUpperCase() === "POST" && !bodyObj.createdBy) {
+            bodyObj.createdBy = user.name || user.username;
+          }
+          if (finalOptions.method.toUpperCase() === "PUT" && !bodyObj.modifiedBy) {
+            bodyObj.modifiedBy = user.name || user.username;
+          }
+          finalOptions.body = JSON.stringify(bodyObj);
+        }
+      } catch (e) {
+        console.error("Error adding audit fields:", e);
+      }
+    }
+  }
+
   const response = await fetch(url.toString(), {
     cache: "no-store",
-    ...options,
+    ...finalOptions,
     headers: {
       "Content-Type": "application/json",
       ...(token && { Authorization: `Bearer ${token}` }),
-      ...options.headers,
+      ...finalOptions.headers,
     },
   });
 
@@ -59,6 +82,13 @@ export async function getCurrentUser() {
   } catch {
     return null;
   }
+}
+
+export async function updateProfile(data: any) {
+  return apiCall("/auth/profile", {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
 }
 
 export async function getRolePermissions() {

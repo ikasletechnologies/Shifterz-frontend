@@ -60,19 +60,34 @@ export default function ProfilePage() {
     }
 
     setSaving(true);
-    // TODO: wire to PATCH /api/profile endpoint
-    await new Promise(r => setTimeout(r, 800)); // simulate network
-    // Update localStorage name
-    const userStr = localStorage.getItem("user");
-    if (userStr) {
-      try {
-        const u = JSON.parse(userStr);
-        localStorage.setItem("user", JSON.stringify({ ...u, name: profile.name, email: profile.email, phone: profile.phone }));
-      } catch {}
+    try {
+      const { updateProfile } = await import("@/lib/api");
+      await updateProfile({
+        name: profile.name,
+        email: profile.email,
+        phone: profile.phone,
+        currentPassword: currentPassword || undefined,
+        newPassword: newPassword || undefined,
+      });
+
+      // Update localStorage name
+      const userStr = localStorage.getItem("user");
+      if (userStr) {
+        try {
+          const u = JSON.parse(userStr);
+          localStorage.setItem("user", JSON.stringify({ ...u, name: profile.name, email: profile.email, phone: profile.phone }));
+        } catch {}
+      }
+      setSaved(true);
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setTimeout(() => setSaved(false), 2500);
+    } catch (err: any) {
+      setPwError(err.message || "Failed to update profile");
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2500);
   };
 
   const initials = profile.name

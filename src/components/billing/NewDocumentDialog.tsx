@@ -299,10 +299,15 @@ export default function NewDocumentDialog({
                 onChange={handleChange}
                 className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400 bg-gray-50"
               >
-                <option>Pending</option>
-                <option>Paid</option>
-                <option>Overdue</option>
+                <option>Draft</option>
+                <option>Estimate</option>
+                <option>Quotation</option>
                 <option>Approved</option>
+                <option>Invoice Generated</option>
+                <option>Partially Paid</option>
+                <option>Paid</option>
+                <option>Completed</option>
+                <option>Cancelled</option>
               </select>
             </div>
           </div>

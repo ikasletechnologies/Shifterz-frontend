@@ -135,16 +135,17 @@ const hqSidebarSections: NavSection[] = [
         icon: Building2,
         href: "/dashboard/franchise",
         children: franchiseControlChildren,
+        module: "franchise"
       },
-      { label: "Services", icon: Wrench, href: "/dashboard/services" },
-      { label: "User Management", icon: UserRoundCog, href: "/dashboard/franchise-control/users" },
+      { label: "Services", icon: Wrench, href: "/dashboard/services", module: "services" },
+      { label: "User Management", icon: UserRoundCog, href: "/dashboard/franchise-control/users", module: "employees" },
     ],
   },
   {
     label: "SETTINGS",
     items: [
-      { label: "Settings", icon: Settings, href: "/dashboard/settings" },
-      { label: "Roles & Permissions", icon: ShieldCheck, href: "/dashboard/roles" },
+      { label: "Settings", icon: Settings, href: "/dashboard/settings", module: "settings" },
+      { label: "Roles & Permissions", icon: ShieldCheck, href: "/dashboard/roles", module: "roles" },
       { label: "Profile", icon: User, href: "/dashboard/profile" },
     ],
   },
@@ -196,8 +197,8 @@ const franchiseSidebarSections: NavSection[] = [
   {
     label: "SETTINGS",
     items: [
-      { label: "Settings", icon: Settings, href: "/dashboard/settings" },
-      { label: "Roles & Permissions", icon: ShieldCheck, href: "/dashboard/roles" },
+      { label: "Settings", icon: Settings, href: "/dashboard/settings", module: "settings" },
+      { label: "Roles & Permissions", icon: ShieldCheck, href: "/dashboard/roles", module: "roles" },
       { label: "Profile", icon: User, href: "/dashboard/profile" },
     ],
   },
@@ -209,7 +210,12 @@ const billingSidebarSections: NavSection[] = [
     label: "OVERVIEW",
     items: [
       { label: "Dashboard", icon: Grid3x3, href: "/dashboard", module: "dashboard" },
-      { label: "Attendance", icon: Clock, href: "/dashboard/attendance", module: "attendance" },
+    ],
+  },
+  {
+    label: "WORKSHOP",
+    items: [
+      { label: "Ready For Billing", icon: Briefcase, href: "/dashboard/jobs?status=Ready For Billing", module: "jobs" },
     ],
   },
   {
@@ -217,6 +223,18 @@ const billingSidebarSections: NavSection[] = [
     items: [
       { label: "Billing", icon: FileText, href: "/dashboard/billing", module: "billing" },
       { label: "Payments", icon: CreditCard, href: "/dashboard/payments", module: "payments" },
+    ],
+  },
+  {
+    label: "ANALYTICS",
+    items: [
+      { label: "Reports", icon: PieChart, href: "/dashboard/reports", module: "reports" },
+    ],
+  },
+  {
+    label: "SETTINGS",
+    items: [
+      { label: "Profile", icon: User, href: "/dashboard/profile" },
     ],
   },
 ];

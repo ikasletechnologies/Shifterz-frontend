@@ -4,6 +4,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Plus, Trash2, Edit, Search, X } from "lucide-react";
 import NewJobCardDialog from "@/components/jobs/NewJobCardDialog";
+import BillingJobCards from "@/components/jobs/BillingJobCards";
 import { getJobs, createJob, updateJob, deleteJob } from "@/lib/api";
 
 export default function JobCardsPage() {
@@ -14,6 +15,19 @@ export default function JobCardsPage() {
   const [selectedJob, setSelectedJob] = useState<any>(null);
   const [priorityFilter, setPriorityFilter] = useState<string>("All");
   const [searchQuery, setSearchQuery] = useState("");
+  const [userRole, setUserRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    const userStr = localStorage.getItem("user");
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        setUserRole(user.role.split("|")[0]);
+      } catch (e) {
+        console.error("Failed to parse user role", e);
+      }
+    }
+  }, []);
 
   const fetchJobs = useCallback(async () => {
     try {
@@ -66,10 +80,18 @@ export default function JobCardsPage() {
     setSelectedJob(null);
   };
 
+  const isBilling = userRole === "BILLING" || userRole === "BILLING_EXECUTIVE";
+
+  if (isBilling) {
+    return <BillingJobCards />;
+  }
+
+  const displayJobs = jobs;
+
   const stats = {
     pending: jobs.filter(j => j.status === "Pending").length,
-    inProgress: jobs.filter(j => j.status === "In Progress").length,
-    completed: jobs.filter(j => j.status === "Completed").length,
+    inProgress: jobs.filter(j => j.status === "In Progress" || j.status === "Assigned").length,
+    completed: jobs.filter(j => j.status === "Completed" || j.status === "QC Passed" || j.status === "Ready For Billing").length,
     cancelled: jobs.filter(j => j.status === "Cancelled").length,
   };
 
@@ -143,7 +165,7 @@ export default function JobCardsPage() {
         </div>
       </div>
 
-      {jobs.length === 0 ? (
+      {displayJobs.length === 0 ? (
         <div className="text-center py-12 text-gray-500">No jobs found</div>
       ) : (
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
@@ -166,7 +188,7 @@ export default function JobCardsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
-                {jobs
+                {displayJobs
                   .filter(j => {
                     const priorityMatch = priorityFilter === "All" || j.priority === priorityFilter;
                     const searchMatch =
