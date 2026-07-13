@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { X, Printer, History } from "lucide-react";
-import { getPayments } from "@/lib/api";
+import { getPayments, getSettings } from "@/lib/api";
 
 interface PaymentHistoryDialogProps {
   isOpen: boolean;
@@ -38,10 +38,16 @@ export default function PaymentHistoryDialog({
 }: PaymentHistoryDialogProps) {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [companyInfo, setCompanyInfo] = useState<any>(null);
 
   useEffect(() => {
-    if (isOpen && invoiceId) {
-      fetchPayments();
+    if (isOpen) {
+      if (invoiceId) {
+        fetchPayments();
+      }
+      getSettings().then(data => {
+        if (data?.companyInfo) setCompanyInfo(data.companyInfo);
+      }).catch(console.error);
     }
   }, [isOpen, invoiceId]);
 
@@ -186,7 +192,7 @@ export default function PaymentHistoryDialog({
           <body>
             <div class="receipt">
               <div class="header">
-                <h1>SHIFTERZ</h1>
+                <h1>${companyInfo?.name || 'SHIFTERZ'}</h1>
                 <h2>PAYMENT RECEIPT</h2>
                 <p>${payment.id}</p>
               </div>
