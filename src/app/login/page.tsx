@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { login } from "@/lib/api";
+import { login } from "@/modules/auth/services/auth.service";
 import Image from "next/image";
 import { Eye, EyeOff, Info, Loader2 } from "lucide-react";
 
