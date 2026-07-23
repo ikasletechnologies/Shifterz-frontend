@@ -9,6 +9,9 @@ export async function login(username: string, password: string) {
   if (response.token) {
     if (typeof window !== "undefined") {
       localStorage.setItem("token", response.token);
+      // Also set the token in cookies so that Next.js middleware can read it
+      document.cookie = `token=${response.token}; path=/; max-age=86400; SameSite=Strict`;
+      
       if (response.user) {
         localStorage.setItem("user", JSON.stringify(response.user));
       }

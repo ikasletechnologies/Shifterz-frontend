@@ -4,8 +4,8 @@ import { useState, useEffect, useCallback } from "react";
 import { Search, X, FileText, CheckCircle2, AlertCircle, Printer, CreditCard } from "lucide-react";
 import { getJobs, getInvoices, getPayments } from "@/lib/api";
 import { useRouter } from "next/navigation";
-import NewDocumentDialog from "../billing/NewDocumentDialog";
-import RecordPaymentDialog from "../payments/RecordPaymentDialog";
+import NewDocumentDialog from "./NewDocumentDialog";
+import RecordPaymentDialog from "../../payment/components/RecordPaymentDialog";
 
 export default function BillingJobCards() {
   const router = useRouter();

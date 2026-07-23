@@ -5,9 +5,9 @@ import {
   FileText, Wallet, Clock, Search, Plus, Printer, CreditCard, ChevronRight, CheckCircle2, AlertCircle
 } from "lucide-react";
 import { getInvoices, getJobs, getPayments } from "@/lib/api";
-import NewDocumentDialog from "../billing/NewDocumentDialog";
-import RecordPaymentDialog from "../payments/RecordPaymentDialog";
-import PaymentHistoryDialog from "../payments/PaymentHistoryDialog";
+import NewDocumentDialog from "@/modules/billing/components/NewDocumentDialog";
+import RecordPaymentDialog from "@/modules/payment/components/RecordPaymentDialog";
+import PaymentHistoryDialog from "@/modules/payment/components/PaymentHistoryDialog";
 import { useRouter } from "next/navigation";
 
 export default function BillingDashboard() {

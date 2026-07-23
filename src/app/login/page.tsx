@@ -49,10 +49,10 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen relative flex items-center justify-start p-8 md:py-24 md:pr-24 md:pl-40 lg:pl-48">
       {/* Background Image */}
-      <Image 
-        src="/login/login_bg.png" 
-        alt="Login Background" 
-        fill 
+      <Image
+        src="/login/login_bg.png"
+        alt="Login Background"
+        fill
         priority
         className="object-cover z-0"
       />
@@ -140,23 +140,6 @@ export default function LoginPage() {
               )}
             </button>
           </form>
-
-          {/* Demo Credentials Info */}
-          {/* <div className="mt-6 p-4 bg-white/5 backdrop-blur-md rounded-lg border border-white/10 shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)]">
-            <p className="text-xs text-yellow-500 mb-3 font-semibold flex items-center gap-2">
-              <Info className="w-4 h-4" /> Demo Credentials:
-            </p>
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 text-xs text-gray-300">
-                <span className="w-16 font-medium">Username:</span>
-                <span className="font-mono text-white bg-white/10 border border-white/20 px-2.5 py-1 rounded-md shadow-inner tracking-wider">admin</span>
-              </div>
-              <div className="flex items-center gap-2 text-xs text-gray-300">
-                <span className="w-16 font-medium">Password:</span>
-                <span className="font-mono text-white bg-white/10 border border-white/20 px-2.5 py-1 rounded-md shadow-inner tracking-wider">admin123</span>
-              </div>
-            </div>
-          </div> */}
 
           {/* Footer */}
           <div className="mt-8 pt-6 border-t border-gray-800 text-center">
