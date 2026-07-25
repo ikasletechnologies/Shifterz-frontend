@@ -1,5 +1,5 @@
-import { apiCall } from "./api.client";
-import { BillingDocument } from "@/types/billing";
+import { apiCall } from "@/services/api.client";
+import { BillingDocument } from "@/modules/billing/types/billing.types";
 
 export async function getInvoices(): Promise<BillingDocument[]> {
   return apiCall("/invoices");

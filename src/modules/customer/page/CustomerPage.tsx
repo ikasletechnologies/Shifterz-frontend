@@ -3,8 +3,8 @@ import { useState } from "react";
 import { Plus, FileText, Trash2, Search, Download, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import AddCustomerDialog from "../components/AddCustomerDialog";
-import { useCustomer } from "@/hooks/useCustomer";
-import { Customer } from "@/types/customer";
+import { useCustomer } from "@/modules/customer/hooks/useCustomer";
+import { Customer } from "@/modules/customer/types/customer.types";
 
 export function CustomerPage() {
   const router = useRouter();

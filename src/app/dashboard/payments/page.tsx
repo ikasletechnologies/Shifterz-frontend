@@ -3,8 +3,8 @@
 
 import { useState, useEffect } from "react";
 import { Plus, FileText, Trash2, Search, X } from "lucide-react";
-import PaymentReceiptDialog from "@/components/payments/PaymentReceiptDialog";
-import RecordPaymentDialog from "@/components/payments/RecordPaymentDialog";
+import PaymentReceiptDialog from "@/modules/payment/components/PaymentReceiptDialog";
+import RecordPaymentDialog from "@/modules/payment/components/RecordPaymentDialog";
 import { getPayments, createPayment, deletePayment } from "@/lib/api";
 
 interface Payment {

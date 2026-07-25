@@ -1,3 +1,5 @@
+"use client";
+
 import { useState, useCallback, useEffect } from "react";
 import { WorkshopJob, MaterialRecord, WorkshopStats } from "../types/workshop.types";
 import {

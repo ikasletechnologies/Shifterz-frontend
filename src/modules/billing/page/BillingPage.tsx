@@ -8,8 +8,8 @@ import ConvertDocumentDialog from "../components/ConvertDocumentDialog";
 import RecordPaymentDialog from "@/modules/payment/components/RecordPaymentDialog";
 import PaymentReceiptDialog from "@/modules/payment/components/PaymentReceiptDialog";
 import PaymentHistoryDialog from "@/modules/payment/components/PaymentHistoryDialog";
-import { useBilling } from "@/hooks/useBilling";
-import { BillingDocument } from "@/types/billing";
+import { useBilling } from "@/modules/billing/hooks/useBilling";
+import { BillingDocument } from "@/modules/billing/types/billing.types";
 
 export function BillingPage() {
   const {

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { Building2, Database, Download, Headset, Lock, Plus, Trash2, Users, Tag } from "lucide-react";
 import { getSettings, updateSettings } from "@/lib/api";
-import AddTechnicianDialog from "@/components/carin/AddTechnicianDialog";
+import AddTechnicianDialog from "@/modules/vehicle-checkin/components/AddTechnicianDialog";
 import AddSalesAgentDialog from "@/components/settings/AddSalesAgentDialog";
 import AddSecurityGuardDialog from "@/components/settings/AddSecurityGuardDialog";
 import { toast } from "react-hot-toast";
