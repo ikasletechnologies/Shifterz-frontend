@@ -9,11 +9,12 @@ export function getCurrentTime(): string {
 }
 
 export function formatTime(date: Date | string): string {
+  if (!date) return "—";
   const dateObj = typeof date === "string" ? new Date(date) : date;
+  if (isNaN(dateObj.getTime())) return typeof date === "string" ? date : "—";
   return dateObj.toLocaleTimeString("en-IN", {
     hour: "2-digit",
     minute: "2-digit",
-    second: "2-digit",
     hour12: true,
   });
 }
@@ -43,7 +44,9 @@ export function calculateDuration(startTime: string, endTime: string): string {
 }
 
 export function formatDate(date: Date | string): string {
+  if (!date) return "—";
   const dateObj = typeof date === "string" ? new Date(date) : date;
+  if (isNaN(dateObj.getTime())) return typeof date === "string" ? date : "—";
   return dateObj.toLocaleDateString("en-IN", {
     day: "2-digit",
     month: "short",
@@ -52,14 +55,15 @@ export function formatDate(date: Date | string): string {
 }
 
 export function formatDateTime(date: Date | string): string {
+  if (!date) return "—";
   const dateObj = typeof date === "string" ? new Date(date) : date;
+  if (isNaN(dateObj.getTime())) return typeof date === "string" ? date : "—";
   return dateObj.toLocaleString("en-IN", {
     day: "2-digit",
-    month: "short",
+    month: "2-digit",
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
-    second: "2-digit",
     hour12: true,
   });
 }
