@@ -1,4 +1,4 @@
-import { apiCall } from "./api.client";
+import { apiCall } from "@/services/api.client";
 
 export async function getPayments() {
   return apiCall("/payments");

@@ -1,5 +1,5 @@
-import { apiCall } from "./api.client";
-import { Customer } from "@/types/customer";
+import { apiCall } from "@/services/api.client";
+import { Customer } from "@/modules/customer/types/customer.types";
 
 export async function getCustomers(): Promise<Customer[]> {
   return apiCall("/customers");

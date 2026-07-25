@@ -268,7 +268,6 @@ export default function BillingJobCards() {
           await loadData();
         }}
         existingDocuments={invoices}
-        defaultClient=""
       />
 
       <RecordPaymentDialog
@@ -281,12 +280,7 @@ export default function BillingJobCards() {
           setIsRecordPaymentOpen(false);
           await loadData();
         }}
-        invoice={selectedContext}
-        outstandingAmount={
-          selectedContext 
-            ? (selectedContext.total || (selectedContext.amount + (selectedContext.gst || 0) - (selectedContext.discount || 0))) - (selectedContext.paidAmount || 0) 
-            : 0
-        }
+        invoiceData={selectedContext || undefined}
       />
     </div>
   );

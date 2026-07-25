@@ -19,7 +19,7 @@ export default function VehicleCheckInDialog({
   onClose,
   onSubmit,
   initialData,
-}: CarCheckInDialogProps) {
+}: VehicleCheckInDialogProps) {
   const [formData, setFormData] = useState({
     vehicleNumber: "",
     carModel: "",

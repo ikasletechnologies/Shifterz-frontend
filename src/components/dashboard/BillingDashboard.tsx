@@ -359,7 +359,6 @@ export default function BillingDashboard() {
           // reload logic
         }}
         existingDocuments={invoices}
-        defaultClient=""
       />
 
       <RecordPaymentDialog
@@ -372,14 +371,12 @@ export default function BillingDashboard() {
           setIsRecordPaymentOpen(false);
           // reload logic
         }}
-        invoice={selectedInvoice}
-        outstandingAmount={selectedInvoice ? selectedInvoice.outstanding : 0}
+        invoiceData={selectedInvoice || undefined}
       />
 
       <PaymentHistoryDialog
         isOpen={isPrintReceiptOpen}
         onClose={() => setIsPrintReceiptOpen(false)}
-        payments={payments}
       />
     </div>
   );

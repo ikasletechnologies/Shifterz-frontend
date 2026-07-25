@@ -1,7 +1,9 @@
+"use client";
+
 import { useState, useEffect } from "react";
-import { BillingDocument } from "@/types/billing";
-import { getInvoices, createInvoice, updateInvoice, deleteInvoice } from "@/services/billing.service";
-import { createPayment } from "@/services/payment.service";
+import { BillingDocument } from "@/modules/billing/types/billing.types";
+import { getInvoices, createInvoice, updateInvoice, deleteInvoice } from "@/modules/billing/services/billing.service";
+import { createPayment } from "@/modules/payment/services/payment.service";
 import { toast } from "react-hot-toast";
 
 export function useBilling() {

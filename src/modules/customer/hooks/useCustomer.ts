@@ -1,6 +1,8 @@
+"use client";
+
 import { useState, useEffect } from "react";
-import { Customer } from "@/types/customer";
-import { getCustomers, createCustomer, deleteCustomer } from "@/services/customer.service";
+import { Customer } from "@/modules/customer/types/customer.types";
+import { getCustomers, createCustomer, deleteCustomer } from "@/modules/customer/services/customer.service";
 import toast from "react-hot-toast";
 
 export function useCustomer() {
