@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { Building2, Database, Download, Headset, Lock, Plus, Trash2, Users, Tag } from "lucide-react";
 import { getSettings, updateSettings } from "@/lib/api";
-import AddTechnicianDialog from "@/components/carin/AddTechnicianDialog";
+import AddTechnicianDialog from "@/modules/vehicle-checkin/components/AddTechnicianDialog";
 import AddSalesAgentDialog from "@/components/settings/AddSalesAgentDialog";
 import AddSecurityGuardDialog from "@/components/settings/AddSecurityGuardDialog";
 import { toast } from "react-hot-toast";
@@ -50,7 +50,7 @@ export default function SettingsPage() {
           setSecurityGuards(data.securityGuards || []);
           setCategories(data.categories || []);
         }
-        
+
         // Fetch technicians directly
         const token = localStorage.getItem("token");
         const techsRes = await fetch(process.env.NEXT_PUBLIC_API_URL + "/technicians" || "http://localhost:5000/api/technicians", {
@@ -103,19 +103,19 @@ export default function SettingsPage() {
     specialization: string;
   }) => {
     if (!technicianData.name) return;
-    
+
     try {
       const token = localStorage.getItem("token");
       const res = await fetch(process.env.NEXT_PUBLIC_API_URL + "/technicians" || "http://localhost:5000/api/technicians", {
         method: "POST",
-        headers: { 
+        headers: {
           "Content-Type": "application/json",
-          ...(token && { Authorization: `Bearer ${token}` }) 
+          ...(token && { Authorization: `Bearer ${token}` })
         },
         body: JSON.stringify(technicianData)
       });
       if (!res.ok) throw new Error("Failed to add technician");
-      
+
       const newTech = await res.json();
       setTechnicians([...technicians, newTech]);
       toast.success("Technician added to database");
@@ -134,7 +134,7 @@ export default function SettingsPage() {
           headers: { ...(token && { Authorization: `Bearer ${token}` }) }
         });
         if (!res.ok) throw new Error("Failed to delete technician");
-        
+
         const newTechnicians = technicians.filter((_, i) => i !== index);
         setTechnicians(newTechnicians);
         toast.success("Technician removed from database");
@@ -261,11 +261,10 @@ export default function SettingsPage() {
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold transition-colors border-b-2 whitespace-nowrap ${
-              activeTab === tab.id
+            className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold transition-colors border-b-2 whitespace-nowrap ${activeTab === tab.id
                 ? "border-yellow-500 text-yellow-600 bg-yellow-50/50"
                 : "border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50"
-            }`}
+              }`}
           >
             <tab.icon className="w-4 h-4" />
             {tab.label}
@@ -274,7 +273,7 @@ export default function SettingsPage() {
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden p-8">
-        
+
         {/* Company Information */}
         {activeTab === "company" && (
           <div className="max-w-2xl">
@@ -286,32 +285,32 @@ export default function SettingsPage() {
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Company Name</label>
                 <input type="text" name="name" value={companyInfo.name} onChange={handleCompanyInfoChange} className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-yellow-500/20 focus:border-yellow-500 transition-colors" />
               </div>
-              
+
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Address</label>
                 <textarea name="address" value={companyInfo.address} onChange={handleCompanyInfoChange} rows={3} className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-yellow-500/20 focus:border-yellow-500 transition-colors resize-y" />
               </div>
-              
+
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Phone</label>
                 <input type="text" name="phone" value={companyInfo.phone} onChange={handleCompanyInfoChange} className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-yellow-500/20 focus:border-yellow-500 transition-colors" />
               </div>
-              
+
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Email</label>
                 <input type="email" name="email" value={companyInfo.email} onChange={handleCompanyInfoChange} className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-yellow-500/20 focus:border-yellow-500 transition-colors" />
               </div>
-              
+
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">GSTIN</label>
                 <input type="text" name="gstin" value={companyInfo.gstin} onChange={handleCompanyInfoChange} maxLength={15} className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-yellow-500/20 focus:border-yellow-500 transition-colors" />
               </div>
-              
+
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">GST %</label>
                 <input type="number" name="gstPercent" value={companyInfo.gstPercent} onChange={handleCompanyInfoChange} className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-yellow-500/20 focus:border-yellow-500 transition-colors" />
               </div>
-              
+
               <div className="pt-4">
                 <button onClick={handleSaveSettings} className="bg-[#facc15] hover:bg-[#eab308] text-gray-900 font-bold px-6 py-3 rounded-lg flex items-center gap-2 transition-colors text-sm shadow-sm">
                   <Lock className="w-4 h-4" /> Save Settings

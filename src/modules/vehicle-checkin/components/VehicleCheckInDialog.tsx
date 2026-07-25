@@ -73,7 +73,7 @@ export default function VehicleCheckInDialog({
           customerName: initialData.customer || "",
           phone: initialData.phone || "",
           service: initialData.service || "PPF Full Body",
-          technician: initialData.technician || initialData.technicianIn || "Arjun",
+          technician: initialData.technician || "Arjun",
           odometer: initialData.odometer || "",
           inTime: initialData.inTime || "",
           notes: initialData.notes || "",
@@ -216,7 +216,6 @@ export default function VehicleCheckInDialog({
         phone: formData.phone,
         service: formData.service,
         technician: formData.technician,
-        technicianIn: formData.technician,
         inTime: formData.inTime || new Date().toISOString(),
         status: initialData?.status || "Ongoing",
         notes: formData.notes,
@@ -236,7 +235,7 @@ export default function VehicleCheckInDialog({
             <Car className="w-6 h-6 text-yellow-500" />
             <h2 className="text-2xl font-bold text-gray-900">{initialData ? "Edit Car Entry" : "Car Check-In"}</h2>
           </div>
-         
+
           <button
             onClick={onClose}
             className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
@@ -345,31 +344,6 @@ export default function VehicleCheckInDialog({
                   </>
                 )}
               </select>
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Technician
-              </label>
-              <div className="flex gap-2">
-                <select
-                  name="technician"
-                  value={formData.technician}
-                  onChange={handleChange}
-                  className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent bg-white"
-                >
-                  {technicians.map((tech) => (
-                    <option key={tech}>{tech}</option>
-                  ))}
-                </select>
-                <button
-                  type="button"
-                  onClick={() => setIsAddTechnicianOpen(true)}
-                  className="px-4 py-2.5 bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-semibold rounded-lg transition-colors flex items-center gap-2"
-                  title="Add new technician"
-                >
-                  <Plus className="w-5 h-5" />
-                </button>
-              </div>
             </div>
           </div>
 

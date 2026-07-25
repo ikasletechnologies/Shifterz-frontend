@@ -100,7 +100,7 @@ export function VehicleCheckinPage() {
           car.customer,
           car.phone,
           car.service,
-          car.technician || car.technicianIn || "",
+          car.technician || "",
           car.inTime,
           car.outTime || "-",
           car.duration || "-",
@@ -231,7 +231,7 @@ export function VehicleCheckinPage() {
                   <td className="px-6 py-4 text-sm font-semibold text-gray-900 whitespace-nowrap">{entry.customer}</td>
                   <td className="px-6 py-4 text-sm text-gray-600 whitespace-nowrap">{entry.phone || "—"}</td>
                   <td className="px-6 py-4 text-sm text-gray-700">{entry.service}</td>
-                  <td className="px-6 py-4 text-sm text-gray-700">{entry.technician || entry.technicianIn || ""}</td>
+                  <td className="px-6 py-4 text-sm text-gray-700">{entry.technician || ""}</td>
                   <td className="px-6 py-4 text-sm text-gray-700 whitespace-nowrap">{formatDate(entry.inTime)}</td>
                   <td className="px-6 py-4 text-sm font-semibold text-gray-700 whitespace-nowrap">{formatTime(entry.inTime)}</td>
                   <td className="px-6 py-4 text-sm text-gray-700 whitespace-nowrap">{entry.outTime ? formatDateTime(entry.outTime) : "—"}</td>

@@ -9,7 +9,6 @@ export interface CarEntry {
   phone: string;
   service: string;
   technician?: string;
-  technicianIn?: string;
   inTime: string;
   outTime: string | null;
   duration: string | null;

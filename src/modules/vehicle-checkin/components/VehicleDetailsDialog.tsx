@@ -35,26 +35,26 @@ export default function CarDetailsDialog({ isOpen, onClose, carData }: CarDetail
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
-      <div 
+      <div
         className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
         onClick={onClose}
       />
-      
+
       {/* Dialog */}
       <div className="relative bg-gray-50 rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl animate-in fade-in zoom-in-95 duration-200">
-        
+
         {/* Banner Header */}
         <div className="relative bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 p-8 text-white overflow-hidden">
           {/* Decorative background circle */}
           <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 rounded-full bg-white/5 blur-3xl pointer-events-none" />
-          
-          <button 
+
+          <button
             onClick={onClose}
             className="absolute top-4 right-4 p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors backdrop-blur-md z-50 cursor-pointer"
           >
             <X className="w-5 h-5 text-white" />
           </button>
-          
+
           <div className="flex items-center gap-5 relative z-10">
             <div className="p-4 bg-gradient-to-br from-yellow-400 to-yellow-500 rounded-2xl shadow-[0_0_30px_rgba(250,204,21,0.3)]">
               <Car className="w-8 h-8 text-yellow-950" />
@@ -65,20 +65,19 @@ export default function CarDetailsDialog({ isOpen, onClose, carData }: CarDetail
                 <span className="px-3 py-1 rounded-lg bg-white/10 text-yellow-400 font-mono text-sm font-bold border border-white/10 shadow-inner">
                   {carData.vehicleNo}
                 </span>
-                <span className={`px-3 py-1 rounded-lg text-xs font-bold shadow-inner ${
-                  carData.status === "Ongoing" ? "bg-blue-500/20 text-blue-300 border border-blue-500/30" : 
-                  carData.status === "Completed" ? "bg-green-500/20 text-green-300 border border-green-500/30" : 
-                  "bg-gray-500/20 text-gray-300 border border-gray-500/30"
-                }`}>
+                <span className={`px-3 py-1 rounded-lg text-xs font-bold shadow-inner ${carData.status === "Ongoing" ? "bg-blue-500/20 text-blue-300 border border-blue-500/30" :
+                    carData.status === "Completed" ? "bg-green-500/20 text-green-300 border border-green-500/30" :
+                      "bg-gray-500/20 text-gray-300 border border-gray-500/30"
+                  }`}>
                   {carData.status === "Ongoing" ? "In Workshop" : carData.status}
                 </span>
               </div>
             </div>
           </div>
         </div>
-        
+
         <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6 relative">
-          
+
           {/* Customer Card */}
           <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col gap-4 hover:shadow-md transition-shadow">
             <div className="flex items-center gap-2 text-gray-800 font-bold border-b border-gray-50 pb-3">
@@ -91,7 +90,7 @@ export default function CarDetailsDialog({ isOpen, onClose, carData }: CarDetail
             <div>
               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Phone</p>
               <p className="font-bold text-gray-900 flex items-center gap-1.5">
-                <Phone className="w-3 h-3 text-gray-400"/> 
+                <Phone className="w-3 h-3 text-gray-400" />
                 {carData.phone}
               </p>
             </div>
@@ -114,7 +113,7 @@ export default function CarDetailsDialog({ isOpen, onClose, carData }: CarDetail
               <div className="text-right">
                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Odometer</p>
                 <p className="font-bold text-gray-900 flex items-center gap-1 justify-end">
-                  <Gauge className="w-3 h-3 text-gray-400"/> 
+                  <Gauge className="w-3 h-3 text-gray-400" />
                   {carData.odometer || "42,500 km"}
                 </p>
               </div>
@@ -132,9 +131,9 @@ export default function CarDetailsDialog({ isOpen, onClose, carData }: CarDetail
                 <p className="font-bold text-gray-900">{carData.inTime}</p>
               </div>
             </div>
-            
+
             <div className="hidden md:block w-px h-10 bg-gray-200"></div>
-            
+
             <div className="flex items-center gap-4 w-full md:w-auto">
               <div className="p-3 bg-blue-50 rounded-xl border border-blue-100">
                 <CalendarCheck2 className="w-5 h-5 text-blue-600" />
@@ -150,7 +149,7 @@ export default function CarDetailsDialog({ isOpen, onClose, carData }: CarDetail
           <div className="md:col-span-2 bg-gradient-to-r from-yellow-50 to-amber-50 p-5 rounded-2xl border border-yellow-200/50 shadow-sm relative overflow-hidden">
             {/* Background pattern */}
             <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: 'radial-gradient(#f59e0b 1px, transparent 1px)', backgroundSize: '16px 16px' }} />
-            
+
             <div className="relative z-10">
               <div className="flex items-center gap-2 text-yellow-800 font-bold mb-3">
                 <FileText className="w-4 h-4 text-yellow-600" /> Special Notes
