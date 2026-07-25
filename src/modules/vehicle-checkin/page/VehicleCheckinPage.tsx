@@ -9,7 +9,7 @@ import VehicleDeliveryDialog from "../components/VehicleDeliveryDialog";
 import VehicleDetailsDialog from "../components/VehicleDetailsDialog";
 import { useVehicleCheckin } from "../hooks/useVehicleCheckin";
 import { CarEntry } from "../types/vehicle-checkin.types";
-import { calculateDuration, formatTime } from "@/lib/timeUtils";
+import { calculateDuration, formatTime, formatDate, formatDateTime } from "@/lib/timeUtils";
 
 export function VehicleCheckinPage() {
   const router = useRouter();
@@ -217,7 +217,7 @@ export function VehicleCheckinPage() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-200 bg-gray-50/75">
-                {["Entry ID", "Vehicle No.", "Model", "Customer", "Mobile No.", "Service", "Technician", "In Time", "Out Time", "Duration", "Status", "Actions"].map(h => (
+                {["Entry ID", "Vehicle No.", "Model", "Customer", "Mobile No.", "Service", "Technician", "In Date", "In Time", "Out Time", "Duration", "Status", "Actions"].map(h => (
                   <th key={h} className="px-6 py-4 text-left text-xs font-bold text-gray-800 uppercase tracking-wider whitespace-nowrap">{h}</th>
                 ))}
               </tr>
@@ -232,8 +232,9 @@ export function VehicleCheckinPage() {
                   <td className="px-6 py-4 text-sm text-gray-600 whitespace-nowrap">{entry.phone || "—"}</td>
                   <td className="px-6 py-4 text-sm text-gray-700">{entry.service}</td>
                   <td className="px-6 py-4 text-sm text-gray-700">{entry.technician || entry.technicianIn || ""}</td>
+                  <td className="px-6 py-4 text-sm text-gray-700 whitespace-nowrap">{formatDate(entry.inTime)}</td>
                   <td className="px-6 py-4 text-sm font-semibold text-gray-700 whitespace-nowrap">{formatTime(entry.inTime)}</td>
-                  <td className="px-6 py-4 text-sm text-gray-700 whitespace-nowrap">{entry.outTime ? formatTime(entry.outTime) : "—"}</td>
+                  <td className="px-6 py-4 text-sm text-gray-700 whitespace-nowrap">{entry.outTime ? formatDateTime(entry.outTime) : "—"}</td>
                   <td className="px-6 py-4 text-sm font-semibold text-green-600">{entry.outTime ? calculateDuration(entry.inTime, entry.outTime) : "—"}</td>
                   <td className="px-6 py-4 text-sm">
                     <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(entry.status)}`}>
@@ -311,7 +312,7 @@ export function VehicleCheckinPage() {
             <div className="space-y-3">
               <button
                 onClick={() => {
-                  router.push(`/dashboard/job-cards?vehicle=${successCar.vehicleNo}&customer=${successCar.customer}`);
+                  router.push(`/dashboard/jobs`);
                   setSuccessCar(null);
                 }}
                 className="w-full bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-bold py-3 rounded-lg flex items-center justify-center gap-2 transition-colors shadow-sm"

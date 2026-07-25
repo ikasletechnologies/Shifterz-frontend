@@ -1,3 +1,4 @@
+"use client";
 import { useState, useCallback, useEffect } from "react";
 import { JobCard, JobCardFormData, JobCardStats } from "../types/job-card.types";
 import { getJobCards, createJobCard, updateJobCard, deleteJobCard } from "../services/job-card.service";

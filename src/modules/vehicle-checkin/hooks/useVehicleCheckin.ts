@@ -1,3 +1,4 @@
+"use client";
 import { useState, useCallback, useEffect } from "react";
 import { CarEntry } from "../types/vehicle-checkin.types";
 import {
