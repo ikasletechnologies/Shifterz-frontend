@@ -1,6 +1,7 @@
 "use client";
 /* eslint-disable react-hooks/exhaustive-deps, @typescript-eslint/no-explicit-any */
 
+import { PhoneInput } from "@/components/common/PhoneInput";
 import { useState, useEffect, useMemo } from "react";
 import { X, FileText, Plus, Trash2, Loader2 } from "lucide-react";
 import { toast } from "react-hot-toast";
@@ -332,20 +333,11 @@ export default function NewDocumentDialog({
               <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">
                 Phone
               </label>
-              <input
-                type="tel"
+              <PhoneInput
                 name="phone"
                 value={formData.phone}
                 onChange={handleChange}
-                placeholder="+91"
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400 bg-gray-50"
-                minLength={10}
-                maxLength={10}
-                pattern="[0-9]{10}"
-                onInvalid={(e) => {
-                  e.preventDefault();
-                  toast.error("Phone number must be exactly 10 digits");
-                }}
+                placeholder="XXXXX XXXXX"
               />
             </div>
           </div>

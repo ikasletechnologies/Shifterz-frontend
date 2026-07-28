@@ -8,6 +8,7 @@ import { JobCard, JobCardFormData } from "../types/job-card.types";
 import { JobCardHeader } from "../components/JobCardHeader";
 import { JobCardFilters } from "../components/JobCardFilters";
 import { JobCardTable } from "../components/JobCardTable";
+import { JobCardNavTabs } from "../components/JobCardNavTabs";
 import { CreateJobCardDialog } from "../components/CreateJobCardDialog";
 
 export function AssignJobPage() {
@@ -39,6 +40,11 @@ export function AssignJobPage() {
   };
 
   const filteredJobs = jobCards.filter((j) => {
+    const hasTechnician = Boolean(
+      j.technician &&
+        j.technician.trim() !== "" &&
+        j.technician.toLowerCase() !== "unassigned"
+    );
     const priorityMatch = priorityFilter === "All" || j.priority === priorityFilter;
     const searchLower = searchQuery.toLowerCase();
     const searchMatch =
@@ -47,7 +53,7 @@ export function AssignJobPage() {
       j.vehicle.toLowerCase().includes(searchLower) ||
       j.customer.toLowerCase().includes(searchLower) ||
       (j.technician && j.technician.toLowerCase().includes(searchLower));
-    return priorityMatch && searchMatch;
+    return hasTechnician && priorityMatch && searchMatch;
   });
 
   if (isLoading) return <div className="p-8 text-center text-gray-500">Loading assign jobs...</div>;
@@ -71,25 +77,8 @@ export function AssignJobPage() {
         onNewJobCard={() => { setSelectedJob(null); setIsDialogOpen(true); }}
       />
 
-      <div className="flex items-center gap-6 border-b border-gray-200 pb-3">
-        <button
-          onClick={() => router.push("/dashboard/jobs")}
-          className="text-sm font-bold pb-1 transition-all text-gray-500 hover:text-blue-600 hover:border-b-2 hover:border-blue-600"
-        >
-          All
-        </button>
-        <button
-          onClick={() => router.push("/dashboard/jobs/assign")}
-          className="text-sm font-bold pb-1 transition-all text-emerald-600 border-b-2 border-emerald-600"
-        >
-          Assign Job
-        </button>
-        <button
-          onClick={() => router.push("/dashboard/jobs/unassign")}
-          className="text-sm font-bold pb-1 transition-all text-gray-500 hover:text-red-600 hover:border-b-2 hover:border-red-600"
-        >
-          Unassign Job
-        </button>
+      <div className="border-b border-gray-200 pb-3">
+        <JobCardNavTabs activeTab="assign" jobCards={jobCards} />
       </div>
 
       <JobCardFilters

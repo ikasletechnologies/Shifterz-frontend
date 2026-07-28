@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { STATUS_COLORS } from "../constants/job-card.constants";
 
 interface JobStatusBadgeProps {
@@ -7,10 +8,33 @@ interface JobStatusBadgeProps {
 }
 
 export function JobStatusBadge({ status }: JobStatusBadgeProps) {
-  const colorClass = STATUS_COLORS[status] || "bg-gray-100 text-gray-600";
+  const [userRole, setUserRole] = useState<string>("");
+
+  useEffect(() => {
+    try {
+      const userStr = localStorage.getItem("user");
+      if (userStr) {
+        const user = JSON.parse(userStr);
+        setUserRole(user.role || "");
+      }
+    } catch {
+      // Ignore
+    }
+  }, []);
+
+  const isSuperAdmin =
+    userRole.toUpperCase() === "SUPER_ADMIN" ||
+    userRole.toUpperCase() === "SUPERADMIN";
+
+  const displayStatus =
+    isSuperAdmin && status === "Assigned" ? "In Progress" : status;
+
+  const colorClass =
+    STATUS_COLORS[displayStatus] || STATUS_COLORS[status] || "bg-gray-100 text-gray-600";
+
   return (
     <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold whitespace-nowrap ${colorClass}`}>
-      {status}
+      {displayStatus}
     </span>
   );
 }

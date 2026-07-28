@@ -1,5 +1,6 @@
 "use client";
 
+import { PhoneInput } from "@/components/common/PhoneInput";
 import { useEffect, useState } from "react";
 import { User, Mail, Phone, Lock, Save, Eye, EyeOff, Shield } from "lucide-react";
 
@@ -177,16 +178,12 @@ export default function ProfilePage() {
             {/* Phone */}
             <div>
               <label className="block text-xs font-semibold text-gray-500 mb-1.5">Phone</label>
-              <div className="relative">
-                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type="tel"
-                  value={profile.phone}
-                  onChange={e => setProfile(p => ({ ...p, phone: e.target.value }))}
-                  placeholder="+91 00000 00000"
-                  className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-yellow-400 bg-gray-50"
-                />
-              </div>
+              <PhoneInput
+                name="phone"
+                value={profile.phone}
+                onChange={e => setProfile(p => ({ ...p, phone: e.target.value }))}
+                placeholder="XXXXX XXXXX"
+              />
             </div>
           </div>
         </div>

@@ -1,6 +1,7 @@
 "use client";
 /* eslint-disable react-hooks/exhaustive-deps, @typescript-eslint/no-explicit-any */
 
+import { PhoneInput } from "@/components/common/PhoneInput";
 import { useState } from "react";
 import { X, User } from "lucide-react";
 import { toast } from "react-hot-toast";
@@ -156,21 +157,12 @@ export default function AddLeadDialog({
               <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">
                 Phone <span className="text-red-500">*</span>
               </label>
-              <input
-                type="tel"
+              <PhoneInput
                 name="phone"
                 value={formData.phone}
                 onChange={handleChange}
-                placeholder="+91 XXXXX XXXXX"
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent bg-gray-50 text-gray-900"
+                placeholder="XXXXX XXXXX"
                 required
-                minLength={10}
-                maxLength={10}
-                pattern="[0-9]{10}"
-                onInvalid={(e) => {
-                  e.preventDefault();
-                  toast.error("Phone number must be exactly 10 digits");
-                }}
               />
             </div>
           </div>

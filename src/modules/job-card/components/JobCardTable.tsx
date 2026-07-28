@@ -11,6 +11,33 @@ interface JobCardTableProps {
   onDelete: (id: string) => void;
 }
 
+function renderDateTime(dateStr: string) {
+  if (!dateStr) return <span className="text-gray-400">—</span>;
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) {
+    return <span className="text-gray-600">{dateStr}</span>;
+  }
+
+  const formattedDate = d.toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+
+  const formattedTime = d.toLocaleTimeString("en-IN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  });
+
+  return (
+    <div className="flex flex-col text-xs leading-tight">
+      <span className="font-semibold text-gray-900">{formattedDate}</span>
+      <span className="text-gray-500 font-mono text-[11px] mt-0.5">{formattedTime}</span>
+    </div>
+  );
+}
+
 export function JobCardTable({ jobCards, onEdit, onDelete }: JobCardTableProps) {
   if (jobCards.length === 0) {
     return (
@@ -50,8 +77,14 @@ export function JobCardTable({ jobCards, onEdit, onDelete }: JobCardTableProps) 
                 <td className="px-4 py-4">
                   <PriorityBadge priority={j.priority} />
                 </td>
-                <td className="px-4 py-4 text-gray-600 whitespace-nowrap">{j.startDate}</td>
-                <td className="px-4 py-4 text-gray-600 whitespace-nowrap">{j.estCompletion}</td>
+                <td className="px-4 py-4 whitespace-nowrap">{renderDateTime(j.startDate)}</td>
+                <td className="px-4 py-4 whitespace-nowrap">
+                  {j.estCompletion && ((j.status as string) === "Completed" || (j.status as string) === "Delivered" || (j.status as string) === "Out") ? (
+                    renderDateTime(j.estCompletion)
+                  ) : (
+                    <span className="text-gray-400">—</span>
+                  )}
+                </td>
                 <td className="px-4 py-4">
                   <JobStatusBadge status={j.status} />
                 </td>

@@ -20,7 +20,7 @@ const DEFAULT_FORM: JobCardFormData = {
   service: "PPF Full Body",
   technician: "",
   technicianId: "",
-  priority: "Normal",
+  priority: "",
   status: "Pending",
   startDate: new Date().toISOString().split("T")[0],
   estCompletion: "",
@@ -68,11 +68,37 @@ export function CreateJobCardDialog({ isOpen, onClose, onSave, initialData }: Cr
     if (isOpen) loadTechnicians();
   }, [isOpen]);
 
+  const [userRole, setUserRole] = useState<string>("");
+
+  useEffect(() => {
+    try {
+      const userStr = localStorage.getItem("user");
+      if (userStr) {
+        const user = JSON.parse(userStr);
+        setUserRole(user.role || "");
+      }
+    } catch {
+      // Ignore
+    }
+  }, []);
+
   useEffect(() => {
     if (isOpen) {
-      setFormData(initialData ? { ...initialData } : { ...DEFAULT_FORM, startDate: new Date().toISOString().split("T")[0] });
+      let initialForm = initialData
+        ? { ...initialData }
+        : { ...DEFAULT_FORM, startDate: new Date().toISOString().split("T")[0] };
+
+      const isSuperAdmin =
+        userRole.toUpperCase() === "SUPER_ADMIN" ||
+        userRole.toUpperCase() === "SUPERADMIN";
+
+      if (isSuperAdmin && initialForm.status === "Assigned") {
+        initialForm.status = "In Progress";
+      }
+
+      setFormData(initialForm);
     }
-  }, [isOpen, initialData]);
+  }, [isOpen, initialData, userRole]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -167,6 +193,7 @@ export function CreateJobCardDialog({ isOpen, onClose, onSave, initialData }: Cr
                 onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
                 className="w-full px-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:bg-white"
               >
+                <option value="">Select Priority</option>
                 {JOB_PRIORITIES.map((p) => (
                   <option key={p} value={p}>{p}</option>
                 ))}

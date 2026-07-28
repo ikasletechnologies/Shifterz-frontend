@@ -1,5 +1,6 @@
 "use client";
 
+import { PhoneInput } from "@/components/common/PhoneInput";
 import { useState, useEffect } from "react";
 import {
   Users,
@@ -388,7 +389,10 @@ export default function UserManagementPage() {
   // ── Filter ──
   const filtered = users.filter((u) => {
     const q = search.toLowerCase();
-    const matchSearch = u.name.toLowerCase().includes(q) || u.username.toLowerCase().includes(q) || u.email.toLowerCase().includes(q);
+    const matchSearch =
+      (u.name || "").toLowerCase().includes(q) ||
+      (u.username || "").toLowerCase().includes(q) ||
+      (u.email || "").toLowerCase().includes(q);
     const matchRole = roleFilter === "ALL" || u.role === roleFilter;
     return matchSearch && matchRole;
   });
@@ -443,8 +447,17 @@ export default function UserManagementPage() {
             placeholder="Search by name, username or email…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400 bg-white"
+            className="w-full pl-9 pr-9 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400 bg-white"
           />
+          {search && (
+            <button
+              onClick={() => setSearch("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 transition-colors"
+              title="Clear search"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
         </div>
         <select
           value={roleFilter}
@@ -468,6 +481,7 @@ export default function UserManagementPage() {
               <tr className="border-b border-gray-100 bg-gray-50">
                 <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">User</th>
                 <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Role</th>
+                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider hidden md:table-cell">Email</th>
                 <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider hidden md:table-cell">Contact</th>
                 <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider hidden lg:table-cell">Franchise</th>
                 <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
@@ -489,14 +503,16 @@ export default function UserManagementPage() {
                         </div>
                         <div>
                           <p className="text-sm font-semibold text-gray-900">{u.name}</p>
-                          <p className="text-xs text-gray-400">@{u.username}</p>
+                          <p className="text-xs text-gray-400">{u.username}</p>
                         </div>
                       </div>
                     </td>
                     <td className="px-5 py-3.5"><RoleBadge role={u.role} /></td>
                     <td className="px-5 py-3.5 hidden md:table-cell">
                       <p className="text-xs text-gray-600">{u.email || "—"}</p>
-                      <p className="text-xs text-gray-400">{u.phone || ""}</p>
+                    </td>
+                    <td className="px-5 py-3.5 hidden md:table-cell">
+                      <p className="text-xs text-gray-600">{u.phone || "—"}</p>
                     </td>
                     <td className="px-5 py-3.5 hidden lg:table-cell">
                       <span className="text-xs text-gray-500">{u.franchise?.name ?? "—"}</span>
@@ -558,7 +574,7 @@ export default function UserManagementPage() {
                 <>
                   <div className="flex items-center gap-3 mb-2">
                     <RoleBadge role={selected.role} />
-                    <span className="text-sm text-gray-500">@{selected.username}</span>
+                    <span className="text-sm text-gray-500">{selected.username}</span>
                   </div>
                   <DashboardCustomizer
                     role={selected.role.split("|")[0]}
@@ -607,10 +623,12 @@ export default function UserManagementPage() {
                     </div>
                     <div>
                       <label className="block text-xs font-semibold text-gray-500 mb-1.5">Phone</label>
-                      <div className="relative">
-                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                        <input type="tel" value={form.phone} onChange={(e) => setForm((p) => ({ ...p, phone: e.target.value }))} placeholder="+91 00000 00000" className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400 bg-gray-50" />
-                      </div>
+                      <PhoneInput
+                        name="phone"
+                        value={form.phone}
+                        onChange={(e) => setForm((p) => ({ ...p, phone: e.target.value }))}
+                        placeholder="XXXXX XXXXX"
+                      />
                     </div>
                   </div>
 

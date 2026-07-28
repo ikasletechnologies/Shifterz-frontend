@@ -1,5 +1,6 @@
 "use client";
 
+import { PhoneInput } from "@/components/common/PhoneInput";
 import { useState } from "react";
 import { X, UserPlus } from "lucide-react";
 
@@ -92,15 +93,11 @@ export default function AddSalesAgentDialog({
             <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">
               Phone Number
             </label>
-            <input
-              type="tel"
+            <PhoneInput
               name="phone"
               value={formData.phone}
               onChange={handleChange}
-              placeholder="+91 XXXXX XXXXX"
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent"
-              minLength={10}
-              maxLength={10}
+              placeholder="XXXXX XXXXX"
             />
           </div>
 

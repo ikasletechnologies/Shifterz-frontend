@@ -8,6 +8,7 @@ import { JobCard, JobCardFormData } from "../types/job-card.types";
 import { JobCardHeader } from "../components/JobCardHeader";
 import { JobCardFilters } from "../components/JobCardFilters";
 import { JobCardTable } from "../components/JobCardTable";
+import { JobCardNavTabs } from "../components/JobCardNavTabs";
 import { CreateJobCardDialog } from "../components/CreateJobCardDialog";
 
 export function UnassignJobPage() {
@@ -39,7 +40,10 @@ export function UnassignJobPage() {
   };
 
   const unassignedJobs = jobCards.filter((j) => {
-    const isUnassigned = !j.technician || j.technician.trim() === "" || j.status === "Pending";
+    const isUnassigned =
+      !j.technician ||
+      j.technician.trim() === "" ||
+      j.technician.toLowerCase() === "unassigned";
     const priorityMatch = priorityFilter === "All" || j.priority === priorityFilter;
     const searchLower = searchQuery.toLowerCase();
     const searchMatch =
@@ -71,25 +75,8 @@ export function UnassignJobPage() {
         onNewJobCard={() => { setSelectedJob(null); setIsDialogOpen(true); }}
       />
 
-      <div className="flex items-center gap-6 border-b border-gray-200 pb-3">
-        <button
-          onClick={() => router.push("/dashboard/jobs")}
-          className="text-sm font-bold pb-1 transition-all text-gray-500 hover:text-blue-600 hover:border-b-2 hover:border-blue-600"
-        >
-          All
-        </button>
-        <button
-          onClick={() => router.push("/dashboard/jobs/assign")}
-          className="text-sm font-bold pb-1 transition-all text-gray-500 hover:text-emerald-600 hover:border-b-2 hover:border-emerald-600"
-        >
-          Assign Job
-        </button>
-        <button
-          onClick={() => router.push("/dashboard/jobs/unassign")}
-          className="text-sm font-bold pb-1 transition-all text-red-600 border-b-2 border-red-600"
-        >
-          Unassign Job
-        </button>
+      <div className="border-b border-gray-200 pb-3">
+        <JobCardNavTabs activeTab="unassign" jobCards={jobCards} />
       </div>
 
       <JobCardFilters

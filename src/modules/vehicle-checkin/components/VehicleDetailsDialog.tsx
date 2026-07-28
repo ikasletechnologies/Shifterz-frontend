@@ -23,6 +23,25 @@ interface CarDetailsDialogProps {
   carData?: CarData;
 }
 
+function formatDateAndTime(dateStr?: string | null) {
+  if (!dateStr) return { date: "—", time: "Pending" };
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) {
+    return { date: dateStr, time: "" };
+  }
+  const dateFormatted = d.toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+  const timeFormatted = d.toLocaleTimeString("en-IN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  });
+  return { date: dateFormatted, time: timeFormatted };
+}
+
 export default function CarDetailsDialog({ isOpen, onClose, carData }: CarDetailsDialogProps) {
   const [mounted, setMounted] = useState(false);
 
@@ -31,6 +50,9 @@ export default function CarDetailsDialog({ isOpen, onClose, carData }: CarDetail
   }, []);
 
   if (!mounted || !isOpen || !carData) return null;
+
+  const checkInParsed = formatDateAndTime(carData.inTime);
+  const checkOutParsed = carData.outTime ? formatDateAndTime(carData.outTime) : { date: "—", time: "Pending" };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -114,28 +136,31 @@ export default function CarDetailsDialog({ isOpen, onClose, carData }: CarDetail
             </div>
           </div>
 
-          {/* Time Tracking */}
-          <div className="md:col-span-2 bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col md:flex-row items-center justify-between gap-6 hover:shadow-md transition-shadow">
-            <div className="flex items-center gap-4 w-full md:w-auto">
-              <div className="p-3 bg-green-50 rounded-xl border border-green-100">
-                <Clock className="w-5 h-5 text-green-600" />
-              </div>
-              <div>
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Check-In Time</p>
-                <p className="font-bold text-gray-900">{carData.inTime}</p>
-              </div>
+          {/* Check-In Card */}
+          <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between hover:shadow-md transition-shadow">
+            <div className="flex items-center gap-2 text-gray-800 font-bold border-b border-gray-50 pb-2.5 mb-1">
+              <Clock className="w-4 h-4 text-green-600" /> Check-In Time
             </div>
+            <div className="flex flex-col gap-0.5">
+              <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Date</span>
+              <span className="font-bold text-gray-900 text-sm">{checkInParsed.date}</span>
+              {checkInParsed.time && (
+                <span className="text-xs font-semibold text-gray-600 font-mono mt-1 pt-1 border-t border-gray-100">{checkInParsed.time}</span>
+              )}
+            </div>
+          </div>
 
-            <div className="hidden md:block w-px h-10 bg-gray-200"></div>
-
-            <div className="flex items-center gap-4 w-full md:w-auto">
-              <div className="p-3 bg-blue-50 rounded-xl border border-blue-100">
-                <CalendarCheck2 className="w-5 h-5 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Check-Out Time</p>
-                <p className="font-bold text-gray-900">{carData.outTime || "Pending"}</p>
-              </div>
+          {/* Check-Out Card */}
+          <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between hover:shadow-md transition-shadow">
+            <div className="flex items-center gap-2 text-gray-800 font-bold border-b border-gray-50 pb-2.5 mb-1">
+              <CalendarCheck2 className="w-4 h-4 text-blue-600" /> Check-Out Time
+            </div>
+            <div className="flex flex-col gap-0.5">
+              <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Date</span>
+              <span className="font-bold text-gray-900 text-sm">{checkOutParsed.date}</span>
+              <span className={`text-xs font-semibold mt-1 pt-1 border-t border-gray-100 ${checkOutParsed.time === "Pending" ? "text-amber-600" : "text-gray-600 font-mono"}`}>
+                {checkOutParsed.time}
+              </span>
             </div>
           </div>
 

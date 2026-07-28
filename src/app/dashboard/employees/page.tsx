@@ -1,5 +1,6 @@
 "use client";
 
+import { PhoneInput } from "@/components/common/PhoneInput";
 import { useState, useEffect } from "react";
 import { Plus, Trash2, Pencil, ArrowLeftRight, X, Eye, EyeOff } from "lucide-react";
 import AddEmployeeDialog from "@/components/employees/AddEmployeeDialog";
@@ -476,13 +477,12 @@ export default function EmployeesPage() {
 
                   <div>
                     <label className="block text-xs font-semibold text-gray-500 mb-1.5">Mobile Number *</label>
-                    <input
-                      type="tel"
+                    <PhoneInput
+                      name="phone"
                       required
                       value={newMemberForm.phone}
-                      onChange={(e) => setNewMemberForm({ ...newMemberForm, phone: e.target.value.replace(/\D/g, "").slice(0, 10) })}
+                      onChange={(e) => setNewMemberForm({ ...newMemberForm, phone: e.target.value })}
                       placeholder="9876543210"
-                      className="w-full px-4 py-2 bg-gray-50/50 border border-gray-200 rounded-lg text-sm text-[#334155] focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:bg-white transition-colors"
                     />
                   </div>
 

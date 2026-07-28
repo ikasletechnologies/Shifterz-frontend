@@ -92,17 +92,20 @@ export function VehicleCheckinPage() {
       const dataToExport = filteredCars.length > 0 ? filteredCars : cars;
 
       if (format === "csv") {
-        const headers = ["Entry ID", "Vehicle No", "Model", "Customer", "Phone", "Service", "In Time", "Out Time", "Duration", "Status"];
+        const headers = ["Entry ID", "Vehicle No", "Model", "Customer", "Phone", "Service", "Technician", "In Date", "In Time", "Out Date", "Out Time", "Duration", "Status"];
         const rows = dataToExport.map((car) => [
-          car.entryId,
+          car.entryId || car.id,
           car.vehicleNo || car.vehicle || car.vehicleNumber || "",
           car.model,
           car.customer,
-          car.phone,
+          car.phone || "-",
           car.service,
-          car.inTime,
-          car.outTime || "-",
-          car.duration || "-",
+          car.technician || "Unassigned",
+          formatDate(car.inTime),
+          formatTime(car.inTime),
+          car.outTime ? formatDate(car.outTime) : "-",
+          car.outTime ? formatTime(car.outTime) : "-",
+          car.outTime ? calculateDuration(car.inTime, car.outTime) : "-",
           car.status,
         ]);
         const csvContent = [headers.join(","), ...rows.map((row) => row.map((cell) => `"${cell}"`).join(","))].join("\n");
@@ -115,7 +118,7 @@ export function VehicleCheckinPage() {
         window.URL.revokeObjectURL(url);
         toast.success("Report downloaded as CSV");
       } else {
-        const htmlContent = `<!DOCTYPE html><html><head><title>Vehicle Check-In Report</title><style>body{font-family:Arial,sans-serif;margin:20px}h1{color:#333;text-align:center}table{width:100%;border-collapse:collapse;margin-top:20px}th,td{border:1px solid #ddd;padding:12px;text-align:left}th{background-color:#f8f9fa;font-weight:bold}tr:nth-child(even){background-color:#f9f9f9}</style></head><body><h1>Vehicle Check-In Report</h1><p style="text-align:center;color:#666">Generated on ${new Date().toLocaleString()}</p><table><thead><tr><th>Entry ID</th><th>Vehicle No</th><th>Model</th><th>Customer</th><th>Service</th><th>In Time</th><th>Status</th></tr></thead><tbody>${dataToExport.map((car) => `<tr><td>${car.entryId}</td><td>${car.vehicleNo || car.vehicle || ""}</td><td>${car.model}</td><td>${car.customer}</td><td>${car.service}</td><td>${car.inTime}</td><td>${car.status}</td></tr>`).join("")}</tbody></table></body></html>`;
+        const htmlContent = `<!DOCTYPE html><html><head><title>Vehicle Check-In Report</title><style>body{font-family:Arial,sans-serif;margin:20px}h1{color:#333;text-align:center}table{width:100%;border-collapse:collapse;margin-top:20px;font-size:12px}th,td{border:1px solid #ddd;padding:8px;text-align:left}th{background-color:#f8f9fa;font-weight:bold}tr:nth-child(even){background-color:#f9f9f9}</style></head><body><h1>Vehicle Check-In Report</h1><p style="text-align:center;color:#666">Generated on ${new Date().toLocaleString()}</p><table><thead><tr><th>Entry ID</th><th>Vehicle No</th><th>Model</th><th>Customer</th><th>Service</th><th>Technician</th><th>In Date</th><th>In Time</th><th>Out Date</th><th>Out Time</th><th>Duration</th><th>Status</th></tr></thead><tbody>${dataToExport.map((car) => `<tr><td>${car.entryId || car.id}</td><td>${car.vehicleNo || car.vehicle || ""}</td><td>${car.model}</td><td>${car.customer}</td><td>${car.service}</td><td>${car.technician || "Unassigned"}</td><td>${formatDate(car.inTime)}</td><td>${formatTime(car.inTime)}</td><td>${car.outTime ? formatDate(car.outTime) : "—"}</td><td>${car.outTime ? formatTime(car.outTime) : "—"}</td><td>${car.outTime ? calculateDuration(car.inTime, car.outTime) : "—"}</td><td>${car.status}</td></tr>`).join("")}</tbody></table></body></html>`;
         const blob = new Blob([htmlContent], { type: "text/html" });
         const url = window.URL.createObjectURL(blob);
         const link = document.createElement("a");
@@ -216,7 +219,7 @@ export function VehicleCheckinPage() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-200 bg-gray-50/75">
-                {["Entry ID", "Vehicle No.", "Model", "Customer", "Mobile No.", "Service", "In Date", "In Time", "Out Time", "Duration", "Status", "Actions"].map(h => (
+                {["Entry ID", "Vehicle No.", "Model", "Customer", "Mobile No.", "Service", "In Date", "In Time", "Out Date", "Out Time", "Duration", "Status", "Actions"].map(h => (
                   <th key={h} className="px-6 py-4 text-left text-xs font-bold text-gray-800 uppercase tracking-wider whitespace-nowrap">{h}</th>
                 ))}
               </tr>
@@ -232,7 +235,8 @@ export function VehicleCheckinPage() {
                   <td className="px-6 py-4 text-sm text-gray-700">{entry.service}</td>
                   <td className="px-6 py-4 text-sm text-gray-700 whitespace-nowrap">{formatDate(entry.inTime)}</td>
                   <td className="px-6 py-4 text-sm font-semibold text-gray-700 whitespace-nowrap">{formatTime(entry.inTime)}</td>
-                  <td className="px-6 py-4 text-sm text-gray-700 whitespace-nowrap">{entry.outTime ? formatDateTime(entry.outTime) : "—"}</td>
+                  <td className="px-6 py-4 text-sm text-gray-700 whitespace-nowrap">{entry.outTime ? formatDate(entry.outTime) : "—"}</td>
+                  <td className="px-6 py-4 text-sm font-semibold text-gray-700 whitespace-nowrap">{entry.outTime ? formatTime(entry.outTime) : "—"}</td>
                   <td className="px-6 py-4 text-sm font-semibold text-green-600">{entry.outTime ? calculateDuration(entry.inTime, entry.outTime) : "—"}</td>
                   <td className="px-6 py-4 text-sm">
                     <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(entry.status)}`}>

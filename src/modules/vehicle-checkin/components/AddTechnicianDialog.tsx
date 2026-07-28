@@ -1,5 +1,6 @@
 "use client";
 
+import { PhoneInput } from "@/components/common/PhoneInput";
 import { useState } from "react";
 import { X, User } from "lucide-react";
 import { toast } from "react-hot-toast";
@@ -118,20 +119,11 @@ export default function AddTechnicianDialog({
             <label className="block text-sm font-semibold text-gray-700 mb-2">
               Phone Number
             </label>
-            <input
-              type="tel"
+            <PhoneInput
               name="phone"
               value={formData.phone}
               onChange={handleChange}
-              placeholder="+91 XXXXX XXXXX"
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent"
-              minLength={10}
-              maxLength={10}
-              pattern="[0-9]{10}"
-              onInvalid={(e) => {
-                e.preventDefault();
-                toast.error("Phone number must be exactly 10 digits");
-              }}
+              placeholder="XXXXX XXXXX"
             />
           </div>
 

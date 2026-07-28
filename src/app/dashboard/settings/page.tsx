@@ -1,5 +1,6 @@
 "use client";
 
+import { PhoneInput } from "@/components/common/PhoneInput";
 import { useState, useEffect } from "react";
 import { Building2, Database, Download, Headset, Lock, Plus, Trash2, Users, Tag } from "lucide-react";
 import { getSettings, updateSettings } from "@/lib/api";
@@ -293,7 +294,12 @@ export default function SettingsPage() {
 
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Phone</label>
-                <input type="text" name="phone" value={companyInfo.phone} onChange={handleCompanyInfoChange} className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-yellow-500/20 focus:border-yellow-500 transition-colors" />
+                <PhoneInput
+                  name="phone"
+                  value={companyInfo.phone}
+                  onChange={handleCompanyInfoChange}
+                  placeholder="XXXXX XXXXX"
+                />
               </div>
 
               <div className="space-y-1.5">

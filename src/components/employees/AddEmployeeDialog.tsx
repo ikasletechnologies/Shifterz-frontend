@@ -1,3 +1,4 @@
+import { PhoneInput } from "@/components/common/PhoneInput";
 import { useState } from "react";
 import { X } from "lucide-react";
 
@@ -125,12 +126,11 @@ export default function AddEmployeeDialog({ isOpen, onClose, onAdd, franchises }
 
               <div className="space-y-1.5">
                 <label className="text-sm font-medium text-gray-700">Phone</label>
-                <input
-                  type="tel"
+                <PhoneInput
+                  name="phone"
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all outline-none"
-                  placeholder="+91..."
+                  placeholder="XXXXX XXXXX"
                 />
               </div>
 

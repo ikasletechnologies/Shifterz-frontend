@@ -9,6 +9,8 @@ import { JobCardHeader } from "../components/JobCardHeader";
 import { JobCardTable } from "../components/JobCardTable";
 import { CreateJobCardDialog } from "../components/CreateJobCardDialog";
 
+import { JobCardNavTabs } from "../components/JobCardNavTabs";
+
 export function JobCardPage() {
   const router = useRouter();
   const { jobCards, isLoading, error, stats, handleSaveJobCard, handleDeleteJobCard } = useJobCards();
@@ -58,26 +60,7 @@ export function JobCardPage() {
       />
 
       <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-center justify-between border-b border-gray-200 pb-3">
-        <div className="flex items-center gap-6">
-          <button
-            onClick={() => router.push("/dashboard/jobs")}
-            className="text-sm font-bold pb-1 transition-all text-blue-600 border-b-2 border-blue-600"
-          >
-            All
-          </button>
-          <button
-            onClick={() => router.push("/dashboard/jobs/assign")}
-            className="text-sm font-bold pb-1 transition-all text-gray-500 hover:text-emerald-600 hover:border-b-2 hover:border-emerald-600"
-          >
-            Assign Job
-          </button>
-          <button
-            onClick={() => router.push("/dashboard/jobs/unassign")}
-            className="text-sm font-bold pb-1 transition-all text-gray-500 hover:text-red-600 hover:border-b-2 hover:border-red-600"
-          >
-            Unassign Job
-          </button>
-        </div>
+        <JobCardNavTabs activeTab="all" jobCards={jobCards} />
 
         <div className="relative w-full max-w-md">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
