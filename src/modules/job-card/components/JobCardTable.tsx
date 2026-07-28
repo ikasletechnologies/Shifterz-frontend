@@ -34,7 +34,6 @@ export function JobCardTable({ jobCards, onEdit, onDelete }: JobCardTableProps) 
               <th className="px-4 py-4 whitespace-nowrap">Priority</th>
               <th className="px-4 py-4 whitespace-nowrap">Start</th>
               <th className="px-4 py-4 whitespace-nowrap">Est. Completion</th>
-              <th className="px-4 py-4 whitespace-nowrap">Actual</th>
               <th className="px-4 py-4 whitespace-nowrap">Status</th>
               <th className="px-4 py-4 whitespace-nowrap">Notes</th>
               <th className="px-4 py-4 text-right whitespace-nowrap">Actions</th>
@@ -53,7 +52,6 @@ export function JobCardTable({ jobCards, onEdit, onDelete }: JobCardTableProps) 
                 </td>
                 <td className="px-4 py-4 text-gray-600 whitespace-nowrap">{j.startDate}</td>
                 <td className="px-4 py-4 text-gray-600 whitespace-nowrap">{j.estCompletion}</td>
-                <td className="px-4 py-4 text-gray-600 whitespace-nowrap">{j.actualCompletion}</td>
                 <td className="px-4 py-4">
                   <JobStatusBadge status={j.status} />
                 </td>

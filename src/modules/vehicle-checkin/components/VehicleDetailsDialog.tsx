@@ -9,7 +9,7 @@ interface CarData {
   customer: string;
   phone: string;
   service: string;
-  technician: string;
+  technician?: string;
   inTime: string;
   outTime: string | null;
   status: string;
@@ -105,18 +105,12 @@ export default function CarDetailsDialog({ isOpen, onClose, carData }: CarDetail
               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Service Required</p>
               <p className="font-bold text-gray-900">{carData.service}</p>
             </div>
-            <div className="flex justify-between items-center">
-              <div>
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Technician</p>
-                <p className="font-bold text-gray-900">{carData.technician}</p>
-              </div>
-              <div className="text-right">
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Odometer</p>
-                <p className="font-bold text-gray-900 flex items-center gap-1 justify-end">
-                  <Gauge className="w-3 h-3 text-gray-400" />
-                  {carData.odometer || "42,500 km"}
-                </p>
-              </div>
+            <div>
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Odometer</p>
+              <p className="font-bold text-gray-900 flex items-center gap-1">
+                <Gauge className="w-3 h-3 text-gray-400" />
+                {carData.odometer || "42,500 km"}
+              </p>
             </div>
           </div>
 

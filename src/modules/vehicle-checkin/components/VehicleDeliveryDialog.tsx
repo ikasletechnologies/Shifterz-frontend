@@ -13,7 +13,7 @@ interface PassCarDialogProps {
     customer: string;
     phone: string;
     service: string;
-    technician: string;
+    technician?: string;
   };
   onSubmit?: (data: any) => void;
 }

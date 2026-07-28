@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { JobCardStats } from "../types/job-card.types";
 
 interface JobCardHeaderProps {
@@ -8,16 +9,34 @@ interface JobCardHeaderProps {
 }
 
 export function JobCardHeader({ stats, onNewJobCard }: JobCardHeaderProps) {
+  const [userRole, setUserRole] = useState<string>("");
+
+  useEffect(() => {
+    const userStr = localStorage.getItem("user");
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        setUserRole(user.role || "");
+      } catch {
+        // Ignore parse error
+      }
+    }
+  }, []);
+
+  const isServiceAdvisor = userRole.toUpperCase().includes("SERVICE_ADVISOR");
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900">Job Cards</h1>
-        <button
-          onClick={onNewJobCard}
-          className="bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-bold px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm"
-        >
-          + New Job Card
-        </button>
+        {!isServiceAdvisor && (
+          <button
+            onClick={onNewJobCard}
+            className="bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-bold px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm"
+          >
+            + New Job Card
+          </button>
+        )}
       </div>
 
       {/* KPI Cards */}

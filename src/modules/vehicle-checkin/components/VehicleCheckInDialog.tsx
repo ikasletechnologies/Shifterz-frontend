@@ -5,7 +5,6 @@ import { X, Car, Clock, Calendar, Plus } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { apiCall } from "@/services/api.client";
 import { formatVehicleNumber, getVehicleType, normalizeVehicleNumber } from "@/utils/vehicleNumber";
-import AddTechnicianDialog from "./AddTechnicianDialog";
 
 interface VehicleCheckInDialogProps {
   isOpen: boolean;
@@ -26,22 +25,38 @@ export default function VehicleCheckInDialog({
     customerName: "",
     phone: "",
     service: "PPF Full Body",
-    technician: "Arjun",
     odometer: "",
     inTime: "",
     notes: "",
   });
 
   const [currentTime, setCurrentTime] = useState<string>("");
+  const [displayDate, setDisplayDate] = useState<string>("");
   const [displayTime, setDisplayTime] = useState<string>("");
-  const [isAddTechnicianOpen, setIsAddTechnicianOpen] = useState(false);
   const [services, setServices] = useState<any[]>([]);
-  const [technicians, setTechnicians] = useState<string[]>([
-    "Arjun",
-    "Sathish",
-    "Kumar",
-    "Rajesh",
-  ]);
+
+  const parseDateTimeStr = (input?: string) => {
+    if (!input) return { dateStr: "", timeStr: "" };
+    const d = new Date(input);
+    if (!isNaN(d.getTime())) {
+      const month = (d.getMonth() + 1).toString().padStart(2, "0");
+      const day = d.getDate().toString().padStart(2, "0");
+      const year = d.getFullYear();
+      const hours24 = d.getHours();
+      const hours12 = hours24 % 12 || 12;
+      const minutes = d.getMinutes().toString().padStart(2, "0");
+      const ampm = hours24 >= 12 ? "PM" : "AM";
+      return {
+        dateStr: `${month}/${day}/${year}`,
+        timeStr: `${hours12}:${minutes} ${ampm}`,
+      };
+    }
+    const parts = input.trim().split(" ");
+    if (parts.length >= 2) {
+      return { dateStr: parts[0], timeStr: parts.slice(1).join(" ") };
+    }
+    return { dateStr: input, timeStr: "" };
+  };
 
   const updateCurrentTime = () => {
     const now = new Date();
@@ -57,10 +72,13 @@ export default function VehicleCheckInDialog({
     const ampm = hours24 >= 12 ? "PM" : "AM";
 
     const headerTime = `${hours12}:${minutes}:${seconds} ${ampm}`;
-    const fieldTime = `${month}/${day}/${year} ${hours12}:${minutes} ${ampm}`;
+    const dateStr = `${month}/${day}/${year}`;
+    const timeStr = `${hours12}:${minutes} ${ampm}`;
+    const fieldTime = `${dateStr} ${timeStr}`;
 
     setCurrentTime(headerTime);
-    setDisplayTime(fieldTime);
+    setDisplayDate(dateStr);
+    setDisplayTime(timeStr);
     setFormData((prev) => ({ ...prev, inTime: fieldTime }));
   };
 
@@ -73,11 +91,13 @@ export default function VehicleCheckInDialog({
           customerName: initialData.customer || "",
           phone: initialData.phone || "",
           service: initialData.service || "PPF Full Body",
-          technician: initialData.technician || "Arjun",
           odometer: initialData.odometer || "",
           inTime: initialData.inTime || "",
           notes: initialData.notes || "",
         });
+        const { dateStr, timeStr } = parseDateTimeStr(initialData.inTime);
+        setDisplayDate(dateStr);
+        setDisplayTime(timeStr);
       } else {
         setFormData({
           vehicleNumber: "",
@@ -85,7 +105,6 @@ export default function VehicleCheckInDialog({
           customerName: "",
           phone: "",
           service: "PPF Full Body",
-          technician: "Arjun",
           odometer: "",
           inTime: "",
           notes: "",
@@ -118,29 +137,6 @@ export default function VehicleCheckInDialog({
     };
     fetchServices();
   }, []);
-
-  useEffect(() => {
-    const loadTechnicians = async () => {
-      try {
-        const emps = await apiCall("/employees");
-        const techNames = emps
-          .filter((emp: any) => emp.role === "TECHNICIAN" && emp.status === "Active")
-          .map((emp: any) => emp.name);
-        if (techNames.length > 0) {
-          setTechnicians(techNames);
-          setFormData((prev) => {
-            if (!prev.technician || !techNames.includes(prev.technician)) {
-              return { ...prev, technician: techNames[0] };
-            }
-            return prev;
-          });
-        }
-      } catch (err) {
-        console.error("Failed to load technicians:", err);
-      }
-    };
-    if (isOpen) loadTechnicians();
-  }, [isOpen]);
 
 
 
@@ -179,18 +175,6 @@ export default function VehicleCheckInDialog({
     }
   };
 
-  const handleAddTechnician = (technicianData: {
-    name: string;
-    phone: string;
-    experience: string;
-    specialization: string;
-  }) => {
-    if (!technicians.includes(technicianData.name)) {
-      setTechnicians((prev) => [...prev, technicianData.name]);
-      setFormData((prev) => ({ ...prev, technician: technicianData.name }));
-    }
-  };
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -215,7 +199,6 @@ export default function VehicleCheckInDialog({
         customer: formData.customerName,
         phone: formData.phone,
         service: formData.service,
-        technician: formData.technician,
         inTime: formData.inTime || new Date().toISOString(),
         status: initialData?.status || "Ongoing",
         notes: formData.notes,
@@ -230,18 +213,32 @@ export default function VehicleCheckInDialog({
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg p-4 sm:p-6 md:p-8 w-full max-w-2xl shadow-xl max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 pb-4 border-b border-gray-100">
           <div className="flex items-center gap-3">
             <Car className="w-6 h-6 text-yellow-500" />
             <h2 className="text-2xl font-bold text-gray-900">{initialData ? "Edit Car Entry" : "Car Check-In"}</h2>
           </div>
 
-          <button
-            onClick={onClose}
-            className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
-          >
-            <X className="w-6 h-6 text-gray-600" />
-          </button>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 text-xs font-semibold text-gray-600 bg-gray-50 px-3.5 py-1.5 rounded-lg border border-gray-200">
+              <span className="flex items-center gap-1.5">
+                <Calendar className="w-4 h-4 text-yellow-600" />
+                <span>Date: <strong className="text-gray-900">{displayDate}</strong></span>
+              </span>
+              <span className="text-gray-300">|</span>
+              <span className="flex items-center gap-1.5">
+                <Clock className="w-4 h-4 text-yellow-600" />
+                <span>Time: <strong className="text-gray-900">{displayTime}</strong></span>
+              </span>
+            </div>
+
+            <button
+              onClick={onClose}
+              className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors text-gray-500"
+            >
+              <X className="w-6 h-6" />
+            </button>
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -316,7 +313,7 @@ export default function VehicleCheckInDialog({
             </div>
           </div>
 
-          {/* Row 3: Service & Technician */}
+          {/* Row 3: Service & Odometer */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -345,10 +342,6 @@ export default function VehicleCheckInDialog({
                 )}
               </select>
             </div>
-          </div>
-
-          {/* Row 4: Odometer & In Time */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Odometer (KM) <span className="text-red-500">*</span>
@@ -363,20 +356,6 @@ export default function VehicleCheckInDialog({
                 required
                 min="1"
               />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                In Time
-              </label>
-              <div className="relative">
-                <input
-                  type="text"
-                  value={displayTime}
-                  readOnly
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-gray-50 text-gray-700 cursor-default"
-                />
-                <Calendar className="absolute right-3 top-3 w-5 h-5 text-gray-400 pointer-events-none" />
-              </div>
             </div>
           </div>
 
@@ -404,12 +383,6 @@ export default function VehicleCheckInDialog({
           </button>
         </form>
       </div>
-
-      <AddTechnicianDialog
-        isOpen={isAddTechnicianOpen}
-        onClose={() => setIsAddTechnicianOpen(false)}
-        onSubmit={handleAddTechnician}
-      />
     </div>
   );
 }
