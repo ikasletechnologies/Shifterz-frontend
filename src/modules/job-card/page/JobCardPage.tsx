@@ -1,18 +1,19 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Search, X } from "lucide-react";
 import { useJobCards } from "../hooks/useJobCards";
 import { JobCard, JobCardFormData } from "../types/job-card.types";
 import { JobCardHeader } from "../components/JobCardHeader";
-import { JobCardFilters } from "../components/JobCardFilters";
 import { JobCardTable } from "../components/JobCardTable";
 import { CreateJobCardDialog } from "../components/CreateJobCardDialog";
 
 export function JobCardPage() {
+  const router = useRouter();
   const { jobCards, isLoading, error, stats, handleSaveJobCard, handleDeleteJobCard } = useJobCards();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedJob, setSelectedJob] = useState<JobCard | null>(null);
-  const [priorityFilter, setPriorityFilter] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
 
   const handleEdit = (job: JobCard) => {
@@ -36,15 +37,14 @@ export function JobCardPage() {
   };
 
   const filteredJobs = jobCards.filter((j) => {
-    const priorityMatch = priorityFilter === "All" || j.priority === priorityFilter;
     const searchLower = searchQuery.toLowerCase();
-    const searchMatch =
+    return (
       !searchQuery ||
       j.id.toLowerCase().includes(searchLower) ||
       j.vehicle.toLowerCase().includes(searchLower) ||
       j.customer.toLowerCase().includes(searchLower) ||
-      (j.technician && j.technician.toLowerCase().includes(searchLower));
-    return priorityMatch && searchMatch;
+      (j.technician && j.technician.toLowerCase().includes(searchLower))
+    );
   });
 
   if (isLoading) return <div className="p-8 text-center text-gray-500">Loading job cards...</div>;
@@ -57,12 +57,47 @@ export function JobCardPage() {
         onNewJobCard={() => { setSelectedJob(null); setIsDialogOpen(true); }}
       />
 
-      <JobCardFilters
-        priorityFilter={priorityFilter}
-        searchQuery={searchQuery}
-        onPriorityChange={setPriorityFilter}
-        onSearchChange={setSearchQuery}
-      />
+      <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-center justify-between border-b border-gray-200 pb-3">
+        <div className="flex items-center gap-6">
+          <button
+            onClick={() => router.push("/dashboard/jobs")}
+            className="text-sm font-bold pb-1 transition-all text-blue-600 border-b-2 border-blue-600"
+          >
+            All
+          </button>
+          <button
+            onClick={() => router.push("/dashboard/jobs/assign")}
+            className="text-sm font-bold pb-1 transition-all text-gray-500 hover:text-emerald-600 hover:border-b-2 hover:border-emerald-600"
+          >
+            Assign Job
+          </button>
+          <button
+            onClick={() => router.push("/dashboard/jobs/unassign")}
+            className="text-sm font-bold pb-1 transition-all text-gray-500 hover:text-red-600 hover:border-b-2 hover:border-red-600"
+          >
+            Unassign Job
+          </button>
+        </div>
+
+        <div className="relative w-full max-w-md">
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search by ID, vehicle, customer, or technician..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-9 pr-9 py-2 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400 text-sm"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+      </div>
 
       <JobCardTable
         jobCards={filteredJobs}

@@ -1,6 +1,8 @@
 // Public API for job-card module
 // External code must ONLY import from this file, never from internal paths
 export { JobCardPage } from "./page/JobCardPage";
+export { AssignJobPage } from "./page/AssignJobPage";
+export { UnassignJobPage } from "./page/UnassignJobPage";
 export { useJobCards } from "./hooks/useJobCards";
 export {
   getJobCards,
