@@ -8,6 +8,7 @@ import { JobCard, JobCardFormData } from "../types/job-card.types";
 import { JobCardHeader } from "../components/JobCardHeader";
 import { JobCardTable } from "../components/JobCardTable";
 import { CreateJobCardDialog } from "../components/CreateJobCardDialog";
+import { ViewJobCardDialog } from "../components/ViewJobCardDialog";
 
 import { JobCardNavTabs } from "../components/JobCardNavTabs";
 
@@ -16,7 +17,14 @@ export function JobCardPage() {
   const { jobCards, isLoading, error, stats, handleSaveJobCard, handleDeleteJobCard } = useJobCards();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedJob, setSelectedJob] = useState<JobCard | null>(null);
+  const [viewingJob, setViewingJob] = useState<JobCard | null>(null);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+
+  const handleView = (job: JobCard) => {
+    setViewingJob(job);
+    setIsViewDialogOpen(true);
+  };
 
   const handleEdit = (job: JobCard) => {
     setSelectedJob(job);
@@ -84,6 +92,7 @@ export function JobCardPage() {
 
       <JobCardTable
         jobCards={filteredJobs}
+        onView={handleView}
         onEdit={handleEdit}
         onDelete={handleDelete}
       />
@@ -93,6 +102,12 @@ export function JobCardPage() {
         onClose={handleCloseDialog}
         onSave={handleSave}
         initialData={selectedJob}
+      />
+
+      <ViewJobCardDialog
+        isOpen={isViewDialogOpen}
+        onClose={() => { setIsViewDialogOpen(false); setViewingJob(null); }}
+        job={viewingJob}
       />
     </div>
   );

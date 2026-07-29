@@ -7,7 +7,9 @@ export type JobStatus =
   | "Completed"
   | "QC Passed"
   | "Ready For Billing"
-  | "Cancelled";
+  | "Cancelled"
+  | "Delivered"
+  | "Out";
 
 export interface JobCard {
   id: string;
@@ -22,6 +24,7 @@ export interface JobCard {
   estCompletion: string;
   actualCompletion: string;
   notes: string;
+  photos?: string[];
 }
 
 export interface JobCardFormData {
@@ -37,6 +40,7 @@ export interface JobCardFormData {
   estCompletion: string;
   actualCompletion: string;
   notes: string;
+  photos?: string[];
 }
 
 export interface JobCardStats {

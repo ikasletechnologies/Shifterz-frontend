@@ -161,7 +161,7 @@ export default function VehicleCheckInDialog({
     const normalized = normalizeVehicleNumber(formData.vehicleNumber);
     if (normalized.length > 4 && (!formData.customerName || !formData.phone)) {
       try {
-        const details = await apiCall(`/customers/vehicle/${normalized}`);
+        const details = await apiCall(`/vehicle/${normalized}`);
         if (details && details.name) {
           setFormData((prev) => ({
             ...prev,
