@@ -93,6 +93,18 @@ export default function TechnicianAttendance() {
     return `${hours}h ${mins}m`;
   };
 
+  const isSameDay = (date1: string, date2: string) => {
+    if (!date1 || !date2) return false;
+    const d1 = date1.slice(0, 10);
+    const d2 = date2.slice(0, 10);
+    if (d1 === d2) return true;
+    try {
+      return new Date(date1).toISOString().slice(0, 10) === new Date(date2).toISOString().slice(0, 10);
+    } catch {
+      return false;
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -103,7 +115,7 @@ export default function TechnicianAttendance() {
 
   // Check if current user has checked in today
   const today = new Date().toISOString().slice(0, 10);
-  const myTodayRecord = attendance.find(a => a.date === today);
+  const myTodayRecord = attendance.find(a => isSameDay(a.date, today));
   const isCheckedIn = !!myTodayRecord;
   const isCheckedOut = !!myTodayRecord?.clockOut;
 
@@ -128,7 +140,7 @@ export default function TechnicianAttendance() {
             ) : !isCheckedOut ? (
               <button
                 onClick={handleCheckOut}
-                className="bg-orange-500 text-white px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-orange-600 transition-colors flex items-center gap-2 shadow-sm shadow-orange-200"
+                className="bg-red-600 text-white px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-red-800 transition-colors flex items-center gap-2 shadow-sm shadow-orange-200"
               >
                 <CheckCircle2 className="w-4 h-4" />
                 Check Out

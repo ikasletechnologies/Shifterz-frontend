@@ -46,7 +46,35 @@ export function JobCardPage() {
     handleCloseDialog();
   };
 
+  const userRole = (() => {
+    try {
+      if (typeof window !== "undefined") {
+        const u = localStorage.getItem("user");
+        if (u) return (JSON.parse(u).role || "").toUpperCase().replace(/[\s_]+/g, "_");
+      }
+    } catch {
+      // Ignore
+    }
+    return "";
+  })();
+
+  const isQualityInspector =
+    userRole === "QUALITY_INSPECTOR" ||
+    userRole === "QUALITY_INSPECTION" ||
+    userRole === "QC_INSPECTOR" ||
+    userRole === "QC" ||
+    userRole === "QUALITY_ASSURANCE";
+
   const filteredJobs = jobCards.filter((j) => {
+    if (isQualityInspector) {
+      const isCompletedStatus =
+        j.status === "Completed" ||
+        (j.status as string) === "QC Pending" ||
+        j.status === "QC Passed" ||
+        j.status === "Ready For Billing";
+      if (!isCompletedStatus) return false;
+    }
+
     const searchLower = searchQuery.toLowerCase();
     return (
       !searchQuery ||

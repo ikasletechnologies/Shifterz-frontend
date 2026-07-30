@@ -37,6 +37,17 @@ export default function TechnicianDashboard() {
     return <div className="p-6 text-red-500">Failed to load data.</div>;
   }
 
+  const formatTime = (isoString: string | null) => {
+    if (!isoString || isoString === "--:--") return "--:--";
+    try {
+      const date = new Date(isoString);
+      if (isNaN(date.getTime())) return isoString;
+      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } catch (e) {
+      return isoString;
+    }
+  };
+
   const { attendance, jobsSummary, performance, notifications } = data;
 
   return (
@@ -64,20 +75,20 @@ export default function TechnicianDashboard() {
               <div className="flex justify-between items-center bg-gray-50 p-3 rounded-xl border border-gray-100">
                 <span className="text-sm font-semibold text-gray-600">Status</span>
                 <span className={`px-2 py-1 text-xs font-bold rounded-full ${
-                  attendance.status === "Present" ? "bg-green-100 text-green-700" : "bg-gray-200 text-gray-700"
+                  attendance?.status === "Present" ? "bg-green-100 text-green-700" : "bg-gray-200 text-gray-700"
                 }`}>
-                  {attendance.status}
+                  {attendance?.status}
                 </span>
               </div>
               
               <div className="grid grid-cols-2 gap-3">
                 <div className="bg-gray-50 p-3 rounded-xl border border-gray-100 text-center">
                   <span className="block text-xs font-semibold text-gray-500 mb-1">Check In</span>
-                  <span className="text-sm font-bold text-gray-900">{attendance.clockIn || "--:--"}</span>
+                  <span className="text-sm font-bold text-gray-900">{formatTime(attendance?.clockIn)}</span>
                 </div>
                 <div className="bg-gray-50 p-3 rounded-xl border border-gray-100 text-center">
                   <span className="block text-xs font-semibold text-gray-500 mb-1">Check Out</span>
-                  <span className="text-sm font-bold text-gray-900">{attendance.clockOut || "--:--"}</span>
+                  <span className="text-sm font-bold text-gray-900">{formatTime(attendance?.clockOut)}</span>
                 </div>
               </div>
             </div>
@@ -95,7 +106,7 @@ export default function TechnicianDashboard() {
             <div className="space-y-3">
               <div className="flex justify-between items-center p-3 border border-gray-100 rounded-xl">
                 <span className="text-sm text-gray-600 font-medium">Jobs Completed</span>
-                <span className="text-sm font-bold text-gray-900">{performance.jobsCompleted}</span>
+                <span className="text-sm font-bold text-gray-900">{performance?.jobsCompleted ?? jobsSummary?.completedToday ?? 0}</span>
               </div>
               <div className="flex justify-between items-center p-3 border border-gray-100 rounded-xl">
                 <span className="text-sm text-gray-600 font-medium">Avg Completion Time</span>

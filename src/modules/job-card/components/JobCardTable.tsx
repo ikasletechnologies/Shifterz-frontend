@@ -48,14 +48,30 @@ export function JobCardTable({ jobCards, onView, onEdit, onDelete }: JobCardTabl
       {jobCards.map((j) => {
         const isDelivered =
           j.status === "Completed" ||
+          j.status === "QC Passed" ||
           j.status === "Delivered" ||
+          j.status === "Ready For Billing" ||
           j.status === "Out";
+
+        const isCompleted = j.status === "Completed" || j.status === "QC Passed";
 
         return (
           <div
             key={j.id}
-            className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all p-6 flex flex-col justify-between space-y-4"
+            className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all p-6 flex flex-col justify-between space-y-4 relative overflow-hidden"
           >
+            {isCompleted ? (
+              <div className="absolute top-0 right-0 bg-green-500 text-white text-[10px] font-bold px-3 py-1 rounded-bl-lg z-10">
+                Completed
+              </div>
+            ) : (
+              j.priority === "High" && (
+                <div className="absolute top-0 right-0 bg-red-500 text-white text-[10px] font-bold px-3 py-1 rounded-bl-lg z-10">
+                  URGENT
+                </div>
+              )
+            )}
+
             {/* Header: Vehicle, Service, Status Badge & Action Icons */}
             <div>
               <div className="flex items-start justify-between gap-3">
@@ -66,7 +82,7 @@ export function JobCardTable({ jobCards, onView, onEdit, onDelete }: JobCardTabl
 
                 <div className="flex flex-col items-end gap-2 shrink-0">
                   {/* Action Icons Right-Aligned */}
-                  <div className="flex items-center gap-1 bg-gray-50/80 p-1 rounded-lg border border-gray-100">
+                  <div className="flex items-center gap-1 bg-gray-50/80 p-1 rounded-lg border border-gray-100 z-20">
                     {onView && (
                       <button
                         onClick={() => onView(j)}
@@ -92,7 +108,7 @@ export function JobCardTable({ jobCards, onView, onEdit, onDelete }: JobCardTabl
                     </button>
                   </div>
 
-                  <JobStatusBadge status={j.status} />
+                  {!isCompleted && <JobStatusBadge status={j.status} />}
                 </div>
               </div>
 

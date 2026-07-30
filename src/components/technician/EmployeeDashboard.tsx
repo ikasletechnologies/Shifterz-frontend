@@ -45,10 +45,39 @@ export default function EmployeeDashboard() {
     }
   };
 
-  const filteredJobs = jobs.filter(j => 
-    j.vehicle.toLowerCase().includes(search.toLowerCase()) || 
-    j.service.toLowerCase().includes(search.toLowerCase())
-  );
+  const userRole = (() => {
+    try {
+      if (typeof window !== "undefined") {
+        const u = localStorage.getItem("user");
+        if (u) return (JSON.parse(u).role || "").toUpperCase().replace(/[\s_]+/g, "_");
+      }
+    } catch {
+      // Ignore
+    }
+    return "";
+  })();
+
+  const isQualityInspector =
+    userRole === "QUALITY_INSPECTOR" ||
+    userRole === "QUALITY_INSPECTION" ||
+    userRole === "QC_INSPECTOR" ||
+    userRole === "QC" ||
+    userRole === "QUALITY_ASSURANCE";
+
+  const filteredJobs = jobs.filter((j) => {
+    if (isQualityInspector) {
+      const isCompletedStatus =
+        j.status === "Completed" ||
+        j.status === "QC Pending" ||
+        j.status === "QC Passed" ||
+        j.status === "Ready For Billing";
+      if (!isCompletedStatus) return false;
+    }
+    return (
+      j.vehicle.toLowerCase().includes(search.toLowerCase()) ||
+      j.service.toLowerCase().includes(search.toLowerCase())
+    );
+  });
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
@@ -90,29 +119,45 @@ export default function EmployeeDashboard() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredJobs.map((job) => (
-            <div 
-              key={job.id}
-              onClick={() => setSelectedJob(job)}
-              className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow cursor-pointer group relative overflow-hidden"
-            >
-              {job.priority === "High" && (
-                <div className="absolute top-0 right-0 bg-red-500 text-white text-[10px] font-bold px-3 py-1 rounded-bl-lg">
-                  URGENT
+          {filteredJobs.map((job) => {
+            const isCompleted =
+              job.status === "Completed" ||
+              job.status === "QC Passed" ||
+              job.status === "Delivered" ||
+              job.status === "Ready For Billing" ||
+              job.status === "Out";
+
+            return (
+              <div 
+                key={job.id}
+                onClick={() => setSelectedJob(job)}
+                className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow cursor-pointer group relative overflow-hidden"
+              >
+                {isCompleted ? (
+                  <div className="absolute top-0 right-0 bg-green-500 text-white text-[10px] font-bold px-3 py-1 rounded-bl-lg">
+                    Completed
+                  </div>
+                ) : (
+                  job.priority === "High" && (
+                    <div className="absolute top-0 right-0 bg-red-500 text-white text-[10px] font-bold px-3 py-1 rounded-bl-lg">
+                      URGENT
+                    </div>
+                  )
+                )}
+                
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900 group-hover:text-yellow-600 transition-colors">
+                      {job.vehicle}
+                    </h3>
+                    <p className="text-sm text-gray-500 font-medium">{job.service}</p>
+                  </div>
+                  {!isCompleted && (
+                    <span className={`px-2.5 py-1 text-xs font-semibold rounded-full border ${getStatusColor(job.status)}`}>
+                      {job.status}
+                    </span>
+                  )}
                 </div>
-              )}
-              
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <h3 className="text-lg font-bold text-gray-900 group-hover:text-yellow-600 transition-colors">
-                    {job.vehicle}
-                  </h3>
-                  <p className="text-sm text-gray-500 font-medium">{job.service}</p>
-                </div>
-                <span className={`px-2.5 py-1 text-xs font-semibold rounded-full border ${getStatusColor(job.status)}`}>
-                  {job.status}
-                </span>
-              </div>
 
               <div className="space-y-2 mt-4 pt-4 border-t border-gray-50">
                 <div className="flex items-center text-sm text-gray-600">
@@ -125,7 +170,8 @@ export default function EmployeeDashboard() {
                 </div>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
 

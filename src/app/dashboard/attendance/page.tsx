@@ -87,13 +87,25 @@ export default function AttendancePage() {
     return `${hours}h ${mins}m`;
   };
 
+  const isSameDay = (date1: string, date2: string) => {
+    if (!date1 || !date2) return false;
+    const d1 = date1.slice(0, 10);
+    const d2 = date2.slice(0, 10);
+    if (d1 === d2) return true;
+    try {
+      return new Date(date1).toISOString().slice(0, 10) === new Date(date2).toISOString().slice(0, 10);
+    } catch {
+      return false;
+    }
+  };
+
   if (isLoading) {
     return <div className="p-8 text-center text-gray-500">Loading attendance records...</div>;
   }
 
   // Check if current user has checked in today
   const today = new Date().toISOString().slice(0, 10);
-  const myTodayRecord = attendance.find(a => a.employeeId === currentUser?.id && a.date === today);
+  const myTodayRecord = attendance.find(a => a.employeeId === currentUser?.id && isSameDay(a.date, today));
   const isCheckedIn = !!myTodayRecord;
   const isCheckedOut = !!myTodayRecord?.clockOut;
 
@@ -118,7 +130,7 @@ export default function AttendancePage() {
             ) : !isCheckedOut ? (
               <button
                 onClick={handleCheckOut}
-                className="bg-orange-500 text-white px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-orange-600 transition-colors flex items-center gap-2 shadow-sm shadow-orange-200"
+                className="bg-red-500 text-white px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-orange-600 transition-colors flex items-center gap-2 shadow-sm shadow-orange-200"
               >
                 <CheckCircle2 className="w-4 h-4" />
                 Check Out
@@ -151,7 +163,9 @@ export default function AttendancePage() {
               {attendance.map((record) => {
                 return (
                   <tr key={record.id} className="hover:bg-gray-50/50 transition-colors">
-                    <td className="px-6 py-4 text-sm font-medium text-gray-900">{record.date}</td>
+                    <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                      {new Date(record.date).toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}
+                    </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">

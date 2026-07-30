@@ -58,7 +58,7 @@ export default function NewJobCardDialog({ isOpen, onClose, onSave, initialData 
         const techList = emps
           .filter((emp: any) => emp.role === "TECHNICIAN" && emp.status === "Active")
           .map((emp: any) => ({ id: emp.id, name: emp.name }));
-        
+
         if (techList.length > 0) {
           setTechnicians(techList);
           // Set first active technician as default if not already initialized
