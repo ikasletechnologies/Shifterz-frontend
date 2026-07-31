@@ -22,9 +22,26 @@ export function JobStatusBadge({ status }: JobStatusBadgeProps) {
     }
   }, []);
 
+  const roleUpper = userRole.toUpperCase();
   const isSuperAdmin =
-    userRole.toUpperCase() === "SUPER_ADMIN" ||
-    userRole.toUpperCase() === "SUPERADMIN";
+    roleUpper === "SUPER_ADMIN" ||
+    roleUpper === "SUPERADMIN";
+  const isBillingExecutive =
+    roleUpper.includes("BILLING") ||
+    roleUpper.includes("ACCOUNTANT");
+
+  // For Billing login, hide in-progress status badges (e.g. "In Progress", "Waiting for Parts", "Pending", "Assigned", "Paused", "Rework")
+  if (
+    isBillingExecutive &&
+    (status === "In Progress" ||
+      status === "Waiting for Parts" ||
+      status === "Pending" ||
+      status === "Assigned" ||
+      status === "Paused" ||
+      status === "Rework")
+  ) {
+    return null;
+  }
 
   const displayStatus =
     isSuperAdmin && status === "Assigned" ? "In Progress" : status;

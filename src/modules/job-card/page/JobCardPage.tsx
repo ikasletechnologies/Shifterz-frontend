@@ -46,17 +46,20 @@ export function JobCardPage() {
     handleCloseDialog();
   };
 
-  const userRole = (() => {
+  const currentUser = (() => {
     try {
       if (typeof window !== "undefined") {
         const u = localStorage.getItem("user");
-        if (u) return (JSON.parse(u).role || "").toUpperCase().replace(/[\s_]+/g, "_");
+        if (u) return JSON.parse(u);
       }
     } catch {
       // Ignore
     }
-    return "";
+    return null;
   })();
+
+  const userRole = (currentUser?.role || "").toUpperCase().replace(/[\s_]+/g, "_");
+  const isTechnician = userRole === "TECHNICIAN";
 
   const isQualityInspector =
     userRole === "QUALITY_INSPECTOR" ||
@@ -65,14 +68,25 @@ export function JobCardPage() {
     userRole === "QC" ||
     userRole === "QUALITY_ASSURANCE";
 
+  const isBillingExecutive =
+    userRole.includes("BILLING") || userRole.includes("ACCOUNTANT");
+
   const filteredJobs = jobCards.filter((j) => {
-    if (isQualityInspector) {
-      const isCompletedStatus =
-        j.status === "Completed" ||
-        (j.status as string) === "QC Pending" ||
+    if (isTechnician && currentUser) {
+      const isAssigned =
+        (j.technicianId && currentUser.id && j.technicianId === currentUser.id) ||
+        (j.technician && currentUser.name && j.technician.toLowerCase() === currentUser.name.toLowerCase()) ||
+        (j.technician && currentUser.username && j.technician.toLowerCase() === currentUser.username.toLowerCase());
+      if (!isAssigned) return false;
+    }
+
+    if (isBillingExecutive) {
+      const isBillingStatus =
+        j.status === "Ready For Billing" ||
         j.status === "QC Passed" ||
-        j.status === "Ready For Billing";
-      if (!isCompletedStatus) return false;
+        j.status === "Delivered" ||
+        j.status === "Out";
+      if (!isBillingStatus) return false;
     }
 
     const searchLower = searchQuery.toLowerCase();

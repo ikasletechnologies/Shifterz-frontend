@@ -43,7 +43,7 @@ export default function BillingJobCards() {
 
   // Process data
   const mappedJobs = jobs
-    .filter(j => ["QC Passed", "Ready For Billing", "Completed"].includes(j.status))
+    .filter(j => ["QC Passed", "Ready For Billing"].includes(j.status))
     .map(job => {
       // Find the most recent non-cancelled invoice for this vehicle
       const invs = invoices

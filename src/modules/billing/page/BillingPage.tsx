@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Plus, Eye, Check, Trash2, Search, Receipt, ArrowRight, History, X } from "lucide-react";
 import NewDocumentDialog from "../components/NewDocumentDialog";
 import DocumentPreviewDialog from "../components/DocumentPreviewDialog";
@@ -21,6 +21,19 @@ export function BillingPage() {
     handleConvertDocument,
     handleRecordPayment
   } = useBilling();
+
+  const [userRole, setUserRole] = useState<string>("");
+
+  useEffect(() => {
+    try {
+      const u = localStorage.getItem("user");
+      if (u) setUserRole((JSON.parse(u).role || "").toUpperCase());
+    } catch {
+      // Ignore
+    }
+  }, []);
+
+  const isBillingExecutive = userRole.includes("BILLING") || userRole.includes("ACCOUNTANT");
 
   const [filter, setFilter] = useState("All");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -318,17 +331,19 @@ export function BillingPage() {
                             <ArrowRight className="w-4 h-4 text-blue-600" />
                           </button>
                         )}
-                        <button
-                          onClick={async () => {
-                            if (confirm("Delete this document?")) {
-                              await handleDeleteDocument(doc.id);
-                            }
-                          }}
-                          className="p-1 hover:bg-red-100 rounded transition-colors"
-                          title="Delete"
-                        >
-                          <Trash2 className="w-4 h-4 text-red-600" />
-                        </button>
+                        {!isBillingExecutive && (
+                          <button
+                            onClick={async () => {
+                              if (confirm("Delete this document?")) {
+                                await handleDeleteDocument(doc.id);
+                              }
+                            }}
+                            className="p-1 hover:bg-red-100 rounded transition-colors"
+                            title="Delete"
+                          >
+                            <Trash2 className="w-4 h-4 text-red-600" />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

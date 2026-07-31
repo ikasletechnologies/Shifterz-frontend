@@ -23,13 +23,15 @@ export function JobCardHeader({ stats, onNewJobCard }: JobCardHeaderProps) {
     }
   }, []);
 
-  const isServiceAdvisor = userRole.toUpperCase().includes("SERVICE_ADVISOR");
+  const roleUpper = userRole.toUpperCase();
+  const isServiceAdvisor = roleUpper.includes("SERVICE_ADVISOR");
+  const isBillingExecutive = roleUpper.includes("BILLING") || roleUpper.includes("ACCOUNTANT");
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900">Job Cards</h1>
-        {!isServiceAdvisor && (
+        {!isServiceAdvisor && !isBillingExecutive && (
           <button
             onClick={onNewJobCard}
             className="bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-bold px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm"

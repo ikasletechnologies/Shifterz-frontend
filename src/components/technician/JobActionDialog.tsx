@@ -9,14 +9,44 @@ interface JobActionDialogProps {
 }
 
 export default function JobActionDialog({ job, isOpen, onClose }: JobActionDialogProps) {
-  const [status, setStatus] = useState(job.status || "Pending");
-  const [notes, setNotes] = useState(job.notes || "");
-  const [photos, setPhotos] = useState<string[]>(job.photos || []);
+  const [status, setStatus] = useState(job?.status || "Pending");
+  const [notes, setNotes] = useState(job?.notes || "");
+  const [photos, setPhotos] = useState<string[]>(job?.photos || []);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  if (!isOpen) return null;
+  const userRole = (() => {
+    try {
+      if (typeof window !== "undefined") {
+        const u = localStorage.getItem("user");
+        if (u) return (JSON.parse(u).role || "").toUpperCase().replace(/[\s_]+/g, "_");
+      }
+    } catch {
+      // Ignore
+    }
+    return "";
+  })();
+
+  const isQualityInspector =
+    userRole === "QUALITY_INSPECTOR" ||
+    userRole === "QUALITY_INSPECTION" ||
+    userRole === "QC_INSPECTOR" ||
+    userRole === "QC" ||
+    userRole === "QUALITY_ASSURANCE";
+
+  const isBillingExecutive =
+    userRole.includes("BILLING") || userRole.includes("ACCOUNTANT");
+
+  if (!isOpen || !job) return null;
+
+  let statusOptions = ["Pending", "In Progress", "Completed", "Waiting for Parts"];
+
+  if (isQualityInspector) {
+    statusOptions = ["Pending", "In Progress", "Completed", "Ready For Billing"];
+  } else if (isBillingExecutive) {
+    statusOptions = ["Ready For Billing", "Completed", "Delivered"];
+  }
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return;
@@ -61,7 +91,7 @@ export default function JobActionDialog({ job, isOpen, onClose }: JobActionDialo
           status,
           notes,
           photos,
-          actualCompletion: status === "Completed" ? new Date().toISOString().slice(0, 10) : job.actualCompletion
+          actualCompletion: (status === "Completed" || status === "Ready For Billing") ? new Date().toISOString().slice(0, 10) : job.actualCompletion
         }),
       });
       onClose();
@@ -97,7 +127,7 @@ export default function JobActionDialog({ job, isOpen, onClose }: JobActionDialo
               <Check className="w-4 h-4 text-blue-500" /> Current Status
             </label>
             <div className="flex flex-wrap gap-3">
-              {["Pending", "In Progress", "Completed", "Waiting for Parts"].map((s) => (
+              {statusOptions.map((s) => (
                 <button
                   key={s}
                   onClick={() => setStatus(s)}

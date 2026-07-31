@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Eye, Edit, Trash2, Calendar, Clock, User, FileText } from "lucide-react";
 import { JobCard } from "../types/job-card.types";
 import { PriorityBadge } from "./PriorityBadge";
@@ -35,6 +36,19 @@ function formatTimeOnly(dateStr?: string) {
 }
 
 export function JobCardTable({ jobCards, onView, onEdit, onDelete }: JobCardTableProps) {
+  const [userRole, setUserRole] = useState<string>("");
+
+  useEffect(() => {
+    try {
+      const u = localStorage.getItem("user");
+      if (u) setUserRole((JSON.parse(u).role || "").toUpperCase());
+    } catch {
+      // Ignore
+    }
+  }, []);
+
+  const isBillingExecutive = userRole.includes("BILLING") || userRole.includes("ACCOUNTANT");
+
   if (jobCards.length === 0) {
     return (
       <div className="text-center py-16 text-gray-500 bg-white rounded-2xl border border-gray-100 shadow-sm">
@@ -99,13 +113,15 @@ export function JobCardTable({ jobCards, onView, onEdit, onDelete }: JobCardTabl
                     >
                       <Edit className="w-4 h-4" />
                     </button>
-                    <button
-                      onClick={() => onDelete(j.id)}
-                      className="p-1 hover:bg-red-100/60 rounded text-red-500 transition-colors"
-                      title="Delete Job Card"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    {!isBillingExecutive && (
+                      <button
+                        onClick={() => onDelete(j.id)}
+                        className="p-1 hover:bg-red-100/60 rounded text-red-500 transition-colors"
+                        title="Delete Job Card"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
 
                   {!isCompleted && <JobStatusBadge status={j.status} />}
