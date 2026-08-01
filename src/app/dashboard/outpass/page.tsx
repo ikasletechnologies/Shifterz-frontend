@@ -19,11 +19,17 @@ import {
   LogOut,
   User,
   ShieldCheck,
+  ChevronDown,
+  FileSpreadsheet,
+  FileText,
 } from "lucide-react";
 import NewOutPassDialog from "@/components/outpass/NewOutPassDialog";
 import PrintPassDialog from "@/components/outpass/PrintPassDialog";
 import { getOutPasses, createOutPass, updateOutPass } from "@/lib/api";
 import { toast } from "react-hot-toast";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import * as XLSX from "xlsx";
 
 interface OutPass {
   id: string;
@@ -53,6 +59,8 @@ export default function OutPassPage() {
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [viewMode, setViewMode] = useState<"cards" | "table">("cards");
+  const [isDownloadOpen, setIsDownloadOpen] = useState(false);
+  const [activeCardDownloadId, setActiveCardDownloadId] = useState<string | null>(null);
 
   const fetchOutPasses = useCallback(async () => {
     try {
@@ -132,6 +140,218 @@ export default function OutPassPage() {
     return d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true });
   };
 
+  const downloadOutPassExcel = () => {
+    try {
+      const dataToExport = filteredOutPasses.length > 0 ? filteredOutPasses : outPasses;
+
+      const formattedData = dataToExport.map((pass) => ({
+        "Pass ID": pass.passId || pass.id || "-",
+        "Vehicle": pass.vehicle || "-",
+        "Model": pass.model || "-",
+        "Customer": pass.customer || "-",
+        "Phone": pass.phone || "-",
+        "Service": pass.service || "-",
+        "Out Date": formatDateStr(pass.outTime),
+        "Out Time": formatTimeStr(pass.outTime),
+        "Technician": pass.technicianName || pass.technician || "-",
+        "Security Guard": pass.securityName || pass.security || "-",
+      }));
+
+      const worksheet = XLSX.utils.json_to_sheet(formattedData);
+
+      worksheet["!cols"] = [
+        { wch: 16 },
+        { wch: 18 },
+        { wch: 18 },
+        { wch: 20 },
+        { wch: 16 },
+        { wch: 22 },
+        { wch: 14 },
+        { wch: 12 },
+        { wch: 18 },
+        { wch: 18 },
+      ];
+
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Out Pass Register");
+
+      const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
+      const blob = new Blob([excelBuffer], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.style.display = "none";
+      link.href = url;
+      link.download = `OutPass_Report_${new Date().toISOString().split("T")[0]}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      setTimeout(() => {
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }, 100);
+
+      toast.success("Out Pass (.xlsx) report downloaded directly");
+      setIsDownloadOpen(false);
+    } catch (err) {
+      toast.error("Failed to download Excel report");
+      console.error(err);
+    }
+  };
+
+  const downloadOutPassPDF = () => {
+    try {
+      const dataToExport = filteredOutPasses.length > 0 ? filteredOutPasses : outPasses;
+
+      const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+
+      doc.setFillColor(30, 41, 59);
+      doc.rect(0, 0, 297, 28, "F");
+
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(18);
+      doc.setFont("helvetica", "bold");
+      doc.text("SHIFTERZ - VEHICLE OUT PASS REGISTER", 14, 18);
+
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      doc.text(`Generated: ${new Date().toLocaleString()}`, 210, 18);
+
+      const tableHeaders = [
+        "Pass ID",
+        "Vehicle No.",
+        "Model",
+        "Customer",
+        "Phone",
+        "Service",
+        "Out Date",
+        "Out Time",
+        "Technician",
+        "Security",
+      ];
+
+      const tableData = dataToExport.map((pass) => [
+        pass.passId || pass.id || "-",
+        pass.vehicle || "-",
+        pass.model || "-",
+        pass.customer || "-",
+        pass.phone || "-",
+        pass.service || "-",
+        formatDateStr(pass.outTime),
+        formatTimeStr(pass.outTime),
+        pass.technicianName || pass.technician || "-",
+        pass.securityName || pass.security || "-",
+      ]);
+
+      autoTable(doc, {
+        startY: 34,
+        head: [tableHeaders],
+        body: tableData,
+        theme: "striped",
+        headStyles: { fillColor: [240, 177, 0], textColor: [17, 24, 39], fontStyle: "bold" },
+        styles: { fontSize: 9, cellPadding: 3 },
+      });
+
+      doc.save(`OutPass_Report_${new Date().toISOString().split("T")[0]}.pdf`);
+      toast.success("Out Pass PDF report downloaded successfully");
+      setIsDownloadOpen(false);
+    } catch (err) {
+      toast.error("Failed to download PDF report");
+      console.error(err);
+    }
+  };
+
+  const downloadSingleOutPassExcel = (pass: OutPass) => {
+    try {
+      const vNum = pass.vehicle || pass.passId || pass.id;
+      const formattedData = [{
+        "Pass ID": pass.passId || pass.id || "-",
+        "Vehicle": pass.vehicle || "-",
+        "Model": pass.model || "-",
+        "Customer": pass.customer || "-",
+        "Phone": pass.phone || "-",
+        "Service": pass.service || "-",
+        "Out Date": formatDateStr(pass.outTime),
+        "Out Time": formatTimeStr(pass.outTime),
+        "Technician": pass.technicianName || pass.technician || "-",
+        "Security Guard": pass.securityName || pass.security || "-",
+      }];
+
+      const worksheet = XLSX.utils.json_to_sheet(formattedData);
+      worksheet["!cols"] = [
+        { wch: 16 }, { wch: 18 }, { wch: 18 }, { wch: 20 },
+        { wch: 16 }, { wch: 22 }, { wch: 14 }, { wch: 12 },
+        { wch: 18 }, { wch: 18 },
+      ];
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Out Pass Details");
+
+      const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
+      const blob = new Blob([excelBuffer], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.style.display = "none";
+      link.href = url;
+      link.download = `OutPass_${vNum}_Details.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      setTimeout(() => {
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }, 100);
+
+      toast.success("Out Pass details (.xlsx) downloaded");
+    } catch (err) {
+      toast.error("Failed to download Out Pass details");
+      console.error(err);
+    }
+  };
+
+  const downloadSingleOutPassPDF = (pass: OutPass) => {
+    try {
+      const vNum = pass.vehicle || pass.passId || pass.id;
+      const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+
+      doc.setFillColor(30, 41, 59);
+      doc.rect(0, 0, 210, 24, "F");
+
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(16);
+      doc.setFont("helvetica", "bold");
+      doc.text(`OUT PASS DETAILS - ${vNum}`, 14, 16);
+
+      const tableData = [
+        ["Pass ID", pass.passId || pass.id || "-"],
+        ["Vehicle No.", pass.vehicle || "-"],
+        ["Model", pass.model || "-"],
+        ["Customer Name", pass.customer || "-"],
+        ["Phone Number", pass.phone || "-"],
+        ["Service", pass.service || "-"],
+        ["Check-Out Date", formatDateStr(pass.outTime)],
+        ["Check-Out Time", formatTimeStr(pass.outTime)],
+        ["Technician", pass.technicianName || pass.technician || "-"],
+        ["Security Guard", pass.securityName || pass.security || "-"],
+      ];
+
+      autoTable(doc, {
+        startY: 30,
+        head: [["Field", "Details"]],
+        body: tableData,
+        theme: "striped",
+        headStyles: { fillColor: [240, 177, 0], textColor: [17, 24, 39], fontStyle: "bold" },
+        styles: { fontSize: 10, cellPadding: 4 },
+      });
+
+      doc.save(`OutPass_${vNum}_Details.pdf`);
+      toast.success("Out Pass details (.pdf) downloaded");
+    } catch (err) {
+      toast.error("Failed to download Out Pass PDF");
+      console.error(err);
+    }
+  };
+
   if (isLoading) {
     return <div className="p-8 text-center text-gray-500">Loading out passes...</div>;
   }
@@ -142,7 +362,7 @@ export default function OutPassPage() {
 
   return (
     <div className="p-4 sm:p-6 md:p-8">
-      {/* Toolbar: Search -> From Date -> To Date -> Download -> Vehicle Check-In -> Vehicle Check-Out -> View Switcher */}
+      {/* Toolbar: Search -> From Date -> To Date -> Download -> Vehicle Check-In -> Vehicle Check-Out */}
       <div className="mb-6 flex flex-nowrap items-center gap-2.5 border-b border-gray-200 pb-4 w-full">
         {/* 1. Search Bar */}
         <div className="relative flex-1 min-w-[140px]">
@@ -170,11 +390,19 @@ export default function OutPassPage() {
             onChange={(e) => setFromDate(e.target.value)}
             className="bg-transparent border-none text-xs text-gray-800 focus:outline-none cursor-pointer p-0"
           />
-          {fromDate && (
-            <button onClick={() => setFromDate("")} className="text-gray-400 hover:text-gray-600">
-              <X className="w-3.5 h-3.5" />
-            </button>
-          )}
+          <button
+            type="button"
+            disabled={!fromDate}
+            onClick={() => fromDate && setFromDate("")}
+            className={`p-0.5 rounded transition-colors flex items-center justify-center shrink-0 ${
+              fromDate
+                ? "text-gray-600 hover:text-gray-900 hover:bg-gray-100 cursor-pointer"
+                : "text-gray-300 cursor-not-allowed opacity-50"
+            }`}
+            title={fromDate ? "Clear From Date" : ""}
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
         </div>
 
         {/* 3. To Date Filter */}
@@ -186,21 +414,60 @@ export default function OutPassPage() {
             onChange={(e) => setToDate(e.target.value)}
             className="bg-transparent border-none text-xs text-gray-800 focus:outline-none cursor-pointer p-0"
           />
-          {toDate && (
-            <button onClick={() => setToDate("")} className="text-gray-400 hover:text-gray-600">
-              <X className="w-3.5 h-3.5" />
-            </button>
-          )}
+          <button
+            type="button"
+            disabled={!toDate}
+            onClick={() => toDate && setToDate("")}
+            className={`p-0.5 rounded transition-colors flex items-center justify-center shrink-0 ${
+              toDate
+                ? "text-gray-600 hover:text-gray-900 hover:bg-gray-100 cursor-pointer"
+                : "text-gray-300 cursor-not-allowed opacity-50"
+            }`}
+            title={toDate ? "Clear To Date" : ""}
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
         </div>
 
-        {/* 4. Download Button */}
-        <button
-          onClick={() => toast.success("Out Pass report ready for print/download")}
-          className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-3.5 py-2 rounded-lg flex items-center justify-center gap-1.5 transition-colors text-sm shrink-0 whitespace-nowrap"
-        >
-          <Download className="w-4 h-4" />
-          Download
-        </button>
+        {/* 4. Download Dropdown Button */}
+        <div className="relative shrink-0">
+          <button
+            type="button"
+            onClick={() => setIsDownloadOpen((prev) => !prev)}
+            className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-3.5 py-2 rounded-lg flex items-center justify-center gap-1.5 transition-colors text-sm whitespace-nowrap cursor-pointer"
+          >
+            <Download className="w-4 h-4" />
+            <span>Download</span>
+            <ChevronDown className="w-3.5 h-3.5 opacity-80" />
+          </button>
+
+          {isDownloadOpen && (
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => setIsDownloadOpen(false)} />
+              <div className="absolute right-0 mt-1.5 w-44 bg-white rounded-xl shadow-xl border border-gray-200 py-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
+                <button
+                  type="button"
+                  onClick={downloadOutPassExcel}
+                  className="w-full px-4 py-2.5 text-left text-xs font-bold text-gray-700 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2.5 transition-colors cursor-pointer"
+                >
+                  <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+                  Download as CSV
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    downloadOutPassPDF();
+                    setIsDownloadOpen(false);
+                  }}
+                  className="w-full px-4 py-2.5 text-left text-xs font-bold text-gray-700 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2.5 transition-colors cursor-pointer"
+                >
+                  <FileText className="w-4 h-4 text-red-500" />
+                  Download as PDF
+                </button>
+              </div>
+            </>
+          )}
+        </div>
 
         {/* 5. Vehicle Check-In Button */}
         <button
@@ -251,9 +518,52 @@ export default function OutPassPage() {
                             </p>
                           </div>
                         </div>
+                      <div className="flex items-center gap-2">
+                        <div className="relative">
+                          <button
+                            type="button"
+                            onClick={() => setActiveCardDownloadId(activeCardDownloadId === pass.id ? null : pass.id)}
+                            className="p-1.5 bg-red-100/70 hover:bg-red-200/80 rounded-full transition-colors text-red-700 cursor-pointer flex items-center justify-center"
+                            title="Download outpass record"
+                          >
+                            <Download className="w-3.5 h-3.5" />
+                          </button>
+
+                          {activeCardDownloadId === pass.id && (
+                            <>
+                              <div className="fixed inset-0 z-40" onClick={() => setActiveCardDownloadId(null)} />
+                              <div className="absolute right-0 mt-1.5 w-44 bg-white rounded-xl shadow-xl border border-gray-200 py-1.5 z-50 animate-in fade-in zoom-in-95 duration-150 text-left">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    downloadSingleOutPassExcel(pass);
+                                    setActiveCardDownloadId(null);
+                                  }}
+                                  className="w-full px-3.5 py-2 text-left text-xs font-bold text-gray-700 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 transition-colors cursor-pointer"
+                                >
+                                  <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+                                  Download as CSV
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    downloadSingleOutPassPDF(pass);
+                                    setActiveCardDownloadId(null);
+                                  }}
+                                  className="w-full px-3.5 py-2 text-left text-xs font-bold text-gray-700 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 transition-colors cursor-pointer"
+                                >
+                                  <FileText className="w-3.5 h-3.5 text-red-500" />
+                                  Download as PDF
+                                </button>
+                              </div>
+                            </>
+                          )}
+                        </div>
+
                         <span className="bg-red-600 text-white text-[11px] font-semibold px-3 py-1 rounded-full whitespace-nowrap shadow-2xs">
-                          Delivered
+                          View
                         </span>
+                      </div>
                       </div>
 
                       <div className="border-t border-red-100/70 my-3" />

@@ -22,10 +22,14 @@ import {
   Phone,
   LayoutGrid,
   List,
+  ChevronDown,
+  FileSpreadsheet,
+  FileText,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import * as XLSX from "xlsx";
 import VehicleCheckInDialog from "../components/VehicleCheckInDialog";
 import VehicleDeliveryDialog from "../components/VehicleDeliveryDialog";
 import VehicleDetailsDialog from "../components/VehicleDetailsDialog";
@@ -46,6 +50,36 @@ export function VehicleCheckinPage() {
 
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
+
+  const getTodayISO = () => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = (d.getMonth() + 1).toString().padStart(2, "0");
+    const day = d.getDate().toString().padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
+  const handleFromDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selected = e.target.value;
+    const today = getTodayISO();
+    if (selected && selected > today) {
+      toast.error("Future dates are not allowed. Please select today or a past date.");
+      setFromDate(today);
+      return;
+    }
+    setFromDate(selected);
+  };
+
+  const handleToDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selected = e.target.value;
+    const today = getTodayISO();
+    if (selected && selected > today) {
+      toast.error("Future dates are not allowed. Please select today or a past date.");
+      setToDate(today);
+      return;
+    }
+    setToDate(selected);
+  };
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDeliveryDialogOpen, setIsDeliveryDialogOpen] = useState(false);
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
@@ -54,6 +88,8 @@ export function VehicleCheckinPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState<"cards" | "table">("cards");
   const [statusFilter, setStatusFilter] = useState<"All" | "In Workshop" | "Delivered">("All");
+  const [isDownloadOpen, setIsDownloadOpen] = useState(false);
+  const [activeCardDownloadId, setActiveCardDownloadId] = useState<string | null>(null);
 
   const handleCheckInSubmit = async (carData: any) => {
     if (selectedCar && isDialogOpen) {
@@ -200,6 +236,163 @@ export function VehicleCheckinPage() {
     }
   };
 
+  const downloadExcel = () => {
+    try {
+      const dataToExport = filteredCars.length > 0 ? filteredCars : cars;
+
+      const formattedData = dataToExport.map((car) => ({
+        "Entry ID": car.entryId || car.id || "-",
+        "Vehicle No.": car.vehicleNo || car.vehicle || car.vehicleNumber || "-",
+        "Model": car.model || "-",
+        "Customer Name": car.customer || "-",
+        "Mobile No.": car.phone || "-",
+        "Service": car.service || "-",
+        "In Date": formatDate(car.inTime),
+        "In Time": formatTime(car.inTime),
+        "Out Date": car.outTime ? formatDate(car.outTime) : "-",
+        "Out Time": car.outTime ? formatTime(car.outTime) : "-",
+        "Status": car.status || "-",
+        "Notes": car.notes || "-",
+      }));
+
+      const worksheet = XLSX.utils.json_to_sheet(formattedData);
+
+      // Auto-fit column widths
+      worksheet["!cols"] = [
+        { wch: 16 },
+        { wch: 18 },
+        { wch: 18 },
+        { wch: 20 },
+        { wch: 16 },
+        { wch: 22 },
+        { wch: 14 },
+        { wch: 12 },
+        { wch: 14 },
+        { wch: 12 },
+        { wch: 14 },
+        { wch: 25 },
+      ];
+
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Vehicle Check-In");
+
+      const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
+      const blob = new Blob([excelBuffer], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.style.display = "none";
+      link.href = url;
+      link.download = `Vehicle_Checkin_Report_${new Date().toISOString().split("T")[0]}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      setTimeout(() => {
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }, 100);
+
+      toast.success("File (.xlsx) downloaded directly to your device");
+      setIsDownloadOpen(false);
+    } catch (err) {
+      toast.error("Failed to download file");
+      console.error(err);
+    }
+  };
+
+  const downloadSingleCarExcel = (car: CarEntry) => {
+    try {
+      const vNum = car.vehicleNo || car.vehicle || car.vehicleNumber || car.id;
+      const formattedData = [{
+        "Entry ID": car.entryId || car.id || "-",
+        "Vehicle No.": vNum,
+        "Model": car.model || "-",
+        "Customer Name": car.customer || "-",
+        "Mobile No.": car.phone || "-",
+        "Service": car.service || "-",
+        "In Date": formatDate(car.inTime),
+        "In Time": formatTime(car.inTime),
+        "Out Date": car.outTime ? formatDate(car.outTime) : "-",
+        "Out Time": car.outTime ? formatTime(car.outTime) : "-",
+        "Status": car.status || "-",
+        "Notes": car.notes || "-",
+      }];
+
+      const worksheet = XLSX.utils.json_to_sheet(formattedData);
+      worksheet["!cols"] = [
+        { wch: 16 }, { wch: 18 }, { wch: 18 }, { wch: 20 },
+        { wch: 16 }, { wch: 22 }, { wch: 14 }, { wch: 12 },
+        { wch: 14 }, { wch: 12 }, { wch: 14 }, { wch: 25 },
+      ];
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Vehicle Details");
+
+      const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
+      const blob = new Blob([excelBuffer], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.style.display = "none";
+      link.href = url;
+      link.download = `Vehicle_${vNum}_Details.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      setTimeout(() => {
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }, 100);
+
+      toast.success("Vehicle details (.xlsx) downloaded");
+    } catch (err) {
+      toast.error("Failed to download vehicle details");
+      console.error(err);
+    }
+  };
+
+  const downloadSingleCarPDF = (car: CarEntry) => {
+    try {
+      const vNum = car.vehicleNo || car.vehicle || car.vehicleNumber || car.id;
+      const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+
+      doc.setFillColor(30, 41, 59);
+      doc.rect(0, 0, 210, 24, "F");
+
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(16);
+      doc.setFont("helvetica", "bold");
+      doc.text(`VEHICLE DETAILS - ${vNum}`, 14, 16);
+
+      const tableData = [
+        ["Entry ID", car.entryId || car.id || "-"],
+        ["Vehicle No.", vNum],
+        ["Model", car.model || "-"],
+        ["Customer Name", car.customer || "-"],
+        ["Phone Number", car.phone || "-"],
+        ["Service", car.service || "-"],
+        ["In Date & Time", `${formatDate(car.inTime)} ${formatTime(car.inTime)}`],
+        ["Out Date & Time", car.outTime ? `${formatDate(car.outTime)} ${formatTime(car.outTime)}` : "Pending"],
+        ["Status", car.status || "-"],
+        ["Notes", car.notes || "-"],
+      ];
+
+      autoTable(doc, {
+        startY: 30,
+        head: [["Field", "Details"]],
+        body: tableData,
+        theme: "striped",
+        headStyles: { fillColor: [240, 177, 0], textColor: [17, 24, 39], fontStyle: "bold" },
+        styles: { fontSize: 10, cellPadding: 4 },
+      });
+
+      doc.save(`Vehicle_${vNum}_Details.pdf`);
+      toast.success("Vehicle details (.pdf) downloaded");
+    } catch (err) {
+      toast.error("Failed to download vehicle PDF");
+      console.error(err);
+    }
+  };
+
   const filteredCars = cars.filter((car) => {
     const statusMatch =
       statusFilter === "All" ||
@@ -280,16 +473,16 @@ export function VehicleCheckinPage() {
           type="button"
           onClick={() => setStatusFilter("In Workshop")}
           className={`p-4 rounded-xl border text-left flex items-center justify-between transition-all cursor-pointer ${statusFilter === "In Workshop"
-              ? "bg-blue-50/70 border-blue-500 ring-2 ring-blue-500/20 shadow-sm"
-              : "bg-white border-gray-200 hover:border-blue-300 hover:bg-gray-50/60"
+              ? "bg-emerald-50/70 border-emerald-500 ring-2 ring-emerald-500/20 shadow-sm"
+              : "bg-white border-gray-200 hover:border-emerald-300 hover:bg-gray-50/60"
             }`}
         >
           <div>
-            <p className="text-xs font-bold uppercase tracking-wider text-blue-600">In Workshop</p>
-            <p className="text-2xl font-black text-blue-700 mt-1">{inWorkshopCount}</p>
+            <p className="text-xs font-bold uppercase tracking-wider text-emerald-600">In Workshop</p>
+            <p className="text-2xl font-black text-emerald-700 mt-1">{inWorkshopCount}</p>
             <p className="text-xs text-gray-500 mt-0.5 font-medium">Cars currently in workshop</p>
           </div>
-          <div className={`p-3 rounded-xl transition-colors ${statusFilter === "In Workshop" ? "bg-blue-600 text-white shadow-xs" : "bg-blue-50 text-blue-600"}`}>
+          <div className={`p-3 rounded-xl transition-colors ${statusFilter === "In Workshop" ? "bg-emerald-600 text-white shadow-xs" : "bg-emerald-50 text-emerald-600"}`}>
             <Wrench className="w-6 h-6" />
           </div>
         </button>
@@ -338,14 +531,23 @@ export function VehicleCheckinPage() {
           <input
             type="date"
             value={fromDate}
-            onChange={(e) => setFromDate(e.target.value)}
+            max={getTodayISO()}
+            onChange={handleFromDateChange}
             className="bg-transparent border-none text-xs text-gray-800 focus:outline-none cursor-pointer p-0"
           />
-          {fromDate && (
-            <button onClick={() => setFromDate("")} className="text-gray-400 hover:text-gray-600">
-              <X className="w-3.5 h-3.5" />
-            </button>
-          )}
+          <button
+            type="button"
+            disabled={!fromDate}
+            onClick={() => fromDate && setFromDate("")}
+            className={`p-0.5 rounded transition-colors flex items-center justify-center shrink-0 ${
+              fromDate
+                ? "text-gray-600 hover:text-gray-900 hover:bg-gray-100 cursor-pointer"
+                : "text-gray-300 cursor-not-allowed opacity-50"
+            }`}
+            title={fromDate ? "Clear From Date" : ""}
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
         </div>
 
         {/* 3. To Date Filter */}
@@ -354,24 +556,64 @@ export function VehicleCheckinPage() {
           <input
             type="date"
             value={toDate}
-            onChange={(e) => setToDate(e.target.value)}
+            max={getTodayISO()}
+            onChange={handleToDateChange}
             className="bg-transparent border-none text-xs text-gray-800 focus:outline-none cursor-pointer p-0"
           />
-          {toDate && (
-            <button onClick={() => setToDate("")} className="text-gray-400 hover:text-gray-600">
-              <X className="w-3.5 h-3.5" />
-            </button>
-          )}
+          <button
+            type="button"
+            disabled={!toDate}
+            onClick={() => toDate && setToDate("")}
+            className={`p-0.5 rounded transition-colors flex items-center justify-center shrink-0 ${
+              toDate
+                ? "text-gray-600 hover:text-gray-900 hover:bg-gray-100 cursor-pointer"
+                : "text-gray-300 cursor-not-allowed opacity-50"
+            }`}
+            title={toDate ? "Clear To Date" : ""}
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
         </div>
 
-        {/* 4. Download Button */}
-        <button
-          onClick={() => downloadReport()}
-          className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-3.5 py-2 rounded-lg flex items-center justify-center gap-1.5 transition-colors text-sm shrink-0 whitespace-nowrap"
-        >
-          <Download className="w-4 h-4" />
-          Download
-        </button>
+        {/* 4. Download Dropdown Button */}
+        <div className="relative shrink-0">
+          <button
+            type="button"
+            onClick={() => setIsDownloadOpen((prev) => !prev)}
+            className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-3.5 py-2 rounded-lg flex items-center justify-center gap-1.5 transition-colors text-sm whitespace-nowrap cursor-pointer"
+          >
+            <Download className="w-4 h-4" />
+            <span>Download</span>
+            <ChevronDown className="w-3.5 h-3.5 opacity-80" />
+          </button>
+
+          {isDownloadOpen && (
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => setIsDownloadOpen(false)} />
+              <div className="absolute right-0 mt-1.5 w-44 bg-white rounded-xl shadow-xl border border-gray-200 py-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
+                <button
+                  type="button"
+                  onClick={downloadExcel}
+                  className="w-full px-4 py-2.5 text-left text-xs font-bold text-gray-700 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2.5 transition-colors cursor-pointer"
+                >
+                  <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+                  Download as CSV
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    downloadReport();
+                    setIsDownloadOpen(false);
+                  }}
+                  className="w-full px-4 py-2.5 text-left text-xs font-bold text-gray-700 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2.5 transition-colors cursor-pointer"
+                >
+                  <FileText className="w-4 h-4 text-red-500" />
+                  Download as PDF
+                </button>
+              </div>
+            </>
+          )}
+        </div>
 
         {/* 5. Vehicle Check-In Button */}
         <button
@@ -419,13 +661,56 @@ export function VehicleCheckinPage() {
                           </p>
                         </div>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => handleEditClick(entry)}
-                        className="bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-semibold px-3 py-1 rounded-full whitespace-nowrap shadow-2xs transition-colors cursor-pointer"
-                      >
-                        In Workshop
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <div className="relative">
+                          <button
+                            type="button"
+                            onClick={() => setActiveCardDownloadId(activeCardDownloadId === entry.id ? null : entry.id)}
+                            className="p-1.5 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors text-gray-600 cursor-pointer flex items-center justify-center"
+                            title="Download vehicle record"
+                          >
+                            <Download className="w-3.5 h-3.5" />
+                          </button>
+
+                          {activeCardDownloadId === entry.id && (
+                            <>
+                              <div className="fixed inset-0 z-40" onClick={() => setActiveCardDownloadId(null)} />
+                              <div className="absolute right-0 mt-1.5 w-44 bg-white rounded-xl shadow-xl border border-gray-200 py-1.5 z-50 animate-in fade-in zoom-in-95 duration-150 text-left">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    downloadSingleCarExcel(entry);
+                                    setActiveCardDownloadId(null);
+                                  }}
+                                  className="w-full px-3.5 py-2 text-left text-xs font-bold text-gray-700 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 transition-colors cursor-pointer"
+                                >
+                                  <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+                                  Download as CSV
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    downloadSingleCarPDF(entry);
+                                    setActiveCardDownloadId(null);
+                                  }}
+                                  className="w-full px-3.5 py-2 text-left text-xs font-bold text-gray-700 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 transition-colors cursor-pointer"
+                                >
+                                  <FileText className="w-3.5 h-3.5 text-red-500" />
+                                  Download as PDF
+                                </button>
+                              </div>
+                            </>
+                          )}
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => handleEditClick(entry)}
+                          className="bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-semibold px-3 py-1 rounded-full whitespace-nowrap shadow-2xs transition-colors cursor-pointer"
+                        >
+                          View
+                        </button>
+                      </div>
                     </div>
 
                     <div className="border-t border-gray-100 my-3" />
@@ -498,30 +783,77 @@ export function VehicleCheckinPage() {
                           </p>
                         </div>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => handleViewDetailsClick(entry)}
-                        className="bg-red-600 hover:bg-red-700 text-white text-[11px] font-semibold px-3 py-1 rounded-full whitespace-nowrap shadow-2xs transition-colors cursor-pointer"
-                      >
-                        Delivered
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <div className="relative">
+                          <button
+                            type="button"
+                            onClick={() => setActiveCardDownloadId(activeCardDownloadId === entry.id ? null : entry.id)}
+                            className="p-1.5 bg-red-100/70 hover:bg-red-200/80 rounded-full transition-colors text-red-700 cursor-pointer flex items-center justify-center"
+                            title="Download vehicle record"
+                          >
+                            <Download className="w-3.5 h-3.5" />
+                          </button>
+
+                          {activeCardDownloadId === entry.id && (
+                            <>
+                              <div className="fixed inset-0 z-40" onClick={() => setActiveCardDownloadId(null)} />
+                              <div className="absolute right-0 mt-1.5 w-44 bg-white rounded-xl shadow-xl border border-gray-200 py-1.5 z-50 animate-in fade-in zoom-in-95 duration-150 text-left">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    downloadSingleCarExcel(entry);
+                                    setActiveCardDownloadId(null);
+                                  }}
+                                  className="w-full px-3.5 py-2 text-left text-xs font-bold text-gray-700 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 transition-colors cursor-pointer"
+                                >
+                                  <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+                                  Download as CSV
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    downloadSingleCarPDF(entry);
+                                    setActiveCardDownloadId(null);
+                                  }}
+                                  className="w-full px-3.5 py-2 text-left text-xs font-bold text-gray-700 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 transition-colors cursor-pointer"
+                                >
+                                  <FileText className="w-3.5 h-3.5 text-red-500" />
+                                  Download as PDF
+                                </button>
+                              </div>
+                            </>
+                          )}
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => handleViewDetailsClick(entry)}
+                          className="bg-red-600 hover:bg-red-700 text-white text-[11px] font-semibold px-3 py-1 rounded-full whitespace-nowrap shadow-2xs transition-colors cursor-pointer"
+                        >
+                          View
+                        </button>
+                      </div>
                     </div>
 
                     <div className="border-t border-red-100/70 my-3" />
 
                     {/* Card Body Details */}
-                    <div className="grid grid-cols-3 gap-2 text-xs">
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
                       <div>
                         <p className="text-[10px] uppercase font-semibold text-gray-400">Entry ID</p>
                         <p className="font-bold text-amber-500 font-mono mt-0.5">{entry.entryId || entry.id}</p>
-                        <p className="text-[10px] uppercase font-semibold text-gray-400 mt-2">Customer</p>
-                        <p className="font-bold text-gray-900 mt-0.5">{entry.customer || "—"}</p>
                       </div>
-
                       <div>
                         <p className="text-[10px] uppercase font-semibold text-gray-400">Service</p>
                         <p className="font-bold text-gray-900 mt-0.5">{entry.service || "—"}</p>
-                        <p className="text-[10px] uppercase font-semibold text-gray-400 mt-2">Check-In</p>
+                      </div>
+
+                      <div>
+                        <p className="text-[10px] uppercase font-semibold text-gray-400">Customer</p>
+                        <p className="font-bold text-gray-900 mt-0.5">{entry.customer || "—"}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] uppercase font-semibold text-gray-400">Check-In Date</p>
                         <p className="font-medium text-gray-700 mt-0.5 flex items-center gap-1">
                           <Calendar className="w-3.5 h-3.5 text-gray-400" />
                           {formatDate(entry.inTime)}
@@ -529,15 +861,17 @@ export function VehicleCheckinPage() {
                       </div>
 
                       <div>
-                        <p className="text-[10px] uppercase font-semibold text-gray-400">Check-Out</p>
+                        <p className="text-[10px] uppercase font-semibold text-gray-400">Mobile</p>
                         <p className="font-medium text-gray-700 mt-0.5 flex items-center gap-1">
-                          <Calendar className="w-3.5 h-3.5 text-gray-400" />
-                          {entry.outTime ? formatDate(entry.outTime) : "—"}
+                          <Phone className="w-3.5 h-3.5 text-gray-400" />
+                          {entry.phone || "—"}
                         </p>
-                        <p className="text-[10px] uppercase font-semibold text-gray-400 mt-2">Check-Out Time</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] uppercase font-semibold text-gray-400">Check-In Time</p>
                         <p className="font-medium text-gray-700 mt-0.5 flex items-center gap-1">
                           <Clock className="w-3.5 h-3.5 text-gray-400" />
-                          {entry.outTime ? formatTime(entry.outTime) : "—"}
+                          {formatTime(entry.inTime)}
                         </p>
                       </div>
                     </div>
@@ -645,17 +979,22 @@ export function VehicleCheckinPage() {
           setSelectedCar(null);
           toast.success("Vehicle status updated to Delivered!");
         }}
+        onDelete={handleDeleteClick}
         initialData={selectedCar}
       />
       <VehicleDeliveryDialog
         isOpen={isDeliveryDialogOpen}
         onClose={() => setIsDeliveryDialogOpen(false)}
         carData={selectedCar ? {
-          vehicleNo: selectedCar.vehicleNo || "",
-          model: selectedCar.model,
-          customer: selectedCar.customer,
-          phone: selectedCar.phone,
-          service: selectedCar.service,
+          id: selectedCar.id,
+          vehicleNo: selectedCar.vehicleNo || selectedCar.vehicle || "",
+          model: selectedCar.model || "",
+          customer: selectedCar.customer || "",
+          phone: selectedCar.phone || "",
+          service: selectedCar.service || "",
+          odometer: selectedCar.odometer || "",
+          inTime: selectedCar.inTime || "",
+          technician: selectedCar.technician || "",
         } : undefined}
         onSubmit={handleDeliverySubmit}
       />
@@ -668,6 +1007,12 @@ export function VehicleCheckinPage() {
           const target = cars.find((c) => c.id === car.id || (car.vehicleNo && c.vehicleNo === car.vehicleNo)) || selectedCar;
           if (target) {
             handleDeliveryClick(target);
+          }
+        }}
+        onDelete={(carData) => {
+          const target = cars.find((c) => c.id === carData.id || (carData.vehicleNo && c.vehicleNo === carData.vehicleNo)) || selectedCar;
+          if (target) {
+            handleDeleteClick(target);
           }
         }}
       />

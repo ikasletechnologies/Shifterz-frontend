@@ -2,7 +2,7 @@
 
 import { PhoneInput } from "@/components/common/PhoneInput";
 import { useState, useEffect } from "react";
-import { X, Car, Clock, Calendar, Plus, AlertTriangle } from "lucide-react";
+import { X, Car, Clock, Calendar, Plus, AlertTriangle, Trash2 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { apiCall } from "@/services/api.client";
 import { formatVehicleNumber, getVehicleType, normalizeVehicleNumber } from "@/utils/vehicleNumber";
@@ -12,6 +12,7 @@ interface VehicleCheckInDialogProps {
   onClose: () => void;
   onSubmit?: (data: any) => void;
   onDeliver?: (data: any) => void;
+  onDelete?: (data: any) => void;
   initialData?: any;
 }
 
@@ -20,6 +21,7 @@ export default function VehicleCheckInDialog({
   onClose,
   onSubmit,
   onDeliver,
+  onDelete,
   initialData,
 }: VehicleCheckInDialogProps) {
   const [formData, setFormData] = useState({
@@ -177,8 +179,13 @@ export default function VehicleCheckInDialog({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.vehicleNumber || !formData.carModel || !formData.customerName || !formData.odometer) {
+    if (!formData.vehicleNumber || !formData.carModel || !formData.customerName || !formData.phone || !formData.odometer) {
       toast.error("Please fill in all required fields marked with *");
+      return;
+    }
+
+    if (formData.phone.replace(/\D/g, "").length !== 10) {
+      toast.error("Please enter a valid 10-digit phone number");
       return;
     }
 
@@ -276,10 +283,24 @@ export default function VehicleCheckInDialog({
             </h2>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            {initialData && onDelete && (
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onDelete(initialData);
+                }}
+                className="p-1.5 hover:bg-red-50 text-red-500 rounded-lg transition-colors cursor-pointer"
+                title="Delete Entry"
+              >
+                <Trash2 className="w-5 h-5" />
+              </button>
+            )}
             <button
               onClick={onClose}
-              className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors text-gray-500"
+              className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors text-gray-500 cursor-pointer"
+              title="Close"
             >
               <X className="w-6 h-6" />
             </button>
@@ -341,7 +362,7 @@ export default function VehicleCheckInDialog({
             </div>
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Phone
+                Phone <span className="text-red-500">*</span>
               </label>
               <PhoneInput
                 name="phone"
@@ -349,6 +370,7 @@ export default function VehicleCheckInDialog({
                 onChange={handleChange}
                 disabled={isDelivered}
                 placeholder="XXXXX XXXXX"
+                required
               />
             </div>
           </div>
@@ -401,32 +423,23 @@ export default function VehicleCheckInDialog({
             </div>
           </div>
 
-          {/* Check-In / Check-Out & Status Info Section */}
+          {/* Check-In Date & Check-In Time Section */}
           {initialData && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 bg-gray-50 p-4 rounded-xl border border-gray-200 text-xs">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 p-4 rounded-xl border border-gray-200 text-xs">
               <div>
-                <p className="font-bold text-gray-500 uppercase tracking-wider mb-1">Check-In Date & Time</p>
-                <p className="font-semibold text-gray-900 flex items-center gap-1">
-                  <Calendar className="w-3.5 h-3.5 text-emerald-600" />
-                  {initialData.inTime ? new Date(initialData.inTime).toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: true }) : "—"}
+                <p className="font-bold text-gray-500 uppercase tracking-wider mb-1">Check-In Date</p>
+                <p className="font-semibold text-gray-900 flex items-center gap-1.5 text-sm">
+                  <Calendar className="w-4 h-4 text-emerald-600" />
+                  {displayDate || (initialData.inTime ? parseDateTimeStr(initialData.inTime).dateStr : "—")}
                 </p>
               </div>
 
               <div>
-                <p className="font-bold text-gray-500 uppercase tracking-wider mb-1">Check-Out Date & Time</p>
-                <p className="font-semibold text-gray-900 flex items-center gap-1">
-                  <Clock className="w-3.5 h-3.5 text-red-600" />
-                  {initialData.outTime ? new Date(initialData.outTime).toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: true }) : "Pending Delivery"}
+                <p className="font-bold text-gray-500 uppercase tracking-wider mb-1">Check-In Time</p>
+                <p className="font-semibold text-gray-900 flex items-center gap-1.5 text-sm">
+                  <Clock className="w-4 h-4 text-emerald-600" />
+                  {displayTime || (initialData.inTime ? parseDateTimeStr(initialData.inTime).timeStr : "—")}
                 </p>
-              </div>
-
-              <div>
-                <p className="font-bold text-gray-500 uppercase tracking-wider mb-1">Status</p>
-                <span className={`inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
-                  isInWorkshop ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"
-                }`}>
-                  {isInWorkshop ? "In Workshop" : "Delivered"}
-                </span>
               </div>
             </div>
           )}
@@ -456,13 +469,12 @@ export default function VehicleCheckInDialog({
             >
               Close (Read Only)
             </button>
-          ) : isInWorkshop ? (
+          ) : initialData ? (
             <button
-              type="button"
-              onClick={handleDeliverAction}
-              className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3.5 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-md text-base cursor-pointer"
+              type="submit"
+              className="w-full bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-bold py-3.5 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-md text-base cursor-pointer"
             >
-              ✓ Delivered
+              ✓ Update
             </button>
           ) : (
             <button

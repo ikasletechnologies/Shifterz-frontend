@@ -1,6 +1,6 @@
 "use client";
 
-import { X, Car, User, Phone, Wrench, Clock, FileText, Gauge, CalendarCheck2 } from "lucide-react";
+import { X, Car, User, Phone, Wrench, Clock, FileText, Gauge, CalendarCheck2, Calendar, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 
 interface CarData {
@@ -23,6 +23,7 @@ interface CarDetailsDialogProps {
   onClose: () => void;
   carData?: CarData;
   onDeliver?: (car: CarData) => void;
+  onDelete?: (car: CarData) => void;
 }
 
 function formatDateAndTime(dateStr?: string | null) {
@@ -44,7 +45,7 @@ function formatDateAndTime(dateStr?: string | null) {
   return { date: dateFormatted, time: timeFormatted };
 }
 
-export default function CarDetailsDialog({ isOpen, onClose, carData, onDeliver }: CarDetailsDialogProps) {
+export default function CarDetailsDialog({ isOpen, onClose, carData, onDeliver, onDelete }: CarDetailsDialogProps) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -72,12 +73,28 @@ export default function CarDetailsDialog({ isOpen, onClose, carData, onDeliver }
           {/* Decorative background circle */}
           <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 rounded-full bg-white/5 blur-3xl pointer-events-none" />
 
-          <button
-            onClick={onClose}
-            className="absolute top-4 right-4 p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors backdrop-blur-md z-50 cursor-pointer"
-          >
-            <X className="w-5 h-5 text-white" />
-          </button>
+          <div className="absolute top-4 right-4 flex items-center gap-2 z-50">
+            {onDelete && carData && (
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onDelete(carData);
+                }}
+                className="p-2 bg-red-500/20 hover:bg-red-500/40 text-red-300 hover:text-white rounded-full transition-colors backdrop-blur-md cursor-pointer"
+                title="Delete Entry"
+              >
+                <Trash2 className="w-5 h-5" />
+              </button>
+            )}
+            <button
+              onClick={onClose}
+              className="p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors backdrop-blur-md cursor-pointer"
+              title="Close"
+            >
+              <X className="w-5 h-5 text-white" />
+            </button>
+          </div>
 
           <div className="flex items-center gap-5 relative z-10">
             <div className="p-4 bg-gradient-to-br from-yellow-400 to-yellow-500 rounded-2xl shadow-[0_0_30px_rgba(250,204,21,0.3)]">
@@ -89,24 +106,6 @@ export default function CarDetailsDialog({ isOpen, onClose, carData, onDeliver }
                 <span className="px-3 py-1 rounded-lg bg-white/10 text-yellow-400 font-mono text-sm font-bold border border-white/10 shadow-inner">
                   {carData.vehicleNo}
                 </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (onDeliver && carData) {
-                      onClose();
-                      onDeliver(carData);
-                    }
-                  }}
-                  className={`px-3.5 py-1 rounded-lg text-xs font-bold shadow-inner cursor-pointer transition-all ${carData.status === "Ongoing" || carData.status === "In Workshop"
-                      ? "bg-blue-500/20 text-blue-300 border border-blue-500/30 hover:bg-blue-500/40 hover:scale-105"
-                      : carData.status === "Completed" || carData.status === "Delivered" || carData.status === "Out"
-                        ? "bg-green-500/20 text-green-300 border border-green-500/30"
-                        : "bg-gray-500/20 text-gray-300 border border-gray-500/30"
-                    }`}
-                  title="Click to open Vehicle Delivery / Check-Out dialog"
-                >
-                  {carData.status === "Ongoing" || carData.status === "In Workshop" ? "In Workshop" : carData.status}
-                </button>
               </div>
             </div>
           </div>
@@ -150,31 +149,23 @@ export default function CarDetailsDialog({ isOpen, onClose, carData, onDeliver }
             </div>
           </div>
 
-          {/* Check-In Card */}
-          <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between hover:shadow-md transition-shadow">
-            <div className="flex items-center gap-2 text-gray-800 font-bold border-b border-gray-50 pb-2.5 mb-1">
-              <Clock className="w-4 h-4 text-green-600" /> Check-In Time
+          {/* Check-In Date Card (Left) */}
+          <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between hover:shadow-md transition-shadow">
+            <div className="flex items-center gap-2 text-gray-800 font-bold border-b border-gray-50 pb-3 mb-1">
+              <Calendar className="w-4 h-4 text-emerald-600" /> Check-In Date
             </div>
-            <div className="flex flex-col gap-0.5">
-              <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Date</span>
-              <span className="font-bold text-gray-900 text-sm">{checkInParsed.date}</span>
-              {checkInParsed.time && (
-                <span className="text-xs font-semibold text-gray-600 font-mono mt-1 pt-1 border-t border-gray-100">{checkInParsed.time}</span>
-              )}
+            <div>
+              <p className="font-extrabold text-gray-900 text-base">{checkInParsed.date}</p>
             </div>
           </div>
 
-          {/* Check-Out Card */}
-          <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between hover:shadow-md transition-shadow">
-            <div className="flex items-center gap-2 text-gray-800 font-bold border-b border-gray-50 pb-2.5 mb-1">
-              <CalendarCheck2 className="w-4 h-4 text-blue-600" /> Check-Out Time
+          {/* Check-In Time Card (Right) */}
+          <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between hover:shadow-md transition-shadow">
+            <div className="flex items-center gap-2 text-gray-800 font-bold border-b border-gray-50 pb-3 mb-1">
+              <Clock className="w-4 h-4 text-emerald-600" /> Check-In Time
             </div>
-            <div className="flex flex-col gap-0.5">
-              <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Date</span>
-              <span className="font-bold text-gray-900 text-sm">{checkOutParsed.date}</span>
-              <span className={`text-xs font-semibold mt-1 pt-1 border-t border-gray-100 ${checkOutParsed.time === "Pending" ? "text-amber-600" : "text-gray-600 font-mono"}`}>
-                {checkOutParsed.time}
-              </span>
+            <div>
+              <p className="font-extrabold text-gray-900 text-base font-mono">{checkInParsed.time || "—"}</p>
             </div>
           </div>
 

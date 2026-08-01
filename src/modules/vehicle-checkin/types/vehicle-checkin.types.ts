@@ -13,4 +13,6 @@ export interface CarEntry {
   outTime: string | null;
   duration: string | null;
   status: string;
+  odometer?: string;
+  notes?: string;
 }
