@@ -93,7 +93,7 @@ const hqSidebarSections: NavSection[] = [
   {
     label: "WORKSHOP",
     items: [
-      { label: "Car In", icon: Car, href: "/dashboard/carin", module: "carin" },
+      { label: "Car In / Out", icon: Car, href: "/dashboard/carin", module: "carin" },
       { label: "Job Cards", icon: Briefcase, href: "/dashboard/jobs", module: "jobs" },
       { label: "Out Pass", icon: Ticket, href: "/dashboard/outpass", module: "outpass" },
     ],
@@ -160,7 +160,7 @@ const franchiseSidebarSections: NavSection[] = [
   {
     label: "WORKSHOP",
     items: [
-      { label: "Car In", icon: Car, href: "/dashboard/carin", module: "carin" },
+      { label: "Car In / Out", icon: Car, href: "/dashboard/carin", module: "carin" },
       { label: "Job Cards", icon: Briefcase, href: "/dashboard/jobs", module: "jobs" },
       { label: "Out Pass", icon: Ticket, href: "/dashboard/outpass", module: "outpass" },
     ],
@@ -269,7 +269,7 @@ const serviceAdvisorSidebarSections: NavSection[] = [
     items: [
       { label: "Dashboard", icon: Grid3x3, href: "/dashboard", module: "dashboard" },
       { label: "Customers", icon: Users2, href: "/dashboard/customers", module: "customers" },
-      { label: "Car In", icon: Car, href: "/dashboard/carin", module: "carin" },
+      { label: "Car In / Out", icon: Car, href: "/dashboard/carin", module: "carin" },
       { label: "Job Cards", icon: Briefcase, href: "/dashboard/jobs", module: "jobs" },
       { label: "My Assigned Jobs", icon: ClipboardCheck, href: "/technician/my-jobs" },
       { label: "My  Profile", icon: User, href: "/dashboard/profile" },

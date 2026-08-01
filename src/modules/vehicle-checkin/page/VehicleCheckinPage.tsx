@@ -2,8 +2,30 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Eye, Circle, Edit, Download, Check, Briefcase, Trash2, Search, X } from "lucide-react";
+import {
+  Plus,
+  Eye,
+  Circle,
+  Edit,
+  Download,
+  Check,
+  Briefcase,
+  Trash2,
+  Search,
+  X,
+  Car,
+  Wrench,
+  CheckCircle,
+  LogOut,
+  Calendar,
+  Clock,
+  Phone,
+  LayoutGrid,
+  List,
+} from "lucide-react";
 import { toast } from "react-hot-toast";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import VehicleCheckInDialog from "../components/VehicleCheckInDialog";
 import VehicleDeliveryDialog from "../components/VehicleDeliveryDialog";
 import VehicleDetailsDialog from "../components/VehicleDetailsDialog";
@@ -22,13 +44,16 @@ export function VehicleCheckinPage() {
     handleVehicleCheckOut,
   } = useVehicleCheckin();
 
-  const [filter, setFilter] = useState("All");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDeliveryDialogOpen, setIsDeliveryDialogOpen] = useState(false);
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
   const [selectedCar, setSelectedCar] = useState<CarEntry | null>(null);
   const [successCar, setSuccessCar] = useState<CarEntry | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [viewMode, setViewMode] = useState<"cards" | "table">("cards");
+  const [statusFilter, setStatusFilter] = useState<"All" | "In Workshop" | "Delivered">("All");
 
   const handleCheckInSubmit = async (carData: any) => {
     if (selectedCar && isDialogOpen) {
@@ -70,21 +95,28 @@ export function VehicleCheckinPage() {
     }
   };
 
+  const handleCheckOutButtonClick = () => {
+    let carToCheckout = selectedCar;
+    if (!carToCheckout || !(carToCheckout.status === "Ongoing" || carToCheckout.status === "In Workshop")) {
+      carToCheckout = cars.find((c) => c.status === "Ongoing" || c.status === "In Workshop") || null;
+    }
+    if (carToCheckout) {
+      setSelectedCar(carToCheckout);
+      setIsDeliveryDialogOpen(true);
+    } else {
+      toast.error("No vehicles currently in workshop to check out.");
+    }
+  };
+
   const allCount = cars.length;
   const inWorkshopCount = cars.filter((c) => c.status === "Ongoing" || c.status === "In Workshop").length;
   const deliveredCount = cars.filter((c) => c.status === "Out" || c.status === "Delivered").length;
-
-  const tabs = [
-    { id: "All", label: "All", count: allCount },
-    { id: "In Workshop", label: "In Workshop", count: inWorkshopCount },
-    { id: "Delivered", label: "Delivered", count: deliveredCount },
-  ];
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case "Ongoing":
       case "In Workshop":
-        return "bg-green-100 text-green-700";
+        return "bg-emerald-100 text-emerald-700";
       case "Out":
       case "Delivered":
         return "bg-red-100 text-red-700";
@@ -93,200 +125,526 @@ export function VehicleCheckinPage() {
     }
   };
 
-  const downloadReport = (format: "csv" | "pdf") => {
+  const downloadReport = () => {
     try {
       const dataToExport = filteredCars.length > 0 ? filteredCars : cars;
 
-      if (format === "csv") {
-        const headers = ["Entry ID", "Vehicle No", "Model", "Customer", "Phone", "Service", "Technician", "In Date", "In Time", "Out Date", "Out Time", "Duration", "Status"];
-        const rows = dataToExport.map((car) => [
-          car.entryId || car.id,
-          car.vehicleNo || car.vehicle || car.vehicleNumber || "",
-          car.model,
-          car.customer,
-          car.phone || "-",
-          car.service,
-          car.technician || "Unassigned",
-          formatDate(car.inTime),
-          formatTime(car.inTime),
-          car.outTime ? formatDate(car.outTime) : "-",
-          car.outTime ? formatTime(car.outTime) : "-",
-          car.outTime ? calculateDuration(car.inTime, car.outTime) : "-",
-          car.status,
-        ]);
-        const csvContent = [headers.join(","), ...rows.map((row) => row.map((cell) => `"${cell}"`).join(","))].join("\n");
-        const blob = new Blob([csvContent], { type: "text/csv" });
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = `vehicle-checkin-report-${new Date().toISOString().split("T")[0]}.csv`;
-        link.click();
-        window.URL.revokeObjectURL(url);
-        toast.success("Report downloaded as CSV");
-      } else {
-        const htmlContent = `<!DOCTYPE html><html><head><title>Vehicle Check-In Report</title><style>body{font-family:Arial,sans-serif;margin:20px}h1{color:#333;text-align:center}table{width:100%;border-collapse:collapse;margin-top:20px;font-size:12px}th,td{border:1px solid #ddd;padding:8px;text-align:left}th{background-color:#f8f9fa;font-weight:bold}tr:nth-child(even){background-color:#f9f9f9}</style></head><body><h1>Vehicle Check-In Report</h1><p style="text-align:center;color:#666">Generated on ${new Date().toLocaleString()}</p><table><thead><tr><th>Entry ID</th><th>Vehicle No</th><th>Model</th><th>Customer</th><th>Service</th><th>Technician</th><th>In Date</th><th>In Time</th><th>Out Date</th><th>Out Time</th><th>Duration</th><th>Status</th></tr></thead><tbody>${dataToExport.map((car) => `<tr><td>${car.entryId || car.id}</td><td>${car.vehicleNo || car.vehicle || ""}</td><td>${car.model}</td><td>${car.customer}</td><td>${car.service}</td><td>${car.technician || "Unassigned"}</td><td>${formatDate(car.inTime)}</td><td>${formatTime(car.inTime)}</td><td>${car.outTime ? formatDate(car.outTime) : "—"}</td><td>${car.outTime ? formatTime(car.outTime) : "—"}</td><td>${car.outTime ? calculateDuration(car.inTime, car.outTime) : "—"}</td><td>${car.status}</td></tr>`).join("")}</tbody></table></body></html>`;
-        const blob = new Blob([htmlContent], { type: "text/html" });
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = `vehicle-checkin-report-${new Date().toISOString().split("T")[0]}.html`;
-        link.click();
-        window.URL.revokeObjectURL(url);
-        toast.success("Report downloaded as HTML (printable as PDF)");
-      }
+      const doc = new jsPDF({
+        orientation: "landscape",
+        unit: "mm",
+        format: "a4",
+      });
+
+      // Header title
+      doc.setFontSize(16);
+      doc.setTextColor(15, 23, 42);
+      doc.text("Vehicle Check-In Report", 14, 15);
+
+      doc.setFontSize(9);
+      doc.setTextColor(100, 116, 139);
+      doc.text(`Generated on ${new Date().toLocaleString()} | Shifterz Pro Suite`, 14, 21);
+
+      const tableHeaders = [
+        ["Entry ID", "Vehicle No.", "Model", "Customer", "Mobile No.", "Service", "In Date", "In Time", "Out Date", "Out Time", "Status"]
+      ];
+
+      const tableRows = dataToExport.map((car) => [
+        car.entryId || car.id || "-",
+        car.vehicleNo || car.vehicle || car.vehicleNumber || "-",
+        car.model || "-",
+        car.customer || "-",
+        car.phone || "-",
+        car.service || "-",
+        formatDate(car.inTime),
+        formatTime(car.inTime),
+        car.outTime ? formatDate(car.outTime) : "-",
+        car.outTime ? formatTime(car.outTime) : "-",
+        car.status || "-",
+      ]);
+
+      autoTable(doc, {
+        head: tableHeaders,
+        body: tableRows,
+        startY: 26,
+        theme: "striped",
+        headStyles: {
+          fillColor: [15, 23, 42],
+          textColor: [255, 255, 255],
+          fontSize: 8.5,
+          fontStyle: "bold",
+        },
+        bodyStyles: {
+          fontSize: 8.5,
+          textColor: [51, 65, 85],
+        },
+        alternateRowStyles: {
+          fillColor: [248, 250, 252],
+        },
+        margin: { top: 26, left: 14, right: 14, bottom: 14 },
+      });
+
+      const pdfBlob = doc.output("blob");
+      const downloadBlob = new Blob([pdfBlob], { type: "application/octet-stream" });
+      const url = URL.createObjectURL(downloadBlob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `vehicle-checkin-report-${new Date().toISOString().split("T")[0]}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      toast.success("PDF report downloaded directly");
     } catch (err) {
-      toast.error("Failed to download report");
+      toast.error("Failed to download PDF report");
       console.error(err);
     }
   };
 
   const filteredCars = cars.filter((car) => {
     const statusMatch =
-      filter === "All" ||
-      (filter === "In Workshop" && (car.status === "Ongoing" || car.status === "In Workshop")) ||
-      (filter === "Delivered" && (car.status === "Out" || car.status === "Delivered"));
+      statusFilter === "All" ||
+      (statusFilter === "In Workshop" && (car.status === "Ongoing" || car.status === "In Workshop")) ||
+      (statusFilter === "Delivered" && (car.status === "Out" || car.status === "Delivered"));
+
+    const cleanQuery = searchQuery.trim().toLowerCase();
+    const normQuery = cleanQuery.replace(/\s+/g, "");
+
+    const vehicleNum = (car.vehicleNo || car.vehicle || car.vehicleNumber || "").toLowerCase();
+    const normVehicleNum = vehicleNum.replace(/\s+/g, "");
+
+    const entryIdStr = (car.entryId || car.id || "").toLowerCase();
+    const modelStr = (car.model || "").toLowerCase();
+    const customerStr = (car.customer || "").toLowerCase();
+    const phoneStr = (car.phone || "").toLowerCase();
+
+    const vehicleMatch = vehicleNum.includes(cleanQuery) || (normQuery.length > 0 && normVehicleNum.includes(normQuery));
+
     const searchMatch =
-      (car.vehicleNo || car.vehicle || car.vehicleNumber || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
-      car.model.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      car.customer.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      car.phone.includes(searchQuery);
-    return statusMatch && searchMatch;
+      !cleanQuery ||
+      vehicleMatch ||
+      entryIdStr.includes(cleanQuery) ||
+      modelStr.includes(cleanQuery) ||
+      customerStr.includes(cleanQuery) ||
+      phoneStr.includes(cleanQuery);
+
+    let dateMatch = true;
+    if (car.inTime) {
+      const carDate = new Date(car.inTime);
+      if (!isNaN(carDate.getTime())) {
+        if (fromDate) {
+          const start = new Date(fromDate + "T00:00:00");
+          if (carDate < start) dateMatch = false;
+        }
+        if (toDate) {
+          const end = new Date(toDate + "T23:59:59.999");
+          if (carDate > end) dateMatch = false;
+        }
+      }
+    }
+
+    return statusMatch && searchMatch && dateMatch;
   });
+
+  const inWorkshopCars = filteredCars.filter(
+    (c) => c.status === "Ongoing" || c.status === "In Workshop"
+  );
+  const deliveredCars = filteredCars.filter(
+    (c) => c.status === "Out" || c.status === "Delivered"
+  );
 
   if (isLoading) return <div className="p-8 text-center text-gray-500">Loading vehicle check-ins...</div>;
 
   return (
     <div className="p-4 sm:p-6 md:p-8">
-      {/* Action Buttons Bar */}
-      <div className="flex justify-end gap-3 mb-6">
-          <div className="relative group w-full sm:w-auto">
-            <button className="w-full sm:w-auto bg-blue-500 hover:bg-blue-600 text-white font-semibold px-4 py-2 rounded-lg flex items-center justify-center gap-2 transition-colors">
-              <Download className="w-5 h-5" />
-              Download
-            </button>
-            <div className="absolute right-0 mt-1 w-44 bg-white border border-gray-200 rounded-lg shadow-lg hidden group-hover:block z-50">
-              <button onClick={() => downloadReport("csv")} className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2 border-b border-gray-100">
-                <Download className="w-4 h-4" /> Download as CSV
-              </button>
-              <button onClick={() => downloadReport("pdf")} className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2">
-                <Download className="w-4 h-4" /> Download as PDF
-              </button>
-            </div>
+      {/* Interactive Quick Filter Summary Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+        <button
+          type="button"
+          onClick={() => setStatusFilter("All")}
+          className={`p-4 rounded-xl border text-left flex items-center justify-between transition-all cursor-pointer ${statusFilter === "All"
+              ? "bg-amber-50/70 border-amber-400 ring-2 ring-amber-400/20 shadow-sm"
+              : "bg-white border-gray-200 hover:border-amber-300 hover:bg-gray-50/60"
+            }`}
+        >
+          <div>
+            <p className="text-xs font-bold uppercase tracking-wider text-gray-500">All Vehicles</p>
+            <p className="text-2xl font-black text-gray-900 mt-1">{allCount}</p>
+            <p className="text-xs text-gray-500 mt-0.5 font-medium">Total check-in records</p>
           </div>
-          <button
-            onClick={() => { setSelectedCar(null); setIsDialogOpen(true); }}
-            className="w-full sm:w-auto bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-semibold px-4 py-2 rounded-lg flex items-center justify-center gap-2 transition-colors"
-          >
-            <Plus className="w-5 h-5" />
-            Vehicle Check-In
-          </button>
-        </div>
+          <div className={`p-3 rounded-xl transition-colors ${statusFilter === "All" ? "bg-amber-400 text-gray-900 shadow-xs" : "bg-gray-100 text-gray-600"}`}>
+            <Car className="w-6 h-6" />
+          </div>
+        </button>
 
-      {/* Filter Tabs + Search */}
-      <div className="mb-6 flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between border-b border-gray-200 pb-2 md:pb-0">
-        <div className="flex overflow-x-auto gap-2 sm:gap-4">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setFilter(tab.id)}
-              className={`px-3 sm:px-4 py-3 font-medium transition-colors whitespace-nowrap text-sm sm:text-base flex items-center gap-2 ${filter === tab.id ? "text-gray-900 border-b-2 border-gray-900 font-bold" : "text-gray-600 hover:text-gray-900"}`}
-            >
-              <span>{tab.label}</span>
-              <span
-                className={`px-2 py-0.5 text-xs rounded-full font-bold ${
-                  filter === tab.id
-                    ? "bg-gray-900 text-white"
-                    : "bg-gray-100 text-gray-600"
-                }`}
-              >
-                {tab.count}
-              </span>
-            </button>
-          ))}
-        </div>
-        <div className="relative w-full max-w-md md:mb-1">
+        <button
+          type="button"
+          onClick={() => setStatusFilter("In Workshop")}
+          className={`p-4 rounded-xl border text-left flex items-center justify-between transition-all cursor-pointer ${statusFilter === "In Workshop"
+              ? "bg-blue-50/70 border-blue-500 ring-2 ring-blue-500/20 shadow-sm"
+              : "bg-white border-gray-200 hover:border-blue-300 hover:bg-gray-50/60"
+            }`}
+        >
+          <div>
+            <p className="text-xs font-bold uppercase tracking-wider text-blue-600">In Workshop</p>
+            <p className="text-2xl font-black text-blue-700 mt-1">{inWorkshopCount}</p>
+            <p className="text-xs text-gray-500 mt-0.5 font-medium">Cars currently in workshop</p>
+          </div>
+          <div className={`p-3 rounded-xl transition-colors ${statusFilter === "In Workshop" ? "bg-blue-600 text-white shadow-xs" : "bg-blue-50 text-blue-600"}`}>
+            <Wrench className="w-6 h-6" />
+          </div>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setStatusFilter("Delivered")}
+          className={`p-4 rounded-xl border text-left flex items-center justify-between transition-all cursor-pointer ${statusFilter === "Delivered"
+              ? "bg-red-50/70 border-red-500 ring-2 ring-red-500/20 shadow-sm"
+              : "bg-white border-gray-200 hover:border-red-300 hover:bg-gray-50/60"
+            }`}
+        >
+          <div>
+            <p className="text-xs font-bold uppercase tracking-wider text-red-600">Delivered</p>
+            <p className="text-2xl font-black text-red-700 mt-1">{deliveredCount}</p>
+            <p className="text-xs text-gray-500 mt-0.5 font-medium">Only delivered cars</p>
+          </div>
+          <div className={`p-3 rounded-xl transition-colors ${statusFilter === "Delivered" ? "bg-red-600 text-white shadow-xs" : "bg-red-50 text-red-600"}`}>
+            <CheckCircle className="w-6 h-6" />
+          </div>
+        </button>
+      </div>
+
+      {/* Toolbar: Search -> From Date -> To Date -> Download -> Vehicle Check-In -> Vehicle Check-Out -> View Switcher */}
+      <div className="mb-6 flex flex-nowrap items-center gap-2.5 border-b border-gray-200 pb-4 w-full">
+        {/* 1. Search Bar */}
+        <div className="relative flex-1 min-w-[140px]">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
             placeholder="Search by vehicle, customer, or phone..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-9 py-2 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400 text-sm"
+            className="w-full pl-9 pr-8 py-2 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400 text-sm"
           />
           {searchQuery && (
-            <button onClick={() => setSearchQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors">
+            <button onClick={() => setSearchQuery("")} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors">
               <X className="w-4 h-4" />
             </button>
           )}
         </div>
+
+        {/* 2. From Date Filter */}
+        <div className="flex items-center gap-1.5 bg-white border border-gray-300 rounded-lg px-2.5 py-2 shrink-0">
+          <span className="text-xs font-semibold text-gray-500 whitespace-nowrap">From:</span>
+          <input
+            type="date"
+            value={fromDate}
+            onChange={(e) => setFromDate(e.target.value)}
+            className="bg-transparent border-none text-xs text-gray-800 focus:outline-none cursor-pointer p-0"
+          />
+          {fromDate && (
+            <button onClick={() => setFromDate("")} className="text-gray-400 hover:text-gray-600">
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+
+        {/* 3. To Date Filter */}
+        <div className="flex items-center gap-1.5 bg-white border border-gray-300 rounded-lg px-2.5 py-2 shrink-0">
+          <span className="text-xs font-semibold text-gray-500 whitespace-nowrap">To:</span>
+          <input
+            type="date"
+            value={toDate}
+            onChange={(e) => setToDate(e.target.value)}
+            className="bg-transparent border-none text-xs text-gray-800 focus:outline-none cursor-pointer p-0"
+          />
+          {toDate && (
+            <button onClick={() => setToDate("")} className="text-gray-400 hover:text-gray-600">
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+
+        {/* 4. Download Button */}
+        <button
+          onClick={() => downloadReport()}
+          className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-3.5 py-2 rounded-lg flex items-center justify-center gap-1.5 transition-colors text-sm shrink-0 whitespace-nowrap"
+        >
+          <Download className="w-4 h-4" />
+          Download
+        </button>
+
+        {/* 5. Vehicle Check-In Button */}
+        <button
+          onClick={() => { setSelectedCar(null); setIsDialogOpen(true); }}
+          className="bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-semibold px-3.5 py-2 rounded-lg flex items-center justify-center gap-1.5 transition-colors text-sm shrink-0 whitespace-nowrap"
+        >
+          <Plus className="w-4 h-4" />
+          Vehicle Check-In
+        </button>
+
+        {/* 6. Vehicle Check-Out Button */}
+        <button
+          onClick={handleCheckOutButtonClick}
+          className="bg-red-600 hover:bg-red-700 text-white font-medium px-3.5 py-2 rounded-lg flex items-center justify-center gap-1.5 transition-colors text-sm shrink-0 whitespace-nowrap"
+        >
+          <LogOut className="w-4 h-4" />
+          Vehicle Check-Out
+        </button>
       </div>
 
-      {/* Table */}
-      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-gray-200 bg-gray-50/75">
-                {["Entry ID", "Vehicle No.", "Model", "Customer", "Mobile No.", "Service", "In Date", "In Time", "Out Date", "Out Time", "Duration", "Status", "Actions"].map(h => (
-                  <th key={h} className="px-6 py-4 text-left text-xs font-bold text-gray-800 uppercase tracking-wider whitespace-nowrap">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {filteredCars.map((entry) => (
-                <tr key={entry.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-6 py-4 text-xs font-mono font-bold" style={{ color: "#F0B100" }}>{entry.entryId || entry.id}</td>
-                  <td className="px-6 py-4 text-xs font-semibold text-gray-900 whitespace-nowrap">{entry.vehicleNo || entry.vehicle || entry.vehicleNumber || ""}</td>
-                  <td className="px-6 py-4 text-sm text-gray-700">{entry.model}</td>
-                  <td className="px-6 py-4 text-sm font-semibold text-gray-900 whitespace-nowrap">{entry.customer}</td>
-                  <td className="px-6 py-4 text-sm text-gray-600 whitespace-nowrap">{entry.phone || "—"}</td>
-                  <td className="px-6 py-4 text-sm text-gray-700">{entry.service}</td>
-                  <td className="px-6 py-4 text-sm text-gray-700 whitespace-nowrap">{formatDate(entry.inTime)}</td>
-                  <td className="px-6 py-4 text-sm font-semibold text-gray-700 whitespace-nowrap">{formatTime(entry.inTime)}</td>
-                  <td className="px-6 py-4 text-sm text-gray-700 whitespace-nowrap">{entry.outTime ? formatDate(entry.outTime) : "—"}</td>
-                  <td className="px-6 py-4 text-sm font-semibold text-gray-700 whitespace-nowrap">{entry.outTime ? formatTime(entry.outTime) : "—"}</td>
-                  <td className="px-6 py-4 text-sm font-semibold text-green-600">{entry.outTime ? calculateDuration(entry.inTime, entry.outTime) : "—"}</td>
-                  <td className="px-6 py-4 text-sm">
-                    <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(entry.status)}`}>
-                      <Circle className="w-3 h-3 fill-current" /> {entry.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-sm">
-                    <div className="flex items-center gap-2">
-                      {(entry.status === "Ongoing" || entry.status === "In Workshop") ? (
-                        <button
-                          onClick={() => handleDeliveryClick(entry)}
-                          className="bg-green-100 text-green-700 hover:bg-green-200 px-3 py-1 rounded font-semibold text-xs transition-colors flex items-center gap-1 w-[58px] justify-center"
-                          title="Check Out Vehicle"
-                        >
-                          → Out
-                        </button>
-                      ) : (
-                        <div className="w-[58px]" />
-                      )}
-                      <button onClick={() => handleEditClick(entry)} className="p-1.5 hover:bg-blue-50 rounded transition-colors text-blue-500" title="Edit">
-                        <Edit className="w-4 h-4" />
-                      </button>
-                      <button onClick={() => handleViewDetailsClick(entry)} className="p-1.5 hover:bg-gray-100 rounded transition-colors" title="View Details">
-                        <Eye className="w-4 h-4 text-gray-600" />
-                      </button>
-                      <button onClick={() => handleDeleteClick(entry)} className="p-1.5 hover:bg-red-50 rounded transition-colors text-red-400" title="Delete">
-                        <Trash2 className="w-4 h-4" />
+      {/* Main Display Area (Cards / Table) */}
+      {viewMode === "cards" ? (
+        <div className="space-y-6">
+          {/* Vehicles In Workshop */}
+          {inWorkshopCars.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {inWorkshopCars.map((entry) => (
+                <div
+                  key={entry.id}
+                  className="bg-white border border-emerald-200 hover:border-emerald-400 rounded-2xl p-4 shadow-xs transition-all flex flex-col justify-between"
+                >
+                  <div>
+                    {/* Card Header */}
+                    <div className="flex items-start justify-between gap-3 mb-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
+                          <Car className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <h3 className="text-base font-black text-gray-900 tracking-tight">
+                            {entry.vehicleNo || entry.vehicle || entry.vehicleNumber || "—"}
+                          </h3>
+                          <p className="text-xs text-gray-500 font-medium">
+                            {entry.model || "—"}
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleEditClick(entry)}
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-semibold px-3 py-1 rounded-full whitespace-nowrap shadow-2xs transition-colors cursor-pointer"
+                      >
+                        In Workshop
                       </button>
                     </div>
-                  </td>
-                </tr>
+
+                    <div className="border-t border-gray-100 my-3" />
+
+                    {/* Card Body Details */}
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
+                      <div>
+                        <p className="text-[10px] uppercase font-semibold text-gray-400">Entry ID</p>
+                        <p className="font-bold text-amber-500 font-mono mt-0.5">{entry.entryId || entry.id}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] uppercase font-semibold text-gray-400">Service</p>
+                        <p className="font-bold text-gray-900 mt-0.5">{entry.service || "—"}</p>
+                      </div>
+
+                      <div>
+                        <p className="text-[10px] uppercase font-semibold text-gray-400">Customer</p>
+                        <p className="font-bold text-gray-900 mt-0.5">{entry.customer || "—"}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] uppercase font-semibold text-gray-400">Check-In</p>
+                        <p className="font-medium text-gray-700 mt-0.5 flex items-center gap-1">
+                          <Calendar className="w-3.5 h-3.5 text-gray-400" />
+                          {formatDate(entry.inTime)}
+                        </p>
+                      </div>
+
+                      <div>
+                        <p className="text-[10px] uppercase font-semibold text-gray-400">Mobile</p>
+                        <p className="font-medium text-gray-700 mt-0.5 flex items-center gap-1">
+                          <Phone className="w-3.5 h-3.5 text-gray-400" />
+                          {entry.phone || "—"}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] uppercase font-semibold text-gray-400">Check-In Time</p>
+                        <p className="font-medium text-gray-700 mt-0.5 flex items-center gap-1">
+                          <Clock className="w-3.5 h-3.5 text-gray-400" />
+                          {formatTime(entry.inTime)}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               ))}
-            </tbody>
-          </table>
+            </div>
+          )}
+
+          {/* Vehicles Delivered */}
+          {deliveredCars.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {deliveredCars.map((entry) => (
+                <div
+                  key={entry.id}
+                  className="bg-red-50/20 border border-red-200 hover:border-red-300 rounded-2xl p-4 shadow-xs transition-all flex flex-col justify-between"
+                >
+                  <div>
+                    {/* Card Header */}
+                    <div className="flex items-start justify-between gap-3 mb-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-red-100 text-red-600 flex items-center justify-center shrink-0">
+                          <Car className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <h3 className="text-base font-black text-gray-900 tracking-tight">
+                            {entry.vehicleNo || entry.vehicle || entry.vehicleNumber || "—"}
+                          </h3>
+                          <p className="text-xs text-gray-500 font-medium">
+                            {entry.model || "—"}
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleViewDetailsClick(entry)}
+                        className="bg-red-600 hover:bg-red-700 text-white text-[11px] font-semibold px-3 py-1 rounded-full whitespace-nowrap shadow-2xs transition-colors cursor-pointer"
+                      >
+                        Delivered
+                      </button>
+                    </div>
+
+                    <div className="border-t border-red-100/70 my-3" />
+
+                    {/* Card Body Details */}
+                    <div className="grid grid-cols-3 gap-2 text-xs">
+                      <div>
+                        <p className="text-[10px] uppercase font-semibold text-gray-400">Entry ID</p>
+                        <p className="font-bold text-amber-500 font-mono mt-0.5">{entry.entryId || entry.id}</p>
+                        <p className="text-[10px] uppercase font-semibold text-gray-400 mt-2">Customer</p>
+                        <p className="font-bold text-gray-900 mt-0.5">{entry.customer || "—"}</p>
+                      </div>
+
+                      <div>
+                        <p className="text-[10px] uppercase font-semibold text-gray-400">Service</p>
+                        <p className="font-bold text-gray-900 mt-0.5">{entry.service || "—"}</p>
+                        <p className="text-[10px] uppercase font-semibold text-gray-400 mt-2">Check-In</p>
+                        <p className="font-medium text-gray-700 mt-0.5 flex items-center gap-1">
+                          <Calendar className="w-3.5 h-3.5 text-gray-400" />
+                          {formatDate(entry.inTime)}
+                        </p>
+                      </div>
+
+                      <div>
+                        <p className="text-[10px] uppercase font-semibold text-gray-400">Check-Out</p>
+                        <p className="font-medium text-gray-700 mt-0.5 flex items-center gap-1">
+                          <Calendar className="w-3.5 h-3.5 text-gray-400" />
+                          {entry.outTime ? formatDate(entry.outTime) : "—"}
+                        </p>
+                        <p className="text-[10px] uppercase font-semibold text-gray-400 mt-2">Check-Out Time</p>
+                        <p className="font-medium text-gray-700 mt-0.5 flex items-center gap-1">
+                          <Clock className="w-3.5 h-3.5 text-gray-400" />
+                          {entry.outTime ? formatTime(entry.outTime) : "—"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {inWorkshopCars.length === 0 && deliveredCars.length === 0 && (
+            <div className="bg-white border border-dashed border-gray-300 rounded-2xl p-10 text-center text-gray-500 text-sm">
+              <div className="w-10 h-10 rounded-full bg-gray-100 text-gray-400 flex items-center justify-center mx-auto mb-3">
+                <Search className="w-5 h-5" />
+              </div>
+              <p className="font-bold text-gray-800 text-base mb-1">No vehicles found</p>
+              <p className="text-xs text-gray-500 max-w-sm mx-auto">
+                {searchQuery
+                  ? `No vehicle record matching "${searchQuery}" was found.`
+                  : "No vehicle check-in records available."}
+              </p>
+            </div>
+          )}
         </div>
-      </div>
+      ) : (
+        /* Table View */
+        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-gray-200 bg-gray-50/75">
+                  {["Entry ID", "Vehicle No.", "Model", "Customer", "Mobile No.", "Service", "In Date", "In Time", "Out Date", "Out Time", "Duration", "Status", "Actions"].map((h) => (
+                    <th key={h} className="px-6 py-4 text-left text-xs font-bold text-gray-800 uppercase tracking-wider whitespace-nowrap">
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {filteredCars.map((entry) => (
+                  <tr key={entry.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-6 py-4 text-xs font-mono font-bold" style={{ color: "#F0B100" }}>
+                      {entry.entryId || entry.id}
+                    </td>
+                    <td className="px-6 py-4 text-xs font-semibold text-gray-900 whitespace-nowrap">
+                      {entry.vehicleNo || entry.vehicle || entry.vehicleNumber || ""}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-700">{entry.model}</td>
+                    <td className="px-6 py-4 text-sm font-semibold text-gray-900 whitespace-nowrap">{entry.customer}</td>
+                    <td className="px-6 py-4 text-sm text-gray-600 whitespace-nowrap">{entry.phone || "—"}</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">{entry.service}</td>
+                    <td className="px-6 py-4 text-sm text-gray-700 whitespace-nowrap">{formatDate(entry.inTime)}</td>
+                    <td className="px-6 py-4 text-sm font-semibold text-gray-700 whitespace-nowrap">{formatTime(entry.inTime)}</td>
+                    <td className="px-6 py-4 text-sm text-gray-700 whitespace-nowrap">{entry.outTime ? formatDate(entry.outTime) : "—"}</td>
+                    <td className="px-6 py-4 text-sm font-semibold text-gray-700 whitespace-nowrap">{entry.outTime ? formatTime(entry.outTime) : "—"}</td>
+                    <td className="px-6 py-4 text-sm font-semibold text-emerald-600">{entry.outTime ? calculateDuration(entry.inTime, entry.outTime) : "—"}</td>
+                    <td className="px-6 py-4 text-sm">
+                      <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(entry.status)}`}>
+                        <Circle className="w-3 h-3 fill-current" /> {entry.status === "Ongoing" ? "In Workshop" : entry.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-sm">
+                      <div className="flex items-center gap-2">
+                        {(entry.status === "Ongoing" || entry.status === "In Workshop") ? (
+                          <button
+                            onClick={() => handleDeliveryClick(entry)}
+                            className="bg-emerald-100 text-emerald-700 hover:bg-emerald-200 px-3 py-1 rounded font-semibold text-xs transition-colors flex items-center gap-1 w-[58px] justify-center"
+                            title="Check Out Vehicle"
+                          >
+                            → Out
+                          </button>
+                        ) : (
+                          <div className="w-[58px]" />
+                        )}
+                        <button onClick={() => handleEditClick(entry)} className="p-1.5 hover:bg-blue-50 rounded transition-colors text-blue-500" title="Edit">
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        <button onClick={() => handleViewDetailsClick(entry)} className="p-1.5 hover:bg-gray-100 rounded transition-colors" title="View Details">
+                          <Eye className="w-4 h-4 text-gray-600" />
+                        </button>
+                        <button onClick={() => handleDeleteClick(entry)} className="p-1.5 hover:bg-red-50 rounded transition-colors text-red-400" title="Delete">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* Dialogs */}
       <VehicleCheckInDialog
         isOpen={isDialogOpen}
         onClose={() => { setIsDialogOpen(false); setSelectedCar(null); }}
         onSubmit={handleCheckInSubmit}
+        onDeliver={async (deliverData) => {
+          if (selectedCar) {
+            await handleVehicleCheckOut(selectedCar, deliverData);
+          } else {
+            await handleUpdateVehicleCheckIn(deliverData.id, deliverData);
+          }
+          setIsDialogOpen(false);
+          setSelectedCar(null);
+          toast.success("Vehicle status updated to Delivered!");
+        }}
         initialData={selectedCar}
       />
       <VehicleDeliveryDialog
@@ -305,14 +663,21 @@ export function VehicleCheckinPage() {
         isOpen={isDetailsDialogOpen}
         onClose={() => setIsDetailsDialogOpen(false)}
         carData={selectedCar ? { ...selectedCar, vehicleNo: selectedCar.vehicleNo || "" } : undefined}
+        onDeliver={(car) => {
+          setIsDetailsDialogOpen(false);
+          const target = cars.find((c) => c.id === car.id || (car.vehicleNo && c.vehicleNo === car.vehicleNo)) || selectedCar;
+          if (target) {
+            handleDeliveryClick(target);
+          }
+        }}
       />
 
       {/* Success Popup */}
       {successCar && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
           <div className="bg-white rounded-xl p-8 max-w-sm w-full text-center shadow-2xl">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Check className="w-8 h-8 text-green-600 stroke-3" />
+            <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Check className="w-8 h-8 text-emerald-600 stroke-3" />
             </div>
             <h3 className="text-xl font-bold text-gray-900 mb-2">Vehicle Checked In!</h3>
             <p className="text-gray-500 mb-6 text-sm">
@@ -342,3 +707,4 @@ export function VehicleCheckinPage() {
     </div>
   );
 }
+

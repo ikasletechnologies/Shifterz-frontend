@@ -11,6 +11,7 @@ interface VehicleCheckInDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit?: (data: any) => void;
+  onDeliver?: (data: any) => void;
   initialData?: any;
 }
 
@@ -18,6 +19,7 @@ export default function VehicleCheckInDialog({
   isOpen,
   onClose,
   onSubmit,
+  onDeliver,
   initialData,
 }: VehicleCheckInDialogProps) {
   const [formData, setFormData] = useState({
@@ -98,8 +100,8 @@ export default function VehicleCheckInDialog({
           notes: initialData.notes || "",
         });
         const { dateStr, timeStr } = parseDateTimeStr(initialData.inTime);
-        setDisplayDate(dateStr);
-        setDisplayTime(timeStr);
+        setDisplayDate(dateStr || new Date().toLocaleDateString("en-US"));
+        setDisplayTime(timeStr || new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }));
       } else {
         setFormData({
           vehicleNumber: "",
@@ -112,8 +114,6 @@ export default function VehicleCheckInDialog({
           notes: "",
         });
         updateCurrentTime();
-        const timer = setInterval(updateCurrentTime, 1000);
-        return () => clearInterval(timer);
       }
     }
   }, [isOpen, initialData]);
@@ -123,9 +123,6 @@ export default function VehicleCheckInDialog({
       try {
         const data = await apiCall("/services");
         setServices(data || []);
-        if (data && data.length > 0 && !initialData) {
-          setFormData(prev => ({ ...prev, service: data[0].name }));
-        }
       } catch (err) {
         console.error("Failed to fetch services:", err);
         setServices([
@@ -180,25 +177,18 @@ export default function VehicleCheckInDialog({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validate vehicle number format using the new utility
-    const vehicleType = getVehicleType(formData.vehicleNumber);
-    if (vehicleType === "INVALID") {
-      toast.error("Invalid vehicle number format. Expected e.g. TN 04 AB 1234 or BH 12 AB 1234");
-      return;
-    }
-
-    if (!formData.odometer || Number(formData.odometer) <= 0) {
-      toast.error("Odometer must be greater than 0");
+    if (!formData.vehicleNumber || !formData.carModel || !formData.customerName || !formData.odometer) {
+      toast.error("Please fill in all required fields marked with *");
       return;
     }
 
     // 24-Hour Duplicate Check-In Validation
     if (!initialData) {
-      const normalizedInput = normalizeVehicleNumber(formData.vehicleNumber);
       try {
-        const allCheckins = await apiCall("/carin");
+        const allCars: any[] = await apiCall("/carin");
+        const normalizedInput = normalizeVehicleNumber(formData.vehicleNumber);
         const cutoffTime = Date.now() - 24 * 60 * 60 * 1000;
-        const recentDuplicate = (allCheckins || []).find((c: any) => {
+        const recentDuplicate = (allCars || []).find((c: any) => {
           const vNum = normalizeVehicleNumber(c.vehicleNo || c.vehicle || c.vehicleNumber || "");
           const checkinTime = new Date(c.inTime).getTime();
           return vNum === normalizedInput && !isNaN(checkinTime) && checkinTime >= cutoffTime;
@@ -244,7 +234,34 @@ export default function VehicleCheckInDialog({
     onClose();
   };
 
+  const handleDeliverAction = () => {
+    const nowIso = new Date().toISOString();
+    const deliverData = {
+      id: initialData?.id || Date.now().toString(),
+      entryId: initialData?.entryId || `IN-${String(Math.floor(Math.random() * 1000)).padStart(4, "0")}`,
+      vehicleNo: formData.vehicleNumber,
+      vehicle: formData.vehicleNumber,
+      model: formData.carModel,
+      customer: formData.customerName,
+      phone: formData.phone,
+      service: formData.service,
+      inTime: formData.inTime || nowIso,
+      outTime: nowIso,
+      status: "Delivered",
+      notes: formData.notes,
+      odometer: formData.odometer,
+    };
+
+    if (onDeliver) {
+      onDeliver(deliverData);
+    } else if (onSubmit) {
+      onSubmit(deliverData);
+    }
+    onClose();
+  };
+
   const isDelivered = initialData?.status === "Delivered" || initialData?.status === "Out";
+  const isInWorkshop = initialData && !isDelivered;
 
   if (!isOpen) return null;
 
@@ -255,23 +272,11 @@ export default function VehicleCheckInDialog({
           <div className="flex items-center gap-3 shrink-0">
             <Car className="w-6 h-6 text-yellow-500 shrink-0" />
             <h2 className="text-xl sm:text-xl font-bold text-gray-900 whitespace-nowrap">
-              {isDelivered ? "Car Delivered Details" : initialData ? "Edit Car Entry" : "Car Check-In"}
+              {isDelivered ? "Car Delivered Details" : initialData ? "Vehicle Details & Update" : "Car Check-In"}
             </h2>
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-3 text-xs font-semibold text-gray-600 bg-gray-50 px-3.5 py-1.5 rounded-lg border border-gray-200">
-              <span className="flex items-center gap-1.5">
-                <Calendar className="w-4 h-4 text-yellow-600" />
-                <span>Date: <strong className="text-gray-900">{displayDate}</strong></span>
-              </span>
-              <span className="text-gray-300">|</span>
-              <span className="flex items-center gap-1.5">
-                <Clock className="w-4 h-4 text-yellow-600" />
-                <span>Time: <strong className="text-gray-900">{displayTime}</strong></span>
-              </span>
-            </div>
-
             <button
               onClick={onClose}
               className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors text-gray-500"
@@ -396,6 +401,36 @@ export default function VehicleCheckInDialog({
             </div>
           </div>
 
+          {/* Check-In / Check-Out & Status Info Section */}
+          {initialData && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 bg-gray-50 p-4 rounded-xl border border-gray-200 text-xs">
+              <div>
+                <p className="font-bold text-gray-500 uppercase tracking-wider mb-1">Check-In Date & Time</p>
+                <p className="font-semibold text-gray-900 flex items-center gap-1">
+                  <Calendar className="w-3.5 h-3.5 text-emerald-600" />
+                  {initialData.inTime ? new Date(initialData.inTime).toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: true }) : "—"}
+                </p>
+              </div>
+
+              <div>
+                <p className="font-bold text-gray-500 uppercase tracking-wider mb-1">Check-Out Date & Time</p>
+                <p className="font-semibold text-gray-900 flex items-center gap-1">
+                  <Clock className="w-3.5 h-3.5 text-red-600" />
+                  {initialData.outTime ? new Date(initialData.outTime).toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: true }) : "Pending Delivery"}
+                </p>
+              </div>
+
+              <div>
+                <p className="font-bold text-gray-500 uppercase tracking-wider mb-1">Status</p>
+                <span className={`inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
+                  isInWorkshop ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"
+                }`}>
+                  {isInWorkshop ? "In Workshop" : "Delivered"}
+                </span>
+              </div>
+            </div>
+          )}
+
           {/* Row 5: Notes */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -421,12 +456,20 @@ export default function VehicleCheckInDialog({
             >
               Close (Read Only)
             </button>
+          ) : isInWorkshop ? (
+            <button
+              type="button"
+              onClick={handleDeliverAction}
+              className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3.5 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-md text-base cursor-pointer"
+            >
+              ✓ Delivered
+            </button>
           ) : (
             <button
               type="submit"
               className="w-full bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-bold py-3 rounded-lg transition-colors flex items-center justify-center gap-2"
             >
-              ✓ {initialData ? "Update Car Entry" : "Check-In Car"}
+              ✓ Check-In Car
             </button>
           )}
         </form>

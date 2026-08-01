@@ -21,6 +21,7 @@ interface CarDetailsDialogProps {
   isOpen: boolean;
   onClose: () => void;
   carData?: CarData;
+  onDeliver?: (car: CarData) => void;
 }
 
 function formatDateAndTime(dateStr?: string | null) {
@@ -42,7 +43,7 @@ function formatDateAndTime(dateStr?: string | null) {
   return { date: dateFormatted, time: timeFormatted };
 }
 
-export default function CarDetailsDialog({ isOpen, onClose, carData }: CarDetailsDialogProps) {
+export default function CarDetailsDialog({ isOpen, onClose, carData, onDeliver }: CarDetailsDialogProps) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -87,12 +88,24 @@ export default function CarDetailsDialog({ isOpen, onClose, carData }: CarDetail
                 <span className="px-3 py-1 rounded-lg bg-white/10 text-yellow-400 font-mono text-sm font-bold border border-white/10 shadow-inner">
                   {carData.vehicleNo}
                 </span>
-                <span className={`px-3 py-1 rounded-lg text-xs font-bold shadow-inner ${carData.status === "Ongoing" ? "bg-blue-500/20 text-blue-300 border border-blue-500/30" :
-                    carData.status === "Completed" ? "bg-green-500/20 text-green-300 border border-green-500/30" :
-                      "bg-gray-500/20 text-gray-300 border border-gray-500/30"
-                  }`}>
-                  {carData.status === "Ongoing" ? "In Workshop" : carData.status}
-                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (onDeliver && carData) {
+                      onClose();
+                      onDeliver(carData);
+                    }
+                  }}
+                  className={`px-3.5 py-1 rounded-lg text-xs font-bold shadow-inner cursor-pointer transition-all ${carData.status === "Ongoing" || carData.status === "In Workshop"
+                      ? "bg-blue-500/20 text-blue-300 border border-blue-500/30 hover:bg-blue-500/40 hover:scale-105"
+                      : carData.status === "Completed" || carData.status === "Delivered" || carData.status === "Out"
+                        ? "bg-green-500/20 text-green-300 border border-green-500/30"
+                        : "bg-gray-500/20 text-gray-300 border border-gray-500/30"
+                    }`}
+                  title="Click to open Vehicle Delivery / Check-Out dialog"
+                >
+                  {carData.status === "Ongoing" || carData.status === "In Workshop" ? "In Workshop" : carData.status}
+                </button>
               </div>
             </div>
           </div>
