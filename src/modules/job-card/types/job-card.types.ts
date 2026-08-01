@@ -15,6 +15,8 @@ export interface JobCard {
   id: string;
   vehicle: string;
   customer: string;
+  phone?: string;
+  customerPhone?: string;
   service: string;
   technician: string;
   technicianId?: string;
@@ -31,6 +33,8 @@ export interface JobCardFormData {
   id?: string;
   vehicle: string;
   customer: string;
+  phone?: string;
+  customerPhone?: string;
   service: string;
   technician: string;
   technicianId?: string;
@@ -45,7 +49,9 @@ export interface JobCardFormData {
 
 export interface JobCardStats {
   pending: number;
+  assigned: number;
   inProgress: number;
   completed: number;
-  cancelled: number;
+  delivery: number;
+  readyForBilling: number;
 }

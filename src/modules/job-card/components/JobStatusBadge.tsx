@@ -43,8 +43,7 @@ export function JobStatusBadge({ status }: JobStatusBadgeProps) {
     return null;
   }
 
-  const displayStatus =
-    isSuperAdmin && status === "Assigned" ? "In Progress" : status;
+  const displayStatus = status;
 
   const colorClass =
     STATUS_COLORS[displayStatus] || STATUS_COLORS[status] || "bg-gray-100 text-gray-600";

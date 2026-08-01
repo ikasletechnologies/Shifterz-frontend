@@ -13,7 +13,7 @@ const pageHeaders: Record<string, { title: string; description: string }> = {
     description: "Welcome to Shifterz Pro Suite",
   },
   "/carin": {
-    title: "Car In / Out",
+    title: "Car In",
     description: "Manage vehicle check-in and check-out",
   },
   "/outpass": {

@@ -23,9 +23,15 @@ export function JobCardHeader({ stats, onNewJobCard }: JobCardHeaderProps) {
     }
   }, []);
 
-  const roleUpper = userRole.toUpperCase();
+  const roleUpper = (userRole || "").toUpperCase().replace(/[\s_]+/g, "_");
   const isServiceAdvisor = roleUpper.includes("SERVICE_ADVISOR");
   const isBillingExecutive = roleUpper.includes("BILLING") || roleUpper.includes("ACCOUNTANT");
+
+  const isSuperAdminOrQH =
+    roleUpper.includes("SUPER") ||
+    roleUpper.includes("QH") ||
+    roleUpper.includes("QUALITY") ||
+    roleUpper.includes("QC");
 
   return (
     <div className="space-y-6">
@@ -41,24 +47,47 @@ export function JobCardHeader({ stats, onNewJobCard }: JobCardHeaderProps) {
         )}
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-        <div className="bg-white rounded-xl border border-gray-100 border-l-4 border-l-yellow-500 p-4 shadow-sm flex flex-col justify-between h-24">
+      {/* Status KPI Cards */}
+      <div className={`grid ${isSuperAdminOrQH ? "grid-cols-1 sm:grid-cols-3" : "grid-cols-2 sm:grid-cols-4"} gap-3 sm:gap-4`}>
+        {/* Pending */}
+        <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm flex flex-col justify-between h-24">
           <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Pending</span>
           <span className="text-2xl font-bold text-gray-900">{stats.pending}</span>
         </div>
-        <div className="bg-white rounded-xl border border-gray-100 border-l-4 border-l-blue-500 p-4 shadow-sm flex flex-col justify-between h-24">
+
+        {/* Assigned */}
+        <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm flex flex-col justify-between h-24">
+          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Assigned</span>
+          <span className="text-2xl font-bold text-gray-900">{stats.assigned}</span>
+        </div>
+
+        {/* In Progress */}
+        <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm flex flex-col justify-between h-24">
           <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">In Progress</span>
           <span className="text-2xl font-bold text-gray-900">{stats.inProgress}</span>
         </div>
-        <div className="bg-white rounded-xl border border-gray-100 border-l-4 border-l-green-500 p-4 shadow-sm flex flex-col justify-between h-24">
-          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Completed</span>
+
+        {/* Complete */}
+        <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm flex flex-col justify-between h-24">
+          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Complete</span>
           <span className="text-2xl font-bold text-green-500">{stats.completed}</span>
         </div>
-        <div className="bg-white rounded-xl border border-gray-100 border-l-4 border-l-red-500 p-4 shadow-sm flex flex-col justify-between h-24">
-          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Cancelled</span>
-          <span className="text-2xl font-bold text-red-500">{stats.cancelled}</span>
-        </div>
+
+        {/* Delivery (Visible only for Super Admin and QH logins) */}
+        {isSuperAdminOrQH && (
+          <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm flex flex-col justify-between h-24">
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Delivery</span>
+            <span className="text-2xl font-bold text-purple-600">{stats.delivery}</span>
+          </div>
+        )}
+
+        {/* Ready for Billing (Visible only for Super Admin and QH logins) */}
+        {isSuperAdminOrQH && (
+          <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm flex flex-col justify-between h-24">
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Ready for Billing</span>
+            <span className="text-2xl font-bold text-blue-600">{stats.readyForBilling}</span>
+          </div>
+        )}
       </div>
     </div>
   );

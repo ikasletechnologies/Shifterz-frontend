@@ -128,15 +128,29 @@ export function JobCardTable({ jobCards, onView, onEdit, onDelete }: JobCardTabl
                 </div>
               </div>
 
-              {/* Sub-info: Job ID, Customer, Tech & Priority */}
-              <div className="mt-3.5 pt-2.5 border-t border-gray-50 flex items-center justify-between text-xs text-gray-600">
-                <span className="font-mono font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-200/50">
+              {/* Sub-info: Job ID (Col 1), Technician (Col 2), Priority (Col 3) */}
+              <div className="mt-3.5 pt-2.5 border-t border-gray-50 grid grid-cols-3 items-center text-xs text-gray-600">
+                <span className="font-mono font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-200/50 justify-self-start w-fit">
                   {j.id}
                 </span>
-                <span className="flex items-center gap-1 font-medium text-gray-700">
-                  <User className="w-3.5 h-3.5 text-gray-400" /> {j.customer || "Walk-in"}
+                <span className="flex items-center gap-1 font-medium text-gray-700 justify-self-center truncate max-w-full" title={j.technician || "Unassigned"}>
+                  <User className="w-3.5 h-3.5 text-gray-400 shrink-0" /> <span className="truncate">{j.technician || "Unassigned"}</span>
                 </span>
-                {j.priority && <PriorityBadge priority={j.priority} />}
+                <div className="justify-self-end">
+                  {j.priority ? <PriorityBadge priority={j.priority} /> : null}
+                </div>
+              </div>
+
+              {/* Customer Info below Priority */}
+              <div className="mt-2 text-xs text-gray-600 space-y-0.5 font-medium">
+                <div className="flex items-center gap-1.5 text-gray-700">
+                  <span className="text-gray-400 font-medium">Customer:</span>
+                  <span className="font-semibold">{j.customer || "Walk-in"}</span>
+                </div>
+                <div className="flex items-center gap-1.5 text-gray-600 text-[11px]">
+                  <span className="text-gray-400 font-medium">Phone:</span>
+                  <span className="font-mono text-gray-800 font-medium">{j.phone || j.customerPhone || "—"}</span>
+                </div>
               </div>
             </div>
 

@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { apiCall } from "@/lib/api";
-import { Loader2, Car, Calendar, CheckCircle2, Clock, MapPin, Search, X } from "lucide-react";
+import { Loader2, Car, Calendar, CheckCircle2, Clock, MapPin, Search, X, User } from "lucide-react";
+import { PriorityBadge } from "@/modules/job-card/components/PriorityBadge";
 import JobActionDialog from "./JobActionDialog";
 
 export default function EmployeeDashboard() {
@@ -159,7 +160,32 @@ export default function EmployeeDashboard() {
                   )}
                 </div>
 
-              <div className="space-y-2 mt-4 pt-4 border-t border-gray-50">
+                {/* Sub-info: Job ID (Col 1), Technician (Col 2), Priority (Col 3) */}
+                <div className="mt-3.5 pt-2.5 border-t border-gray-50 grid grid-cols-3 items-center text-xs text-gray-600">
+                  <span className="font-mono font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-200/50 justify-self-start w-fit">
+                    {job.id}
+                  </span>
+                  <span className="flex items-center gap-1 font-medium text-gray-700 justify-self-center truncate max-w-full" title={job.technician || "Unassigned"}>
+                    <User className="w-3.5 h-3.5 text-gray-400 shrink-0" /> <span className="truncate">{job.technician || "Unassigned"}</span>
+                  </span>
+                  <div className="justify-self-end">
+                    {job.priority ? <PriorityBadge priority={job.priority} /> : null}
+                  </div>
+                </div>
+
+                {/* Customer Info below Priority */}
+                <div className="mt-2 text-xs text-gray-600 space-y-0.5 font-medium">
+                  <div className="flex items-center gap-1.5 text-gray-700">
+                    <span className="text-gray-400 font-medium">Customer:</span>
+                    <span className="font-semibold">{job.customer || "Walk-in"}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-gray-600 text-[11px]">
+                    <span className="text-gray-400 font-medium">Phone:</span>
+                    <span className="font-mono text-gray-800 font-medium">{job.phone || job.customerPhone || "—"}</span>
+                  </div>
+                </div>
+
+              <div className="space-y-2 mt-3 pt-3 border-t border-gray-50">
                 <div className="flex items-center text-sm text-gray-600">
                   <Calendar className="w-4 h-4 mr-2 text-gray-400" />
                   Started: {new Date(job.startDate).toLocaleDateString()}

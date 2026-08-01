@@ -61,9 +61,11 @@ export function useJobCards() {
 
   const stats: JobCardStats = {
     pending: jobCards.filter((j) => j.status === "Pending").length,
-    inProgress: jobCards.filter((j) => j.status === "In Progress" || j.status === "Assigned").length,
-    completed: jobCards.filter((j) => j.status === "Completed" || j.status === "QC Passed" || j.status === "Ready For Billing").length,
-    cancelled: jobCards.filter((j) => j.status === "Cancelled").length,
+    assigned: jobCards.filter((j) => j.status === "Assigned").length,
+    inProgress: jobCards.filter((j) => j.status === "In Progress").length,
+    completed: jobCards.filter((j) => j.status === "Completed").length,
+    delivery: jobCards.filter((j) => j.status === "Delivered" || j.status === "Out").length,
+    readyForBilling: jobCards.filter((j) => j.status === "Ready For Billing" || j.status === "QC Passed").length,
   };
 
   return {

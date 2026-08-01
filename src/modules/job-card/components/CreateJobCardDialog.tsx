@@ -88,17 +88,9 @@ export function CreateJobCardDialog({ isOpen, onClose, onSave, initialData }: Cr
         ? { ...initialData }
         : { ...DEFAULT_FORM, startDate: new Date().toISOString().split("T")[0] };
 
-      const isSuperAdmin =
-        userRole.toUpperCase() === "SUPER_ADMIN" ||
-        userRole.toUpperCase() === "SUPERADMIN";
-
-      if (isSuperAdmin && initialForm.status === "Assigned") {
-        initialForm.status = "In Progress";
-      }
-
       setFormData(initialForm);
     }
-  }, [isOpen, initialData, userRole]);
+  }, [isOpen, initialData]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -173,8 +165,18 @@ export function CreateJobCardDialog({ isOpen, onClose, onSave, initialData }: Cr
               <select
                 value={formData.technician}
                 onChange={(e) => {
-                  const selected = technicians.find((t) => t.name === e.target.value);
-                  setFormData({ ...formData, technician: e.target.value, technicianId: selected?.id || "" });
+                  const selectedName = e.target.value;
+                  const selected = technicians.find((t) => t.name === selectedName);
+                  const nextStatus =
+                    selectedName && selectedName !== "Unassigned" && formData.status === "Pending"
+                      ? "Assigned"
+                      : formData.status;
+                  setFormData({
+                    ...formData,
+                    technician: selectedName,
+                    technicianId: selected?.id || "",
+                    status: nextStatus,
+                  });
                 }}
                 className="w-full px-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:bg-white"
               >

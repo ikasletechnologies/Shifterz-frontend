@@ -40,7 +40,7 @@ export default function JobActionDialog({ job, isOpen, onClose }: JobActionDialo
 
   if (!isOpen || !job) return null;
 
-  let statusOptions = ["Pending", "In Progress", "Completed", "Waiting for Parts"];
+  let statusOptions = ["Pending", "Assigned", "In Progress", "Waiting for Parts", "Completed"];
 
   if (isQualityInspector) {
     statusOptions = ["Pending", "In Progress", "Completed", "Ready For Billing"];
