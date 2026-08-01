@@ -4,6 +4,7 @@ import { X, Car, User, Phone, Wrench, Clock, FileText, Gauge, CalendarCheck2 } f
 import { useEffect, useState } from "react";
 
 interface CarData {
+  id?: string;
   vehicleNo: string;
   model: string;
   customer: string;

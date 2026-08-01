@@ -295,7 +295,6 @@ export default function OutPassPage() {
                 ))}
               </div>
             )}
-          </div>
         </div>
       ) : (
         /* Table View */
