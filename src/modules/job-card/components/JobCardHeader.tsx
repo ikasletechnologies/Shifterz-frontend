@@ -181,12 +181,12 @@ export function JobCardHeader({
           onClick={() => onStatusSelect?.("All")}
           className={`rounded-xl border p-4 shadow-xs flex flex-col justify-between h-24 text-left transition-all cursor-pointer ${
             isCardSelected("All")
-              ? "bg-yellow-400 border-yellow-400 ring-2 ring-yellow-400 shadow-md"
+              ? "bg-yellow-50 border-yellow-400 ring-2 ring-yellow-400 shadow-md"
               : "bg-white border-gray-100 hover:border-yellow-300 hover:shadow-xs"
           }`}
         >
-          <span className={`text-[10px] font-bold uppercase tracking-wider ${isCardSelected("All") ? "text-gray-800" : "text-gray-400"}`}>All</span>
-          <span className={`text-2xl font-bold ${isCardSelected("All") ? "text-gray-900" : "text-yellow-600"}`}>{stats.all}</span>
+          <span className={`text-[10px] font-bold uppercase tracking-wider ${isCardSelected("All") ? "text-yellow-800" : "text-gray-400"}`}>All</span>
+          <span className="text-2xl font-bold text-yellow-600">{stats.all}</span>
         </button>
 
         {/* 2. Assigned */}

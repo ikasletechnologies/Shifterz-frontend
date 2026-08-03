@@ -754,7 +754,7 @@ export function VehicleCheckinPage() {
                         <p className="font-bold text-gray-900 mt-0.5">{entry.customer || "—"}</p>
                       </div>
                       <div>
-                        <p className="text-[10px] uppercase font-semibold text-gray-400">Check-In</p>
+                        <p className="text-[10px] uppercase font-semibold text-gray-400">Check-In Date</p>
                         <p className="font-medium text-gray-700 mt-0.5 flex items-center gap-1">
                           <Calendar className="w-3.5 h-3.5 text-gray-400" />
                           {formatDate(entry.inTime)}
@@ -904,11 +904,13 @@ export function VehicleCheckinPage() {
                       </div>
 
                       {/* Column 3: Beside Service Section (Technician & Check-Out) */}
-                      <div className="space-y-2 sm:border-l sm:border-red-100/80 sm:pl-3">
+                      <div className="space-y-2 sm:border-l sm:border-red-100/80 sm:pl-3.5 pl-2">
                         <div>
-                          <p className="text-[10px] uppercase font-semibold text-gray-400">Assigned Technician</p>
-                          <p className="font-bold text-emerald-700 mt-0.5 flex items-center gap-1">
-                            <User className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                          <p className="text-[9.5px] uppercase font-semibold text-gray-400 flex items-center gap-1 whitespace-nowrap tracking-tight">
+                            <User className="w-3 h-3 text-gray-400 shrink-0" />
+                            <span className="whitespace-nowrap">{entry.technician && entry.technician.trim() !== "" && entry.technician !== "Unassigned" ? "Assigned Technician" : "Unassigned Technician"}</span>
+                          </p>
+                          <p className="font-bold text-emerald-700 mt-0.5">
                             {entry.technician && entry.technician.trim() !== "" && entry.technician !== "Unassigned" ? entry.technician : "Unassigned"}
                           </p>
                         </div>

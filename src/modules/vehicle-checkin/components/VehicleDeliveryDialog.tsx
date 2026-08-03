@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { X, Car, Calendar, User, CheckCircle2 } from "lucide-react";
-import { PhoneInput } from "@/components/common/PhoneInput";
 import { formatVehicleNumber } from "@/utils/vehicleNumber";
 
 interface VehicleDeliveryDialogProps {
@@ -149,10 +148,10 @@ export default function VehicleDeliveryDialog({
         {/* Header */}
         <div className="flex items-center justify-between pb-4 mb-6 border-b border-gray-100">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-emerald-50 text-emerald-600 rounded-xl">
+            <div className="p-2 bg-amber-50 text-amber-500 rounded-xl">
               <Car className="w-6 h-6" />
             </div>
-            <h2 className="text-xl font-black text-gray-900 tracking-tight">Vehicle Check-Out</h2>
+            <h2 className="text-xl font-bold text-gray-900 tracking-tight">Vehicle Check-Out</h2>
           </div>
           <button
             onClick={onClose}
@@ -164,9 +163,9 @@ export default function VehicleDeliveryDialog({
 
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* Row 1: Vehicle Number & Car Model */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div>
-              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1.5">
+              <label className="block text-sm font-semibold text-slate-700 mb-1.5">
                 Vehicle Number <span className="text-red-500">*</span>
               </label>
               <input
@@ -174,13 +173,13 @@ export default function VehicleDeliveryDialog({
                 name="vehicleNo"
                 value={formData.vehicleNo}
                 onChange={handleChange}
-                placeholder="TN 04 AB 5678"
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm font-semibold uppercase bg-gray-50/50"
+                placeholder="TN 04 XX 0000"
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-400 text-sm text-gray-900 placeholder:text-gray-300 uppercase bg-white"
                 required
               />
             </div>
             <div>
-              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1.5">
+              <label className="block text-sm font-semibold text-slate-700 mb-1.5">
                 Car Model <span className="text-red-500">*</span>
               </label>
               <input
@@ -188,17 +187,17 @@ export default function VehicleDeliveryDialog({
                 name="model"
                 value={formData.model}
                 onChange={handleChange}
-                placeholder="maruti"
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm font-semibold bg-gray-50/50"
+                placeholder="Toyota Fortuner"
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-400 text-sm text-gray-900 placeholder:text-gray-300 bg-white"
                 required
               />
             </div>
           </div>
 
           {/* Row 2: Customer Name & Phone */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div>
-              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1.5">
+              <label className="block text-sm font-semibold text-slate-700 mb-1.5">
                 Customer Name <span className="text-red-500">*</span>
               </label>
               <input
@@ -206,35 +205,43 @@ export default function VehicleDeliveryDialog({
                 name="customer"
                 value={formData.customer}
                 onChange={handleChange}
-                placeholder="tester"
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm font-semibold bg-gray-50/50"
+                placeholder="Full name"
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-400 text-sm text-gray-900 placeholder:text-gray-300 bg-white"
                 required
               />
             </div>
             <div>
-              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1.5">
-                Phone
+              <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                Phone <span className="text-red-500">*</span>
               </label>
-              <PhoneInput
-                name="phone"
-                value={formData.phone}
-                onChange={handleChange}
-                placeholder="8825972129"
-              />
+              <div className="flex border border-gray-200 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-amber-400 bg-white">
+                <span className="px-3.5 py-3 bg-gray-50/80 text-gray-600 text-sm font-medium border-r border-gray-200 flex items-center shrink-0">
+                  +91
+                </span>
+                <input
+                  type="text"
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleChange}
+                  placeholder="XXXXX XXXXX"
+                  className="w-full px-3.5 py-3 text-sm text-gray-900 placeholder:text-gray-300 focus:outline-none bg-transparent"
+                  required
+                />
+              </div>
             </div>
           </div>
 
           {/* Row 3: Service & Odometer */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div>
-              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1.5">
+              <label className="block text-sm font-semibold text-slate-700 mb-1.5">
                 Service <span className="text-red-500">*</span>
               </label>
               <select
                 name="service"
                 value={formData.service}
                 onChange={handleChange}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm font-semibold bg-white cursor-pointer"
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-400 text-sm text-gray-900 bg-white cursor-pointer"
                 required
               >
                 <option value="PPF Full Body">PPF Full Body</option>
@@ -245,7 +252,7 @@ export default function VehicleDeliveryDialog({
               </select>
             </div>
             <div>
-              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1.5">
+              <label className="block text-sm font-semibold text-slate-700 mb-1.5">
                 Odometer (KM) <span className="text-red-500">*</span>
               </label>
               <input
@@ -253,15 +260,15 @@ export default function VehicleDeliveryDialog({
                 name="odometer"
                 value={formData.odometer}
                 onChange={handleChange}
-                placeholder="12500"
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm font-semibold bg-gray-50/50"
+                placeholder="42500"
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-400 text-sm text-gray-900 placeholder:text-gray-300 bg-white"
                 required
               />
             </div>
           </div>
 
           {/* Section 4: Inner Bordered Box for Check-In, Check-Out, Technician, Security Guard */}
-          <div className="bg-gray-50/80 p-4 rounded-2xl border border-gray-200/80 grid grid-cols-1 md:grid-cols-2 gap-3.5">
+          <div className="bg-gray-50/80 p-4 rounded-2xl border border-gray-200/80 grid grid-cols-1 md:grid-cols-2 gap-3.5 mt-2">
             {/* Check-In Date & Time */}
             <div className="bg-white p-3.5 rounded-xl border border-gray-200/60 shadow-2xs">
               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">CHECK-IN DATE & TIME</p>
@@ -304,7 +311,7 @@ export default function VehicleDeliveryDialog({
             )}
 
             {/* Checked By (Security Guard) */}
-            <div className={`bg-white p-3 rounded-xl border border-gray-200/60 shadow-2xs flex flex-col justify-center ${
+            <div className={`bg-white p-3.5 rounded-xl border border-gray-200/60 shadow-2xs flex flex-col justify-center ${
               !formData.technician || formData.technician.trim() === "" || formData.technician === "Unassigned" || formData.technician === "None" ? "md:col-span-2" : ""
             }`}>
               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">
@@ -336,7 +343,7 @@ export default function VehicleDeliveryDialog({
               onChange={handleChange}
               placeholder="All clear. Washed and ready."
               rows={3}
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none text-xs font-medium"
+              className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none text-xs font-medium bg-white"
             />
           </div>
 

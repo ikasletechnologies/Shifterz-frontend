@@ -168,12 +168,12 @@ export function JobCardTable({ jobCards, onView, onEdit, onDelete }: JobCardTabl
                 </div>
 
                 {/* Assigned / Unassigned Section */}
-                <div>
+                <div className="pl-1">
                   {isAssigned ? (
                     <>
-                      <div className="flex items-center gap-1.5 text-slate-500 font-medium">
-                        <User className="w-4 h-4 text-slate-400 shrink-0" />
-                        <span>Assigned</span>
+                      <div className="flex items-center gap-1.5 text-slate-500 text-[11px] font-medium whitespace-nowrap">
+                        <User className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                        <span className="whitespace-nowrap">Assigned Technician</span>
                       </div>
                       <div className="mt-1">
                         <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-800 border border-emerald-100 text-xs px-2.5 py-0.5 rounded-full font-semibold max-w-full truncate">
@@ -184,15 +184,13 @@ export function JobCardTable({ jobCards, onView, onEdit, onDelete }: JobCardTabl
                     </>
                   ) : (
                     <div>
-                      <div>
-                        <span className="inline-block bg-red-50 text-red-500 border border-red-100 text-xs px-2.5 py-0.5 rounded-full font-semibold">
-                          Unassigned
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-1.5 text-slate-400 text-xs font-medium mt-1">
+                      <div className="flex items-center gap-1.5 text-slate-500 text-[11px] font-medium whitespace-nowrap">
                         <User className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                        <span>Technician</span>
+                        <span className="whitespace-nowrap">Unassigned Technician</span>
                       </div>
+                      <p className="font-bold text-slate-900 mt-1 text-center">
+                        -
+                      </p>
                     </div>
                   )}
                 </div>
