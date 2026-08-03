@@ -1,10 +1,23 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Eye, Edit, Trash2, Calendar, Clock, User, FileText } from "lucide-react";
+import {
+  Car,
+  Wrench,
+  User,
+  Phone,
+  Calendar,
+  FileText,
+  Flag,
+  Copy,
+  Check,
+  UserPlus,
+  Eye,
+  Edit,
+  Trash2,
+} from "lucide-react";
+import { toast } from "react-hot-toast";
 import { JobCard } from "../types/job-card.types";
-import { PriorityBadge } from "./PriorityBadge";
-import { JobStatusBadge } from "./JobStatusBadge";
 
 interface JobCardTableProps {
   jobCards: JobCard[];
@@ -13,29 +26,34 @@ interface JobCardTableProps {
   onDelete: (id: string) => void;
 }
 
-function formatDateOnly(dateStr?: string) {
-  if (!dateStr) return "—";
-  const d = new Date(dateStr);
-  if (isNaN(d.getTime())) return dateStr;
-  return d.toLocaleDateString("en-US", {
-    month: "numeric",
-    day: "numeric",
-    year: "numeric",
-  });
+function formatDateStr(input?: string): string {
+  if (!input) return "—";
+  const d = new Date(input);
+  if (isNaN(d.getTime())) return input;
+  const day = d.getDate().toString().padStart(2, "0");
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const month = months[d.getMonth()];
+  const year = d.getFullYear();
+  return `${day} ${month} ${year}`;
 }
 
-function formatTimeOnly(dateStr?: string) {
-  if (!dateStr) return "";
-  const d = new Date(dateStr);
-  if (isNaN(d.getTime())) return "";
-  return d.toLocaleTimeString("en-US", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: true,
-  });
+function formatDateTimeStr(input?: string): string {
+  if (!input) return "—";
+  const d = new Date(input);
+  if (isNaN(d.getTime())) return input;
+  const day = d.getDate().toString().padStart(2, "0");
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const month = months[d.getMonth()];
+  const year = d.getFullYear();
+  const hours24 = d.getHours();
+  const hours12 = hours24 % 12 || 12;
+  const minutes = d.getMinutes().toString().padStart(2, "0");
+  const ampm = hours24 >= 12 ? "PM" : "AM";
+  return `${day} ${month} ${year}, ${hours12.toString().padStart(2, "0")}:${minutes} ${ampm}`;
 }
 
 export function JobCardTable({ jobCards, onView, onEdit, onDelete }: JobCardTableProps) {
+  const [copiedId, setCopiedId] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string>("");
 
   useEffect(() => {
@@ -49,9 +67,17 @@ export function JobCardTable({ jobCards, onView, onEdit, onDelete }: JobCardTabl
 
   const isBillingExecutive = userRole.includes("BILLING") || userRole.includes("ACCOUNTANT");
 
+  const handleCopyId = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(id);
+    setCopiedId(id);
+    toast.success(`Copied Job ID: ${id}`);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
+
   if (jobCards.length === 0) {
     return (
-      <div className="text-center py-16 text-gray-500 bg-white rounded-2xl border border-gray-100 shadow-sm">
+      <div className="text-center py-16 text-gray-500 bg-white rounded-2xl border border-gray-100 shadow-xs font-medium">
         No job cards found
       </div>
     );
@@ -60,145 +86,199 @@ export function JobCardTable({ jobCards, onView, onEdit, onDelete }: JobCardTabl
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {jobCards.map((j) => {
-        const isDelivered =
-          j.status === "Completed" ||
-          j.status === "QC Passed" ||
-          j.status === "Delivered" ||
-          j.status === "Ready For Billing" ||
-          j.status === "Out";
+        const isAssigned = Boolean(
+          j.technician &&
+            j.technician.trim() !== "" &&
+            j.technician.toLowerCase() !== "unassigned" &&
+            j.technician.toLowerCase() !== "none"
+        );
 
-        const isCompleted = j.status === "Completed" || j.status === "QC Passed";
+        const isHighPriority = j.priority === "High";
 
         return (
           <div
             key={j.id}
-            className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all p-6 flex flex-col justify-between space-y-4 relative overflow-hidden"
+            className="bg-white rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-md transition-all p-5 flex flex-col justify-between space-y-4 relative"
           >
-            {isCompleted ? (
-              <div className="absolute top-0 right-0 bg-green-500 text-white text-[10px] font-bold px-3 py-1 rounded-bl-lg z-10">
-                Completed
-              </div>
-            ) : (
-              j.priority === "High" && (
-                <div className="absolute top-0 right-0 bg-red-500 text-white text-[10px] font-bold px-3 py-1 rounded-bl-lg z-10">
-                  URGENT
-                </div>
-              )
-            )}
-
-            {/* Header: Vehicle, Service, Status Badge & Action Icons */}
             <div>
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <h3 className="text-xl font-bold text-gray-900 tracking-tight">{j.vehicle}</h3>
-                  <p className="text-sm text-gray-500 mt-0.5 font-medium">{j.service || "Standard Service"}</p>
+              {/* Header: Job ID (Left) & Actions + Priority Badge (Right) */}
+              <div className="flex items-center justify-between gap-3 mb-4">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-xl font-black text-slate-900 tracking-tight font-mono">
+                    {j.id}
+                  </h3>
                 </div>
 
-                <div className="flex flex-col items-end gap-2 shrink-0">
-                  {/* Action Icons Right-Aligned */}
-                  <div className="flex items-center gap-1 bg-gray-50/80 p-1 rounded-lg border border-gray-100 z-20">
-                    {onView && (
+                <div className="flex items-center gap-2">
+                  {/* Action Icon - View Only */}
+                  {onView && (
+                    <div className="flex items-center gap-1 bg-slate-50 p-1 rounded-lg border border-slate-100">
                       <button
+                        type="button"
                         onClick={() => onView(j)}
-                        className="p-1 hover:bg-gray-200/60 rounded text-gray-600 transition-colors"
+                        className="p-1 hover:bg-slate-200/60 rounded text-slate-600 transition-colors cursor-pointer"
                         title="View Details"
                       >
-                        <Eye className="w-4 h-4" />
+                        <Eye className="w-3.5 h-3.5" />
                       </button>
-                    )}
-                    <button
-                      onClick={() => onEdit(j)}
-                      className="p-1 hover:bg-blue-100/60 rounded text-blue-600 transition-colors"
-                      title="Edit Job Card"
-                    >
-                      <Edit className="w-4 h-4" />
-                    </button>
-                    {!isBillingExecutive && (
-                      <button
-                        onClick={() => onDelete(j.id)}
-                        className="p-1 hover:bg-red-100/60 rounded text-red-500 transition-colors"
-                        title="Delete Job Card"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    )}
-                  </div>
-
-                  {!isCompleted && <JobStatusBadge status={j.status} />}
-                </div>
-              </div>
-
-              {/* Sub-info: Job ID (Col 1), Technician (Col 2), Priority (Col 3) */}
-              <div className="mt-3.5 pt-2.5 border-t border-gray-50 grid grid-cols-3 items-center text-xs text-gray-600">
-                <span className="font-mono font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-200/50 justify-self-start w-fit">
-                  {j.id}
-                </span>
-                <span className="flex items-center gap-1 font-medium text-gray-700 justify-self-center truncate max-w-full" title={j.technician || "Unassigned"}>
-                  <User className="w-3.5 h-3.5 text-gray-400 shrink-0" /> <span className="truncate">{j.technician || "Unassigned"}</span>
-                </span>
-                <div className="justify-self-end">
-                  {j.priority ? <PriorityBadge priority={j.priority} /> : null}
-                </div>
-              </div>
-
-              {/* Customer Info below Priority */}
-              <div className="mt-2 text-xs text-gray-600 space-y-0.5 font-medium">
-                <div className="flex items-center gap-1.5 text-gray-700">
-                  <span className="text-gray-400 font-medium">Customer:</span>
-                  <span className="font-semibold">{j.customer || "Walk-in"}</span>
-                </div>
-                <div className="flex items-center gap-1.5 text-gray-600 text-[11px]">
-                  <span className="text-gray-400 font-medium">Phone:</span>
-                  <span className="font-mono text-gray-800 font-medium">{j.phone || j.customerPhone || "—"}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Dates Footer Section matching Reference Image */}
-            <div className="border-t border-gray-100/80 pt-3.5 space-y-2 text-xs font-medium text-gray-600">
-              {/* Started */}
-              <div className="flex items-start gap-2.5">
-                <Calendar className="w-4 h-4 text-gray-400 shrink-0 mt-0.5" />
-                <div>
-                  <div className="text-gray-600">
-                    Started: <span className="font-semibold text-gray-800">{formatDateOnly(j.startDate)}</span>
-                  </div>
-                  {formatTimeOnly(j.startDate) && (
-                    <div className="text-[11px] text-gray-400 font-mono">{formatTimeOnly(j.startDate)}</div>
+                    </div>
                   )}
-                </div>
-              </div>
 
-              {/* Est. Completion */}
-              <div className="flex items-start gap-2.5">
-                <Clock className="w-4 h-4 text-gray-400 shrink-0 mt-0.5" />
-                <div>
-                  <div className="text-gray-600">
-                    Est. Completion:{" "}
-                    {isDelivered ? (
-                      <span className="font-semibold text-gray-800">
-                        {formatDateOnly(j.estCompletion || j.actualCompletion)}
-                      </span>
-                    ) : (
-                      <span className="text-gray-400 font-normal">—</span>
-                    )}
-                  </div>
-                  {isDelivered && formatTimeOnly(j.estCompletion || j.actualCompletion) && (
-                    <div className="text-[11px] text-gray-400 font-mono">
-                      {formatTimeOnly(j.estCompletion || j.actualCompletion)}
+                  {/* Priority Badge - Only displayed when explicitly selected */}
+                  {Boolean(j.priority && j.priority.trim() !== "") && (
+                    <div
+                      className={`px-3 py-1 rounded-xl text-xs font-bold flex items-center gap-1.5 border ${
+                        isHighPriority
+                          ? "bg-red-50 text-red-600 border-red-100"
+                          : j.priority === "Normal"
+                          ? "bg-blue-50 text-blue-600 border-blue-100"
+                          : "bg-slate-50 text-slate-600 border-slate-100"
+                      }`}
+                    >
+                      <span>{j.priority}</span>
                     </div>
                   )}
                 </div>
               </div>
 
-              {/* Notes if any */}
-              {j.notes && j.notes.trim() !== "" && (
-                <div className="pt-2 border-t border-gray-50 flex items-start gap-2 text-[11px] text-gray-500">
-                  <FileText className="w-3.5 h-3.5 text-gray-400 shrink-0 mt-0.5" />
-                  <span className="truncate" title={j.notes}>{j.notes}</span>
+              {/* Row 1: Vehicle No */}
+              <div className="flex items-center gap-3 py-1">
+                <Car className="w-6 h-6 text-blue-600 shrink-0" />
+                <div>
+                  <p className="text-xs text-slate-400 font-medium">Vehicle No</p>
+                  <p className="text-sm font-bold text-slate-900 uppercase font-mono tracking-wider">
+                    {j.vehicle}
+                  </p>
                 </div>
-              )}
+              </div>
+
+              <div className="border-b border-slate-100 my-3.5" />
+
+              {/* Row 2: Fault & Assigned (2 Columns) */}
+              <div className="grid grid-cols-2 gap-4 text-xs">
+                {/* Fault */}
+                <div>
+                  <div className="flex items-center gap-1.5 text-slate-500 font-medium">
+                    <Wrench className="w-4 h-4 text-slate-400 shrink-0" />
+                    <span>Fault</span>
+                  </div>
+                  <p className="font-bold text-slate-900 mt-1 truncate">
+                    {j.service || "Full Body PPF"}
+                  </p>
+                </div>
+
+                {/* Assigned */}
+                <div>
+                  <div className="flex items-center gap-1.5 text-slate-500 font-medium">
+                    <User className="w-4 h-4 text-slate-400 shrink-0" />
+                    <span>Assigned</span>
+                  </div>
+                  <div className="mt-1">
+                    {isAssigned ? (
+                      <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-800 border border-emerald-100 text-xs px-2.5 py-0.5 rounded-full font-semibold max-w-full truncate">
+                        <User className="w-3 h-3 text-emerald-600 shrink-0" />
+                        <span className="truncate">{j.technician}</span>
+                      </span>
+                    ) : (
+                      <span className="inline-block bg-red-50 text-red-500 border border-red-100 text-xs px-2.5 py-0.5 rounded-full font-semibold">
+                        Unassigned
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="border-b border-slate-100 my-3.5" />
+
+              {/* Row 3: Customer & Mobile (2 Columns) */}
+              <div className="grid grid-cols-2 gap-4 text-xs">
+                {/* Customer */}
+                <div>
+                  <div className="flex items-center gap-1.5 text-slate-500 font-medium">
+                    <User className="w-4 h-4 text-slate-400 shrink-0" />
+                    <span>Customer</span>
+                  </div>
+                  <p className="font-bold text-slate-900 mt-1 truncate">
+                    {j.customer || "Ram"}
+                  </p>
+                </div>
+
+                {/* Mobile */}
+                <div>
+                  <div className="flex items-center gap-1.5 text-slate-500 font-medium">
+                    <Phone className="w-4 h-4 text-slate-400 shrink-0" />
+                    <span>Mobile</span>
+                  </div>
+                  <p className="font-bold text-blue-600 mt-1 font-mono tracking-wider">
+                    {j.phone || j.customerPhone || "8825972129"}
+                  </p>
+                </div>
+              </div>
+
+              <div className="border-b border-slate-100 my-3.5" />
+
+              {/* Row 4: Started & Estimation (2 Columns) */}
+              <div className="grid grid-cols-2 gap-4 text-xs">
+                {/* Started */}
+                <div>
+                  <div className="flex items-center gap-1.5 text-slate-500 font-medium">
+                    <Calendar className="w-4 h-4 text-slate-400 shrink-0" />
+                    <span>Started</span>
+                  </div>
+                  <p className="font-bold text-slate-900 mt-1">
+                    {formatDateStr(j.startDate)}
+                  </p>
+                </div>
+
+                {/* Estimation */}
+                <div>
+                  <div className="flex items-center gap-1.5 text-slate-500 font-medium">
+                    <Calendar className="w-4 h-4 text-slate-400 shrink-0" />
+                    <span>Estimation</span>
+                  </div>
+                  <p className="font-bold text-slate-900 mt-1">
+                    {formatDateStr(j.estCompletion || j.actualCompletion)}
+                  </p>
+                </div>
+              </div>
+
+              <div className="border-b border-slate-100 my-3.5" />
+
+              {/* Row 5: Notes */}
+              <div>
+                <div className="flex items-center gap-1.5 text-slate-500 text-xs font-medium">
+                  <FileText className="w-4 h-4 text-slate-400 shrink-0" />
+                  <span>Notes</span>
+                </div>
+                <p className="text-xs text-slate-700 font-medium mt-1 leading-relaxed line-clamp-2">
+                  {j.notes && j.notes.trim() !== "" ? j.notes : "Scratch on left door and bumper repaint."}
+                </p>
+              </div>
             </div>
+
+            {/* Row 6: Bottom Container (Before vs After Assignment) */}
+            {isAssigned ? (
+              <div className="bg-emerald-50/80 border border-emerald-100 rounded-xl p-3 flex items-center gap-3 mt-4">
+                <div className="p-1.5 bg-emerald-100 text-emerald-600 rounded-lg shrink-0">
+                  <Calendar className="w-4 h-4" />
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">Assigned On</p>
+                  <p className="text-xs font-bold text-emerald-950">
+                    {formatDateTimeStr(j.startDate)}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => onEdit(j)}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 text-sm transition-colors shadow-xs cursor-pointer mt-4"
+              >
+                <UserPlus className="w-4 h-4" />
+                <span>Assign Job</span>
+              </button>
+            )}
           </div>
         );
       })}

@@ -1,6 +1,6 @@
 "use client";
 
-import { X, ClipboardList, Calendar, Clock, User, Wrench, AlertCircle, FileText } from "lucide-react";
+import { X, ClipboardList, Calendar, Clock, User, Wrench, AlertCircle, FileText, Edit, Trash2 } from "lucide-react";
 import { JobCard } from "../types/job-card.types";
 import { JobStatusBadge } from "./JobStatusBadge";
 import { PriorityBadge } from "./PriorityBadge";
@@ -9,6 +9,8 @@ interface ViewJobCardDialogProps {
   isOpen: boolean;
   onClose: () => void;
   job: JobCard | null;
+  onEdit?: (job: JobCard) => void;
+  onDelete?: (id: string) => void;
 }
 
 function formatDateOnly(dateStr?: string) {
@@ -33,7 +35,7 @@ function formatTimeOnly(dateStr?: string) {
   });
 }
 
-export function ViewJobCardDialog({ isOpen, onClose, job }: ViewJobCardDialogProps) {
+export function ViewJobCardDialog({ isOpen, onClose, job, onEdit, onDelete }: ViewJobCardDialogProps) {
   if (!isOpen || !job) return null;
 
   const isDelivered =
@@ -55,17 +57,50 @@ export function ViewJobCardDialog({ isOpen, onClose, job }: ViewJobCardDialogPro
               <div className="flex items-center gap-2">
                 <span className="font-mono text-sm font-bold text-yellow-600">{job.id}</span>
                 <JobStatusBadge status={job.status} />
-                {job.priority && <PriorityBadge priority={job.priority} />}
               </div>
               <h2 className="text-xl font-bold text-gray-900 mt-0.5">{job.vehicle}</h2>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors border border-gray-200 text-gray-500"
-          >
-            <X className="w-5 h-5" />
-          </button>
+
+          {/* Top Action Area: Edit, Delete, Close */}
+          <div className="flex items-center gap-2">
+            {onEdit && (
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onEdit(job);
+                }}
+                className="p-2 hover:bg-blue-50 text-blue-600 rounded-lg transition-colors border border-blue-100 cursor-pointer"
+                title="Edit Job Card"
+              >
+                <Edit className="w-4 h-4" />
+              </button>
+            )}
+
+            {onDelete && (
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onDelete(job.id);
+                }}
+                className="p-2 hover:bg-red-50 text-red-500 rounded-lg transition-colors border border-red-100 cursor-pointer"
+                title="Delete Job Card"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors border border-gray-200 text-gray-500 cursor-pointer"
+              title="Close"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
         {/* Content */}
@@ -100,9 +135,11 @@ export function ViewJobCardDialog({ isOpen, onClose, job }: ViewJobCardDialogPro
               <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
                 <AlertCircle className="w-3.5 h-3.5 text-gray-500" /> Priority Level
               </span>
-              <div className="pt-0.5">
-                <PriorityBadge priority={job.priority || "Normal"} />
-              </div>
+                {job.priority && job.priority.trim() !== "" ? (
+                  <PriorityBadge priority={job.priority} />
+                ) : (
+                  <span className="text-xs text-gray-400 font-medium">None</span>
+                )}
             </div>
 
             {/* Start Date & Time */}
@@ -155,17 +192,6 @@ export function ViewJobCardDialog({ isOpen, onClose, job }: ViewJobCardDialogPro
               </div>
             </div>
           )}
-        </div>
-
-        {/* Footer */}
-        <div className="p-4 border-t border-gray-100 bg-gray-50/50 flex justify-between items-center rounded-b-2xl">
-          <span className="text-xs text-gray-500 font-medium">Read-Only View</span>
-          <button
-            onClick={onClose}
-            className="px-5 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold rounded-xl text-sm transition-colors"
-          >
-            Close
-          </button>
         </div>
       </div>
     </div>

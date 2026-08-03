@@ -12,59 +12,162 @@ const pageHeaders: Record<string, { title: string; description: string }> = {
     title: "Dashboard",
     description: "Welcome to Shifterz Pro Suite",
   },
-  "/carin": {
+  "/dashboard/carin": {
     title: "Car In / Out",
     description: "Manage vehicle check-in and check-out",
   },
-  "/outpass": {
-    title: "Out Pass",
+  "/dashboard/jobs": {
+    title: "Job Card",
+    description: "Manage job cards and workshop activities",
+  },
+  "/dashboard/outpass": {
+    title: "Outpass",
     description: "Manage vehicle out passes",
   },
-  "/leads": {
+  "/dashboard/leads": {
     title: "Leads",
     description: "Manage your sales leads",
   },
-  "/billing": {
-    title: "Billing",
-    description: "Manage billing documents",
-  },
-  "/payments": {
-    title: "Payments",
-    description: "Track and manage payments",
-  },
-  "/services": {
-    title: "Services",
-    description: "Manage services offered",
-  },
-  "/inventory": {
-    title: "Inventory",
-    description: "Manage inventory items",
-  },
-  "/jobs": {
-    title: "Job Cards",
-    description: "Manage job cards",
-  },
-  "/franchise": {
-    title: "Franchise",
-    description: "Manage franchise locations",
-  },
-  "/customers": {
+  "/dashboard/customers": {
     title: "Customers",
     description: "Manage customer information",
   },
-  "/reports": {
-    title: "Reports",
-    description: "View business reports",
+  "/dashboard/billing": {
+    title: "Billing",
+    description: "Manage billing documents and invoices",
   },
-  "/settings": {
+  "/dashboard/payments": {
+    title: "Payments",
+    description: "Track and manage payments",
+  },
+  "/dashboard/inventory": {
+    title: "Inventory",
+    description: "Manage inventory items and stock",
+  },
+  "/dashboard/reports": {
+    title: "Reports",
+    description: "View business reports and analytics",
+  },
+  "/dashboard/employees": {
+    title: "Employees",
+    description: "Manage employees and staff records",
+  },
+  "/dashboard/attendance": {
+    title: "Attendance",
+    description: "Track staff attendance",
+  },
+  "/dashboard/franchise": {
+    title: "Franchise",
+    description: "Manage franchise locations and performance",
+  },
+  "/dashboard/services": {
+    title: "Services",
+    description: "Manage services offered",
+  },
+  "/dashboard/settings": {
     title: "Settings",
-    description: "Configure your settings",
+    description: "Configure system settings",
+  },
+  "/dashboard/roles": {
+    title: "Roles & Permissions",
+    description: "Manage user roles and access control",
+  },
+  "/dashboard/profile": {
+    title: "Profile",
+    description: "View and update your profile",
+  },
+  "/dashboard/franchise-control/users": {
+    title: "User Management",
+    description: "Manage user accounts and permissions",
+  },
+  "/dashboard/franchise-control/service-approval": {
+    title: "Service Approval",
+    description: "Review and approve service requests",
+  },
+  "/dashboard/franchise-control/roles": {
+    title: "Roles & Permissions",
+    description: "Configure system permissions",
+  },
+  "/dashboard/franchise-control/notifications": {
+    title: "Notifications",
+    description: "System alerts and notifications",
+  },
+  "/dashboard/franchise-control/activity-logs": {
+    title: "Activity Logs",
+    description: "View system activity history",
+  },
+  "/dashboard/franchise-control/audit-logs": {
+    title: "Audit Logs",
+    description: "View security audit trails",
   },
   "/technician": {
     title: "Technician Portal",
     description: "Manage your assigned jobs",
   },
+  "/technician/my-jobs": {
+    title: "My Jobs",
+    description: "View and update your assigned workshop tasks",
+  },
+  "/technician/attendance": {
+    title: "Attendance",
+    description: "View your attendance record",
+  },
+  "/technician/profile": {
+    title: "Profile",
+    description: "Manage technician profile",
+  },
 };
+
+// Also support routes without /dashboard prefix for fallback
+Object.keys(pageHeaders).forEach((key) => {
+  if (key.startsWith("/dashboard/")) {
+    const shortKey = key.replace("/dashboard", "");
+    if (!pageHeaders[shortKey]) {
+      pageHeaders[shortKey] = pageHeaders[key];
+    }
+  }
+});
+
+function getPageHeader(pathname: string): { title: string; description: string } {
+  if (!pathname) {
+    return { title: "Dashboard", description: "Welcome to Shifterz Pro Suite" };
+  }
+
+  // 1. Direct match
+  if (pageHeaders[pathname]) {
+    return pageHeaders[pathname];
+  }
+
+  // 2. Normalized match (with or without /dashboard prefix)
+  const normalizedPath = pathname.startsWith("/dashboard")
+    ? pathname
+    : `/dashboard${pathname.startsWith("/") ? "" : "/"}${pathname}`;
+
+  if (pageHeaders[normalizedPath]) {
+    return pageHeaders[normalizedPath];
+  }
+
+  // 3. Prefix matching for sub-routes
+  const sortedKeys = Object.keys(pageHeaders).sort((a, b) => b.length - a.length);
+  for (const key of sortedKeys) {
+    if (key !== "/dashboard" && (pathname.startsWith(key) || normalizedPath.startsWith(key))) {
+      return pageHeaders[key];
+    }
+  }
+
+  // 4. Dynamic fallback from URL route segment
+  const segments = pathname.split("/").filter(Boolean);
+  const lastSegment = segments[segments.length - 1] || "dashboard";
+  const title = lastSegment
+    .split("-")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+
+  return {
+    title: title || "Dashboard",
+    description: "Welcome to Shifterz Pro Suite",
+  };
+}
 
 function getCurrentTime(): string {
   const now = new Date();
@@ -124,10 +227,7 @@ export default function Header() {
     return () => clearInterval(timer);
   }, []);
 
-  const pageInfo = pageHeaders[pathname] || {
-    title: "Dashboard",
-    description: "Welcome to Shifterz Pro Suite",
-  };
+  const pageInfo = getPageHeader(pathname);
 
   return (
     <header className="bg-white border-b border-gray-200 sticky top-0 z-50">

@@ -2,14 +2,25 @@ export type JobPriority = "High" | "Normal" | "Low";
 
 export type JobStatus =
   | "Pending"
+  | "Unassigned"
   | "Assigned"
   | "In Progress"
+  | "Ongoing"
+  | "Review for QC"
+  | "Waiting QC"
+  | "Inspecting"
+  | "In QC"
+  | "Rework"
+  | "QC Failed"
   | "Completed"
+  | "Complete"
   | "QC Passed"
   | "Ready For Billing"
   | "Cancelled"
+  | "Canceled"
   | "Delivered"
-  | "Out";
+  | "Out"
+  | "Delivery";
 
 export interface JobCard {
   id: string;
@@ -48,10 +59,14 @@ export interface JobCardFormData {
 }
 
 export interface JobCardStats {
-  pending: number;
+  all: number;
   assigned: number;
+  unassigned: number;
   inProgress: number;
+  reviewForQC: number;
   completed: number;
-  delivery: number;
+  rework: number;
   readyForBilling: number;
+  delivered: number;
+  cancelled: number;
 }

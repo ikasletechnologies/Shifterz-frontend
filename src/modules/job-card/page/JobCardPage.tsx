@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Search, X } from "lucide-react";
 import { useJobCards } from "../hooks/useJobCards";
 import { JobCard, JobCardFormData } from "../types/job-card.types";
 import { JobCardHeader } from "../components/JobCardHeader";
@@ -20,6 +19,32 @@ export function JobCardPage() {
   const [viewingJob, setViewingJob] = useState<JobCard | null>(null);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+  const [activeTab, setActiveTab] = useState<"all" | "assign" | "unassign">("all");
+  const [selectedStatus, setSelectedStatus] = useState<string>("All");
+
+  const handleStatusSelect = (status: string) => {
+    setSelectedStatus(status);
+    if (status.toLowerCase() === "assigned") {
+      setActiveTab("assign");
+    } else if (status.toLowerCase() === "unassigned") {
+      setActiveTab("unassign");
+    } else if (status.toLowerCase() === "all") {
+      setActiveTab("all");
+    }
+  };
+
+  const handleTabChange = (tab: "all" | "assign" | "unassign") => {
+    setActiveTab(tab);
+    if (tab === "assign") {
+      setSelectedStatus("Assigned");
+    } else if (tab === "unassign") {
+      setSelectedStatus("Unassigned");
+    } else {
+      setSelectedStatus("All");
+    }
+  };
 
   const handleView = (job: JobCard) => {
     setViewingJob(job);
@@ -89,6 +114,87 @@ export function JobCardPage() {
       if (!isBillingStatus) return false;
     }
 
+    // Status KPI Card Filtering
+    if (selectedStatus && selectedStatus.toLowerCase() !== "all") {
+      const s = selectedStatus.toLowerCase();
+      if (s === "assigned") {
+        const isAssigned = Boolean(
+          j.technician &&
+            j.technician.trim() !== "" &&
+            j.technician.toLowerCase() !== "unassigned" &&
+            j.technician.toLowerCase() !== "none"
+        );
+        if (!isAssigned) return false;
+      } else if (s === "unassigned") {
+        const isUnassigned =
+          !j.technician ||
+          j.technician.trim() === "" ||
+          j.technician.toLowerCase() === "unassigned" ||
+          j.technician.toLowerCase() === "none";
+        if (!isUnassigned) return false;
+      } else if (s === "in progress") {
+        const isMatch = j.status === "In Progress" || j.status === "Ongoing";
+        if (!isMatch) return false;
+      } else if (s === "completed") {
+        const isMatch = j.status === "Completed" || j.status === "Complete";
+        if (!isMatch) return false;
+      } else if (s === "review for qc") {
+        const isMatch =
+          j.status === "Review for QC" ||
+          j.status === "Waiting QC" ||
+          j.status === "Inspecting" ||
+          j.status === "In QC";
+        if (!isMatch) return false;
+      } else if (s === "rework") {
+        const isMatch = j.status === "Rework" || j.status === "QC Failed";
+        if (!isMatch) return false;
+      } else if (s === "ready for billing") {
+        const isMatch = j.status === "Ready For Billing" || j.status === "QC Passed";
+        if (!isMatch) return false;
+      } else if (s === "delivered") {
+        const isMatch = j.status === "Delivered" || j.status === "Out" || j.status === "Delivery";
+        if (!isMatch) return false;
+      } else if (s === "cancelled") {
+        const isMatch = j.status === "Cancelled" || j.status === "Canceled";
+        if (!isMatch) return false;
+      } else {
+        if (j.status.toLowerCase() !== s) return false;
+      }
+    }
+
+    // Nav Tab In-Place Filtering (All, Assigned, Unassigned)
+    if (activeTab === "assign") {
+      const isAssigned = Boolean(
+        j.technician &&
+          j.technician.trim() !== "" &&
+          j.technician.toLowerCase() !== "unassigned" &&
+          j.technician.toLowerCase() !== "none"
+      );
+      if (!isAssigned) return false;
+    }
+
+    if (activeTab === "unassign") {
+      const isUnassigned =
+        !j.technician ||
+        j.technician.trim() === "" ||
+        j.technician.toLowerCase() === "unassigned" ||
+        j.technician.toLowerCase() === "none";
+      if (!isUnassigned) return false;
+    }
+
+    // Date Filtering (From Date & To Date - exact match with Car In module)
+    if (fromDate) {
+      const start = new Date(fromDate + "T00:00:00");
+      const jobDate = j.startDate ? new Date(j.startDate) : null;
+      if (jobDate && !isNaN(jobDate.getTime()) && jobDate < start) return false;
+    }
+
+    if (toDate) {
+      const end = new Date(toDate + "T23:59:59");
+      const jobDate = j.startDate ? new Date(j.startDate) : null;
+      if (jobDate && !isNaN(jobDate.getTime()) && jobDate > end) return false;
+    }
+
     const searchLower = searchQuery.toLowerCase();
     return (
       !searchQuery ||
@@ -107,29 +213,18 @@ export function JobCardPage() {
       <JobCardHeader
         stats={stats}
         onNewJobCard={() => { setSelectedJob(null); setIsDialogOpen(true); }}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        fromDate={fromDate}
+        onFromDateChange={setFromDate}
+        toDate={toDate}
+        onToDateChange={setToDate}
+        selectedStatus={selectedStatus}
+        onStatusSelect={handleStatusSelect}
       />
 
-      <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-center justify-between border-b border-gray-200 pb-3">
-        <JobCardNavTabs activeTab="all" jobCards={jobCards} />
-
-        <div className="relative w-full max-w-md">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Search by ID, vehicle, customer, or technician..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-9 py-2 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400 text-sm"
-          />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          )}
-        </div>
+      <div className="border-b border-gray-200 pb-3">
+        <JobCardNavTabs activeTab={activeTab} onTabChange={handleTabChange} jobCards={jobCards} />
       </div>
 
       <JobCardTable
@@ -150,6 +245,16 @@ export function JobCardPage() {
         isOpen={isViewDialogOpen}
         onClose={() => { setIsViewDialogOpen(false); setViewingJob(null); }}
         job={viewingJob}
+        onEdit={(job) => {
+          setIsViewDialogOpen(false);
+          setViewingJob(null);
+          handleEdit(job);
+        }}
+        onDelete={(id) => {
+          setIsViewDialogOpen(false);
+          setViewingJob(null);
+          handleDelete(id);
+        }}
       />
     </div>
   );

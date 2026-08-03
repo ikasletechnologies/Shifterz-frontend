@@ -60,12 +60,57 @@ export function useJobCards() {
   };
 
   const stats: JobCardStats = {
-    pending: jobCards.filter((j) => j.status === "Pending").length,
-    assigned: jobCards.filter((j) => j.status === "Assigned").length,
-    inProgress: jobCards.filter((j) => j.status === "In Progress").length,
-    completed: jobCards.filter((j) => j.status === "Completed").length,
-    delivery: jobCards.filter((j) => j.status === "Delivered" || j.status === "Out").length,
-    readyForBilling: jobCards.filter((j) => j.status === "Ready For Billing" || j.status === "QC Passed").length,
+    all: jobCards.length,
+    assigned: jobCards.filter((j) => {
+      const s = j.status as string;
+      return (
+        s === "Assigned" ||
+        (s !== "Pending" &&
+          j.technician &&
+          j.technician.trim() !== "" &&
+          j.technician.toLowerCase() !== "unassigned" &&
+          s !== "Cancelled")
+      );
+    }).length,
+    unassigned: jobCards.filter((j) => {
+      const s = j.status as string;
+      return (
+        s === "Pending" ||
+        s === "Unassigned" ||
+        !j.technician ||
+        j.technician.trim() === "" ||
+        j.technician.toLowerCase() === "unassigned" ||
+        j.technician.toLowerCase() === "none"
+      );
+    }).length,
+    inProgress: jobCards.filter((j) => {
+      const s = j.status as string;
+      return s === "In Progress" || s === "Ongoing";
+    }).length,
+    reviewForQC: jobCards.filter((j) => {
+      const s = j.status as string;
+      return s === "Review for QC" || s === "Waiting QC" || s === "Inspecting" || s === "In QC";
+    }).length,
+    completed: jobCards.filter((j) => {
+      const s = j.status as string;
+      return s === "Completed" || s === "Complete";
+    }).length,
+    rework: jobCards.filter((j) => {
+      const s = j.status as string;
+      return s === "Rework" || s === "QC Failed";
+    }).length,
+    readyForBilling: jobCards.filter((j) => {
+      const s = j.status as string;
+      return s === "Ready For Billing" || s === "QC Passed";
+    }).length,
+    delivered: jobCards.filter((j) => {
+      const s = j.status as string;
+      return s === "Delivered" || s === "Out" || s === "Delivery";
+    }).length,
+    cancelled: jobCards.filter((j) => {
+      const s = j.status as string;
+      return s === "Cancelled" || s === "Canceled";
+    }).length,
   };
 
   return {
