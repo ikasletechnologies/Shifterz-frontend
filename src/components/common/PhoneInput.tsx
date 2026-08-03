@@ -1,5 +1,4 @@
 import React from "react";
-import { toast } from "react-hot-toast";
 
 export function sanitizePhone(val: string): string {
   if (!val) return "";
@@ -73,10 +72,6 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
         maxLength={10}
         minLength={10}
         pattern="[0-9]{10}"
-        onInvalid={(e) => {
-          e.preventDefault();
-          toast.error("Phone number must be exactly 10 digits");
-        }}
         className={`w-full px-3.5 py-2.5 outline-none text-sm text-gray-900 bg-transparent disabled:cursor-not-allowed disabled:text-gray-600 font-mono tracking-wider placeholder:font-sans placeholder:tracking-normal ${inputClassName}`}
         required={required}
       />

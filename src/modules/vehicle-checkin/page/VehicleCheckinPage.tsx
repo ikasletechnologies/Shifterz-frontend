@@ -980,7 +980,13 @@ export function VehicleCheckinPage() {
           toast.success("Vehicle status updated to Delivered!");
         }}
         onDelete={handleDeleteClick}
+        onViewExistingRecord={(car) => {
+          setIsDialogOpen(false);
+          setSelectedCar(car);
+          setIsDetailsDialogOpen(true);
+        }}
         initialData={selectedCar}
+        cars={cars}
       />
       <VehicleDeliveryDialog
         isOpen={isDeliveryDialogOpen}

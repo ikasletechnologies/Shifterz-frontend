@@ -2,7 +2,7 @@
 
 import { PhoneInput } from "@/components/common/PhoneInput";
 import { useState, useEffect } from "react";
-import { X, Car, Clock, Calendar, Plus, AlertTriangle, Trash2 } from "lucide-react";
+import { X, Car, Clock, Calendar, Plus, AlertTriangle, Trash2, Eye, Home } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { apiCall } from "@/services/api.client";
 import { formatVehicleNumber, getVehicleType, normalizeVehicleNumber } from "@/utils/vehicleNumber";
@@ -13,7 +13,9 @@ interface VehicleCheckInDialogProps {
   onSubmit?: (data: any) => void;
   onDeliver?: (data: any) => void;
   onDelete?: (data: any) => void;
+  onViewExistingRecord?: (car: any) => void;
   initialData?: any;
+  cars?: any[];
 }
 
 export default function VehicleCheckInDialog({
@@ -22,7 +24,9 @@ export default function VehicleCheckInDialog({
   onSubmit,
   onDeliver,
   onDelete,
+  onViewExistingRecord,
   initialData,
+  cars,
 }: VehicleCheckInDialogProps) {
   const [formData, setFormData] = useState({
     vehicleNumber: "",
@@ -39,7 +43,29 @@ export default function VehicleCheckInDialog({
   const [displayDate, setDisplayDate] = useState<string>("");
   const [displayTime, setDisplayTime] = useState<string>("");
   const [services, setServices] = useState<any[]>([]);
-  const [duplicateWarning, setDuplicateWarning] = useState<{ vehicleNo: string; inTime: string; status: string } | null>(null);
+  const [duplicateWarning, setDuplicateWarning] = useState<{
+    vehicleNo: string;
+    inTime: string;
+    status: string;
+    originalRecord?: any;
+  } | null>(null);
+
+  const formatCheckinDateTimeDisplay = (input?: string) => {
+    if (!input) return "—";
+    const d = new Date(input);
+    if (!isNaN(d.getTime())) {
+      const day = d.getDate().toString().padStart(2, "0");
+      const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      const month = months[d.getMonth()];
+      const year = d.getFullYear();
+      const hours24 = d.getHours();
+      const hours12 = hours24 % 12 || 12;
+      const minutes = d.getMinutes().toString().padStart(2, "0");
+      const ampm = hours24 >= 12 ? "pm" : "am";
+      return `${day} ${month} ${year}, ${hours12.toString().padStart(2, "0")}:${minutes} ${ampm}`;
+    }
+    return input;
+  };
 
   const parseDateTimeStr = (input?: string) => {
     if (!input) return { dateStr: "", timeStr: "" };
@@ -158,26 +184,86 @@ export default function VehicleCheckInDialog({
 
   const handleVehicleBlur = async () => {
     const normalized = normalizeVehicleNumber(formData.vehicleNumber);
-    if (normalized.length > 4 && (!formData.customerName || !formData.phone)) {
-      try {
-        const details = await apiCall(`/vehicle/${normalized}`);
-        if (details && details.name) {
-          setFormData((prev) => ({
-            ...prev,
-            customerName: prev.customerName || details.name,
-            phone: prev.phone || details.phone,
-            carModel: prev.carModel || details.model,
-          }));
-          toast.success("Customer details auto-filled!");
+    if (normalized.length >= 4) {
+      // 1. Check if vehicle is currently active in workshop (Duplicate Check-In)
+      if (!initialData) {
+        try {
+          let allCars: any[] = cars || [];
+          if (!allCars || allCars.length === 0) {
+            allCars = await apiCall("/carin");
+          }
+          const activeDuplicate = (allCars || []).find((c: any) => {
+            const vNum = normalizeVehicleNumber(c.vehicleNo || c.vehicle || c.vehicleNumber || "");
+            const isNotDelivered = c.status !== "Delivered" && c.status !== "Out";
+            return vNum === normalized && isNotDelivered;
+          });
+
+          if (activeDuplicate) {
+            const formattedInTime = formatCheckinDateTimeDisplay(activeDuplicate.inTime);
+            setDuplicateWarning({
+              vehicleNo: activeDuplicate.vehicleNo || activeDuplicate.vehicle || formData.vehicleNumber,
+              inTime: formattedInTime,
+              status: activeDuplicate.status === "Ongoing" ? "In Workshop" : (activeDuplicate.status || "In Workshop"),
+              originalRecord: activeDuplicate,
+            });
+            return;
+          }
+        } catch {
+          // Ignore fetch errors
         }
-      } catch {
-        // Ignore if vehicle not found
+      }
+
+      // 2. If not active duplicate, auto-fill details from previous visit quietly
+      if (!formData.customerName || !formData.phone) {
+        try {
+          const details = await apiCall(`/vehicle/${normalized}`);
+          if (details && (details.name || details.customer)) {
+            setFormData((prev) => ({
+              ...prev,
+              customerName: prev.customerName || details.name || details.customer,
+              phone: prev.phone || details.phone,
+              carModel: prev.carModel || details.model,
+            }));
+          }
+        } catch {
+          // Ignore if vehicle not found
+        }
       }
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Duplicate Check-In Validation FIRST (before required field checks or toasts)
+    if (!initialData && formData.vehicleNumber) {
+      try {
+        let allCars: any[] = cars || [];
+        if (!allCars || allCars.length === 0) {
+          allCars = await apiCall("/carin");
+        }
+        const normalizedInput = normalizeVehicleNumber(formData.vehicleNumber);
+
+        const activeDuplicate = (allCars || []).find((c: any) => {
+          const vNum = normalizeVehicleNumber(c.vehicleNo || c.vehicle || c.vehicleNumber || "");
+          const isNotDelivered = c.status !== "Delivered" && c.status !== "Out";
+          return vNum === normalizedInput && isNotDelivered;
+        });
+
+        if (activeDuplicate) {
+          const formattedInTime = formatCheckinDateTimeDisplay(activeDuplicate.inTime);
+          setDuplicateWarning({
+            vehicleNo: activeDuplicate.vehicleNo || activeDuplicate.vehicle || formData.vehicleNumber,
+            inTime: formattedInTime,
+            status: activeDuplicate.status === "Ongoing" ? "In Workshop" : (activeDuplicate.status || "In Workshop"),
+            originalRecord: activeDuplicate,
+          });
+          return;
+        }
+      } catch (err) {
+        // If fetch fails, API submission will handle errors
+      }
+    }
 
     if (!formData.vehicleNumber || !formData.carModel || !formData.customerName || !formData.phone || !formData.odometer) {
       toast.error("Please fill in all required fields marked with *");
@@ -187,39 +273,6 @@ export default function VehicleCheckInDialog({
     if (formData.phone.replace(/\D/g, "").length !== 10) {
       toast.error("Please enter a valid 10-digit phone number");
       return;
-    }
-
-    // 24-Hour Duplicate Check-In Validation
-    if (!initialData) {
-      try {
-        const allCars: any[] = await apiCall("/carin");
-        const normalizedInput = normalizeVehicleNumber(formData.vehicleNumber);
-        const cutoffTime = Date.now() - 24 * 60 * 60 * 1000;
-        const recentDuplicate = (allCars || []).find((c: any) => {
-          const vNum = normalizeVehicleNumber(c.vehicleNo || c.vehicle || c.vehicleNumber || "");
-          const checkinTime = new Date(c.inTime).getTime();
-          return vNum === normalizedInput && !isNaN(checkinTime) && checkinTime >= cutoffTime;
-        });
-
-        if (recentDuplicate) {
-          const formattedInTime = new Date(recentDuplicate.inTime).toLocaleString("en-IN", {
-            day: "2-digit",
-            month: "short",
-            year: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-            hour12: true,
-          });
-          setDuplicateWarning({
-            vehicleNo: formData.vehicleNumber,
-            inTime: formattedInTime,
-            status: recentDuplicate.status || "Ongoing",
-          });
-          return;
-        }
-      } catch (err) {
-        // If fetch fails, API submission will enforce server-side validation
-      }
     }
 
     if (onSubmit) {
@@ -487,32 +540,110 @@ export default function VehicleCheckInDialog({
         </form>
       </div>
 
-      {/* 24-Hour Duplicate Warning Popup Screen */}
+      {/* Vehicle Already Checked In Duplicate Warning Modal */}
       {duplicateWarning && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[70] p-4">
-          <div className="bg-white rounded-2xl p-6 sm:p-8 max-w-md w-full text-center shadow-2xl border border-red-100 animate-in fade-in zoom-in duration-200">
-            <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4 border-4 border-red-50">
-              <AlertTriangle className="w-8 h-8 stroke-[2.5]" />
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-[70] p-4">
+          <div className="relative bg-white rounded-3xl p-6 sm:p-8 max-w-lg w-full text-center shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+            <button
+              type="button"
+              onClick={() => setDuplicateWarning(null)}
+              className="absolute top-5 right-5 p-1.5 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 transition-colors cursor-pointer"
+              title="Close"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {/* Red Alert Icon Container */}
+            <div className="flex justify-center mb-4">
+              <div className="relative flex items-center justify-center">
+                {/* Subtle top sparkles/dashes matching image design */}
+                <div className="absolute -top-1.5 left-1/2 -translate-x-1/2 flex gap-1.5">
+                  <span className="w-1 h-2 bg-red-300 rounded-full rotate-[-25deg]"></span>
+                  <span className="w-1 h-2.5 bg-red-300 rounded-full"></span>
+                  <span className="w-1 h-2 bg-red-300 rounded-full rotate-[25deg]"></span>
+                </div>
+                <div className="w-16 h-16 rounded-full bg-red-50 border-4 border-red-100 flex items-center justify-center shadow-xs">
+                  <AlertTriangle className="w-8 h-8 text-red-600 stroke-[2.2]" />
+                </div>
+              </div>
             </div>
-            <h3 className="text-xl font-bold text-gray-900 mb-2">
+
+            <h3 className="text-2xl font-bold text-slate-900 mb-2">
               Vehicle Already Checked In
             </h3>
-            <p className="text-sm text-gray-600 mb-4 leading-relaxed">
-              Vehicle <strong className="text-gray-900 font-mono bg-gray-100 px-2 py-0.5 rounded">{duplicateWarning.vehicleNo}</strong> was already checked in.
+            <p className="text-slate-500 text-sm leading-relaxed mb-6 font-normal">
+              This vehicle is already in the workshop.
+              <br />
+              Duplicate check-in is not allowed.
             </p>
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3.5 text-xs text-amber-800 text-left mb-6 space-y-1.5">
-              <p><strong>Previous Check-In Time:</strong> {duplicateWarning.inTime}</p>
-              <p><strong>Current Status:</strong> {duplicateWarning.status}</p>
-              <p className="text-[11px] text-amber-700 mt-2 pt-1 border-t border-amber-200/60 font-medium">
-                ⚠️ Registering the same vehicle number twice is not allowed.
-              </p>
+
+            <div className="bg-[#f4f7fc] border border-slate-100 rounded-2xl p-4 sm:p-5 text-left mb-6 space-y-4">
+              {/* Row 1: Registration No. */}
+              <div className="flex items-center text-sm">
+                <div className="flex items-center gap-2.5 w-36 sm:w-40 text-slate-900 font-bold shrink-0">
+                  <Car className="w-4 h-4 text-blue-600 shrink-0" />
+                  <span>Registration No.</span>
+                </div>
+                <span className="text-slate-300 mx-2 sm:mx-3 font-light">|</span>
+                <div className="flex-1 overflow-hidden">
+                  <span className="bg-[#e0ebff] text-[#1d4ed8] font-bold text-sm px-3 py-1 rounded-lg font-mono tracking-wide inline-block">
+                    {formatVehicleNumber(duplicateWarning.vehicleNo)}
+                  </span>
+                </div>
+              </div>
+
+              {/* Row 2: Check-In Time */}
+              <div className="flex items-center text-sm">
+                <div className="flex items-center gap-2.5 w-36 sm:w-40 text-slate-900 font-bold shrink-0">
+                  <Calendar className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>Check-In Time</span>
+                </div>
+                <span className="text-slate-300 mx-2 sm:mx-3 font-light">|</span>
+                <div className="flex-1 text-slate-800 font-semibold text-sm">
+                  {duplicateWarning.inTime}
+                </div>
+              </div>
+
+              {/* Row 3: Current Status */}
+              <div className="flex items-center text-sm">
+                <div className="flex items-center gap-2.5 w-36 sm:w-40 text-slate-900 font-bold shrink-0">
+                  <Home className="w-4 h-4 text-amber-500 shrink-0" />
+                  <span>Current Status</span>
+                </div>
+                <span className="text-slate-300 mx-2 sm:mx-3 font-light">|</span>
+                <div className="flex-1">
+                  <span className="bg-emerald-100 text-emerald-600 font-semibold text-xs px-2.5 py-1 rounded-md inline-block">
+                    {duplicateWarning.status}
+                  </span>
+                </div>
+              </div>
             </div>
-            <button
-              onClick={() => setDuplicateWarning(null)}
-              className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-xl transition-all shadow-md active:scale-[0.98]"
-            >
-              Dismiss & Check Registration Number
-            </button>
+
+            <div className="border-t border-slate-100 mb-6" />
+
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  const recordToView = duplicateWarning.originalRecord;
+                  setDuplicateWarning(null);
+                  if (onViewExistingRecord && recordToView) {
+                    onViewExistingRecord(recordToView);
+                  }
+                }}
+                className="flex-1 border border-blue-600 text-blue-600 hover:bg-blue-50 font-bold text-sm py-3 px-3.5 rounded-xl flex items-center justify-center gap-2 transition-colors cursor-pointer"
+              >
+                <Eye className="w-4 h-4 text-blue-600 shrink-0" />
+                <span>View Existing Record</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setDuplicateWarning(null)}
+                className="flex-1 bg-slate-200/80 hover:bg-slate-300/80 text-slate-800 font-bold text-sm py-3 px-4 rounded-xl text-center transition-colors cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}
