@@ -12,13 +12,15 @@ import {
 } from "../services/qc.service";
 import { toast } from "react-hot-toast";
 
-// QC-relevant statuses — never include billing or payment statuses
+// QC-relevant statuses — only Technician-completed and QC statuses
 const QC_RELEVANT_STATUSES = [
+  "Completed",
+  "Work Completed",
+  "QC Pending",
   "Waiting QC",
   "Inspecting",
   "QC Passed",
   "QC Failed",
-  "Rework",
   "Ready For Billing",
 ];
 
@@ -152,7 +154,12 @@ export function useQC() {
   const today = new Date().toISOString().slice(0, 10);
 
   const stats: QCStats = {
-    waitingQC: jobs.filter((j) => j.status === "Waiting QC").length,
+    waitingQC: jobs.filter((j) =>
+      j.status === "Waiting QC" ||
+      j.status === "Completed" ||
+      j.status === "Work Completed" ||
+      j.status === "QC Pending"
+    ).length,
     passedToday: jobs.filter(
       (j) => j.status === "QC Passed" && (j.passedAt || "").startsWith(today)
     ).length,

@@ -205,6 +205,9 @@ export default function Header() {
     }, 1000);
 
     async function loadCompany() {
+      const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+      if (!token) return;
+
       try {
         const data = await getSettings();
         const companyName = data?.companyInfo?.name || data?.companyName;

@@ -1,4 +1,7 @@
 export type QCStatus =
+  | "Completed"
+  | "Work Completed"
+  | "QC Pending"
   | "Waiting QC"
   | "Inspecting"
   | "QC Passed"
@@ -14,7 +17,7 @@ export interface QCJob {
   technician: string;
   technicianId?: string;
   priority: string;
-  status: QCStatus;
+  status: QCStatus | string;
   receivedAt?: string;
   inspectedAt?: string;
   passedAt?: string;

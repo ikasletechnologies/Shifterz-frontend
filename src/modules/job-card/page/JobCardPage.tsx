@@ -114,6 +114,21 @@ export function JobCardPage() {
       if (!isBillingStatus) return false;
     }
 
+    if (isQualityInspector) {
+      const statusStr = j.status as string;
+      const isQCStatus =
+        statusStr === "Completed" ||
+        statusStr === "Work Completed" ||
+        statusStr === "QC Pending" ||
+        statusStr === "Waiting QC" ||
+        statusStr === "Inspecting" ||
+        statusStr === "QC Passed" ||
+        statusStr === "QC Failed" ||
+        statusStr === "Rework" ||
+        statusStr === "Ready For Billing";
+      if (!isQCStatus) return false;
+    }
+
     // Status KPI Card Filtering
     if (selectedStatus && selectedStatus.toLowerCase() !== "all") {
       const s = selectedStatus.toLowerCase();

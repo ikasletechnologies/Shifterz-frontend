@@ -7,6 +7,9 @@ import type { ChecklistItem, QCStatus } from "../types/qc.types";
 //                           ↘ QC Failed → Rework → (back to Workshop → Waiting QC)
 
 export const QC_STATUS_FLOW: Record<QCStatus, QCStatus[]> = {
+  Completed: ["Inspecting"],
+  "Work Completed": ["Inspecting"],
+  "QC Pending": ["Inspecting"],
   "Waiting QC": ["Inspecting"],
   Inspecting: ["QC Passed", "QC Failed"],
   "QC Passed": ["Ready For Billing"],
@@ -16,21 +19,23 @@ export const QC_STATUS_FLOW: Record<QCStatus, QCStatus[]> = {
 };
 
 export const QC_STATUS_COLORS: Record<string, string> = {
+  Completed: "bg-green-100 text-green-700",
+  "Work Completed": "bg-green-100 text-green-700",
+  "QC Pending": "bg-yellow-100 text-yellow-700",
   "Waiting QC": "bg-yellow-100 text-yellow-700",
   Inspecting: "bg-blue-100 text-blue-700",
   "QC Passed": "bg-green-100 text-green-700",
   "QC Failed": "bg-red-100 text-red-700",
-  Rework: "bg-orange-100 text-orange-700",
   "Ready For Billing": "bg-teal-100 text-teal-700",
 };
 
 export const QC_FILTER_OPTIONS = [
   "All",
+  "Completed",
   "Waiting QC",
   "Inspecting",
   "QC Passed",
   "QC Failed",
-  "Rework",
   "Ready For Billing",
 ] as const;
 

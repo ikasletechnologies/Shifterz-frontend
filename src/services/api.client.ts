@@ -49,7 +49,18 @@ export async function apiCall(
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
-    throw new Error(error.error || `API Error: ${response.statusText}`);
+    const errorMessage = error.error || `API Error: ${response.statusText}`;
+
+    if (response.status === 401 && typeof window !== "undefined") {
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      document.cookie = "token=; path=/; max-age=0";
+      if (!window.location.pathname.startsWith("/login")) {
+        window.location.href = "/login";
+      }
+    }
+
+    throw new Error(errorMessage);
   }
 
   return response.json();

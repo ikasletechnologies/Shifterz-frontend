@@ -176,8 +176,7 @@ export function JobCardTable({ jobCards, onView, onEdit, onDelete }: JobCardTabl
                         <span className="whitespace-nowrap">Assigned Technician</span>
                       </div>
                       <div className="mt-1">
-                        <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-800 border border-emerald-100 text-xs px-2.5 py-0.5 rounded-full font-semibold max-w-full truncate">
-                          <User className="w-3 h-3 text-emerald-600 shrink-0" />
+                        <span className="inline-flex items-center bg-emerald-50 text-emerald-800 border border-emerald-100 text-xs px-2.5 py-0.5 rounded-full font-semibold max-w-full truncate">
                           <span className="truncate">{j.technician}</span>
                         </span>
                       </div>
