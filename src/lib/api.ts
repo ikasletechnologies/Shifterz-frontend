@@ -407,6 +407,19 @@ export async function deleteEmployee(id: string) {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// TECHNICIAN / SERVICE ADVISOR MANAGEMENT
+// ═══════════════════════════════════════════════════════════════
+export async function getTechnicianManagementStats(params?: Record<string, string | number>) {
+  const query = params ? `?${new URLSearchParams(params as Record<string, string>).toString()}` : "";
+  return apiCall(`/technicians/management${query}`);
+}
+
+export async function getServiceAdvisorManagementStats(params?: Record<string, string | number>) {
+  const query = params ? `?${new URLSearchParams(params as Record<string, string>).toString()}` : "";
+  return apiCall(`/service-advisors/management${query}`);
+}
+
+// ═══════════════════════════════════════════════════════════════
 // ATTENDANCE
 // ═══════════════════════════════════════════════════════════════
 export async function getAttendance() {

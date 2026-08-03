@@ -45,6 +45,8 @@ import {
   ScrollText,
   ChevronDown,
   ChevronRight,
+  HardHat,
+  Headset,
 } from "lucide-react";
 import { SidebarContext } from "@/lib/context/SidebarContext";
 
@@ -124,6 +126,9 @@ const hqSidebarSections: NavSection[] = [
     label: "HR & STAFF",
     items: [
       { label: "Employees", icon: UserCheck, href: "/dashboard/employees", module: "employees" },
+      { label: "Technicians", icon: HardHat, href: "/dashboard/technicians", module: "employees" },
+      { label: "QC Inspection", icon: ShieldCheck, href: "/dashboard/qc", module: "jobs" },
+      { label: "Service Advisors", icon: Headset, href: "/dashboard/service-advisors", module: "employees" },
       { label: "Attendance", icon: Clock, href: "/dashboard/attendance", module: "attendance" },
     ],
   },
@@ -191,6 +196,9 @@ const franchiseSidebarSections: NavSection[] = [
     label: "HR & STAFF",
     items: [
       { label: "Employees", icon: UserCheck, href: "/dashboard/employees", module: "employees" },
+      { label: "Technicians", icon: HardHat, href: "/dashboard/technicians", module: "employees" },
+      { label: "QC Inspection", icon: ShieldCheck, href: "/dashboard/qc", module: "jobs" },
+      { label: "Service Advisors", icon: Headset, href: "/dashboard/service-advisors", module: "employees" },
       { label: "Attendance", icon: Clock, href: "/dashboard/attendance", module: "attendance" },
     ],
   },
