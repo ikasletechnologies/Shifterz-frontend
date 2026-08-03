@@ -20,6 +20,7 @@ import {
   Calendar,
   Clock,
   Phone,
+  User,
   LayoutGrid,
   List,
   ChevronDown,
@@ -123,25 +124,47 @@ export function VehicleCheckinPage() {
   };
 
   const handleDeliverySubmit = async (outData: any) => {
-    if (!selectedCar) return;
-    const success = await handleVehicleCheckOut(selectedCar, outData);
-    if (success) {
-      setIsDeliveryDialogOpen(false);
-      router.push("/dashboard/outpass");
+    let targetCar = selectedCar;
+    if (!targetCar && outData.vehicleNo) {
+      const normV = outData.vehicleNo.replace(/\s+/g, "").toUpperCase();
+      targetCar = cars.find((c) => (c.vehicleNo || c.vehicle || c.vehicleNumber || "").replace(/\s+/g, "").toUpperCase() === normV) || null;
+    }
+
+    if (targetCar) {
+      const success = await handleVehicleCheckOut(targetCar, outData);
+      if (success) {
+        setIsDeliveryDialogOpen(false);
+        router.push("/dashboard/outpass");
+      }
+    } else if (outData.vehicleNo) {
+      const mockCar: CarEntry = {
+        id: `car-${Date.now()}`,
+        entryId: `ENT-${Math.floor(1000 + Math.random() * 9000)}`,
+        vehicleNo: outData.vehicleNo,
+        model: outData.model || "",
+        customer: outData.customer || "",
+        phone: outData.phone || "",
+        service: outData.service || "",
+        odometer: outData.odometer || "",
+        inTime: outData.inTime || new Date().toISOString(),
+        outTime: outData.outTime || new Date().toISOString(),
+        duration: null,
+        status: "Out",
+        technician: outData.technician || "",
+        security: outData.security || "",
+        remarks: outData.remarks || "",
+      };
+      const success = await handleVehicleCheckOut(mockCar, outData);
+      if (success) {
+        setIsDeliveryDialogOpen(false);
+        router.push("/dashboard/outpass");
+      }
     }
   };
 
   const handleCheckOutButtonClick = () => {
-    let carToCheckout = selectedCar;
-    if (!carToCheckout || !(carToCheckout.status === "Ongoing" || carToCheckout.status === "In Workshop")) {
-      carToCheckout = cars.find((c) => c.status === "Ongoing" || c.status === "In Workshop") || null;
-    }
-    if (carToCheckout) {
-      setSelectedCar(carToCheckout);
-      setIsDeliveryDialogOpen(true);
-    } else {
-      toast.error("No vehicles currently in workshop to check out.");
-    }
+    setSelectedCar(null);
+    setIsDeliveryDialogOpen(true);
   };
 
   const allCount = cars.length;
@@ -837,42 +860,72 @@ export function VehicleCheckinPage() {
 
                     <div className="border-t border-red-100/70 my-3" />
 
-                    {/* Card Body Details */}
-                    <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
-                      <div>
-                        <p className="text-[10px] uppercase font-semibold text-gray-400">Entry ID</p>
-                        <p className="font-bold text-amber-500 font-mono mt-0.5">{entry.entryId || entry.id}</p>
-                      </div>
-                      <div>
-                        <p className="text-[10px] uppercase font-semibold text-gray-400">Service</p>
-                        <p className="font-bold text-gray-900 mt-0.5">{entry.service || "—"}</p>
-                      </div>
-
-                      <div>
-                        <p className="text-[10px] uppercase font-semibold text-gray-400">Customer</p>
-                        <p className="font-bold text-gray-900 mt-0.5">{entry.customer || "—"}</p>
-                      </div>
-                      <div>
-                        <p className="text-[10px] uppercase font-semibold text-gray-400">Check-In Date</p>
-                        <p className="font-medium text-gray-700 mt-0.5 flex items-center gap-1">
-                          <Calendar className="w-3.5 h-3.5 text-gray-400" />
-                          {formatDate(entry.inTime)}
-                        </p>
+                    {/* Card Body Details - 3 Columns (Beside Service Section) */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-4 gap-y-2 text-xs">
+                      {/* Column 1: Core Details */}
+                      <div className="space-y-2">
+                        <div>
+                          <p className="text-[10px] uppercase font-semibold text-gray-400">Entry ID</p>
+                          <p className="font-bold text-amber-500 font-mono mt-0.5">{entry.entryId || entry.id}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] uppercase font-semibold text-gray-400">Customer</p>
+                          <p className="font-bold text-gray-900 mt-0.5">{entry.customer || "—"}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] uppercase font-semibold text-gray-400">Mobile</p>
+                          <p className="font-medium text-gray-700 mt-0.5 flex items-center gap-1">
+                            <Phone className="w-3.5 h-3.5 text-gray-400" />
+                            {entry.phone || "—"}
+                          </p>
+                        </div>
                       </div>
 
-                      <div>
-                        <p className="text-[10px] uppercase font-semibold text-gray-400">Mobile</p>
-                        <p className="font-medium text-gray-700 mt-0.5 flex items-center gap-1">
-                          <Phone className="w-3.5 h-3.5 text-gray-400" />
-                          {entry.phone || "—"}
-                        </p>
+                      {/* Column 2: Service & Check-In */}
+                      <div className="space-y-2">
+                        <div>
+                          <p className="text-[10px] uppercase font-semibold text-gray-400">Service</p>
+                          <p className="font-bold text-gray-900 mt-0.5">{entry.service || "—"}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] uppercase font-semibold text-gray-400">Check-In Date</p>
+                          <p className="font-medium text-gray-700 mt-0.5 flex items-center gap-1">
+                            <Calendar className="w-3.5 h-3.5 text-gray-400" />
+                            {formatDate(entry.inTime)}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] uppercase font-semibold text-gray-400">Check-In Time</p>
+                          <p className="font-medium text-gray-700 mt-0.5 flex items-center gap-1">
+                            <Clock className="w-3.5 h-3.5 text-gray-400" />
+                            {formatTime(entry.inTime)}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-[10px] uppercase font-semibold text-gray-400">Check-In Time</p>
-                        <p className="font-medium text-gray-700 mt-0.5 flex items-center gap-1">
-                          <Clock className="w-3.5 h-3.5 text-gray-400" />
-                          {formatTime(entry.inTime)}
-                        </p>
+
+                      {/* Column 3: Beside Service Section (Technician & Check-Out) */}
+                      <div className="space-y-2 sm:border-l sm:border-red-100/80 sm:pl-3">
+                        <div>
+                          <p className="text-[10px] uppercase font-semibold text-gray-400">Assigned Technician</p>
+                          <p className="font-bold text-emerald-700 mt-0.5 flex items-center gap-1">
+                            <User className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                            {entry.technician && entry.technician.trim() !== "" && entry.technician !== "Unassigned" ? entry.technician : "Unassigned"}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] uppercase font-semibold text-gray-400">Checkout Date</p>
+                          <p className="font-bold text-red-700 mt-0.5 flex items-center gap-1">
+                            <Calendar className="w-3.5 h-3.5 text-red-500 shrink-0" />
+                            {entry.outTime ? formatDate(entry.outTime) : "—"}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] uppercase font-semibold text-gray-400">Checkout Time</p>
+                          <p className="font-bold text-red-700 mt-0.5 flex items-center gap-1">
+                            <Clock className="w-3.5 h-3.5 text-red-500 shrink-0" />
+                            {entry.outTime ? formatTime(entry.outTime) : "—"}
+                          </p>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -1002,12 +1055,13 @@ export function VehicleCheckinPage() {
           inTime: selectedCar.inTime || "",
           technician: selectedCar.technician || "",
         } : undefined}
+        cars={cars}
         onSubmit={handleDeliverySubmit}
       />
       <VehicleDetailsDialog
         isOpen={isDetailsDialogOpen}
         onClose={() => setIsDetailsDialogOpen(false)}
-        carData={selectedCar ? { ...selectedCar, vehicleNo: selectedCar.vehicleNo || "" } : undefined}
+        carData={selectedCar ? { ...selectedCar, vehicleNo: selectedCar.vehicleNo || selectedCar.vehicle || selectedCar.vehicleNumber || "" } : undefined}
         onDeliver={(car) => {
           setIsDetailsDialogOpen(false);
           const target = cars.find((c) => c.id === car.id || (car.vehicleNo && c.vehicleNo === car.vehicleNo)) || selectedCar;

@@ -11,8 +11,10 @@ export interface CarEntry {
   technician?: string;
   inTime: string;
   outTime: string | null;
-  duration: string | null;
+  duration?: string | null;
   status: string;
   odometer?: string;
   notes?: string;
+  security?: string;
+  remarks?: string;
 }

@@ -20,6 +20,7 @@ interface VehicleDeliveryDialogProps {
     outTime?: string;
     technician?: string;
   };
+  cars?: any[];
   onSubmit?: (data: any) => void;
 }
 
@@ -27,6 +28,7 @@ export default function VehicleDeliveryDialog({
   isOpen,
   onClose,
   carData,
+  cars,
   onSubmit,
 }: VehicleDeliveryDialogProps) {
   const [formData, setFormData] = useState({
@@ -35,29 +37,45 @@ export default function VehicleDeliveryDialog({
     customer: "",
     phone: "",
     service: "PPF Full Body",
-    odometer: "12500",
+    odometer: "",
     inTime: new Date().toISOString(),
     outTime: new Date().toISOString().slice(0, 16),
     technician: "",
     security: "",
-    remarks: "All clear. Washed and ready.",
+    remarks: "",
   });
 
   useEffect(() => {
-    if (carData) {
-      setFormData({
-        vehicleNo: carData.vehicleNo || "",
-        model: carData.model || "",
-        customer: carData.customer || "",
-        phone: carData.phone || "",
-        service: carData.service || "PPF Full Body",
-        odometer: carData.odometer || "12500",
-        inTime: carData.inTime || new Date().toISOString(),
-        outTime: carData.outTime ? new Date(carData.outTime).toISOString().slice(0, 16) : new Date().toISOString().slice(0, 16),
-        technician: carData.technician || "",
-        security: "",
-        remarks: "All clear. Washed and ready.",
-      });
+    if (isOpen) {
+      if (carData) {
+        setFormData({
+          vehicleNo: carData.vehicleNo || "",
+          model: carData.model || "",
+          customer: carData.customer || "",
+          phone: carData.phone || "",
+          service: carData.service || "PPF Full Body",
+          odometer: carData.odometer || "",
+          inTime: carData.inTime || new Date().toISOString(),
+          outTime: carData.outTime ? new Date(carData.outTime).toISOString().slice(0, 16) : new Date().toISOString().slice(0, 16),
+          technician: carData.technician || "",
+          security: "",
+          remarks: "",
+        });
+      } else {
+        setFormData({
+          vehicleNo: "",
+          model: "",
+          customer: "",
+          phone: "",
+          service: "PPF Full Body",
+          odometer: "",
+          inTime: new Date().toISOString(),
+          outTime: new Date().toISOString().slice(0, 16),
+          technician: "",
+          security: "",
+          remarks: "",
+        });
+      }
     }
   }, [carData, isOpen]);
 
@@ -68,7 +86,28 @@ export default function VehicleDeliveryDialog({
     if (name === "phone") {
       setFormData((prev) => ({ ...prev, [name]: value.replace(/\D/g, "").slice(0, 10) }));
     } else if (name === "vehicleNo") {
-      setFormData((prev) => ({ ...prev, [name]: formatVehicleNumber(value) }));
+      const formatted = formatVehicleNumber(value);
+      const cleanNorm = formatted.replace(/\s+/g, "").toUpperCase();
+      const matched = cars?.find((c) => {
+        const v = (c.vehicleNo || c.vehicle || c.vehicleNumber || "").replace(/\s+/g, "").toUpperCase();
+        return cleanNorm.length >= 4 && v === cleanNorm;
+      });
+
+      if (matched) {
+        setFormData((prev) => ({
+          ...prev,
+          vehicleNo: formatted,
+          model: matched.model || prev.model,
+          customer: matched.customer || prev.customer,
+          phone: matched.phone || prev.phone,
+          service: matched.service || prev.service,
+          odometer: matched.odometer || prev.odometer,
+          inTime: matched.inTime || prev.inTime,
+          technician: matched.technician || prev.technician,
+        }));
+      } else {
+        setFormData((prev) => ({ ...prev, vehicleNo: formatted }));
+      }
     } else {
       setFormData((prev) => ({ ...prev, [name]: value }));
     }
@@ -102,7 +141,7 @@ export default function VehicleDeliveryDialog({
     return `${dateFormatted}, ${timeFormatted}`;
   };
 
-  if (!isOpen || !carData) return null;
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center z-50 p-4">

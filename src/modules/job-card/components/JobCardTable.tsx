@@ -167,24 +167,34 @@ export function JobCardTable({ jobCards, onView, onEdit, onDelete }: JobCardTabl
                   </p>
                 </div>
 
-                {/* Assigned */}
+                {/* Assigned / Unassigned Section */}
                 <div>
-                  <div className="flex items-center gap-1.5 text-slate-500 font-medium">
-                    <User className="w-4 h-4 text-slate-400 shrink-0" />
-                    <span>Assigned</span>
-                  </div>
-                  <div className="mt-1">
-                    {isAssigned ? (
-                      <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-800 border border-emerald-100 text-xs px-2.5 py-0.5 rounded-full font-semibold max-w-full truncate">
-                        <User className="w-3 h-3 text-emerald-600 shrink-0" />
-                        <span className="truncate">{j.technician}</span>
-                      </span>
-                    ) : (
-                      <span className="inline-block bg-red-50 text-red-500 border border-red-100 text-xs px-2.5 py-0.5 rounded-full font-semibold">
-                        Unassigned
-                      </span>
-                    )}
-                  </div>
+                  {isAssigned ? (
+                    <>
+                      <div className="flex items-center gap-1.5 text-slate-500 font-medium">
+                        <User className="w-4 h-4 text-slate-400 shrink-0" />
+                        <span>Assigned</span>
+                      </div>
+                      <div className="mt-1">
+                        <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-800 border border-emerald-100 text-xs px-2.5 py-0.5 rounded-full font-semibold max-w-full truncate">
+                          <User className="w-3 h-3 text-emerald-600 shrink-0" />
+                          <span className="truncate">{j.technician}</span>
+                        </span>
+                      </div>
+                    </>
+                  ) : (
+                    <div>
+                      <div>
+                        <span className="inline-block bg-red-50 text-red-500 border border-red-100 text-xs px-2.5 py-0.5 rounded-full font-semibold">
+                          Unassigned
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-slate-400 text-xs font-medium mt-1">
+                        <User className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                        <span>Technician</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 

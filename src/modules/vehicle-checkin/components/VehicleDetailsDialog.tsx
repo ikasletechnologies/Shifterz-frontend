@@ -1,11 +1,13 @@
 "use client";
 
-import { X, Car, User, Phone, Wrench, Clock, FileText, Gauge, CalendarCheck2, Calendar, Trash2 } from "lucide-react";
+import { X, Car, User, Phone, Wrench, Clock, FileText, Gauge, CalendarCheck2, Calendar } from "lucide-react";
 import { useEffect, useState } from "react";
 
 interface CarData {
   id?: string;
-  vehicleNo: string;
+  vehicleNo?: string;
+  vehicle?: string;
+  vehicleNumber?: string;
   model: string;
   customer: string;
   phone: string;
@@ -56,6 +58,7 @@ export default function CarDetailsDialog({ isOpen, onClose, carData, onDeliver, 
 
   const checkInParsed = formatDateAndTime(carData.inTime);
   const checkOutParsed = carData.outTime ? formatDateAndTime(carData.outTime) : { date: "—", time: "Pending" };
+  const displayVehicleNo = carData.vehicleNo || carData.vehicle || carData.vehicleNumber || "—";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -69,44 +72,31 @@ export default function CarDetailsDialog({ isOpen, onClose, carData, onDeliver, 
       <div className="relative bg-gray-50 rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl animate-in fade-in zoom-in-95 duration-200">
 
         {/* Banner Header */}
-        <div className="relative bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 p-8 text-white overflow-hidden">
-          {/* Decorative background circle */}
-          <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 rounded-full bg-white/5 blur-3xl pointer-events-none" />
-
+        <div className="relative bg-white p-6 sm:p-8 text-gray-900 border-b border-gray-100 overflow-hidden">
           <div className="absolute top-4 right-4 flex items-center gap-2 z-50">
-            {onDelete && carData && (
-              <button
-                type="button"
-                onClick={() => {
-                  onClose();
-                  onDelete(carData);
-                }}
-                className="p-2 bg-red-500/20 hover:bg-red-500/40 text-red-300 hover:text-white rounded-full transition-colors backdrop-blur-md cursor-pointer"
-                title="Delete Entry"
-              >
-                <Trash2 className="w-5 h-5" />
-              </button>
-            )}
             <button
               onClick={onClose}
-              className="p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors backdrop-blur-md cursor-pointer"
+              className="p-2 bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-gray-900 rounded-full transition-colors cursor-pointer"
               title="Close"
             >
-              <X className="w-5 h-5 text-white" />
+              <X className="w-5 h-5" />
             </button>
           </div>
 
-          <div className="flex items-center gap-5 relative z-10">
-            <div className="p-4 bg-gradient-to-br from-yellow-400 to-yellow-500 rounded-2xl shadow-[0_0_30px_rgba(250,204,21,0.3)]">
-              <Car className="w-8 h-8 text-yellow-950" />
-            </div>
+          <div className="flex items-center gap-3.5 relative z-10">
+            {/* Standalone Car Icon */}
+            <Car className="w-6 h-6 sm:w-7 sm:h-7 text-gray-800 shrink-0" />
+
+            {/* Plain Text Info */}
             <div>
-              <h2 className="text-3xl font-black tracking-tight">{carData.model || "Unknown Model"}</h2>
-              <div className="flex items-center gap-3 mt-2">
-                <span className="px-3 py-1 rounded-lg bg-white/10 text-yellow-400 font-mono text-sm font-bold border border-white/10 shadow-inner">
-                  {carData.vehicleNo}
-                </span>
-              </div>
+              {/* Vehicle Number - Reduced size */}
+              <h2 className="text-lg sm:text-sm font-bold text-gray-900 tracking-tight font-mono leading-none">
+                {displayVehicleNo}
+              </h2>
+              {/* Vehicle Model - Directly Below */}
+              <p className="text-xs sm:text-sm font-semibold text-gray-500 mt-1 leading-tight">
+                {carData.model || "Unknown Model"}
+              </p>
             </div>
           </div>
         </div>
@@ -149,7 +139,7 @@ export default function CarDetailsDialog({ isOpen, onClose, carData, onDeliver, 
             </div>
           </div>
 
-          {/* Check-In Date Card (Left) */}
+          {/* Check-In Date Card */}
           <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between hover:shadow-md transition-shadow">
             <div className="flex items-center gap-2 text-gray-800 font-bold border-b border-gray-50 pb-3 mb-1">
               <Calendar className="w-4 h-4 text-emerald-600" /> Check-In Date
@@ -159,13 +149,33 @@ export default function CarDetailsDialog({ isOpen, onClose, carData, onDeliver, 
             </div>
           </div>
 
-          {/* Check-In Time Card (Right) */}
+          {/* Check-In Time Card */}
           <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between hover:shadow-md transition-shadow">
             <div className="flex items-center gap-2 text-gray-800 font-bold border-b border-gray-50 pb-3 mb-1">
               <Clock className="w-4 h-4 text-emerald-600" /> Check-In Time
             </div>
             <div>
               <p className="font-extrabold text-gray-900 text-base font-mono">{checkInParsed.time || "—"}</p>
+            </div>
+          </div>
+
+          {/* Check-Out Date Card */}
+          <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between hover:shadow-md transition-shadow">
+            <div className="flex items-center gap-2 text-gray-800 font-bold border-b border-gray-50 pb-3 mb-1">
+              <CalendarCheck2 className="w-4 h-4 text-purple-600" /> Check-Out Date
+            </div>
+            <div>
+              <p className="font-extrabold text-gray-900 text-base">{checkOutParsed.date}</p>
+            </div>
+          </div>
+
+          {/* Check-Out Time Card */}
+          <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between hover:shadow-md transition-shadow">
+            <div className="flex items-center gap-2 text-gray-800 font-bold border-b border-gray-50 pb-3 mb-1">
+              <Clock className="w-4 h-4 text-purple-600" /> Check-Out Time
+            </div>
+            <div>
+              <p className="font-extrabold text-gray-900 text-base font-mono">{checkOutParsed.time || "—"}</p>
             </div>
           </div>
 
@@ -176,10 +186,10 @@ export default function CarDetailsDialog({ isOpen, onClose, carData, onDeliver, 
 
             <div className="relative z-10">
               <div className="flex items-center gap-2 text-yellow-800 font-bold mb-3">
-                <FileText className="w-4 h-4 text-yellow-600" /> Special Notes
+                <FileText className="w-4 h-4 text-yellow-600" /> Notes
               </div>
               <p className="text-sm font-semibold text-yellow-900 leading-relaxed">
-                {carData.notes || "No special notes provided."}
+                {carData.notes || "No notes provided."}
               </p>
             </div>
           </div>
