@@ -181,6 +181,17 @@ export async function deletePayment(id: string) {
   return apiCall(`/payments/${id}`, { method: "DELETE" });
 }
 
+export async function createRefund(data: { originalPaymentId: string; amount: number; reason: string; approvedBy: string }) {
+  return apiCall("/payments/refund", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function getPaymentsByCustomer(customerId: string) {
+  return apiCall(`/payments/customer/${customerId}`);
+}
+
 // ═══════════════════════════════════════════════════════════════
 // CUSTOMERS
 // ═══════════════════════════════════════════════════════════════
@@ -247,7 +258,7 @@ export async function getTechnicianDashboardStats() {
 }
 
 export async function getHQDashboardData() {
-  return apiCall("/hq/dashboard");
+  return apiCall("/reports/hq-summary");
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -304,6 +315,82 @@ export async function updateOutPass(id: string, outPass: any) {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// REPORTS (§16)
+// ═══════════════════════════════════════════════════════════════
+export async function getReports() {
+  return apiCall("/reports");
+}
+
+export async function getHQSummaryReport() {
+  return apiCall("/reports/hq-summary");
+}
+
+export async function getCrmReport(type: string, from?: string, to?: string) {
+  const params = new URLSearchParams();
+  if (from) params.append("from", from);
+  if (to) params.append("to", to);
+  return apiCall(`/reports/crm/${type}?${params.toString()}`);
+}
+
+export async function getCustomerReport(type: string, from?: string, to?: string) {
+  const params = new URLSearchParams();
+  if (from) params.append("from", from);
+  if (to) params.append("to", to);
+  return apiCall(`/reports/customer/${type}?${params.toString()}`);
+}
+
+export async function getEmployeeReport(type: string, from?: string, to?: string) {
+  const params = new URLSearchParams();
+  if (from) params.append("from", from);
+  if (to) params.append("to", to);
+  return apiCall(`/reports/employee/${type}?${params.toString()}`);
+}
+
+export async function getFinancialReport(type: string, from?: string, to?: string) {
+  const params = new URLSearchParams();
+  if (from) params.append("from", from);
+  if (to) params.append("to", to);
+  return apiCall(`/reports/financial/${type}?${params.toString()}`);
+}
+
+export async function getWorkshopReport(type: string, from?: string, to?: string) {
+  const params = new URLSearchParams();
+  if (from) params.append("from", from);
+  if (to) params.append("to", to);
+  const q = params.toString();
+  return apiCall(`/reports/workshop/${type}${q ? `?${q}` : ""}`);
+}
+
+export async function getInventoryReport(type: string, from?: string, to?: string) {
+  const params = new URLSearchParams();
+  if (from) params.append("from", from);
+  if (to) params.append("to", to);
+  const q = params.toString();
+  return apiCall(`/reports/inventory/${type}${q ? `?${q}` : ""}`);
+}
+
+export async function downloadReportCsv(category: string, type: string, from?: string, to?: string) {
+  const params = new URLSearchParams({ type });
+  if (from) params.append("from", from);
+  if (to) params.append("to", to);
+  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+  const url = `${API_URL}/reports/${category}/export?${params.toString()}`;
+  const res = await fetch(url, {
+    headers: token ? { "Authorization": `Bearer ${token}` } : {}
+  });
+  if (!res.ok) throw new Error("Failed to export CSV");
+  const blob = await res.blob();
+  const downloadUrl = window.URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = downloadUrl;
+  a.download = `${category}_${type}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.URL.revokeObjectURL(downloadUrl);
+}
+
+// ═══════════════════════════════════════════════════════════════
 // SERVICES
 // ═══════════════════════════════════════════════════════════════
 export async function getServices() {
@@ -313,6 +400,13 @@ export async function getServices() {
 export async function createService(service: any) {
   return apiCall("/services", {
     method: "POST",
+    body: JSON.stringify(service),
+  });
+}
+
+export async function updateService(id: string, service: any) {
+  return apiCall(`/services/${id}`, {
+    method: "PUT",
     body: JSON.stringify(service),
   });
 }
@@ -334,6 +428,8 @@ export async function updateSettings(settings: any) {
     body: JSON.stringify(settings),
   });
 }
+
+
 
 // ═══════════════════════════════════════════════════════════════
 // JOBS
@@ -385,12 +481,7 @@ export async function deleteFranchise(id: string) {
   return apiCall(`/hq/franchises/${id}`, { method: "DELETE" });
 }
 
-// ═══════════════════════════════════════════════════════════════
-// REPORTS
-// ═══════════════════════════════════════════════════════════════
-export async function getReports() {
-  return apiCall("/reports");
-}
+
 
 // ═══════════════════════════════════════════════════════════════
 // VEHICLE LOOKUP
@@ -559,7 +650,6 @@ export async function getAuditLogs(params?: { search?: string; module?: string; 
   const queryString = query.toString();
   return apiCall(`/hq/audit-logs${queryString ? `?${queryString}` : ""}`);
 }
-
 export async function getFranchiseRequests() {
   return apiCall("/hq/franchise-requests");
 }
@@ -575,4 +665,309 @@ export async function rejectFranchiseRequest(id: string) {
     method: "POST"
   });
 }
+
+export async function getNotifications() {
+  return apiCall("/hq/notifications");
+}
+
+export async function markNotificationRead(id: string) {
+  return apiCall(`/hq/notifications/${id}/read`, {
+    method: "POST"
+  });
+}
+
+export async function markAllNotificationsRead() {
+  return apiCall("/hq/notifications/read-all", {
+    method: "POST"
+  });
+}
+
+export async function broadcastNotification(data: { title: string; message: string; type?: string; link?: string }) {
+  return apiCall("/hq/notifications/broadcast", {
+    method: "POST",
+    body: JSON.stringify(data)
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// VENDOR MASTER & PURCHASE MANAGEMENT (§Vendor & Purchase Management)
+// ═══════════════════════════════════════════════════════════════
+export async function getVendors() {
+  return apiCall("/hq/vendors");
+}
+
+export async function createVendor(data: any) {
+  return apiCall("/hq/vendors", {
+    method: "POST",
+    body: JSON.stringify(data)
+  });
+}
+
+export async function updateVendor(id: string, data: any) {
+  return apiCall(`/hq/vendors/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(data)
+  });
+}
+
+export async function deleteVendor(id: string) {
+  return apiCall(`/hq/vendors/${id}`, {
+    method: "DELETE"
+  });
+}
+
+export async function getPurchases() {
+  return apiCall("/hq/purchases");
+}
+
+export async function createPurchase(data: any) {
+  return apiCall("/hq/purchases", {
+    method: "POST",
+    body: JSON.stringify(data)
+  });
+}
+
+export async function receivePurchaseGoods(id: string) {
+  return apiCall(`/hq/purchases/${id}/receive`, {
+    method: "POST"
+  });
+}
+
+export async function invoicePurchaseOrder(id: string, invoiceNumber: string) {
+  return apiCall(`/hq/purchases/${id}/invoice`, {
+    method: "POST",
+    body: JSON.stringify({ invoiceNumber })
+  });
+}
+
+export async function payPurchaseOrder(id: string, paidAmount: number) {
+  return apiCall(`/hq/purchases/${id}/pay`, {
+    method: "POST",
+    body: JSON.stringify({ paidAmount })
+  });
+}
+
+export async function deletePurchaseOrder(id: string) {
+  return apiCall(`/hq/purchases/${id}`, {
+    method: "DELETE"
+  });
+}
+
+// --- WARRANTY MANAGEMENT (§WARRANTY) ---
+export interface WarrantyClaimRecord {
+  id: string;
+  claimDate: string;
+  description: string;
+  resolution?: string;
+  claimedBy?: string;
+}
+
+export interface WarrantyRecord {
+  id: string;
+  warrantyNo?: string;
+  customerId: string;
+  customer?: {
+    id: string;
+    name: string;
+    phone: string;
+  };
+  vehicleNo: string;
+  jobId?: string;
+  invoiceId?: string;
+  itemName: string;
+  durationDays: number;
+  startDate: string;
+  expiryDate: string;
+  status: string; // "Active", "Expired", "Claimed", "Void"
+  notes?: string;
+  claimsList?: WarrantyClaimRecord[];
+  createdAt: string;
+}
+
+export async function getWarranties(params?: { customerId?: string; vehicleNo?: string; status?: string; search?: string }): Promise<WarrantyRecord[]> {
+  const query = new URLSearchParams();
+  if (params) {
+    if (params.customerId) query.append("customerId", params.customerId);
+    if (params.vehicleNo) query.append("vehicleNo", params.vehicleNo);
+    if (params.status) query.append("status", params.status);
+    if (params.search) query.append("search", params.search);
+  }
+  const queryString = query.toString();
+  return apiCall(`/warranties${queryString ? `?${queryString}` : ""}`);
+}
+
+export async function getWarrantyById(id: string): Promise<WarrantyRecord> {
+  return apiCall(`/warranties/${id}`);
+}
+
+export async function createWarranty(data: {
+  customerId: string;
+  vehicleNo: string;
+  jobId?: string;
+  invoiceId?: string;
+  itemName: string;
+  durationDays: number;
+  startDate?: string;
+  expiryDate?: string;
+  status?: string;
+  notes?: string;
+}): Promise<WarrantyRecord> {
+  return apiCall("/warranties", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function generateWarrantyFromInvoice(invoiceId: string): Promise<WarrantyRecord[]> {
+  return apiCall(`/warranties/generate-from-invoice/${invoiceId}`, {
+    method: "POST",
+  });
+}
+
+export async function updateWarranty(
+  id: string,
+  data: {
+    itemName?: string;
+    durationDays?: number;
+    expiryDate?: string;
+    status?: string;
+    notes?: string;
+  }
+): Promise<WarrantyRecord> {
+  return apiCall(`/warranties/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function addWarrantyClaim(
+  id: string,
+  data: {
+    description: string;
+    resolution?: string;
+    claimedBy?: string;
+    status?: string;
+  }
+): Promise<WarrantyRecord> {
+  return apiCall(`/warranties/${id}/claim`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteWarranty(id: string): Promise<{ success: boolean }> {
+  return apiCall(`/warranties/${id}`, {
+    method: "DELETE",
+  });
+}
+
+
+// ─── MASTERS & CONFIGURATION (§Masters) — HQ Only ────────────────────────────
+
+export const MASTER_CATEGORIES = {
+  // Customer Masters
+  CUSTOMER_TYPE:         { label: "Customer Types",        section: "Customer Masters" },
+  LEAD_SOURCE:           { label: "Lead Sources",           section: "Customer Masters" },
+  REFERRAL_TYPE:         { label: "Referral Types",         section: "Customer Masters" },
+  // Vehicle Masters
+  VEHICLE_BRAND:         { label: "Vehicle Brands",         section: "Vehicle Masters" },
+  VEHICLE_MODEL:         { label: "Vehicle Models",         section: "Vehicle Masters" },
+  FUEL_TYPE:             { label: "Fuel Types",             section: "Vehicle Masters" },
+  COLOUR:                { label: "Colours",                section: "Vehicle Masters" },
+  // Employee Masters
+  DEPARTMENT:            { label: "Departments",            section: "Employee Masters" },
+  DESIGNATION:           { label: "Designations",           section: "Employee Masters" },
+  ROLE:                  { label: "Roles",                  section: "Employee Masters" },
+  // Inventory Masters
+  PRODUCT_CATEGORY:      { label: "Product Categories",     section: "Inventory Masters" },
+  UNIT_OF_MEASURE:       { label: "Units of Measure",       section: "Inventory Masters" },
+  BRAND:                 { label: "Brands",                 section: "Inventory Masters" },
+  // Finance Masters
+  GST_RATE:              { label: "GST Rates",              section: "Finance Masters" },
+  PAYMENT_MODE:          { label: "Payment Modes",          section: "Finance Masters" },
+  DISCOUNT_TYPE:         { label: "Discount Types",         section: "Finance Masters" },
+  // System Masters
+  NOTIFICATION_TEMPLATE: { label: "Notification Templates", section: "System Masters" },
+  NUMBER_SERIES:         { label: "Number Series",          section: "System Masters" },
+  BUSINESS_HOURS:        { label: "Business Hours",         section: "System Masters" },
+  HOLIDAY_CALENDAR:      { label: "Holiday Calendar",       section: "System Masters" },
+} as const;
+
+export type MasterCategory = keyof typeof MASTER_CATEGORIES;
+
+export interface MasterRecord {
+  id: string;
+  category: string;
+  code?: string | null;
+  name: string;
+  value?: string | null;
+  parentId?: string | null;
+  sortOrder: number;
+  status: string;
+  createdBy?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export async function getMasters(params?: {
+  category?: string;
+  parentId?: string;
+  status?: string;
+}): Promise<MasterRecord[]> {
+  const query = new URLSearchParams();
+  if (params?.category) query.append("category", params.category);
+  if (params?.parentId) query.append("parentId", params.parentId);
+  if (params?.status) query.append("status", params.status);
+  const qs = query.toString();
+  return apiCall(`/hq/masters${qs ? `?${qs}` : ""}`);
+}
+
+export async function getMasterCategories(): Promise<string[]> {
+  return apiCall("/hq/masters/categories");
+}
+
+export async function getMasterById(id: string): Promise<MasterRecord> {
+  return apiCall(`/hq/masters/${id}`);
+}
+
+export async function createMaster(data: {
+  category: string;
+  name: string;
+  code?: string;
+  value?: string;
+  parentId?: string;
+  sortOrder?: number;
+  status?: string;
+}): Promise<MasterRecord> {
+  return apiCall("/hq/masters", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateMaster(
+  id: string,
+  data: {
+    name?: string;
+    code?: string;
+    value?: string;
+    parentId?: string;
+    sortOrder?: number;
+    status?: string;
+  }
+): Promise<MasterRecord> {
+  return apiCall(`/hq/masters/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteMaster(id: string): Promise<{ success: boolean; id: string }> {
+  return apiCall(`/hq/masters/${id}`, { method: "DELETE" });
+}
+
+export async function seedMasters(): Promise<{ success: boolean; created: number; skipped: number; total: number }> {
+  return apiCall("/hq/masters/seed", { method: "POST" });
+}
+
 

@@ -30,6 +30,7 @@ export default function NewOutPassDialog({
     security: "",
     destination: "",
     reason: "",
+    customerConfirmation: false,
   });
 
   useEffect(() => {
@@ -45,6 +46,7 @@ export default function NewOutPassDialog({
         security: initialData.securityName || initialData.security || "",
         destination: "",
         reason: initialData.remarks || "",
+        customerConfirmation: false,
       });
     } else if (!isOpen) {
       setFormData({
@@ -58,6 +60,7 @@ export default function NewOutPassDialog({
         security: "",
         destination: "",
         reason: "",
+        customerConfirmation: false,
       });
     }
   }, [initialData, isOpen]);
@@ -100,6 +103,11 @@ export default function NewOutPassDialog({
       return;
     }
 
+    if (!formData.customerConfirmation) {
+      toast.error("Customer confirmation is required before generating an Outpass.");
+      return;
+    }
+
     if (onSubmit) {
       onSubmit({
         vehicle: formData.vehicleNumber,
@@ -111,6 +119,7 @@ export default function NewOutPassDialog({
         securityName: formData.security,
         technicianName: formData.technician,
         remarks: formData.reason,
+        customerConfirmation: true,
       });
     }
     setFormData({
@@ -124,6 +133,7 @@ export default function NewOutPassDialog({
       security: "",
       destination: "",
       reason: "",
+      customerConfirmation: false,
     });
     onClose();
   };
@@ -315,6 +325,24 @@ export default function NewOutPassDialog({
                 required
               />
             </div>
+          </div>
+
+          {/* Customer Confirmation */}
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+            <p className="text-[10px] font-bold text-yellow-700 uppercase tracking-wider mb-2">Customer Confirmation</p>
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={formData.customerConfirmation}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, customerConfirmation: e.target.checked }))
+                }
+                className="mt-0.5 h-4 w-4 rounded border-yellow-400 text-yellow-500 focus:ring-yellow-400 shrink-0"
+              />
+              <span className="text-xs font-semibold text-yellow-900 leading-tight">
+                I confirm that the customer has been notified and has agreed to this vehicle leaving the premises.
+              </span>
+            </label>
           </div>
 
           {/* Submit Button */}

@@ -218,6 +218,11 @@ export default function UserManagementPage() {
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
 
+  // Password reset state (§17.8)
+  const [resetTarget, setResetTarget] = useState<User | null>(null);
+  const [newPassword, setNewPassword] = useState("");
+  const [resetting, setResetting] = useState(false);
+
   // ── Role guard + data load ──
   useEffect(() => {
     const userStr = localStorage.getItem("user");
@@ -518,14 +523,38 @@ export default function UserManagementPage() {
                       <span className="text-xs text-gray-500">{u.franchise?.name ?? "—"}</span>
                     </td>
                     <td className="px-5 py-3.5">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold ${u.status === "Active" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
+                      <button
+                        onClick={async () => {
+                          const nextStatus = u.status === "Active" ? "Inactive" : "Active";
+                          try {
+                            const updated = await updateEmployee(u.id, { status: nextStatus });
+                            setUsers((prev) => prev.map((item) => item.id === updated.id ? updated : item));
+                            toast.success(`User status changed to ${nextStatus}`);
+                          } catch (e: any) {
+                            toast.error(e.message);
+                          }
+                        }}
+                        className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-extrabold cursor-pointer transition-all ${
+                          u.status === "Active"
+                            ? "bg-green-100 text-green-700 hover:bg-green-200"
+                            : "bg-red-100 text-red-700 hover:bg-red-200"
+                        }`}
+                        title="Click to toggle account activation/deactivation (§17.8)"
+                      >
                         {u.status}
-                      </span>
+                      </button>
                     </td>
                     <td className="px-5 py-3.5 text-right">
                       <div className="flex items-center justify-end gap-1.5">
                         <button onClick={() => openView(u)} className="p-1.5 rounded-lg hover:bg-blue-50 text-gray-400 hover:text-blue-600 transition-colors" title="View dashboard preview">
                           <Eye className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => { setResetTarget(u); setNewPassword(""); }}
+                          className="p-1.5 rounded-lg hover:bg-purple-50 text-gray-400 hover:text-purple-600 transition-colors"
+                          title="Reset Password (§17.8)"
+                        >
+                          <Lock className="w-4 h-4" />
                         </button>
                         <button onClick={() => openEdit(u)} className="p-1.5 rounded-lg hover:bg-yellow-50 text-gray-400 hover:text-yellow-600 transition-colors" title="Edit user">
                           <Pencil className="w-4 h-4" />
@@ -704,6 +733,67 @@ export default function UserManagementPage() {
                   </div>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Password Reset Modal (§17.8) */}
+      {resetTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-xl border border-gray-200 w-full max-w-md overflow-hidden">
+            <div className="bg-slate-900 text-white px-6 py-4 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Lock className="w-5 h-5 text-purple-400" />
+                <h3 className="font-bold text-base">Reset User Password (§17.8)</h3>
+              </div>
+              <button onClick={() => setResetTarget(null)} className="text-gray-400 hover:text-white">✕</button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="p-3 bg-purple-50 rounded-xl border border-purple-100">
+                <p className="text-xs text-purple-600 font-bold uppercase">Target Account</p>
+                <p className="text-sm font-black text-gray-900 mt-0.5">
+                  {resetTarget.name} ({resetTarget.username || resetTarget.role})
+                </p>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-700 uppercase mb-1">New Password</label>
+                <input
+                  type="password"
+                  placeholder="Enter new strong password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-100">
+                <button
+                  type="button"
+                  onClick={() => setResetTarget(null)}
+                  className="px-4 py-2 border border-gray-300 rounded-xl text-sm font-bold text-gray-700 hover:bg-gray-50 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={resetting || !newPassword}
+                  onClick={async () => {
+                    setResetting(true);
+                    try {
+                      await updateEmployee(resetTarget.id, { password: newPassword });
+                      toast.success("Password reset successfully!");
+                      setResetTarget(null);
+                    } catch (e: any) {
+                      toast.error("Failed to reset password: " + e.message);
+                    } finally {
+                      setResetting(false);
+                    }
+                  }}
+                  className="px-5 py-2 bg-purple-600 hover:bg-purple-500 text-white text-sm font-bold rounded-xl transition disabled:opacity-50"
+                >
+                  {resetting ? "Resetting..." : "Save New Password"}
+                </button>
+              </div>
             </div>
           </div>
         </div>

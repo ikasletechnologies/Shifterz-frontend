@@ -3,8 +3,8 @@
 import { useState, useEffect, useContext } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { Bell, Settings, User, LogOut, Clock, Menu } from "lucide-react";
-import { getSettings } from "@/lib/api";
+import { Bell, Settings, User, LogOut, Clock, Menu, CheckCheck } from "lucide-react";
+import { getSettings, getNotifications, markAllNotificationsRead } from "@/lib/api";
 import { SidebarContext } from "@/lib/context/SidebarContext";
 
 const pageHeaders: Record<string, { title: string; description: string }> = {
@@ -192,6 +192,8 @@ export default function Header() {
   const [companyInitials, setCompanyInitials] = useState("AD");
   const [userName, setUserName] = useState<string>("");
   const [userRole, setUserRole] = useState<string>("");
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [isNotifOpen, setIsNotifOpen] = useState(false);
 
   useEffect(() => {
     const userStr = localStorage.getItem("user");
@@ -231,6 +233,18 @@ export default function Header() {
     }
     loadCompany();
 
+    async function loadNotifs() {
+      try {
+        const notifs = await getNotifications();
+        if (Array.isArray(notifs)) {
+          setNotifications(notifs);
+        }
+      } catch (err) {
+        console.error("Failed to load notifications:", err);
+      }
+    }
+    loadNotifs();
+
     return () => clearInterval(timer);
   }, []);
 
@@ -262,6 +276,77 @@ export default function Header() {
           </div>
 
           <div className="h-8 w-px bg-gray-200 mx-2 hidden md:block"></div>
+
+          {/* Notification Bell (§17.6) */}
+          <div className="relative">
+            <button
+              onClick={() => setIsNotifOpen(!isNotifOpen)}
+              onBlur={() => setTimeout(() => setIsNotifOpen(false), 200)}
+              className="relative p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition-colors"
+              title="Notifications"
+            >
+              <Bell className="w-5 h-5" />
+              {notifications.filter((n) => !n.read).length > 0 && (
+                <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                  {notifications.filter((n) => !n.read).length > 9 ? "9+" : notifications.filter((n) => !n.read).length}
+                </span>
+              )}
+            </button>
+
+            {isNotifOpen && (
+              <div className="absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-xl border border-gray-100 py-3 z-50">
+                <div className="flex items-center justify-between px-4 pb-2 border-b border-gray-100">
+                  <span className="text-sm font-bold text-gray-900">
+                    Notifications ({notifications.filter((n) => !n.read).length} unread)
+                  </span>
+                  {notifications.filter((n) => !n.read).length > 0 && (
+                    <button
+                      onMouseDown={async (e) => {
+                        e.preventDefault();
+                        await markAllNotificationsRead();
+                        setNotifications((prev) =>
+                          prev.map((n) => ({ ...n, read: true }))
+                        );
+                      }}
+                      className="text-xs text-blue-600 font-semibold hover:underline"
+                    >
+                      Mark all read
+                    </button>
+                  )}
+                </div>
+                <div className="max-h-64 overflow-y-auto divide-y divide-gray-50">
+                  {notifications.length === 0 ? (
+                    <div className="py-6 text-center text-xs text-gray-400">
+                      No notifications yet
+                    </div>
+                  ) : (
+                    notifications.slice(0, 5).map((n: any, idx: number) => (
+                      <div
+                        key={idx}
+                        className={`p-3 text-left transition-colors ${
+                          n.read ? "bg-white text-gray-600" : "bg-blue-50/40 text-gray-900"
+                        }`}
+                      >
+                        <p className="text-xs font-bold truncate">{n.title}</p>
+                        <p className="text-xs text-gray-500 line-clamp-2 mt-0.5">{n.message}</p>
+                        <span className="text-[10px] text-gray-400 mt-1 block">
+                          {new Date(n.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                        </span>
+                      </div>
+                    ))
+                  )}
+                </div>
+                <div className="pt-2 px-4 border-t border-gray-100 text-center">
+                  <Link
+                    href="/dashboard/franchise-control/notifications"
+                    className="text-xs font-bold text-blue-600 hover:text-blue-700 block py-1"
+                  >
+                    View All in Notification Center →
+                  </Link>
+                </div>
+              </div>
+            )}
+          </div>
 
           <div className="flex items-center text-right hidden md:block">
             <p className="text-sm font-bold text-gray-900 capitalize">{userName || "User"}</p>

@@ -42,6 +42,8 @@ export default function VehicleDeliveryDialog({
     technician: "",
     security: "",
     remarks: "",
+    customerAcknowledgement: false,
+    customerAcknowledgementName: "",
   });
 
   useEffect(() => {
@@ -59,6 +61,8 @@ export default function VehicleDeliveryDialog({
           technician: carData.technician || "",
           security: "",
           remarks: "",
+          customerAcknowledgement: false,
+          customerAcknowledgementName: "",
         });
       } else {
         setFormData({
@@ -73,6 +77,8 @@ export default function VehicleDeliveryDialog({
           technician: "",
           security: "",
           remarks: "",
+          customerAcknowledgement: false,
+          customerAcknowledgementName: "",
         });
       }
     }
@@ -114,10 +120,17 @@ export default function VehicleDeliveryDialog({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.customerAcknowledgement) {
+      alert("Customer must verify the vehicle and provide acknowledgement before delivery.");
+      return;
+    }
     if (onSubmit) {
       onSubmit({
         ...carData,
         ...formData,
+        customerAcknowledgement: formData.customerAcknowledgementName
+          ? `Acknowledged by: ${formData.customerAcknowledgementName}`
+          : "Customer Acknowledged",
       });
     }
     onClose();
@@ -345,6 +358,38 @@ export default function VehicleDeliveryDialog({
               rows={3}
               className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none text-xs font-medium bg-white"
             />
+          </div>
+
+          {/* Customer Verification & Acknowledgement */}
+          <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 space-y-3">
+            <p className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">Customer Verification & Acknowledgement</p>
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={formData.customerAcknowledgement}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, customerAcknowledgement: e.target.checked }))
+                }
+                className="mt-0.5 h-4 w-4 rounded border-emerald-300 text-emerald-600 focus:ring-emerald-400 shrink-0"
+              />
+              <span className="text-xs font-semibold text-emerald-900 leading-tight">
+                Customer has verified the vehicle and acknowledged satisfactory completion of all work.
+              </span>
+            </label>
+            {formData.customerAcknowledgement && (
+              <div className="flex items-center gap-2 pt-1">
+                <User className="w-4 h-4 text-emerald-600 shrink-0" />
+                <input
+                  type="text"
+                  placeholder="Customer name / signature (optional)"
+                  value={formData.customerAcknowledgementName}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, customerAcknowledgementName: e.target.value }))
+                  }
+                  className="w-full text-xs font-semibold text-emerald-900 placeholder:text-emerald-400 bg-white border border-emerald-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                />
+              </div>
+            )}
           </div>
 
           {/* Submit Button */}

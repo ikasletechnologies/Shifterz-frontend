@@ -40,6 +40,11 @@ export default function RecordPaymentDialog({
   });
 
   const [existingPayments, setExistingPayments] = useState<any[]>([]);
+  const [isSplitMode, setIsSplitMode] = useState(false);
+  const [splitModes, setSplitModes] = useState<Array<{ mode: string; amount: number }>>([
+    { mode: "Cash", amount: 0 },
+    { mode: "UPI", amount: 0 },
+  ]);
 
   useEffect(() => {
     if (isOpen && invoiceData) {
@@ -51,15 +56,19 @@ export default function RecordPaymentDialog({
         client: invoiceData.client || "",
         phone: invoiceData.phone || "",
         invoiceNo: invoiceData.id || "",
-        totalAmount: total.toString(), // Use total instead of remaining for the read-only field
-        amount: remaining.toString(), // Suggest remaining amount
+        totalAmount: total.toString(),
+        amount: remaining.toString(),
         mode: "UPI",
         date: invoiceData.date || new Date().toISOString().split("T")[0],
         reference: "",
         notes: "",
       });
+      setIsSplitMode(false);
+      setSplitModes([
+        { mode: "Cash", amount: Math.floor(remaining / 2) },
+        { mode: "UPI", amount: remaining - Math.floor(remaining / 2) },
+      ]);
 
-      // Fetch existing payments
       import("@/lib/api").then(({ getPayments }) => {
         getPayments().then((payments: any[]) => {
           setExistingPayments(payments.filter(p => p.invoiceId === invoiceData.id));
@@ -72,7 +81,9 @@ export default function RecordPaymentDialog({
   const remainingBeforePayment = (Number(formData.totalAmount) || 0) - totalPaidBefore;
   
   const calculateOutstanding = () => {
-    const paidNow = Number(formData.amount) || 0;
+    const paidNow = isSplitMode
+      ? splitModes.reduce((sum, item) => sum + (Number(item.amount) || 0), 0)
+      : Number(formData.amount) || 0;
     return Math.max(0, remainingBeforePayment - paidNow);
   };
 
@@ -95,9 +106,29 @@ export default function RecordPaymentDialog({
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const handleSplitChange = (index: number, field: "mode" | "amount", value: any) => {
+    setSplitModes(prev => {
+      const copy = [...prev];
+      copy[index] = { ...copy[index], [field]: field === "amount" ? Number(value) : value };
+      return copy;
+    });
+  };
+
+  const handleAddSplit = () => {
+    setSplitModes(prev => [...prev, { mode: "Card", amount: 0 }]);
+  };
+
+  const handleRemoveSplit = (index: number) => {
+    setSplitModes(prev => prev.filter((_, idx) => idx !== index));
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.client.trim() || !formData.amount) {
+    const finalAmount = isSplitMode
+      ? splitModes.reduce((sum, item) => sum + (Number(item.amount) || 0), 0)
+      : Number(formData.amount);
+
+    if (!formData.client.trim() || !finalAmount) {
       alert("Client name and amount are required");
       return;
     }
@@ -106,8 +137,9 @@ export default function RecordPaymentDialog({
       const newPayment = {
         invoiceId: formData.invoiceNo,
         client: formData.client,
-        amount: Number(formData.amount),
-        mode: formData.mode,
+        amount: finalAmount,
+        mode: isSplitMode ? "Split" : formData.mode,
+        multipleModes: isSplitMode ? splitModes : undefined,
         date: formData.date,
         ref: formData.reference,
         notes: formData.notes,
@@ -126,6 +158,7 @@ export default function RecordPaymentDialog({
       reference: "",
       notes: "",
     });
+    setIsSplitMode(false);
     onClose();
   };
 
@@ -268,21 +301,78 @@ export default function RecordPaymentDialog({
           {/* Row 4: Payment Mode & Date (Editable) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">
-                Payment Mode <span className="text-red-500">*</span>
-              </label>
-              <select
-                name="mode"
-                value={formData.mode}
-                onChange={handleChange}
-                className="w-full px-3 py-2 sm:py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent bg-white text-gray-900 text-sm"
-              >
-                <option>UPI</option>
-                <option>Cash</option>
-                <option>Card</option>
-                <option>NEFT</option>
-                <option>Cheque</option>
-              </select>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide">
+                  Payment Mode <span className="text-red-500">*</span>
+                </label>
+                <label className="flex items-center gap-1.5 text-xs text-blue-600 font-semibold cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={isSplitMode}
+                    onChange={(e) => setIsSplitMode(e.target.checked)}
+                    className="rounded text-blue-600 focus:ring-blue-400"
+                  />
+                  Split Modes
+                </label>
+              </div>
+
+              {!isSplitMode ? (
+                <select
+                  name="mode"
+                  value={formData.mode}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 sm:py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent bg-white text-gray-900 text-sm"
+                >
+                  <option>UPI</option>
+                  <option>Cash</option>
+                  <option>Debit Card</option>
+                  <option>Credit Card</option>
+                  <option>Bank Transfer</option>
+                  <option>Cheque</option>
+                </select>
+              ) : (
+                <div className="space-y-2 border border-blue-200 bg-blue-50/50 p-2.5 rounded-lg">
+                  {splitModes.map((item, idx) => (
+                    <div key={idx} className="flex items-center gap-2">
+                      <select
+                        value={item.mode}
+                        onChange={(e) => handleSplitChange(idx, "mode", e.target.value)}
+                        className="w-1/2 px-2 py-1.5 text-xs border border-gray-300 rounded bg-white text-gray-900"
+                      >
+                        <option>Cash</option>
+                        <option>UPI</option>
+                        <option>Debit Card</option>
+                        <option>Credit Card</option>
+                        <option>Bank Transfer</option>
+                        <option>Cheque</option>
+                      </select>
+                      <input
+                        type="number"
+                        value={item.amount}
+                        onChange={(e) => handleSplitChange(idx, "amount", e.target.value)}
+                        placeholder="Amount"
+                        className="w-1/2 px-2 py-1.5 text-xs border border-gray-300 rounded bg-white text-gray-900"
+                      />
+                      {splitModes.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveSplit(idx)}
+                          className="text-red-500 font-bold px-1"
+                        >
+                          ×
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={handleAddSplit}
+                    className="text-xs text-blue-600 font-bold hover:underline"
+                  >
+                    + Add Payment Mode
+                  </button>
+                </div>
+              )}
             </div>
             <div>
               <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">

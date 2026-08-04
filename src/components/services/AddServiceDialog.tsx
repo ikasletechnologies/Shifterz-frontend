@@ -7,12 +7,17 @@ import { getSettings } from "@/lib/api";
 
 interface ServiceData {
   id?: string;
+  code?: string;
   name: string;
   category: string;
-  price: string;
+  price: string | number;
+  minPrice?: string | number;
+  gst?: string | number;
   duration: string;
   warranty: string;
   description?: string;
+  desc?: string;
+  status?: string;
 }
 
 interface AddServiceDialogProps {
@@ -50,15 +55,26 @@ export default function AddServiceDialog({ isOpen, onClose, serviceData, onSave 
 
   useEffect(() => {
     if (serviceData) {
-      setFormData(serviceData);
+      setFormData({
+        ...serviceData,
+        code: serviceData.code || serviceData.id || "",
+        minPrice: serviceData.minPrice ?? 0,
+        gst: serviceData.gst ?? 18,
+        status: serviceData.status || "Active",
+        description: serviceData.description || serviceData.desc || "",
+      });
     } else {
       setFormData({
+        code: "",
         name: "",
         category: categories.length > 0 ? categories[0] : "PPF",
         price: "",
+        minPrice: 0,
+        gst: 18,
         duration: "",
         warranty: "",
         description: "",
+        status: "Active",
       });
     }
   }, [serviceData, isOpen, categories]);
@@ -67,7 +83,15 @@ export default function AddServiceDialog({ isOpen, onClose, serviceData, onSave 
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (onSave) onSave(formData);
+    if (onSave) {
+      onSave({
+        ...formData,
+        price: Number(formData.price) || 0,
+        minPrice: Number(formData.minPrice) || 0,
+        gst: Number(formData.gst) || 18,
+        desc: formData.description || formData.desc || "",
+      });
+    }
     onClose();
   };
 
@@ -97,6 +121,17 @@ export default function AddServiceDialog({ isOpen, onClose, serviceData, onSave 
         
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           <div className="grid grid-cols-2 gap-x-6 gap-y-4">
+            <div className="col-span-2 sm:col-span-1 space-y-1.5">
+              <label className="text-[11px] font-bold text-[#64748b] uppercase tracking-wider">Service Code</label>
+              <input 
+                type="text" 
+                value={formData.code || ""}
+                onChange={e => setFormData({...formData, code: e.target.value})}
+                className="w-full px-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm text-[#334155] focus:outline-none focus:ring-2 focus:ring-[#f59e0b] focus:bg-white transition-colors"
+                placeholder="Auto or e.g. SRV-001"
+              />
+            </div>
+
             <div className="col-span-2 sm:col-span-1 space-y-1.5">
               <label className="text-[11px] font-bold text-[#64748b] uppercase tracking-wider">Service Name *</label>
               <input 
@@ -132,15 +167,49 @@ export default function AddServiceDialog({ isOpen, onClose, serviceData, onSave 
             </div>
             
             <div className="col-span-2 sm:col-span-1 space-y-1.5">
-              <label className="text-[11px] font-bold text-[#64748b] uppercase tracking-wider">Price (₹) *</label>
+              <label className="text-[11px] font-bold text-[#64748b] uppercase tracking-wider">Standard Price (₹) *</label>
               <input 
                 required
-                type="text" 
+                type="number" 
                 value={formData.price}
                 onChange={e => setFormData({...formData, price: e.target.value})}
                 className="w-full px-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm text-[#334155] focus:outline-none focus:ring-2 focus:ring-[#f59e0b] focus:bg-white transition-colors"
                 placeholder="45000"
               />
+            </div>
+
+            <div className="col-span-2 sm:col-span-1 space-y-1.5">
+              <label className="text-[11px] font-bold text-[#64748b] uppercase tracking-wider">Minimum Price (₹)</label>
+              <input 
+                type="number" 
+                value={formData.minPrice ?? 0}
+                onChange={e => setFormData({...formData, minPrice: e.target.value})}
+                className="w-full px-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm text-[#334155] focus:outline-none focus:ring-2 focus:ring-[#f59e0b] focus:bg-white transition-colors"
+                placeholder="40000"
+              />
+            </div>
+
+            <div className="col-span-2 sm:col-span-1 space-y-1.5">
+              <label className="text-[11px] font-bold text-[#64748b] uppercase tracking-wider">GST (%)</label>
+              <input 
+                type="number" 
+                value={formData.gst ?? 18}
+                onChange={e => setFormData({...formData, gst: e.target.value})}
+                className="w-full px-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm text-[#334155] focus:outline-none focus:ring-2 focus:ring-[#f59e0b] focus:bg-white transition-colors"
+                placeholder="18"
+              />
+            </div>
+
+            <div className="col-span-2 sm:col-span-1 space-y-1.5">
+              <label className="text-[11px] font-bold text-[#64748b] uppercase tracking-wider">Status</label>
+              <select 
+                value={formData.status || "Active"}
+                onChange={e => setFormData({...formData, status: e.target.value})}
+                className="w-full px-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm text-[#334155] focus:outline-none focus:ring-2 focus:ring-[#f59e0b] focus:bg-white transition-colors"
+              >
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+              </select>
             </div>
             
             <div className="col-span-2 sm:col-span-1 space-y-1.5">

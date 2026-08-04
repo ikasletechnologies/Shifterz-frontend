@@ -9,16 +9,21 @@ interface PaymentReceiptDialogProps {
   onClose: () => void;
   payment?: {
     id: string;
-    invoiceRef: string;
+    receiptNumber?: string;
+    invoiceRef?: string;
     client: string;
     phone?: string;
     vehicle?: string;
     service?: string;
     amount: string;
     mode: string;
+    multipleModes?: Array<{ mode: string; amount: number }>;
+    type?: string;
+    outstandingBalance?: number;
     date: string;
     reference: string;
     notes?: string;
+    collectedBy?: string;
   };
 }
 
@@ -49,7 +54,7 @@ export default function PaymentReceiptDialog({
         <!DOCTYPE html>
         <html>
           <head>
-            <title>Payment Receipt - ${payment.id}</title>
+            <title>Payment Receipt - ${payment.receiptNumber || payment.id}</title>
             <script src="https://cdn.tailwindcss.com"></script>
             <style>
               @media print {
@@ -106,8 +111,10 @@ export default function PaymentReceiptDialog({
           {/* Header */}
           <div className="bg-yellow-400 text-gray-900 px-6 py-5 text-center">
             <h1 className="text-3xl font-black mb-2 tracking-wide">{companyInfo?.name || 'SHIFTERZ'}</h1>
-            <h2 className="text-sm font-bold mb-1 tracking-widest">PAYMENT RECEIPT</h2>
-            <p className="text-xs font-semibold text-red-600">{payment.id}</p>
+            <h2 className="text-sm font-bold mb-1 tracking-widest">
+              {(payment.type || 'PAYMENT RECEIPT').toUpperCase()}
+            </h2>
+            <p className="text-xs font-semibold text-red-600">{payment.receiptNumber || payment.id}</p>
           </div>
 
           {/* Content */}
@@ -119,10 +126,12 @@ export default function PaymentReceiptDialog({
             </div>
 
             {/* Invoice ID */}
-            <div className="flex justify-between items-center py-2.5 border-b border-gray-200">
-              <span className="text-xs text-gray-600 uppercase tracking-wider font-bold">Invoice ID</span>
-              <span className="font-bold text-red-600 text-sm">{payment.invoiceRef}</span>
-            </div>
+            {payment.invoiceRef && (
+              <div className="flex justify-between items-center py-2.5 border-b border-gray-200">
+                <span className="text-xs text-gray-600 uppercase tracking-wider font-bold">Invoice ID</span>
+                <span className="font-bold text-red-600 text-sm">{payment.invoiceRef}</span>
+              </div>
+            )}
 
             {payment.vehicle && (
               <div className="flex justify-between items-center py-2.5 border-b border-gray-200">
@@ -144,13 +153,35 @@ export default function PaymentReceiptDialog({
               <span className="font-black text-green-600 text-2xl">{payment.amount}</span>
             </div>
 
-            {/* Payment Mode */}
-            <div className="flex justify-between items-center py-2.5 border-b border-gray-200">
-              <span className="text-xs text-gray-600 uppercase tracking-wider font-bold">Payment Mode</span>
-              <span className="px-2 py-1 bg-gray-100 text-gray-900 rounded text-xs font-bold">
-                {payment.mode}
-              </span>
+            {/* Payment Mode (Split or Single) */}
+            <div className="py-2.5 border-b border-gray-200">
+              <div className="flex justify-between items-center">
+                <span className="text-xs text-gray-600 uppercase tracking-wider font-bold">Payment Mode</span>
+                <span className="px-2 py-1 bg-gray-100 text-gray-900 rounded text-xs font-bold">
+                  {payment.mode}
+                </span>
+              </div>
+              {payment.multipleModes && payment.multipleModes.length > 0 && (
+                <div className="mt-2 pl-3 border-l-2 border-blue-400 space-y-1">
+                  {payment.multipleModes.map((m, idx) => (
+                    <div key={idx} className="flex justify-between text-xs text-gray-700">
+                      <span>{m.mode}:</span>
+                      <span className="font-bold">₹{m.amount.toLocaleString('en-IN')}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
+
+            {/* Outstanding Balance */}
+            {typeof payment.outstandingBalance === 'number' && (
+              <div className="flex justify-between items-center py-2.5 border-b border-gray-200">
+                <span className="text-xs text-gray-600 uppercase tracking-wider font-bold">Outstanding Balance</span>
+                <span className={`font-bold text-xs ${payment.outstandingBalance > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                  ₹{payment.outstandingBalance.toLocaleString('en-IN')}
+                </span>
+              </div>
+            )}
 
             {/* Payment Date */}
             <div className="flex justify-between items-center py-2.5 border-b border-gray-200">
@@ -159,21 +190,26 @@ export default function PaymentReceiptDialog({
             </div>
 
             {/* Reference */}
-            <div className="flex justify-between items-center py-2.5">
-              <span className="text-xs text-gray-600 uppercase tracking-wider font-bold">Reference</span>
-              <span className="font-semibold text-gray-900 text-xs">{payment.reference}</span>
-            </div>
+            {payment.reference && (
+              <div className="flex justify-between items-center py-2.5 border-b border-gray-200">
+                <span className="text-xs text-gray-600 uppercase tracking-wider font-bold">Reference</span>
+                <span className="font-semibold text-gray-900 text-xs">{payment.reference}</span>
+              </div>
+            )}
 
             {payment.notes && (
-              <div className="py-2.5 border-t border-gray-200 mt-3">
+              <div className="py-2.5 border-b border-gray-200 mt-2">
                 <span className="text-xs text-gray-600 uppercase tracking-wider font-bold">Notes</span>
                 <p className="font-semibold text-gray-900 mt-1 text-xs">{payment.notes}</p>
               </div>
             )}
 
             {/* Footer */}
-            <div className="text-center pt-4 border-t border-gray-200 mt-4">
+            <div className="text-center pt-4 mt-4">
               <p className="text-xs text-gray-900 font-bold mb-1">Thank you for your payment!</p>
+              {payment.collectedBy && (
+                <p className="text-[10px] text-gray-500 mb-1">Collected by: {payment.collectedBy}</p>
+              )}
               <p className="text-xs text-gray-600">For queries: 0422-123 4567</p>
             </div>
           </div>

@@ -43,10 +43,13 @@ import {
   Bell,
   ActivitySquare,
   ScrollText,
+  Shield,
+  Database,
   ChevronDown,
   ChevronRight,
   HardHat,
   Headset,
+  Key,
 } from "lucide-react";
 import { SidebarContext } from "@/lib/context/SidebarContext";
 
@@ -70,7 +73,7 @@ const franchiseControlChildren: Omit<NavItem, "children">[] = [
   // { label: "Franchise Management", icon: LayoutList, href: "/dashboard/franchise-control/management" },
   { label: "All Franchises", icon: Building2, href: "/dashboard/franchise-control/all" },
   { label: "Add Franchise", icon: PlusSquare, href: "/dashboard/franchise-control/add" },
-  { label: "Franchise Employees", icon: UsersRound, href: "/dashboard/franchise-control/employees" },
+  { label: "Franchise Employees", icon: UsersRound, href: "/dashboard/franchise-control/users" },
   { label: "Employee Approval", icon: UserCog, href: "/dashboard/franchise-control/employee-approval" },
   { label: "Inventory Requests", icon: PackageSearch, href: "/dashboard/franchise-control/inventory-requests" },
   { label: "Inventory Approval", icon: PackageCheck, href: "/dashboard/franchise-control/inventory-approval" },
@@ -80,7 +83,8 @@ const franchiseControlChildren: Omit<NavItem, "children">[] = [
   { label: "Purchase Approval", icon: ClipboardCheck, href: "/dashboard/franchise-control/purchase-approval" },
   { label: "Service Requests", icon: ConciergeBell, href: "/dashboard/franchise-control/service-requests" },
   { label: "Service Approval", icon: BadgeCheck, href: "/dashboard/franchise-control/service-approval" },
-  { label: "Roles & Permissions", icon: ShieldCheck, href: "/dashboard/franchise-control/roles" },
+  { label: "License Management", icon: Key, href: "/dashboard/franchise-control/licenses" },
+  { label: "Roles & Permissions", icon: ShieldCheck, href: "/dashboard/roles" },
   { label: "Notifications", icon: Bell, href: "/dashboard/franchise-control/notifications" },
   { label: "Activity Logs", icon: ActivitySquare, href: "/dashboard/franchise-control/activity-logs" },
   { label: "Audit Logs", icon: ScrollText, href: "/dashboard/franchise-control/audit-logs" },
@@ -113,6 +117,7 @@ const hqSidebarSections: NavSection[] = [
     items: [
       { label: "Billing", icon: FileText, href: "/dashboard/billing", module: "billing" },
       { label: "Payments", icon: CreditCard, href: "/dashboard/payments", module: "payments" },
+      { label: "Warranties", icon: Shield, href: "/dashboard/warranties", module: "billing" },
     ],
   },
   {
@@ -144,6 +149,8 @@ const hqSidebarSections: NavSection[] = [
         module: "franchise"
       },
       { label: "Services", icon: Wrench, href: "/dashboard/services", module: "services" },
+      { label: "Vendors & Purchases", icon: ShoppingCart, href: "/dashboard/franchise-control/purchases", module: "inventory" },
+      { label: "Masters & Config", icon: Database, href: "/dashboard/masters", module: "settings" },
       { label: "User Management", icon: UserRoundCog, href: "/dashboard/franchise-control/users", module: "employees" },
     ],
   },
@@ -152,6 +159,9 @@ const hqSidebarSections: NavSection[] = [
     items: [
       { label: "Settings", icon: Settings, href: "/dashboard/settings", module: "settings" },
       { label: "Roles & Permissions", icon: ShieldCheck, href: "/dashboard/roles", module: "roles" },
+      { label: "License Management", icon: Key, href: "/dashboard/franchise-control/licenses", module: "settings" },
+      { label: "Audit Logs", icon: ScrollText, href: "/dashboard/franchise-control/audit-logs", module: "settings" },
+      { label: "Notifications", icon: Bell, href: "/dashboard/franchise-control/notifications", module: "settings" },
       { label: "Profile", icon: User, href: "/dashboard/profile" },
     ],
   },
@@ -184,6 +194,7 @@ const franchiseSidebarSections: NavSection[] = [
     items: [
       { label: "Billing", icon: FileText, href: "/dashboard/billing", module: "billing" },
       { label: "Payments", icon: CreditCard, href: "/dashboard/payments", module: "payments" },
+      { label: "Warranties", icon: Shield, href: "/dashboard/warranties", module: "billing" },
     ],
   },
   {
