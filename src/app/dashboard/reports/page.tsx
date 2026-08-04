@@ -1,11 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Download, Wallet, Users, ClipboardList, Wrench } from "lucide-react";
+import { Download, Wallet, Users, ClipboardList, Wrench, FileText, Calendar, TrendingUp } from "lucide-react";
 import { getReports } from "@/lib/api";
+import { getInvoiceRegister } from "@/modules/billing/services/billing.service";
+import { BillingReportRow } from "@/modules/billing/types/billing.types";
 
 export default function ReportsPage() {
   const [data, setData] = useState<any>(null);
+  const [billingReports, setBillingReports] = useState<BillingReportRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -13,8 +16,12 @@ export default function ReportsPage() {
     async function fetchReports() {
       try {
         setIsLoading(true);
-        const res = await getReports();
+        const [res, registerData] = await Promise.all([
+          getReports(),
+          getInvoiceRegister()
+        ]);
         setData(res);
+        setBillingReports(registerData);
       } catch (err: any) {
         setError(err.message || "Failed to load reports");
         console.error(err);
@@ -47,68 +54,48 @@ export default function ReportsPage() {
   const franchiseRevenue = reports.franchiseRevenue || 0;
   const totalInventoryValue = inventoryValue.reduce((sum: number, item: any) => sum + item.value, 0);
 
-  const downloadCSV = (csvContent: string, filename: string) => {
-    const element = document.createElement("a");
-    const file = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    element.href = URL.createObjectURL(file);
-    element.download = filename;
-    element.style.display = "none";
-    document.body.appendChild(element);
-    element.click();
-    document.body.removeChild(element);
-  };
+  // Calculate Billing KPIs from register data
+  const today = new Date().toISOString().split("T")[0];
+  const thisMonth = today.substring(0, 7);
+  let dailySales = 0;
+  let monthlySales = 0;
+  let gstCollected = 0;
+
+  billingReports.forEach(row => {
+    if (row.date === today) dailySales += row.total || 0;
+    if (row.date?.startsWith(thisMonth)) monthlySales += row.total || 0;
+    gstCollected += row.gst || 0;
+  });
 
   const handleExportReport = (reportType: string) => {
-    let csvContent = "";
-    const date = new Date().toISOString().split("T")[0];
+    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+    
+    // Map UI button labels to valid backend /reports/export?type= values
+    const typeMap: Record<string, string> = {
+      "Revenue Report":    "service-wise",
+      "Employee Report":   "employee-wise",
+      "All Jobs":          "jobs",
+      "Open Jobs":         "open-jobs",
+      "Completed Jobs":    "completed-jobs",
+      "Pending Jobs":      "pending-jobs",
+      "Franchise P&L":     "branch-wise",
+      "Job Summary":       "jobs",
+    };
 
-    if (reportType === "Revenue Report") {
-      csvContent = "Service,Amount (₹),Percentage\n";
-      serviceRevenue.forEach((item: any) => {
-        csvContent += `${item.service},${item.amount},${item.percentage}%\n`;
-      });
-      const total = serviceRevenue.reduce((sum: number, item: any) => sum + item.amount, 0);
-      csvContent += `Total Revenue,${total},100%\n`;
-    } else if (reportType === "Lead Report") {
-      csvContent = "Lead Source,Count,Percentage\n";
-      leadSources.forEach((item: any) => {
-        csvContent += `${item.source},${item.count},${item.percentage}%\n`;
-      });
-      const total = leadSources.reduce((sum: number, item: any) => sum + item.count, 0);
-      csvContent += `Total Leads,${total},100%\n`;
-    } else if (reportType === "Inventory Report") {
-      csvContent = "Category,Stock Value (₹),Items\n";
-      inventoryValue.forEach((item: any) => {
-        csvContent += `${item.category},${item.value},${item.items}\n`;
-      });
-      const totalItems = inventoryValue.reduce((sum: number, item: any) => sum + item.items, 0);
-      csvContent += `Total,${totalInventoryValue},${totalItems}\n`;
-    } else if (reportType === "Invoice Aging") {
-      csvContent = "Status,Amount (₹),Document Count\n";
-      billingData.forEach((item: any) => {
-        csvContent += `${item.status},${item.amount},${item.count}\n`;
-      });
-      const totalAmount = billingData.reduce((sum: number, item: any) => sum + item.amount, 0);
-      const totalCount = billingData.reduce((sum: number, item: any) => sum + item.count, 0);
-      csvContent += `Total,${totalAmount},${totalCount}\n`;
-    } else if (reportType === "Franchise P&L") {
-      csvContent = "Metric,Amount (₹)\n";
-      csvContent += `Total Invoiced,${totalInvoiced}\n`;
-      csvContent += `Total Collected,${totalCollected}\n`;
-      csvContent += `Outstanding,${totalInvoiced - totalCollected}\n`;
-      csvContent += `Franchise Revenue,${franchiseRevenue}\n`;
-      csvContent += `Collection Rate,${totalInvoiced > 0 ? ((totalCollected / totalInvoiced) * 100).toFixed(1) : 0}%\n`;
-    } else if (reportType === "Job Summary") {
-      csvContent = "Job Status,Count\n";
-      jobSummary.forEach((item: any) => {
-        csvContent += `${item.status},${item.count}\n`;
-      });
-      const total = jobSummary.reduce((sum: number, item: any) => sum + item.count, 0);
-      csvContent += `Total Jobs,${total}\n`;
-    }
+    const typeParam = typeMap[reportType] || "jobs";
+    const url = `${apiBase}/reports/export?type=${typeParam}&token=${token || ""}`;
+    window.open(url, "_blank");
+  };
 
-    const filename = `${reportType.replace(/\s+/g, "_")}_${date}.csv`;
-    downloadCSV(csvContent, filename);
+  // 13.13: Invoice Register, Daily/Monthly Sales, Customer/Franchise-wise Revenue, GST Summary.
+  // Separate handler + endpoint namespace (/reports/billing/export) from the report above,
+  // which points at a different, unrelated /reports/export endpoint.
+  const handleExportBillingReport = (type: string) => {
+    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+    const url = `${apiBase}/reports/billing/export?type=${type}&token=${token || ""}`;
+    window.open(url, "_blank");
   };
 
   return (
@@ -301,6 +288,111 @@ export default function ReportsPage() {
         </div>
       </div>
 
+      {/* Billing Reports Section */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-6">
+        <div className="p-6 border-b border-gray-100">
+          <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+            <FileText className="w-5 h-5 text-blue-500" /> Billing Reports (§13.13)
+          </h3>
+        </div>
+        
+        <div className="p-6 border-b border-gray-100 bg-gray-50/50">
+          <div className="grid grid-cols-3 gap-6">
+            <div className="bg-white rounded-lg p-4 border border-gray-200">
+              <div className="flex items-center gap-2 mb-2">
+                <Calendar className="w-4 h-4 text-blue-500" />
+                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Today's Sales</p>
+              </div>
+              <p className="text-2xl font-black text-gray-900">₹{dailySales.toLocaleString("en-IN")}</p>
+            </div>
+            <div className="bg-white rounded-lg p-4 border border-gray-200">
+              <div className="flex items-center gap-2 mb-2">
+                <TrendingUp className="w-4 h-4 text-purple-500" />
+                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">This Month's Sales</p>
+              </div>
+              <p className="text-2xl font-black text-gray-900">₹{monthlySales.toLocaleString("en-IN")}</p>
+            </div>
+            <div className="bg-white rounded-lg p-4 border border-gray-200">
+              <div className="flex items-center gap-2 mb-2">
+                <Wallet className="w-4 h-4 text-green-500" />
+                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Total GST Collected</p>
+              </div>
+              <p className="text-2xl font-black text-gray-900">₹{gstCollected.toLocaleString("en-IN")}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-6 border-b border-gray-100">
+          <h4 className="text-sm font-bold text-gray-700 mb-4">Recent Invoice Register</h4>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-200 bg-gray-50/75">
+                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Doc No</th>
+                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Date</th>
+                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Customer</th>
+                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Vehicle</th>
+                  <th className="px-4 py-3 text-right text-xs font-bold text-gray-600 uppercase tracking-wider">Amount</th>
+                  <th className="px-4 py-3 text-right text-xs font-bold text-gray-600 uppercase tracking-wider">GST</th>
+                  <th className="px-4 py-3 text-right text-xs font-bold text-gray-600 uppercase tracking-wider">Discount</th>
+                  <th className="px-4 py-3 text-right text-xs font-bold text-gray-600 uppercase tracking-wider">Total</th>
+                  <th className="px-4 py-3 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {billingReports.slice(0, 5).map((row) => (
+                  <tr key={row.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-2 font-mono text-xs">{row.id}</td>
+                    <td className="px-4 py-2 text-gray-600">{row.date}</td>
+                    <td className="px-4 py-2 font-medium">{row.client}</td>
+                    <td className="px-4 py-2 text-gray-600">{row.vehicle}</td>
+                    <td className="px-4 py-2 text-right">₹{(row.amount || 0).toLocaleString("en-IN")}</td>
+                    <td className="px-4 py-2 text-right">₹{(row.gst || 0).toLocaleString("en-IN")}</td>
+                    <td className="px-4 py-2 text-right text-red-600">₹{(row.discount || 0).toLocaleString("en-IN")}</td>
+                    <td className="px-4 py-2 text-right font-bold">₹{(row.total || 0).toLocaleString("en-IN")}</td>
+                    <td className="px-4 py-2 text-center">
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
+                        row.status === 'Paid' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
+                      }`}>
+                        {row.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+                {billingReports.length === 0 && (
+                  <tr>
+                    <td colSpan={9} className="px-4 py-8 text-center text-gray-500">No invoices found</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div className="p-6 bg-gray-50/50">
+          <h4 className="text-sm font-bold text-gray-700 mb-4">Export Billing Reports</h4>
+          <div className="flex flex-wrap gap-3">
+            {[
+              { label: "Invoice Register", type: "register", color: "blue" },
+              { label: "Daily Sales", type: "daily-sales", color: "green" },
+              { label: "Monthly Sales", type: "monthly-sales", color: "purple" },
+              { label: "Customer Revenue", type: "customer-wise", color: "orange" },
+              { label: "Franchise Revenue", type: "franchise-wise", color: "indigo" },
+              { label: "GST Summary", type: "gst-summary", color: "red" }
+            ].map((report) => (
+              <button
+                key={report.type}
+                onClick={() => handleExportBillingReport(report.type)}
+                className={`flex items-center gap-2 px-4 py-2.5 bg-${report.color}-50 hover:bg-${report.color}-100 text-${report.color}-700 font-semibold rounded-lg transition-colors border border-${report.color}-200`}
+              >
+                <Download className="w-4 h-4" />
+                {report.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
       {/* Export Reports */}
       <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
         <h3 className="text-lg font-bold text-gray-900 mb-4">Export Reports</h3>
@@ -310,42 +402,49 @@ export default function ReportsPage() {
             className="flex items-center gap-2 px-4 py-2.5 bg-yellow-100 hover:bg-yellow-200 text-yellow-700 font-semibold rounded-lg transition-colors border border-yellow-200"
           >
             <Download className="w-4 h-4" />
-            Revenue Report
+            Revenue Report (Service-wise)
           </button>
           <button
-            onClick={() => handleExportReport("Lead Report")}
+            onClick={() => handleExportReport("Employee Report")}
             className="flex items-center gap-2 px-4 py-2.5 bg-purple-100 hover:bg-purple-200 text-purple-700 font-semibold rounded-lg transition-colors border border-purple-200"
           >
             <Download className="w-4 h-4" />
-            Lead Report
-          </button>
-          <button
-            onClick={() => handleExportReport("Inventory Report")}
-            className="flex items-center gap-2 px-4 py-2.5 bg-green-100 hover:bg-green-200 text-green-700 font-semibold rounded-lg transition-colors border border-green-200"
-          >
-            <Download className="w-4 h-4" />
-            Inventory Report
-          </button>
-          <button
-            onClick={() => handleExportReport("Invoice Aging")}
-            className="flex items-center gap-2 px-4 py-2.5 bg-blue-100 hover:bg-blue-200 text-blue-700 font-semibold rounded-lg transition-colors border border-blue-200"
-          >
-            <Download className="w-4 h-4" />
-            Invoice Aging
+            Employee Report
           </button>
           <button
             onClick={() => handleExportReport("Franchise P&L")}
             className="flex items-center gap-2 px-4 py-2.5 bg-indigo-100 hover:bg-indigo-200 text-indigo-700 font-semibold rounded-lg transition-colors border border-indigo-200"
           >
             <Download className="w-4 h-4" />
-            Franchise P&L
+            Franchise P&L (Branch-wise)
           </button>
           <button
-            onClick={() => handleExportReport("Job Summary")}
+            onClick={() => handleExportReport("All Jobs")}
             className="flex items-center gap-2 px-4 py-2.5 bg-cyan-100 hover:bg-cyan-200 text-cyan-700 font-semibold rounded-lg transition-colors border border-cyan-200"
           >
             <Download className="w-4 h-4" />
-            Job Summary
+            All Jobs
+          </button>
+          <button
+            onClick={() => handleExportReport("Open Jobs")}
+            className="flex items-center gap-2 px-4 py-2.5 bg-orange-100 hover:bg-orange-200 text-orange-700 font-semibold rounded-lg transition-colors border border-orange-200"
+          >
+            <Download className="w-4 h-4" />
+            Open Jobs
+          </button>
+          <button
+            onClick={() => handleExportReport("Completed Jobs")}
+            className="flex items-center gap-2 px-4 py-2.5 bg-green-100 hover:bg-green-200 text-green-700 font-semibold rounded-lg transition-colors border border-green-200"
+          >
+            <Download className="w-4 h-4" />
+            Completed Jobs
+          </button>
+          <button
+            onClick={() => handleExportReport("Pending Jobs")}
+            className="flex items-center gap-2 px-4 py-2.5 bg-red-100 hover:bg-red-200 text-red-700 font-semibold rounded-lg transition-colors border border-red-200"
+          >
+            <Download className="w-4 h-4" />
+            Pending Jobs
           </button>
         </div>
       </div>

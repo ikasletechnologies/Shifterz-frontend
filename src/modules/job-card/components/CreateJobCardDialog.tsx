@@ -26,6 +26,8 @@ const DEFAULT_FORM: JobCardFormData = {
   estCompletion: "",
   actualCompletion: "",
   notes: "",
+  technicianInstructions: "",
+  internalRemarks: "",
 };
 
 const VEHICLE_REGEX = /^[A-Z]{2}\s\d{2}\s[A-Z]{1,2}\s\d{1,4}$/;
@@ -248,6 +250,30 @@ export function CreateJobCardDialog({ isOpen, onClose, onSave, initialData }: Cr
                 placeholder="Work stages, observations..."
               />
             </div>
+
+            {/* Technician Instructions */}
+            <div className="col-span-2 space-y-1.5">
+              <label className="text-[11px] font-bold text-amber-600 uppercase tracking-wider">Technician Instructions</label>
+              <textarea
+                value={formData.technicianInstructions || ""}
+                onChange={(e) => setFormData({ ...formData, technicianInstructions: e.target.value })}
+                className="w-full px-4 py-2.5 bg-amber-50/50 border border-amber-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white min-h-[70px]"
+                placeholder="Step-by-step instructions for the technician..."
+              />
+            </div>
+
+            {/* Internal Remarks — management only */}
+            {['SUPER_ADMIN','HQ_USER','FRANCHISE_ADMIN','BRANCH_MANAGER'].includes((userRole || "").toUpperCase().replace(/[\s_]+/g, "_")) && (
+              <div className="col-span-2 space-y-1.5">
+                <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">Internal Remarks <span className="text-[10px] font-normal text-slate-400 normal-case">(Staff Only — not on customer copy)</span></label>
+                <textarea
+                  value={formData.internalRemarks || ""}
+                  onChange={(e) => setFormData({ ...formData, internalRemarks: e.target.value })}
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-400 focus:bg-white min-h-[70px]"
+                  placeholder="Internal notes, pricing notes, special instructions..."
+                />
+              </div>
+            )}
           </div>
 
           <button

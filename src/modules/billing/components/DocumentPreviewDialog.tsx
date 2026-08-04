@@ -27,7 +27,12 @@ interface DocumentPreviewDialogProps {
     paymentTerms?: string;
     deliveryTerms?: string;
     authorizedSignatory?: string;
+    warranty?: string | null;
   };
+}
+
+function parseAmount(value: string): number {
+  return Number(String(value).replace(/[^0-9.-]/g, "")) || 0;
 }
 
 export default function DocumentPreviewDialog({
@@ -51,11 +56,18 @@ export default function DocumentPreviewDialog({
     if (document.items && document.items.length > 0) {
       return document.items.map(item => {
         const itemAmount = item.amount || (item.qty * item.price) || 0;
+        const lineDiscAmt = item.discountPercent ? (itemAmount * item.discountPercent / 100) : 0;
+        const lineGstAmt = ((itemAmount - lineDiscAmt) * (item.gstPercent ?? 18)) / 100;
         return `
         <tr>
           <td>${item.desc || '-'}</td>
           <td style="text-align:center">${item.qty}</td>
           <td style="text-align:right">₹${Number(item.price || 0).toLocaleString("en-IN")}</td>
+          <td style="text-align:center">${item.discountPercent ? `${item.discountPercent}%` : '-'}</td>
+          <td style="text-align:right">₹${Number(lineDiscAmt).toLocaleString("en-IN")}</td>
+          <td style="text-align:center">${item.gstPercent ?? 18}%</td>
+          <td style="text-align:right">₹${Number(lineGstAmt).toLocaleString("en-IN")}</td>
+          <td style="text-align:center">${item.warranty || '-'}</td>
           <td class="amount">₹${Number(itemAmount).toLocaleString("en-IN")}</td>
         </tr>
       `}).join("");
@@ -65,6 +77,11 @@ export default function DocumentPreviewDialog({
         <td>${document.service}</td>
         <td style="text-align:center">1</td>
         <td style="text-align:right">${document.base}</td>
+        <td style="text-align:center">-</td>
+        <td style="text-align:right">₹0</td>
+        <td style="text-align:center">18%</td>
+        <td style="text-align:right">₹${(parseAmount(document.base) * 0.18).toLocaleString("en-IN")}</td>
+        <td style="text-align:center">-</td>
         <td class="amount">${document.base}</td>
       </tr>
     `;
@@ -274,29 +291,43 @@ export default function DocumentPreviewDialog({
                       <th>DESCRIPTION</th>
                       <th style="text-align:center">QTY</th>
                       <th style="text-align:right">UNIT PRICE</th>
+                      <th style="text-align:center">DISC %</th>
+                      <th style="text-align:right">DISC AMT</th>
+                      <th style="text-align:center">GST %</th>
+                      <th style="text-align:right">GST AMT</th>
+                      <th style="text-align:center">WARRANTY</th>
                       <th class="amount">AMOUNT</th>
                     </tr>
                   </thead>
                   <tbody>
                     ${renderItemsHtml()}
                     <tr class="gst-row">
-                      <td colspan="3" style="text-align:right"><strong>Subtotal</strong></td>
+                      <td colspan="8" style="text-align:right"><strong>Subtotal</strong></td>
                       <td class="amount"><strong>${document.base}</strong></td>
                     </tr>
                     <tr class="gst-row">
-                      <td colspan="3" style="text-align:right">GST (18%)</td>
-                      <td class="amount">${document.gst}</td>
+                      <td colspan="8" style="text-align:right">CGST</td>
+                      <td class="amount">₹${(parseAmount(document.gst) / 2).toLocaleString("en-IN")}</td>
+                    </tr>
+                    <tr class="gst-row">
+                      <td colspan="8" style="text-align:right">SGST</td>
+                      <td class="amount">₹${(parseAmount(document.gst) / 2).toLocaleString("en-IN")}</td>
                     </tr>
                     ${document.discount ? `<tr class="gst-row">
-                      <td colspan="3" style="text-align:right">Discount</td>
+                      <td colspan="8" style="text-align:right">Discount</td>
                       <td class="amount" style="color: #DC2626;">-${document.discount}</td>
                     </tr>` : ''}
                     <tr class="total-row">
-                      <td colspan="3" style="text-align:right">TOTAL</td>
+                      <td colspan="8" style="text-align:right">TOTAL</td>
                       <td class="amount">${document.total}</td>
                     </tr>
                   </tbody>
                 </table>
+
+                ${document.warranty ? `
+                <div style="margin: 16px 0; padding: 12px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; font-size: 13px;">
+                  <strong>Warranty:</strong> ${document.warranty}
+                </div>` : ''}
 
                 <div class="terms-section">
                   <div class="terms-left">
@@ -454,6 +485,21 @@ export default function DocumentPreviewDialog({
                       <th className="px-2 sm:px-4 md:px-6 py-2 sm:py-4 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">
                         Unit Price
                       </th>
+                      <th className="px-2 sm:px-4 md:px-6 py-2 sm:py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">
+                        Disc %
+                      </th>
+                      <th className="px-2 sm:px-4 md:px-6 py-2 sm:py-4 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">
+                        Disc Amt
+                      </th>
+                      <th className="px-2 sm:px-4 md:px-6 py-2 sm:py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">
+                        GST %
+                      </th>
+                      <th className="px-2 sm:px-4 md:px-6 py-2 sm:py-4 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">
+                        GST Amt
+                      </th>
+                      <th className="px-2 sm:px-4 md:px-6 py-2 sm:py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">
+                        Warranty
+                      </th>
                       <th className="px-2 sm:px-4 md:px-6 py-2 sm:py-4 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">
                         Amount
                       </th>
@@ -463,11 +509,18 @@ export default function DocumentPreviewDialog({
                     {document.items && document.items.length > 0 ? (
                       document.items.map((item, idx) => {
                         const itemAmount = item.amount || (item.qty * item.price) || 0;
+                        const lineDiscAmt = item.discountPercent ? (itemAmount * item.discountPercent / 100) : 0;
+                        const lineGstAmt = ((itemAmount - lineDiscAmt) * (item.gstPercent ?? 18)) / 100;
                         return (
                         <tr key={idx} className="bg-white">
                           <td className="px-2 sm:px-4 md:px-6 py-2 sm:py-4 text-gray-900 font-medium truncate">{item.desc}</td>
                           <td className="px-2 sm:px-4 md:px-6 py-2 sm:py-4 text-center text-gray-600">{item.qty}</td>
                           <td className="px-2 sm:px-4 md:px-6 py-2 sm:py-4 text-right text-gray-600">₹{Number(item.price || 0).toLocaleString("en-IN")}</td>
+                          <td className="px-2 sm:px-4 md:px-6 py-2 sm:py-4 text-center text-gray-600">{item.discountPercent ? `${item.discountPercent}%` : "-"}</td>
+                          <td className="px-2 sm:px-4 md:px-6 py-2 sm:py-4 text-right text-gray-600">₹{Number(lineDiscAmt).toLocaleString("en-IN")}</td>
+                          <td className="px-2 sm:px-4 md:px-6 py-2 sm:py-4 text-center text-gray-600">{item.gstPercent ?? 18}%</td>
+                          <td className="px-2 sm:px-4 md:px-6 py-2 sm:py-4 text-right text-gray-600">₹{Number(lineGstAmt).toLocaleString("en-IN")}</td>
+                          <td className="px-2 sm:px-4 md:px-6 py-2 sm:py-4 text-center text-gray-600">{item.warranty || "-"}</td>
                           <td className="px-2 sm:px-4 md:px-6 py-2 sm:py-4 text-right text-gray-900 font-semibold">
                             ₹{Number(itemAmount).toLocaleString("en-IN")}
                           </td>
@@ -478,33 +531,44 @@ export default function DocumentPreviewDialog({
                         <td className="px-2 sm:px-4 md:px-6 py-2 sm:py-4 text-gray-900 font-medium">{document.service}</td>
                         <td className="px-2 sm:px-4 md:px-6 py-2 sm:py-4 text-center text-gray-600">1</td>
                         <td className="px-2 sm:px-4 md:px-6 py-2 sm:py-4 text-right text-gray-600">{document.base}</td>
+                        <td className="px-2 sm:px-4 md:px-6 py-2 sm:py-4 text-center text-gray-600">-</td>
+                        <td className="px-2 sm:px-4 md:px-6 py-2 sm:py-4 text-right text-gray-600">₹0</td>
+                        <td className="px-2 sm:px-4 md:px-6 py-2 sm:py-4 text-center text-gray-600">18%</td>
+                        <td className="px-2 sm:px-4 md:px-6 py-2 sm:py-4 text-right text-gray-600">₹{(parseAmount(document.base) * 0.18).toLocaleString("en-IN")}</td>
+                        <td className="px-2 sm:px-4 md:px-6 py-2 sm:py-4 text-center text-gray-600">-</td>
                         <td className="px-2 sm:px-4 md:px-6 py-2 sm:py-4 text-right text-gray-900 font-semibold">
                           {document.base}
                         </td>
                       </tr>
                     )}
                     <tr className="bg-gray-50/50">
-                      <td colSpan={3} className="px-2 sm:px-4 md:px-6 py-2 sm:py-4 text-right text-gray-600 font-medium">Subtotal</td>
+                      <td colSpan={8} className="px-2 sm:px-4 md:px-6 py-2 sm:py-4 text-right text-gray-600 font-medium">Subtotal</td>
                       <td className="px-2 sm:px-4 md:px-6 py-2 sm:py-4 text-right text-gray-900 font-bold">
                         {document.base.includes('₹') ? document.base : `₹${document.base}`}
                       </td>
                     </tr>
                     <tr className="bg-gray-50/50">
-                      <td colSpan={3} className="px-2 sm:px-4 md:px-6 py-2 sm:py-4 text-right text-gray-600 font-medium">GST (18%)</td>
+                      <td colSpan={8} className="px-2 sm:px-4 md:px-6 py-2 sm:py-4 text-right text-gray-600 font-medium">CGST</td>
                       <td className="px-2 sm:px-4 md:px-6 py-2 sm:py-4 text-right text-gray-900 font-semibold">
-                        {document.gst.includes('₹') ? document.gst : `₹${document.gst}`}
+                        ₹{(parseAmount(document.gst) / 2).toLocaleString("en-IN")}
+                      </td>
+                    </tr>
+                    <tr className="bg-gray-50/50">
+                      <td colSpan={8} className="px-2 sm:px-4 md:px-6 py-2 sm:py-4 text-right text-gray-600 font-medium">SGST</td>
+                      <td className="px-2 sm:px-4 md:px-6 py-2 sm:py-4 text-right text-gray-900 font-semibold">
+                        ₹{(parseAmount(document.gst) / 2).toLocaleString("en-IN")}
                       </td>
                     </tr>
                     {document.discount && (
                       <tr className="bg-gray-50/50">
-                        <td colSpan={3} className="px-2 sm:px-4 md:px-6 py-2 sm:py-4 text-right text-gray-600 font-medium">Discount</td>
+                        <td colSpan={8} className="px-2 sm:px-4 md:px-6 py-2 sm:py-4 text-right text-gray-600 font-medium">Discount</td>
                         <td className="px-2 sm:px-4 md:px-6 py-2 sm:py-4 text-right text-red-600 font-semibold">
                           -{document.discount.includes('₹') ? document.discount : `₹${document.discount}`}
                         </td>
                       </tr>
                     )}
                     <tr className="bg-yellow-50">
-                      <td colSpan={3} className="px-2 sm:px-4 md:px-6 py-2 sm:py-4 md:py-5 text-right font-bold text-gray-900 uppercase tracking-wider text-xs sm:text-sm">
+                      <td colSpan={8} className="px-2 sm:px-4 md:px-6 py-2 sm:py-4 md:py-5 text-right font-bold text-gray-900 uppercase tracking-wider text-xs sm:text-sm">
                         Total
                       </td>
                       <td className="px-2 sm:px-4 md:px-6 py-2 sm:py-4 md:py-5 text-right font-bold text-yellow-600 text-base sm:text-lg md:text-xl">
@@ -514,6 +578,13 @@ export default function DocumentPreviewDialog({
                   </tbody>
                 </table>
               </div>
+
+              {document.warranty && (
+                <div className="mb-4 sm:mb-6 md:mb-8 p-3 bg-green-50 border border-green-200 rounded-lg text-xs sm:text-sm">
+                  <span className="font-bold text-gray-900">Warranty: </span>
+                  <span className="text-gray-700">{document.warranty}</span>
+                </div>
+              )}
 
               {/* Terms & Signatory */}
               <div className="flex flex-col md:flex-row justify-between gap-6 mt-6 sm:mt-8 md:mt-10 text-xs sm:text-sm">

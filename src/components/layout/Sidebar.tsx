@@ -97,6 +97,7 @@ const hqSidebarSections: NavSection[] = [
     items: [
       { label: "Car In / Out", icon: Car, href: "/dashboard/carin", module: "carin" },
       { label: "Job Cards", icon: Briefcase, href: "/dashboard/jobs", module: "jobs" },
+      { label: "Live Status", icon: ActivitySquare, href: "/dashboard/live-status", module: "jobs" },
       { label: "Out Pass", icon: Ticket, href: "/dashboard/outpass", module: "outpass" },
     ],
   },
@@ -167,6 +168,7 @@ const franchiseSidebarSections: NavSection[] = [
     items: [
       { label: "Car In / Out", icon: Car, href: "/dashboard/carin", module: "carin" },
       { label: "Job Cards", icon: Briefcase, href: "/dashboard/jobs", module: "jobs" },
+      { label: "Live Status", icon: ActivitySquare, href: "/dashboard/live-status", module: "jobs" },
       { label: "Out Pass", icon: Ticket, href: "/dashboard/outpass", module: "outpass" },
     ],
   },

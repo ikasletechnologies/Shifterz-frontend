@@ -195,6 +195,13 @@ export async function createCustomer(customer: any) {
   });
 }
 
+export async function updateCustomer(id: string, customer: any) {
+  return apiCall(`/customers/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(customer),
+  });
+}
+
 export async function deleteCustomer(id: string) {
   return apiCall(`/customers/${id}`, { method: "DELETE" });
 }
@@ -520,6 +527,52 @@ export async function updateMemberTransfer(id: string, data: any) {
 export async function deleteMemberTransfer(id: string) {
   return apiCall(`/member-transfers/${id}`, {
     method: "DELETE"
+  });
+}
+
+export async function getLicenses() {
+  return apiCall("/hq/licenses");
+}
+
+export async function createLicense(data: any) {
+  return apiCall("/hq/licenses", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function activateLicense(licenseKey: string, franchiseId: string) {
+  return apiCall("/hq/licenses/activate", {
+    method: "POST",
+    body: JSON.stringify({ licenseKey, franchiseId }),
+  });
+}
+
+export async function getAuditLogs(params?: { search?: string; module?: string; action?: string; branchId?: string }) {
+  const query = new URLSearchParams();
+  if (params) {
+    if (params.search) query.append("search", params.search);
+    if (params.module) query.append("module", params.module);
+    if (params.action) query.append("action", params.action);
+    if (params.branchId) query.append("branchId", params.branchId);
+  }
+  const queryString = query.toString();
+  return apiCall(`/hq/audit-logs${queryString ? `?${queryString}` : ""}`);
+}
+
+export async function getFranchiseRequests() {
+  return apiCall("/hq/franchise-requests");
+}
+
+export async function approveFranchiseRequest(id: string) {
+  return apiCall(`/hq/franchise-requests/${id}/approve`, {
+    method: "POST"
+  });
+}
+
+export async function rejectFranchiseRequest(id: string) {
+  return apiCall(`/hq/franchise-requests/${id}/reject`, {
+    method: "POST"
   });
 }
 

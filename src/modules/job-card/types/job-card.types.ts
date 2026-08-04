@@ -40,6 +40,12 @@ export interface JobCard {
   actualCompletion: string;
   notes: string;
   photos?: string[];
+  checkInPhotos?: string[];
+  workProgressPhotos?: string[];
+  completionPhotos?: string[];
+  technicianInstructions?: string;
+  internalRemarks?: string;
+  inspectionDetails?: any;
 }
 
 export interface JobCardFormData {
@@ -58,6 +64,12 @@ export interface JobCardFormData {
   actualCompletion: string;
   notes: string;
   photos?: string[];
+  checkInPhotos?: string[];
+  workProgressPhotos?: string[];
+  completionPhotos?: string[];
+  technicianInstructions?: string;
+  internalRemarks?: string;
+  inspectionDetails?: any;
 }
 
 export interface JobCardStats {

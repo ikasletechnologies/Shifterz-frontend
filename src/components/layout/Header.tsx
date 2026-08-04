@@ -20,6 +20,10 @@ const pageHeaders: Record<string, { title: string; description: string }> = {
     title: "Job Card",
     description: "Manage job cards and workshop activities",
   },
+  "/dashboard/live-status": {
+    title: "Live Status",
+    description: "Real-time view of every active vehicle in the workshop",
+  },
   "/dashboard/outpass": {
     title: "Outpass",
     description: "Manage vehicle out passes",

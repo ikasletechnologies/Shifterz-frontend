@@ -12,10 +12,19 @@ import { toast } from "react-hot-toast";
 export default function SettingsPage() {
   const [companyInfo, setCompanyInfo] = useState({
     name: "",
+    companyLogo: "",
+    gstin: "",
+    panNumber: "",
+    registeredAddress: "",
+    branchAddress: "",
+    city: "",
+    state: "",
+    country: "",
+    pinCode: "",
     address: "",
     phone: "",
     email: "",
-    gstin: "",
+    website: "",
     gstPercent: "18"
   });
 
@@ -46,7 +55,25 @@ export default function SettingsPage() {
         setIsLoading(true);
         const data = await getSettings();
         if (data) {
-          setCompanyInfo(prev => data.companyInfo || prev);
+          // Normalize API response to frontend state keys
+          const normInfo = {
+            name: data.companyInfo?.companyName || data.companyInfo?.name || "",
+            companyLogo: data.companyInfo?.companyLogo || "",
+            gstin: data.companyInfo?.gstin || "",
+            panNumber: data.companyInfo?.panNumber || "",
+            registeredAddress: data.companyInfo?.registeredAddress || "",
+            branchAddress: data.companyInfo?.branchAddress || "",
+            city: data.companyInfo?.city || "",
+            state: data.companyInfo?.state || "",
+            country: data.companyInfo?.country || "",
+            pinCode: data.companyInfo?.pinCode || "",
+            address: data.companyInfo?.address || "",
+            phone: data.companyInfo?.phone || "",
+            email: data.companyInfo?.email || "",
+            website: data.companyInfo?.website || "",
+            gstPercent: String(data.companyInfo?.gstPct || "18")
+          };
+          setCompanyInfo(normInfo);
           setSalesAgents(data.salesAgents || []);
           setSecurityGuards(data.securityGuards || []);
           setCategories(data.categories || []);
@@ -76,6 +103,8 @@ export default function SettingsPage() {
       setCompanyInfo(prev => ({ ...prev, [name]: value.replace(/\D/g, "").slice(0, 10) }));
     } else if (name === "gstin") {
       setCompanyInfo(prev => ({ ...prev, [name]: value.toUpperCase().slice(0, 15) }));
+    } else if (name === "panNumber") {
+      setCompanyInfo(prev => ({ ...prev, [name]: value.toUpperCase().slice(0, 10) }));
     } else {
       setCompanyInfo(prev => ({ ...prev, [name]: value }));
     }
@@ -83,8 +112,25 @@ export default function SettingsPage() {
 
   const handleSaveSettings = async () => {
     try {
-      // Exclude technicians from global settings update
-      await updateSettings({ companyInfo, salesAgents, securityGuards, categories });
+      // Map back to backend structure (Setting model keys)
+      const mappedInfo = {
+        companyName: companyInfo.name,
+        companyLogo: companyInfo.companyLogo,
+        gstin: companyInfo.gstin,
+        panNumber: companyInfo.panNumber,
+        registeredAddress: companyInfo.registeredAddress,
+        branchAddress: companyInfo.branchAddress,
+        city: companyInfo.city,
+        state: companyInfo.state,
+        country: companyInfo.country,
+        pinCode: companyInfo.pinCode,
+        address: companyInfo.address,
+        phone: companyInfo.phone,
+        email: companyInfo.email,
+        website: companyInfo.website,
+        gstPct: Number(companyInfo.gstPercent)
+      };
+      await updateSettings({ companyInfo: mappedInfo, salesAgents, securityGuards, categories });
       toast.success("Settings saved successfully!");
     } catch (err: any) {
       console.error("Failed to save settings:", err);
@@ -277,51 +323,86 @@ export default function SettingsPage() {
 
         {/* Company Information */}
         {activeTab === "company" && (
-          <div className="max-w-2xl">
+          <div>
             <h2 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
               <Building2 className="w-5 h-5 text-yellow-500" /> Company Information
             </h2>
-            <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Company Name</label>
                 <input type="text" name="name" value={companyInfo.name} onChange={handleCompanyInfoChange} className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-yellow-500/20 focus:border-yellow-500 transition-colors" />
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Address</label>
-                <textarea name="address" value={companyInfo.address} onChange={handleCompanyInfoChange} rows={3} className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-yellow-500/20 focus:border-yellow-500 transition-colors resize-y" />
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Company Logo (URL)</label>
+                <input type="text" name="companyLogo" value={companyInfo.companyLogo} onChange={handleCompanyInfoChange} className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-800 focus:outline-none" />
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Phone</label>
-                <PhoneInput
-                  name="phone"
-                  value={companyInfo.phone}
-                  onChange={handleCompanyInfoChange}
-                  placeholder="XXXXX XXXXX"
-                />
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">GST Number</label>
+                <input type="text" name="gstin" value={companyInfo.gstin} onChange={handleCompanyInfoChange} maxLength={15} className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-800 focus:outline-none" />
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Email</label>
-                <input type="email" name="email" value={companyInfo.email} onChange={handleCompanyInfoChange} className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-yellow-500/20 focus:border-yellow-500 transition-colors" />
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">PAN Number</label>
+                <input type="text" name="panNumber" value={companyInfo.panNumber} onChange={handleCompanyInfoChange} maxLength={10} className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-800 focus:outline-none" />
+              </div>
+
+              <div className="space-y-1.5 md:col-span-2">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Registered Address</label>
+                <textarea name="registeredAddress" value={companyInfo.registeredAddress} onChange={handleCompanyInfoChange} rows={2} className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-800 focus:outline-none" />
+              </div>
+
+              <div className="space-y-1.5 md:col-span-2">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Branch Address</label>
+                <textarea name="branchAddress" value={companyInfo.branchAddress} onChange={handleCompanyInfoChange} rows={2} className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-800 focus:outline-none" />
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">GSTIN</label>
-                <input type="text" name="gstin" value={companyInfo.gstin} onChange={handleCompanyInfoChange} maxLength={15} className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-yellow-500/20 focus:border-yellow-500 transition-colors" />
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">City</label>
+                <input type="text" name="city" value={companyInfo.city} onChange={handleCompanyInfoChange} className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-800 focus:outline-none" />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">State</label>
+                <input type="text" name="state" value={companyInfo.state} onChange={handleCompanyInfoChange} className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-800 focus:outline-none" />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Country</label>
+                <input type="text" name="country" value={companyInfo.country} onChange={handleCompanyInfoChange} className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-800 focus:outline-none" />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">PIN Code</label>
+                <input type="text" name="pinCode" value={companyInfo.pinCode} onChange={handleCompanyInfoChange} className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-800 focus:outline-none" />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Contact Number (Phone)</label>
+                <PhoneInput name="phone" value={companyInfo.phone} onChange={handleCompanyInfoChange} placeholder="XXXXX XXXXX" />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Email Address</label>
+                <input type="email" name="email" value={companyInfo.email} onChange={handleCompanyInfoChange} className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-800 focus:outline-none" />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Website</label>
+                <input type="text" name="website" value={companyInfo.website} onChange={handleCompanyInfoChange} className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-800 focus:outline-none" />
               </div>
 
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">GST %</label>
-                <input type="number" name="gstPercent" value={companyInfo.gstPercent} onChange={handleCompanyInfoChange} className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-yellow-500/20 focus:border-yellow-500 transition-colors" />
+                <input type="number" name="gstPercent" value={companyInfo.gstPercent} onChange={handleCompanyInfoChange} className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-800 focus:outline-none" />
               </div>
+            </div>
 
-              <div className="pt-4">
-                <button onClick={handleSaveSettings} className="bg-[#facc15] hover:bg-[#eab308] text-gray-900 font-bold px-6 py-3 rounded-lg flex items-center gap-2 transition-colors text-sm shadow-sm">
-                  <Lock className="w-4 h-4" /> Save Settings
-                </button>
-              </div>
+            <div className="pt-6">
+              <button onClick={handleSaveSettings} className="bg-[#facc15] hover:bg-[#eab308] text-gray-900 font-bold px-6 py-3 rounded-lg flex items-center gap-2 transition-colors text-sm shadow-sm">
+                <Lock className="w-4 h-4" /> Save Company Setup
+              </button>
             </div>
           </div>
         )}

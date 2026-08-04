@@ -6,6 +6,13 @@ import { useState, useEffect, useMemo } from "react";
 import { X, FileText, Plus, Trash2, Loader2 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { fetchVehicleDetails, getServices } from "@/lib/api";
+import { getJobCards } from "@/modules/job-card/services/job-card.service";
+import { JobCard } from "@/modules/job-card/types/job-card.types";
+
+// 13.3: an Invoice may only be raised against a job card that has passed QC —
+// same status set the backend gates on (billing.service.ts) and the billing
+// queue already filters to (BillingJobCards.tsx).
+const BILLING_ELIGIBLE_JOB_STATUSES = ["Ready For Billing", "QC Passed", "Delivered", "Out"];
 
 interface NewDocumentDialogProps {
   isOpen: boolean;
@@ -50,13 +57,21 @@ export default function NewDocumentDialog({
     paymentTerms: "50% advance payment.\nBalance before shipment.",
     deliveryTerms: "Delivery within 15 days after receipt of advance payment.",
     authorizedSignatory: "Authorized Signatory",
+    warranty: "",
+    discountReason: "",
   });
 
-  const [items, setItems] = useState([{ desc: "Industrial Pump Model X100", qty: 1, price: 0, amount: 0 }]);
+  const [items, setItems] = useState([
+    { desc: "", qty: 1, price: 0, amount: 0, discountPercent: 0, gstPercent: 18, warranty: "" },
+  ]);
   const [baseAmount, setBaseAmount] = useState(0);
   const [gstAmount, setGstAmount] = useState(0);
+  const [lineDiscountAmount, setLineDiscountAmount] = useState(0);
   const [isFetchingVehicle, setIsFetchingVehicle] = useState(false);
   const [availableServices, setAvailableServices] = useState<any[]>([]);
+  const [eligibleJobs, setEligibleJobs] = useState<JobCard[]>([]);
+  const [isLoadingJobs, setIsLoadingJobs] = useState(false);
+  const [jobId, setJobId] = useState<string>("");
 
   const nextDocNo = useMemo(() => {
     const date = new Date(formData.invoiceDate || Date.now());
@@ -123,10 +138,63 @@ export default function NewDocumentDialog({
         paymentTerms: "50% advance payment.\nBalance before shipment.",
         deliveryTerms: "Delivery within 15 days after receipt of advance payment.",
         authorizedSignatory: "Authorized Signatory",
+        warranty: "",
+        discountReason: "",
       });
-      setItems([{ desc: "", qty: 1, price: 0, amount: 0 }]);
+      setItems([{ desc: "", qty: 1, price: 0, amount: 0, discountPercent: 0, gstPercent: 18, warranty: "" }]);
+      setJobId("");
     }
   }, [isOpen]);
+
+  // 13.3: only Invoices (not Quotations/Estimates) are gated on a QC-passed job card.
+  useEffect(() => {
+    if (isOpen && formData.type === "Invoice") {
+      setIsLoadingJobs(true);
+      getJobCards()
+        .then((jobs) => {
+          setEligibleJobs((jobs || []).filter((j) => BILLING_ELIGIBLE_JOB_STATUSES.includes(j.status)));
+        })
+        .catch((err) => {
+          console.error("Failed to load job cards:", err);
+          setEligibleJobs([]);
+        })
+        .finally(() => setIsLoadingJobs(false));
+    }
+  }, [isOpen, formData.type]);
+
+  const handleJobSelect = (selectedJobId: string) => {
+    setJobId(selectedJobId);
+    const job = eligibleJobs.find((j) => j.id === selectedJobId);
+    if (job) {
+      setFormData((prev) => ({
+        ...prev,
+        client: job.customer,
+        phone: job.phone || job.customerPhone || prev.phone,
+        vehicle: job.vehicle,
+      }));
+
+      // §13.3/§13.5: Auto-populate line items from the job card's service.
+      // Match the job's service name against the Service Master to pull price & warranty.
+      const jobServiceName = (job.service || "").trim();
+      if (jobServiceName && availableServices.length > 0) {
+        const matched = availableServices.find(
+          (s) => s.name.toLowerCase() === jobServiceName.toLowerCase()
+        );
+        const price = matched?.price || 0;
+        const warranty = matched?.warranty || "";
+        setItems([
+          { desc: jobServiceName, qty: 1, price, amount: price, discountPercent: 0, gstPercent: 18, warranty },
+        ]);
+        if (warranty) {
+          setFormData((prev) => ({ ...prev, warranty: prev.warranty || warranty }));
+        }
+      } else if (jobServiceName) {
+        setItems([
+          { desc: jobServiceName, qty: 1, price: 0, amount: 0, discountPercent: 0, gstPercent: 18, warranty: "" },
+        ]);
+      }
+    }
+  };
 
   useEffect(() => {
     if (isOpen) {
@@ -146,13 +214,20 @@ export default function NewDocumentDialog({
 
   useEffect(() => {
     let subtotal = 0;
-    const updatedItems = items.map((item) => {
+    let lineDiscTotal = 0;
+    let gstTotal = 0;
+    items.forEach((item) => {
       const amt = (item.qty || 0) * (item.price || 0);
+      const lineDiscPct = item.discountPercent || 0;
+      const lineDiscAmt = (amt * lineDiscPct) / 100;
+      const lineGstPct = item.gstPercent ?? 18;
       subtotal += amt;
-      return { ...item, amount: amt };
+      lineDiscTotal += lineDiscAmt;
+      gstTotal += ((amt - lineDiscAmt) * lineGstPct) / 100;
     });
     setBaseAmount(subtotal);
-    setGstAmount((subtotal * 18) / 100);
+    setLineDiscountAmount(lineDiscTotal);
+    setGstAmount(gstTotal);
   }, [items]);
 
   const handleItemChange = (index: number, field: string, value: string | number) => {
@@ -164,7 +239,7 @@ export default function NewDocumentDialog({
   };
 
   const addItem = () => {
-    setItems([...items, { desc: "", qty: 1, price: 0, amount: 0 }]);
+    setItems([...items, { desc: "", qty: 1, price: 0, amount: 0, discountPercent: 0, gstPercent: 18, warranty: "" }]);
   };
 
   const removeItem = (index: number) => {
@@ -219,8 +294,11 @@ export default function NewDocumentDialog({
     }
 
     if (onSubmit) {
-      const discountPercent = parseFloat(formData.discount) || 0;
-      const discountAmount = (baseAmount * discountPercent) / 100;
+      // 13.6: line-item discounts (per item, computed above) plus one overall
+      // invoice-level discount % applied on top of the post-line-discount subtotal.
+      const overallDiscountPercent = parseFloat(formData.discount) || 0;
+      const overallDiscountAmount = ((baseAmount - lineDiscountAmount) * overallDiscountPercent) / 100;
+      const totalDiscount = lineDiscountAmount + overallDiscountAmount;
 
       const newDoc = {
         id: nextDocNo,
@@ -231,7 +309,7 @@ export default function NewDocumentDialog({
         service: items.length > 0 ? items[0].desc : "Multiple Items", // fallback
         amount: baseAmount,
         gst: gstAmount,
-        discount: discountAmount,
+        discount: totalDiscount,
         date: formData.invoiceDate,
         dueDate: formData.dueDate || formData.invoiceDate,
         status: formData.status,
@@ -242,6 +320,9 @@ export default function NewDocumentDialog({
         paymentTerms: formData.paymentTerms,
         deliveryTerms: formData.deliveryTerms,
         authorizedSignatory: formData.authorizedSignatory,
+        warranty: formData.warranty || null,
+        discountReason: totalDiscount > 0 ? (formData.discountReason || null) : null,
+        jobId: formData.type === "Invoice" ? (jobId || null) : null,
       };
       onSubmit(newDoc);
     }
@@ -312,6 +393,32 @@ export default function NewDocumentDialog({
               </select>
             </div>
           </div>
+
+          {/* Job Card (Invoices only — 13.3: only QC-passed job cards may be billed) */}
+          {formData.type === "Invoice" && (
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">
+                Job Card
+              </label>
+              <select
+                value={jobId}
+                onChange={(e) => handleJobSelect(e.target.value)}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400 bg-gray-50"
+              >
+                <option value="">
+                  {isLoadingJobs ? "Loading job cards..." : "No job card (manual entry)"}
+                </option>
+                {eligibleJobs.map((job) => (
+                  <option key={job.id} value={job.id}>
+                    {job.vehicle} — {job.customer} ({job.id})
+                  </option>
+                ))}
+              </select>
+              {eligibleJobs.length === 0 && !isLoadingJobs && (
+                <p className="text-xs text-gray-400 mt-1">No QC-passed job cards available to bill.</p>
+              )}
+            </div>
+          )}
 
           {/* Row 2: Client & Phone */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 md:gap-5 lg:gap-6">
@@ -401,6 +508,16 @@ export default function NewDocumentDialog({
               </button>
             </div>
 
+            <div className="hidden sm:flex gap-2 sm:gap-3 lg:gap-4 text-[10px] font-semibold text-gray-400 uppercase tracking-wide px-1">
+              <div className="flex-grow">Service</div>
+              <div className="w-16 sm:w-20 lg:w-24 shrink-0">Qty</div>
+              <div className="w-20 sm:w-28 lg:w-32 shrink-0">Price</div>
+              <div className="w-20 sm:w-28 lg:w-32 shrink-0">Amount</div>
+              <div className="w-14 sm:w-16 shrink-0">Disc %</div>
+              <div className="w-14 sm:w-16 shrink-0">GST %</div>
+              <div className="w-24 sm:w-28 shrink-0">Warranty</div>
+              <div className="w-7 shrink-0" />
+            </div>
             <div className="space-y-2 sm:space-y-3">
               {items.map((item, index) => (
                 <div key={index} className="flex gap-2 sm:gap-3 lg:gap-4 items-start">
@@ -444,8 +561,14 @@ export default function NewDocumentDialog({
                                     newItems[index].desc = service.name;
                                     newItems[index].price = service.price || 0;
                                     newItems[index].amount = newItems[index].qty * (service.price || 0);
+                                    // §13.5/§13.7: per-line warranty defaults from Service Master, editable before finalization.
+                                    newItems[index].warranty = service.warranty || "";
                                     setItems(newItems);
                                     setFocusedItemIndex(null);
+                                    // Also set global warranty if empty
+                                    if (service.warranty && !formData.warranty) {
+                                      setFormData((prev) => ({ ...prev, warranty: service.warranty }));
+                                    }
                                   }}
                                 >
                                   <div className="font-bold text-gray-900">{service.name}</div>
@@ -495,6 +618,40 @@ export default function NewDocumentDialog({
                       className="w-full px-2 sm:px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed text-sm"
                     />
                   </div>
+                  <div className="w-14 sm:w-16 shrink-0">
+                    <input
+                      type="number"
+                      value={item.discountPercent}
+                      onChange={(e) => handleItemChange(index, "discountPercent", parseFloat(e.target.value) || 0)}
+                      placeholder="Disc %"
+                      title="Line discount %"
+                      className="w-full px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-400 text-sm"
+                      min="0"
+                      max="100"
+                    />
+                  </div>
+                  <div className="w-14 sm:w-16 shrink-0">
+                    <input
+                      type="number"
+                      value={item.gstPercent}
+                      onChange={(e) => handleItemChange(index, "gstPercent", parseFloat(e.target.value) || 0)}
+                      placeholder="GST %"
+                      title="Line GST %"
+                      className="w-full px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-400 text-sm"
+                      min="0"
+                      max="100"
+                    />
+                  </div>
+                  <div className="w-24 sm:w-28 shrink-0">
+                    <input
+                      type="text"
+                      value={item.warranty || ""}
+                      onChange={(e) => handleItemChange(index, "warranty", e.target.value)}
+                      placeholder="e.g. 12 months"
+                      title="Line warranty"
+                      className="w-full px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-400 text-sm"
+                    />
+                  </div>
                   <div className="pt-2 shrink-0">
                     <button
                       type="button"
@@ -510,18 +667,30 @@ export default function NewDocumentDialog({
             </div>
 
             {/* Totals */}
+            {(() => {
+              const overallDiscountPercent = parseFloat(formData.discount) || 0;
+              const overallDiscountAmount = ((baseAmount - lineDiscountAmount) * overallDiscountPercent) / 100;
+              const totalDiscount = lineDiscountAmount + overallDiscountAmount;
+              const grandTotal = baseAmount + gstAmount - totalDiscount;
+              return (
             <div className="flex justify-end mt-3 sm:mt-4 text-xs sm:text-sm overflow-x-auto">
               <div className="w-56 sm:w-64 md:w-72 space-y-2 shrink-0">
                 <div className="flex justify-between">
                   <span className="font-semibold text-gray-600">Subtotal:</span>
                   <span>₹{baseAmount.toFixed(2)}</span>
                 </div>
+                {lineDiscountAmount > 0 && (
+                  <div className="flex justify-between text-gray-500">
+                    <span>Line Item Discounts:</span>
+                    <span>-₹{lineDiscountAmount.toFixed(2)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between">
-                  <span className="font-semibold text-gray-600">GST (18%):</span>
+                  <span className="font-semibold text-gray-600">GST:</span>
                   <span>₹{gstAmount.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="font-semibold text-gray-600">Discount (%):</span>
+                  <span className="font-semibold text-gray-600">Overall Discount (%):</span>
                   <div className="flex items-center gap-1 sm:gap-2">
                     <input
                       type="number"
@@ -536,17 +705,34 @@ export default function NewDocumentDialog({
                     <span className="text-sm text-gray-500">%</span>
                   </div>
                 </div>
+                {totalDiscount > 0 && (
+                  <div>
+                    <label className="block text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-1">
+                      Discount Reason
+                    </label>
+                    <input
+                      type="text"
+                      name="discountReason"
+                      value={formData.discountReason}
+                      onChange={handleChange}
+                      placeholder="Reason for discount"
+                      className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm"
+                    />
+                  </div>
+                )}
                 <div className="text-xs text-gray-500 text-right">
-                  ₹{((baseAmount * (parseFloat(formData.discount) || 0)) / 100).toFixed(2)} off
+                  ₹{totalDiscount.toFixed(2)} total discount
                 </div>
                 <div className="flex justify-between pt-2 border-t font-bold text-lg">
                   <span>Total:</span>
                   <span className="text-yellow-600">
-                    ₹{(baseAmount + gstAmount - ((baseAmount * (parseFloat(formData.discount) || 0)) / 100)).toFixed(2)}
+                    ₹{grandTotal.toFixed(2)}
                   </span>
                 </div>
               </div>
             </div>
+              );
+            })()}
           </div>
 
           <hr className="my-4 sm:my-5 lg:my-6" />
@@ -610,6 +796,19 @@ export default function NewDocumentDialog({
                 onChange={handleChange}
                 maxLength={15}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-400 text-sm uppercase"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">
+                Warranty
+              </label>
+              <input
+                type="text"
+                name="warranty"
+                value={formData.warranty}
+                onChange={handleChange}
+                placeholder="e.g. 12 months / 15,000 km"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-400 text-sm"
               />
             </div>
           </div>

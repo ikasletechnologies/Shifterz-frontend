@@ -1,10 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Eye, Check, Trash2, Search, Receipt, ArrowRight, History, X } from "lucide-react";
+import { Plus, Eye, Check, Trash2, Ban, Search, Receipt, ArrowRight, History, X } from "lucide-react";
 import NewDocumentDialog from "../components/NewDocumentDialog";
 import DocumentPreviewDialog from "../components/DocumentPreviewDialog";
 import ConvertDocumentDialog from "../components/ConvertDocumentDialog";
+import { CancelInvoiceDialog } from "../components/CancelInvoiceDialog";
+import { ShareInvoiceMenu } from "../components/ShareInvoiceMenu";
 import RecordPaymentDialog from "@/modules/payment/components/RecordPaymentDialog";
 import PaymentReceiptDialog from "@/modules/payment/components/PaymentReceiptDialog";
 import PaymentHistoryDialog from "@/modules/payment/components/PaymentHistoryDialog";
@@ -18,6 +20,8 @@ export function BillingPage() {
     error,
     handleAddInvoice,
     handleDeleteDocument,
+    handleCancelDocument,
+    handleShareDocument,
     handleConvertDocument,
     handleRecordPayment
   } = useBilling();
@@ -44,6 +48,8 @@ export function BillingPage() {
   const [isPaymentHistoryOpen, setIsPaymentHistoryOpen] = useState(false);
   const [selectedDocument, setSelectedDocument] = useState<BillingDocument | null>(null);
   const [documentToConvert, setDocumentToConvert] = useState<BillingDocument | null>(null);
+  const [documentToCancel, setDocumentToCancel] = useState<BillingDocument | null>(null);
+  const [isCancelOpen, setIsCancelOpen] = useState(false);
   const [documentToMarkPaid, setDocumentToMarkPaid] = useState<BillingDocument | null>(null);
   const [selectedPaymentDocument, setSelectedPaymentDocument] = useState<BillingDocument | null>(null);
   const [documentForPaymentHistory, setDocumentForPaymentHistory] = useState<BillingDocument | null>(null);
@@ -331,10 +337,23 @@ export function BillingPage() {
                             <ArrowRight className="w-4 h-4 text-blue-600" />
                           </button>
                         )}
+                        <ShareInvoiceMenu doc={doc} onLogShare={handleShareDocument} />
+                        {doc.status !== "Cancelled" && (
+                          <button
+                            onClick={() => {
+                              setDocumentToCancel(doc);
+                              setIsCancelOpen(true);
+                            }}
+                            className="p-1 hover:bg-red-100 rounded transition-colors"
+                            title="Cancel Invoice"
+                          >
+                            <Ban className="w-4 h-4 text-red-500" />
+                          </button>
+                        )}
                         {!isBillingExecutive && (
                           <button
                             onClick={async () => {
-                              if (confirm("Delete this document?")) {
+                              if (confirm("Delete this document? This permanently removes it and frees its number for reuse.")) {
                                 await handleDeleteDocument(doc.id);
                               }
                             }}
@@ -386,7 +405,8 @@ export function BillingPage() {
           bankDetails: selectedDocument.bankDetails,
           paymentTerms: selectedDocument.paymentTerms,
           deliveryTerms: selectedDocument.deliveryTerms,
-          authorizedSignatory: selectedDocument.authorizedSignatory
+          authorizedSignatory: selectedDocument.authorizedSignatory,
+          warranty: selectedDocument.warranty
         } : undefined}
       />
       <ConvertDocumentDialog
@@ -405,6 +425,23 @@ export function BillingPage() {
           }
         }}
         document={documentToConvert || undefined}
+      />
+      <CancelInvoiceDialog
+        isOpen={isCancelOpen}
+        onClose={() => {
+          setIsCancelOpen(false);
+          setDocumentToCancel(null);
+        }}
+        document={documentToCancel}
+        onConfirm={async (reason) => {
+          if (documentToCancel) {
+            const success = await handleCancelDocument(documentToCancel.id, reason);
+            if (success) {
+              setIsCancelOpen(false);
+              setDocumentToCancel(null);
+            }
+          }
+        }}
       />
       <RecordPaymentDialog
         isOpen={isRecordPaymentOpen}

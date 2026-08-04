@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { BillingDocument } from "@/modules/billing/types/billing.types";
-import { getInvoices, createInvoice, updateInvoice, deleteInvoice } from "@/modules/billing/services/billing.service";
+import { getInvoices, createInvoice, updateInvoice, deleteInvoice, cancelInvoice, shareInvoice } from "@/modules/billing/services/billing.service";
 import { createPayment } from "@/modules/payment/services/payment.service";
 import { toast } from "react-hot-toast";
 
@@ -49,6 +49,28 @@ export function useBilling() {
       return true;
     } catch (err: any) {
       toast.error("Failed to delete document: " + err.message);
+      return false;
+    }
+  };
+
+  const handleCancelDocument = async (id: string, reason: string) => {
+    try {
+      const cancelled = await cancelInvoice(id, reason);
+      setDocuments((prev) => prev.map((doc) => (doc.id === id ? { ...doc, ...cancelled } : doc)));
+      toast.success("Invoice cancelled");
+      return true;
+    } catch (err: any) {
+      toast.error("Failed to cancel invoice: " + err.message);
+      return false;
+    }
+  };
+
+  const handleShareDocument = async (id: string, channel: "whatsapp" | "email") => {
+    try {
+      await shareInvoice(id, channel);
+      return true;
+    } catch (err: any) {
+      toast.error("Failed to log invoice share: " + err.message);
       return false;
     }
   };
@@ -165,6 +187,8 @@ export function useBilling() {
     fetchInvoices,
     handleAddInvoice,
     handleDeleteDocument,
+    handleCancelDocument,
+    handleShareDocument,
     handleConvertDocument,
     handleRecordPayment
   };

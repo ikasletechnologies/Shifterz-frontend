@@ -1,16 +1,21 @@
 "use client";
 import { useState } from "react";
-import { Plus, FileText, Trash2, Search, Download, X } from "lucide-react";
+import { Plus, FileText, Trash2, Search, Download, X, Pencil } from "lucide-react";
 import { useRouter } from "next/navigation";
 import AddCustomerDialog from "../components/AddCustomerDialog";
+import EditCustomerDialog from "../components/EditCustomerDialog";
 import { useCustomer } from "@/modules/customer/hooks/useCustomer";
 import { Customer } from "@/modules/customer/types/customer.types";
+import { updateCustomer } from "@/lib/api";
+import { toast } from "react-hot-toast";
 
 export function CustomerPage() {
   const router = useRouter();
-  const { customers, isLoading, error, handleAddCustomer, handleDeleteCustomer } = useCustomer();
+  const { customers, isLoading, error, handleAddCustomer, handleDeleteCustomer, fetchCustomers } = useCustomer();
   const [searchQuery, setSearchQuery] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [customerToEdit, setCustomerToEdit] = useState<Customer | null>(null);
   const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [periodFilter, setPeriodFilter] = useState("All");
@@ -27,6 +32,24 @@ export function CustomerPage() {
     await handleDeleteCustomer(customerToDelete.id);
     setCustomerToDelete(null);
     setIsDeleting(false);
+  };
+
+  const handleEditCustomer = (customer: Customer) => {
+    setCustomerToEdit(customer);
+    setIsEditOpen(true);
+  };
+
+  const handleUpdateCustomer = async (data: any) => {
+    if (!customerToEdit) return;
+    try {
+      await updateCustomer(customerToEdit.id, data);
+      toast.success("Customer updated successfully");
+      fetchCustomers();
+      setIsEditOpen(false);
+      setCustomerToEdit(null);
+    } catch (err: any) {
+      toast.error("Failed to update customer: " + err.message);
+    }
   };
 
   const handleViewBilling = (customerId: string, customerName: string) => {
@@ -269,6 +292,13 @@ export function CustomerPage() {
                         <FileText className="w-3.5 h-3.5" />
                       </button>
                       <button
+                        onClick={() => handleEditCustomer(customer)}
+                        className="p-1.5 hover:bg-blue-50 text-blue-500 rounded-md border border-blue-100 transition-colors shadow-sm"
+                        title="Edit Customer"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
+                      <button
                         onClick={() => confirmDelete(customer)}
                         className="p-1.5 hover:bg-red-50 text-red-400 rounded-md border border-red-100 transition-colors shadow-sm"
                         title="Delete Customer"
@@ -293,6 +323,13 @@ export function CustomerPage() {
           if (success) setIsDialogOpen(false);
         }}
         existingCustomers={customers}
+      />
+
+      <EditCustomerDialog
+        isOpen={isEditOpen}
+        onClose={() => { setIsEditOpen(false); setCustomerToEdit(null); }}
+        onSubmit={handleUpdateCustomer}
+        customer={customerToEdit}
       />
 
       {customerToDelete && (
