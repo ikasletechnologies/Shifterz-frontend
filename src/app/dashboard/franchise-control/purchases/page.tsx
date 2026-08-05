@@ -27,7 +27,7 @@ import {
   Edit2,
   AlertCircle,
   Truck,
-  ArrowRight,
+  ArrowRight, X,
 } from "lucide-react";
 
 export default function PurchaseManagementPage() {
@@ -311,8 +311,16 @@ export default function PurchaseManagementPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder={`Search ${activeTab === "purchases" ? "PO Number or Supplier" : "Vendor Name, Code, or GST"}...`}
-            className="w-full h-10 pl-9 pr-4 rounded-xl bg-slate-900 border border-slate-800 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            className="w-full h-10 pl-9 pr-8 rounded-xl bg-slate-900 border border-slate-800 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
           />
+          {search && (
+            <button
+              onClick={() => setSearch("")}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
         </div>
       </div>
 

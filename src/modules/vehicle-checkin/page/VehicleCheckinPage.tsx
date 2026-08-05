@@ -548,6 +548,8 @@ export function VehicleCheckinPage() {
           )}
         </div>
 
+
+
         {/* 2. From Date Filter */}
         <div className="flex items-center gap-1.5 bg-white border border-gray-300 rounded-lg px-2.5 py-2 shrink-0">
           <span className="text-xs font-semibold text-gray-500 whitespace-nowrap">From:</span>

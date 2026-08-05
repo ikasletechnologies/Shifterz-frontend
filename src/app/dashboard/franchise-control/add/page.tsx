@@ -11,7 +11,7 @@ import {
   User,
   Phone,
   Calendar,
-  Percent,
+  Percent, X
 } from "lucide-react";
 import AddFranchiseDialog from "@/components/franchise/AddFranchiseDialog";
 import { getFranchises, createFranchise, updateFranchise, deleteFranchise } from "@/lib/api";
@@ -157,8 +157,16 @@ export default function FranchiseManagementPage() {
             placeholder="Search by franchise name, city or owner…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400 bg-white"
+            className="w-full pl-9 pr-8 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400 bg-white"
           />
+          {search && (
+            <button
+              onClick={() => setSearch("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
         </div>
         <select
           value={statusFilter}

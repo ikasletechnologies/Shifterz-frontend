@@ -89,33 +89,43 @@ export default function AddFranchiseDialog({ isOpen, onClose, franchiseData, onS
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validate Email Address (Compulsory)
-    if (!formData.email || !formData.email.trim()) {
-      toast.error("Email Address is compulsory");
-      return;
+    // Validate Email Address (Compulsory for new, optional/validated if present for existing)
+    if (!isEditing) {
+      if (!formData.email || !formData.email.trim()) {
+        toast.error("Email Address is compulsory");
+        return;
+      }
     }
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(formData.email)) {
-      toast.error("Invalid Email Address format");
-      return;
+    if (formData.email && formData.email.trim()) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(formData.email)) {
+        toast.error("Invalid Email Address format");
+        return;
+      }
     }
 
-    // Validate GST Number (Compulsory)
-    if (!formData.gstNumber || !formData.gstNumber.trim()) {
-      toast.error("GST Number is compulsory");
-      return;
+    // Validate GST Number (Compulsory for new, optional/validated if present for existing)
+    if (!isEditing) {
+      if (!formData.gstNumber || !formData.gstNumber.trim()) {
+        toast.error("GST Number is compulsory");
+        return;
+      }
     }
-    if (!isValidGST(formData.gstNumber)) {
-      toast.error("Wrong GST Number format. Format must match: 29ABCDE1234F1Z5");
-      return;
+    if (formData.gstNumber && formData.gstNumber.trim()) {
+      if (!isValidGST(formData.gstNumber)) {
+        toast.error("Wrong GST Number format. Format must match: 29ABCDE1234F1Z5");
+        return;
+      }
+      // Store GST Number as uppercase
+      formData.gstNumber = formData.gstNumber.toUpperCase();
     }
-    // Store GST Number as uppercase
-    formData.gstNumber = formData.gstNumber.toUpperCase();
 
-    // Validate Business Address (Compulsory)
-    if (!formData.address || !formData.address.trim()) {
-      toast.error("Business Address is compulsory");
-      return;
+    // Validate Business Address (Compulsory for new, optional if existing)
+    if (!isEditing) {
+      if (!formData.address || !formData.address.trim()) {
+        toast.error("Business Address is compulsory");
+        return;
+      }
     }
 
     if (onSave) onSave(formData);

@@ -11,6 +11,7 @@ import {
   type MasterRecord,
   type MasterCategory,
 } from "@/lib/api";
+import { X } from "lucide-react";
 
 // ─── group categories into sections ───────────────────────────────────────────
 const SECTIONS: Record<string, { key: MasterCategory; label: string }[]> = {};
@@ -247,13 +248,23 @@ export default function MastersPage() {
 
         {/* Search */}
         <div className="flex items-center gap-3">
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder={`Search ${activeLabel.toLowerCase()}...`}
-            className="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-500/60 transition-colors"
-          />
+          <div className="relative flex-1">
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder={`Search ${activeLabel.toLowerCase()}...`}
+              className="w-full bg-slate-900 border border-slate-800 rounded-xl pl-4 pr-8 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-500/60 transition-colors"
+            />
+            {search && (
+              <button
+                onClick={() => setSearch("")}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
           <span className="text-xs text-slate-500 whitespace-nowrap">
             {filtered.length} / {records.length} entries
           </span>

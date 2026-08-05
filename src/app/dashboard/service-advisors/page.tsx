@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   Headset, Search, Filter, ChevronLeft, ChevronRight, Pencil, Trash2,
-  Users, UserCheck2, UserX2, Briefcase, Loader2, CheckCircle2, TrendingUp,
+  Users, UserCheck2, UserX2, Briefcase, Loader2, CheckCircle2, TrendingUp, X
 } from "lucide-react";
 import { StatCard } from "@/components/dashboard/StatCard";
 import EditEmployeeDialog from "@/components/employees/EditEmployeeDialog";
@@ -134,8 +134,16 @@ export default function ServiceAdvisorsPage() {
             placeholder="Search Advisor, Emp ID, Phone..."
             value={searchTerm}
             onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-            className="w-full pl-9 pr-4 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500/20 focus:border-yellow-500 transition-all"
+            className="w-full pl-9 pr-8 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500/20 focus:border-yellow-500 transition-all"
           />
+          {searchTerm && (
+            <button
+              onClick={() => { setSearchTerm(""); setCurrentPage(1); }}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
         </div>
         <div className="relative">
           <Filter className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />

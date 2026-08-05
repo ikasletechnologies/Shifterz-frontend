@@ -8,6 +8,7 @@ import {
 } from "@/lib/api";
 import CreateWarrantyDialog from "@/modules/warranty/components/CreateWarrantyDialog";
 import WarrantyDetailsDialog from "@/modules/warranty/components/WarrantyDetailsDialog";
+import { X } from "lucide-react";
 
 export default function WarrantyManagementPage() {
   const [warranties, setWarranties] = useState<WarrantyRecord[]>([]);
@@ -238,16 +239,42 @@ export default function WarrantyManagementPage() {
         </div>
 
         <form onSubmit={handleSearchSubmit} className="flex items-center gap-2 w-full sm:w-72">
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search customer, vehicle, warranty no..."
-            className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500"
-          />
+          <div className="relative flex-1">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search customer, vehicle, warranty no..."
+              className="w-full bg-slate-800 border border-slate-700 rounded-xl pl-3 pr-8 py-2 text-sm text-white focus:outline-none focus:border-amber-500"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={async () => {
+                  setSearchQuery("");
+                  setLoading(true);
+                  try {
+                    const data = await getWarranties({
+                      status: statusFilter === "ALL" ? undefined : statusFilter,
+                      search: undefined,
+                    });
+                    setWarranties(data || []);
+                  } catch (err) {
+                    console.error("Failed to load warranties:", err);
+                    setWarranties([]);
+                  } finally {
+                    setLoading(false);
+                  }
+                }}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
           <button
             type="submit"
-            className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium rounded-xl border border-slate-700 transition-colors"
+            className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium rounded-xl border border-slate-700 transition-colors shrink-0"
           >
             Search
           </button>
