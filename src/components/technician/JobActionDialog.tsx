@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { apiCall } from "@/lib/api";
 import { X, Loader2, Upload, Save, FileText, Camera, Check } from "lucide-react";
 
@@ -15,6 +15,14 @@ export default function JobActionDialog({ job, isOpen, onClose }: JobActionDialo
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (job) {
+      setStatus(job.status || "Pending");
+      setNotes(job.notes || "");
+      setPhotos(job.photos || []);
+    }
+  }, [job]);
 
   const userRole = (() => {
     try {
@@ -84,20 +92,23 @@ export default function JobActionDialog({ job, isOpen, onClose }: JobActionDialo
   const handleSave = async () => {
     setSaving(true);
     try {
+      const payload: any = {
+        status,
+        notes,
+        photos,
+      };
+      if (status === "Completed" || status === "Ready For Billing") {
+        payload.actualCompletion = new Date().toISOString().slice(0, 10);
+      }
+
       await apiCall(`/jobs/${job.id}`, {
         method: "PUT",
-        body: JSON.stringify({
-          ...job,
-          status,
-          notes,
-          photos,
-          actualCompletion: (status === "Completed" || status === "Ready For Billing") ? new Date().toISOString().slice(0, 10) : job.actualCompletion
-        }),
+        body: JSON.stringify(payload),
       });
       onClose();
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      alert("Failed to update job");
+      alert(err.message || "Failed to update job");
     } finally {
       setSaving(false);
     }

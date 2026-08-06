@@ -55,9 +55,15 @@ export default function AllFranchisesPage() {
     return franchises.filter(f => {
       const safeName = f.name || "";
       const safeId = f.id || "";
+      const safeOwner = f.owner || f.ownerName || "";
+      const safeCustomer = f.customerName || f.customer || f.owner || "";
+      const query = searchTerm.toLowerCase();
+
       const matchesSearch = 
-        safeName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        safeId.toLowerCase().includes(searchTerm.toLowerCase());
+        safeName.toLowerCase().includes(query) ||
+        safeId.toLowerCase().includes(query) ||
+        safeOwner.toLowerCase().includes(query) ||
+        safeCustomer.toLowerCase().includes(query);
       
       const matchesStatus = statusFilter === "All" || f.status === statusFilter;
       
@@ -155,7 +161,7 @@ export default function AllFranchisesPage() {
               onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
               className="pl-9 pr-8 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500/20 focus:border-yellow-500 transition-all appearance-none"
             >
-              <option value="All">All Statuses</option>
+              <option value="All">All Status</option>
               <option value="Active">Active</option>
               <option value="Inactive">Inactive</option>
               <option value="Pending">Pending</option>

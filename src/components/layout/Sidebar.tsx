@@ -490,6 +490,7 @@ export default function Sidebar() {
   const sections = rawSections
     .map((sec) => {
       const filteredItems = sec.items.filter((item) => {
+        if (baseRole === "SUPER_ADMIN") return true;
         if (!item.module || !allowedModules) return true;
         return allowedModules.includes(item.module);
       });

@@ -87,7 +87,7 @@ export default function EmployeeDashboard() {
           <h1 className="text-2xl font-bold text-gray-900">My Assigned Jobs</h1>
           <p className="text-gray-500 text-sm mt-1">Manage your current tasks and update progress</p>
         </div>
-        
+
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
           <input
@@ -129,7 +129,7 @@ export default function EmployeeDashboard() {
               job.status === "Out";
 
             return (
-              <div 
+              <div
                 key={job.id}
                 onClick={() => setSelectedJob(job)}
                 className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow cursor-pointer group relative overflow-hidden"
@@ -145,7 +145,7 @@ export default function EmployeeDashboard() {
                     </div>
                   )
                 )}
-                
+
                 <div className="flex justify-between items-start mb-4">
                   <div>
                     <h3 className="text-lg font-bold text-gray-900 group-hover:text-yellow-600 transition-colors">
@@ -185,30 +185,30 @@ export default function EmployeeDashboard() {
                   </div>
                 </div>
 
-              <div className="space-y-2 mt-3 pt-3 border-t border-gray-50">
-                <div className="flex items-center text-sm text-gray-600">
-                  <Calendar className="w-4 h-4 mr-2 text-gray-400" />
-                  Started: {new Date(job.startDate).toLocaleDateString()}
-                </div>
-                <div className="flex items-center text-sm text-gray-600">
-                  <Clock className="w-4 h-4 mr-2 text-gray-400" />
-                  Est. Completion: {new Date(job.estCompletion).toLocaleDateString()}
+                <div className="space-y-2 mt-3 pt-3 border-t border-gray-50">
+                  <div className="flex items-center text-sm text-gray-600">
+                    <Calendar className="w-4 h-4 mr-2 text-gray-400" />
+                    Started: {new Date(job.startDate).toLocaleDateString()}
+                  </div>
+                  <div className="flex items-center text-sm text-gray-600">
+                    <Clock className="w-4 h-4 mr-2 text-gray-400" />
+                    Est. Completion: {new Date(job.estCompletion).toLocaleDateString()}
+                  </div>
                 </div>
               </div>
-            </div>
             );
           })}
         </div>
       )}
 
       {selectedJob && (
-        <JobActionDialog 
-          job={selectedJob} 
-          isOpen={true} 
+        <JobActionDialog
+          job={selectedJob}
+          isOpen={true}
           onClose={() => {
             setSelectedJob(null);
             fetchJobs();
-          }} 
+          }}
         />
       )}
     </div>

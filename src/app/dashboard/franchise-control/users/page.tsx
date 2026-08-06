@@ -484,13 +484,13 @@ export default function UserManagementPage() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50">
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">User</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Role</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider hidden md:table-cell">Email</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider hidden md:table-cell">Contact</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider hidden lg:table-cell">Franchise</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="text-right px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
+                <th className="text-center px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">User</th>
+                <th className="text-center px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Role</th>
+                <th className="text-center px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider hidden md:table-cell">Email</th>
+                <th className="text-center px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider hidden md:table-cell">Contact</th>
+                <th className="text-center px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider hidden lg:table-cell">Franchise</th>
+                <th className="text-center px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
+                <th className="text-center px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
@@ -512,17 +512,17 @@ export default function UserManagementPage() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-5 py-3.5"><RoleBadge role={u.role} /></td>
-                    <td className="px-5 py-3.5 hidden md:table-cell">
+                    <td className="px-5 py-3.5 text-center"><RoleBadge role={u.role} /></td>
+                    <td className="px-5 py-3.5 text-center hidden md:table-cell">
                       <p className="text-xs text-gray-600">{u.email || "—"}</p>
                     </td>
-                    <td className="px-5 py-3.5 hidden md:table-cell">
+                    <td className="px-5 py-3.5 text-center hidden md:table-cell">
                       <p className="text-xs text-gray-600">{u.phone || "—"}</p>
                     </td>
-                    <td className="px-5 py-3.5 hidden lg:table-cell">
+                    <td className="px-5 py-3.5 text-center hidden lg:table-cell">
                       <span className="text-xs text-gray-500">{u.franchise?.name ?? "—"}</span>
                     </td>
-                    <td className="px-5 py-3.5">
+                    <td className="px-5 py-3.5 text-center">
                       <button
                         onClick={async () => {
                           const nextStatus = u.status === "Active" ? "Inactive" : "Active";
@@ -534,18 +534,17 @@ export default function UserManagementPage() {
                             toast.error(e.message);
                           }
                         }}
-                        className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-extrabold cursor-pointer transition-all ${
-                          u.status === "Active"
+                        className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-extrabold cursor-pointer transition-all ${u.status === "Active"
                             ? "bg-green-100 text-green-700 hover:bg-green-200"
                             : "bg-red-100 text-red-700 hover:bg-red-200"
-                        }`}
+                          }`}
                         title="Click to toggle account activation/deactivation (§17.8)"
                       >
                         {u.status}
                       </button>
                     </td>
-                    <td className="px-5 py-3.5 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
+                    <td className="px-5 py-3.5 text-center">
+                      <div className="flex items-center justify-center gap-1.5">
                         <button onClick={() => openView(u)} className="p-1.5 rounded-lg hover:bg-blue-50 text-gray-400 hover:text-blue-600 transition-colors" title="View dashboard preview">
                           <Eye className="w-4 h-4" />
                         </button>

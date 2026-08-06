@@ -1,6 +1,6 @@
 "use client";
 
-import { Eye, Pencil, Phone, Printer } from "lucide-react";
+import { Download, Eye, Pencil } from "lucide-react";
 import { LiveVehicleRecord } from "../types/live-status.types";
 import { StageBadge } from "./StageBadge";
 import { LivePriorityBadge } from "./LivePriorityBadge";
@@ -31,81 +31,94 @@ export function LiveStatusTable({ records, onOpenJobCard, onEditJobCard, onPrint
   }
 
   return (
-    <div className="overflow-x-auto bg-white rounded-xl border border-gray-100 shadow-sm">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b border-gray-100 text-left text-[11px] font-bold text-gray-400 uppercase tracking-wider">
-            <th className="px-4 py-3">Vehicle</th>
-            <th className="px-4 py-3">Customer</th>
-            <th className="px-4 py-3">Job Card #</th>
-            <th className="px-4 py-3">Assigned To</th>
-            <th className="px-4 py-3">Stage</th>
-            <th className="px-4 py-3">Priority</th>
-            <th className="px-4 py-3">Check-In</th>
-            <th className="px-4 py-3">ETA</th>
-            <th className="px-4 py-3">Status</th>
-            <th className="px-4 py-3 text-right">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {records.map((r) => (
-            <tr key={r.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
-              <td className="px-4 py-3 font-semibold text-gray-900 whitespace-nowrap">{r.vehicle || "—"}</td>
-              <td className="px-4 py-3 text-gray-700">{r.customer || "—"}</td>
-              <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{r.jobCardId || "—"}</td>
-              <td className="px-4 py-3 text-gray-700 whitespace-nowrap">{r.technician || "Unassigned"}</td>
-              <td className="px-4 py-3">
-                <StageBadge stage={r.stage} />
-              </td>
-              <td className="px-4 py-3">
-                <LivePriorityBadge priority={r.priority} />
-              </td>
-              <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{formatTime(r.checkInTime)}</td>
-              <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{formatTime(r.eta)}</td>
-              <td className="px-4 py-3">
-                <DelayBadge isDelayed={r.isDelayed} delayMinutes={r.delayMinutes} />
-              </td>
-              <td className="px-4 py-3">
-                <div className="flex items-center justify-end gap-1">
-                  {r.phone && (
-                    <a
-                      href={`tel:${r.phone}`}
-                      className="p-1.5 rounded hover:bg-gray-100 text-gray-500"
-                      title="Contact Customer"
-                    >
-                      <Phone className="w-4 h-4" />
-                    </a>
-                  )}
-                  <button
-                    onClick={() => onOpenJobCard(r)}
-                    disabled={!r.jobCard}
-                    className="p-1.5 rounded hover:bg-gray-100 text-gray-500 disabled:opacity-30 disabled:cursor-not-allowed"
-                    title={r.jobCard ? "Open Job Card" : "No job card yet"}
-                  >
-                    <Eye className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => onEditJobCard(r)}
-                    disabled={!r.jobCard}
-                    className="p-1.5 rounded hover:bg-gray-100 text-gray-500 disabled:opacity-30 disabled:cursor-not-allowed"
-                    title={r.jobCard ? "Assign Employee / Update Status" : "No job card yet"}
-                  >
-                    <Pencil className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => onPrintJobCard(r)}
-                    disabled={!r.jobCard}
-                    className="p-1.5 rounded hover:bg-gray-100 text-gray-500 disabled:opacity-30 disabled:cursor-not-allowed"
-                    title={r.jobCard ? "Print Job Card" : "No job card yet"}
-                  >
-                    <Printer className="w-4 h-4" />
-                  </button>
-                </div>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {records.map((r) => (
+        <div
+          key={r.id}
+          className="bg-white rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-md transition-all p-5 flex flex-col justify-between space-y-4 relative group"
+        >
+          <div>
+            {/* Card Header: Vehicle No & Actions */}
+            <div className="flex items-center justify-between gap-3 mb-3">
+              <div>
+                <h3 className="text-lg font-black text-slate-900 tracking-tight uppercase font-mono">
+                  {r.vehicle || "—"}
+                </h3>
+                <p className="text-xs text-slate-500 font-medium">{r.customer || "Walk-in"}</p>
+              </div>
+              <div className="flex items-center gap-1 bg-slate-50 p-1 rounded-xl border border-slate-100">
+                <button
+                  onClick={() => onOpenJobCard(r)}
+                  disabled={!r.jobCard}
+                  className="p-1.5 rounded-lg hover:bg-slate-200/60 text-slate-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  title={r.jobCard ? "Open Job Card" : "No job card yet"}
+                >
+                  <Eye className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => onEditJobCard(r)}
+                  disabled={!r.jobCard}
+                  className="p-1.5 rounded-lg hover:bg-slate-200/60 text-slate-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  title={r.jobCard ? "Assign Employee / Update Status" : "No job card yet"}
+                >
+                  <Pencil className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => onPrintJobCard(r)}
+                  disabled={!r.jobCard}
+                  className="p-1.5 rounded-lg hover:bg-slate-200/60 text-slate-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  title={r.jobCard ? "Download Job Card" : "No job card yet"}
+                >
+                  <Download className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Badges Row: Stage & Priority & Delay */}
+            <div className="flex flex-wrap items-center gap-2 mb-3">
+              <StageBadge stage={r.stage} />
+              <LivePriorityBadge priority={r.priority} />
+              <DelayBadge isDelayed={r.isDelayed} delayMinutes={r.delayMinutes} />
+            </div>
+
+            <div className="border-b border-slate-100 my-3" />
+
+            {/* Sub-info grid: Job Card # & Assigned To */}
+            <div className="grid grid-cols-2 gap-3 text-xs">
+              <div>
+                <span className="text-slate-400 font-medium block text-[11px]">Job Card #</span>
+                <span className="font-mono font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-200/50 inline-block mt-0.5">
+                  {r.jobCardId || "—"}
+                </span>
+              </div>
+              <div>
+                <span className="text-slate-400 font-medium block text-[11px]">Assigned To</span>
+                <span className="font-bold text-slate-800 mt-0.5 block truncate">
+                  {r.technician || "Unassigned"}
+                </span>
+              </div>
+            </div>
+
+            <div className="border-b border-slate-100 my-3" />
+
+            {/* Check-In & ETA */}
+            <div className="grid grid-cols-2 gap-3 text-xs">
+              <div>
+                <span className="text-slate-400 font-medium block text-[11px]">Check-In</span>
+                <span className="font-semibold text-slate-700 mt-0.5 block">
+                  {formatTime(r.checkInTime)}
+                </span>
+              </div>
+              <div>
+                <span className="text-slate-400 font-medium block text-[11px]">ETA</span>
+                <span className="font-semibold text-slate-700 mt-0.5 block">
+                  {formatTime(r.eta)}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

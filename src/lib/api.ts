@@ -23,10 +23,10 @@ export async function apiCall(
         const user = JSON.parse(userStr);
         if (finalOptions.method && ["POST", "PUT"].includes(finalOptions.method.toUpperCase()) && finalOptions.body) {
           const bodyObj = JSON.parse(finalOptions.body as string);
-          if (finalOptions.method.toUpperCase() === "POST" && !bodyObj.createdBy) {
+          if (finalOptions.method.toUpperCase() === "POST" && !bodyObj.createdBy && !endpoint.includes("/vendors")) {
             bodyObj.createdBy = user.name || user.username;
           }
-          if (finalOptions.method.toUpperCase() === "PUT" && !bodyObj.modifiedBy) {
+          if (finalOptions.method.toUpperCase() === "PUT" && !bodyObj.modifiedBy && !endpoint.includes("/vendors")) {
             bodyObj.modifiedBy = user.name || user.username;
           }
           finalOptions.body = JSON.stringify(bodyObj);
@@ -866,31 +866,31 @@ export async function deleteWarranty(id: string): Promise<{ success: boolean }> 
 
 export const MASTER_CATEGORIES = {
   // Customer Masters
-  CUSTOMER_TYPE:         { label: "Customer Types",        section: "Customer Masters" },
-  LEAD_SOURCE:           { label: "Lead Sources",           section: "Customer Masters" },
-  REFERRAL_TYPE:         { label: "Referral Types",         section: "Customer Masters" },
+  CUSTOMER_TYPE: { label: "Customer Types", section: "Customer Masters" },
+  LEAD_SOURCE: { label: "Lead Sources", section: "Customer Masters" },
+  REFERRAL_TYPE: { label: "Referral Types", section: "Customer Masters" },
   // Vehicle Masters
-  VEHICLE_BRAND:         { label: "Vehicle Brands",         section: "Vehicle Masters" },
-  VEHICLE_MODEL:         { label: "Vehicle Models",         section: "Vehicle Masters" },
-  FUEL_TYPE:             { label: "Fuel Types",             section: "Vehicle Masters" },
-  COLOUR:                { label: "Colours",                section: "Vehicle Masters" },
+  VEHICLE_BRAND: { label: "Vehicle Brands", section: "Vehicle Masters" },
+  VEHICLE_MODEL: { label: "Vehicle Models", section: "Vehicle Masters" },
+  FUEL_TYPE: { label: "Fuel Types", section: "Vehicle Masters" },
+  COLOUR: { label: "Colours", section: "Vehicle Masters" },
   // Employee Masters
-  DEPARTMENT:            { label: "Departments",            section: "Employee Masters" },
-  DESIGNATION:           { label: "Designations",           section: "Employee Masters" },
-  ROLE:                  { label: "Roles",                  section: "Employee Masters" },
+  DEPARTMENT: { label: "Departments", section: "Employee Masters" },
+  DESIGNATION: { label: "Designations", section: "Employee Masters" },
+  ROLE: { label: "Roles", section: "Employee Masters" },
   // Inventory Masters
-  PRODUCT_CATEGORY:      { label: "Product Categories",     section: "Inventory Masters" },
-  UNIT_OF_MEASURE:       { label: "Units of Measure",       section: "Inventory Masters" },
-  BRAND:                 { label: "Brands",                 section: "Inventory Masters" },
+  PRODUCT_CATEGORY: { label: "Product Categories", section: "Inventory Masters" },
+  UNIT_OF_MEASURE: { label: "Units of Measure", section: "Inventory Masters" },
+  BRAND: { label: "Brands", section: "Inventory Masters" },
   // Finance Masters
-  GST_RATE:              { label: "GST Rates",              section: "Finance Masters" },
-  PAYMENT_MODE:          { label: "Payment Modes",          section: "Finance Masters" },
-  DISCOUNT_TYPE:         { label: "Discount Types",         section: "Finance Masters" },
+  GST_RATE: { label: "GST Rates", section: "Finance Masters" },
+  PAYMENT_MODE: { label: "Payment Modes", section: "Finance Masters" },
+  DISCOUNT_TYPE: { label: "Discount Types", section: "Finance Masters" },
   // System Masters
   NOTIFICATION_TEMPLATE: { label: "Notification Templates", section: "System Masters" },
-  NUMBER_SERIES:         { label: "Number Series",          section: "System Masters" },
-  BUSINESS_HOURS:        { label: "Business Hours",         section: "System Masters" },
-  HOLIDAY_CALENDAR:      { label: "Holiday Calendar",       section: "System Masters" },
+  NUMBER_SERIES: { label: "Number Series", section: "System Masters" },
+  BUSINESS_HOURS: { label: "Business Hours", section: "System Masters" },
+  HOLIDAY_CALENDAR: { label: "Holiday Calendar", section: "System Masters" },
 } as const;
 
 export type MasterCategory = keyof typeof MASTER_CATEGORIES;
@@ -968,6 +968,54 @@ export async function deleteMaster(id: string): Promise<{ success: boolean; id: 
 
 export async function seedMasters(): Promise<{ success: boolean; created: number; skipped: number; total: number }> {
   return apiCall("/hq/masters/seed", { method: "POST" });
+}
+
+// --- INVENTORY REQUESTS & STOCK MOVEMENTS ---
+export async function getInventoryRequests() {
+  return apiCall("/inventory/requests");
+}
+
+export async function createInventoryRequest(data: {
+  itemId: string;
+  quantityRequested: number;
+  requiredDate?: string;
+  priority?: string;
+  remarks?: string;
+}) {
+  return apiCall("/inventory/requests", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function approveInventoryRequest(id: string, data: { status?: string; quantityApproved?: number }) {
+  return apiCall(`/inventory/requests/${id}/approve`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function rejectInventoryRequest(id: string) {
+  return apiCall(`/inventory/requests/${id}/reject`, {
+    method: "POST",
+  });
+}
+
+export async function dispatchInventoryRequest(id: string) {
+  return apiCall(`/inventory/requests/${id}/dispatch`, {
+    method: "POST",
+  });
+}
+
+export async function receiveInventoryRequest(id: string) {
+  return apiCall(`/inventory/requests/${id}/receive`, {
+    method: "POST",
+  });
+}
+
+export async function getInventoryMovements(itemId?: string) {
+  const query = itemId ? `?itemId=${itemId}` : "";
+  return apiCall(`/inventory/movements${query}`);
 }
 
 

@@ -248,6 +248,7 @@ export default function LeadsPage() {
   const newLeads = leads.filter((l) => l.status === "New").length;
   const followUp = leads.filter((l) => l.status === "Follow Up").length;
   const closed = leads.filter((l) => l.status === "Converted").length;
+  const lostLeads = leads.filter((l) => l.status === "Lost").length;
 
   // Color helper functions have been hoisted
 
@@ -266,7 +267,7 @@ export default function LeadsPage() {
       )}
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-5 gap-4 mb-8">
         <div className="bg-white rounded-lg border border-gray-200 p-6">
           <p className="text-xs text-gray-500 uppercase tracking-wide mb-2">
             Total Leads
@@ -290,6 +291,12 @@ export default function LeadsPage() {
             Converted
           </p>
           <p className="text-4xl font-bold text-gray-900">{closed}</p>
+        </div>
+        <div className="bg-white rounded-lg border border-red-100 p-6">
+          <p className="text-xs text-red-400 uppercase tracking-wide mb-2">
+            Lost
+          </p>
+          <p className="text-4xl font-bold text-red-500">{lostLeads}</p>
         </div>
       </div>
 

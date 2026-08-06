@@ -42,7 +42,6 @@ export default function SettingsPage() {
 
   const tabs = [
     { id: "company", label: "Company Info", icon: Building2 },
-    { id: "technicians", label: "Technicians", icon: Users },
     { id: "sales", label: "Sales Agents", icon: Headset },
     { id: "security", label: "Security Guards", icon: Lock },
     { id: "categories", label: "Categories", icon: Tag },
@@ -407,41 +406,7 @@ export default function SettingsPage() {
           </div>
         )}
 
-        {/* Technicians */}
-        {activeTab === "technicians" && (
-          <div className="max-w-2xl">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                <Users className="w-5 h-5 text-yellow-500" /> Technicians
-              </h2>
-              <button onClick={handleAddTechnician} className="px-4 py-2 bg-yellow-400 text-gray-900 text-sm font-bold rounded-lg hover:bg-yellow-500 transition-colors flex items-center gap-1 shadow-sm">
-                <Plus className="w-4 h-4" /> Add Technician
-              </button>
-            </div>
-            <div className="space-y-0">
-              {technicians.length === 0 ? (
-                <div className="py-8 text-center text-sm text-gray-500 bg-gray-50 rounded-lg border border-dashed border-gray-200">No technicians added yet.</div>
-              ) : (
-                <div className="grid grid-cols-1 gap-2">
-                  {technicians.map((tech, i) => (
-                    <div key={i} className="flex items-center justify-between p-4 bg-gray-50 border border-gray-100 rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center text-yellow-700 font-bold text-xs uppercase">{tech.name.substring(0, 2)}</div>
-                        <div className="flex flex-col">
-                          <span className="text-sm font-bold text-gray-800">{tech.name}</span>
-                          {tech.email && <span className="text-xs text-gray-500">{tech.email}</span>}
-                        </div>
-                      </div>
-                      <button onClick={() => handleRemoveTechnician(i)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg border border-transparent hover:border-red-100 transition-colors">
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
+
 
         {/* Sales Agents */}
         {activeTab === "sales" && (

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Eye, Check, Trash2, Ban, Search, Receipt, ArrowRight, History, X } from "lucide-react";
+import { Plus, Eye, Pencil, Trash2, Ban, Search, Receipt, ArrowRight, History, X } from "lucide-react";
 import NewDocumentDialog from "../components/NewDocumentDialog";
 import DocumentPreviewDialog from "../components/DocumentPreviewDialog";
 import ConvertDocumentDialog from "../components/ConvertDocumentDialog";
@@ -244,7 +244,7 @@ export function BillingPage() {
 
                 return (
                   <tr key={doc.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 text-xs font-mono font-bold" style={{ color: "#F0B100" }}>{doc.id}</td>
+                    <td className="px-6 py-4 text-xs font-mono font-bold whitespace-nowrap" style={{ color: "#F0B100" }}>{doc.id}</td>
                     <td className="px-6 py-4 text-sm">
                       <span className={`inline-flex px-2.5 py-1 rounded text-xs font-semibold ${getTypeColor(doc.type)}`}>
                         {doc.type}
@@ -271,7 +271,14 @@ export function BillingPage() {
                         ₹{remainingAmount.toLocaleString("en-IN")}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-700">{doc.date}</td>
+                    <td className="px-6 py-4 text-sm text-gray-700 whitespace-nowrap">
+                      {doc.date
+                        ? (() => {
+                            const d = new Date(doc.date);
+                            return isNaN(d.getTime()) ? doc.date : d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+                          })()
+                        : "—"}
+                    </td>
                     <td className="px-6 py-4 text-sm">
                       <span className={`inline-flex px-2.5 py-1 rounded text-xs font-semibold ${getStatusColor(doc.status)}`}>
                         {doc.status}
@@ -295,9 +302,9 @@ export function BillingPage() {
                             ? "bg-green-100"
                             : "hover:bg-gray-200"
                             }`}
-                          title={doc.status === "Paid" ? "Paid" : "Mark as Paid"}
+                          title={doc.status === "Paid" ? "Paid" : "Record Payment"}
                         >
-                          <Check className={`w-4 h-4 ${doc.status === "Paid" ? "text-green-600" : "text-gray-600"}`} />
+                          <Pencil className={`w-4 h-4 ${doc.status === "Paid" ? "text-green-600" : "text-gray-600"}`} />
                         </button>
                         {(doc.status === "Paid" || doc.status === "Partially Paid") && (
                           <>

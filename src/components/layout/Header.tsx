@@ -84,6 +84,22 @@ const pageHeaders: Record<string, { title: string; description: string }> = {
     title: "User Management",
     description: "Manage user accounts and permissions",
   },
+  "/dashboard/franchise-control/inventory-requests": {
+    title: "Inventory Requests",
+    description: "Request inventory stock from HQ",
+  },
+  "/dashboard/franchise-control/inventory-approval": {
+    title: "Inventory Approval",
+    description: "Approve stock requests from franchises",
+  },
+  "/dashboard/franchise-control/stock-allocation": {
+    title: "Stock Allocation",
+    description: "Allocate and dispatch inventory stock to branches",
+  },
+  "/dashboard/franchise-control/service-requests": {
+    title: "Service Requests",
+    description: "Request custom services or pricing approval",
+  },
   "/dashboard/franchise-control/service-approval": {
     title: "Service Approval",
     description: "Review and approve service requests",

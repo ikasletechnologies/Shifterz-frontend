@@ -108,21 +108,7 @@ export function ViewJobCardDialog({ isOpen, onClose, job, onEdit, onDelete }: Vi
 
           {/* Action Row */}
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => handlePrint('customer')}
-              className="px-3 py-1.5 text-xs bg-green-50 text-green-600 border border-green-200 rounded-lg hover:bg-green-100 transition-colors font-semibold"
-            >
-              Print Customer Copy
-            </button>
-            
-            {isManagement && (
-              <button
-                onClick={() => handlePrint('workshop')}
-                className="px-3 py-1.5 text-xs bg-slate-100 text-slate-700 border border-slate-200 rounded-lg hover:bg-slate-200 transition-colors font-semibold"
-              >
-                Print Workshop Copy
-              </button>
-            )}
+
 
             {onEdit && (
               <button

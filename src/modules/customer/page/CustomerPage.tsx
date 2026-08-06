@@ -126,20 +126,92 @@ export function CustomerPage() {
     return b.id.localeCompare(a.id);
   });
 
-  const downloadCSV = () => {
-    let csvContent = "ID,Name,Phone,Email,Vehicle,Car Model,Visits,Total Spend,Last Visit\n";
-    filteredCustomers.forEach((c) => {
-      csvContent += `"${c.id}","${c.name}","${c.phone}","${c.email}","${c.vehicle}","${c.model}",${c.visits},${c.totalSpend},"${c.lastVisit}"\n`;
+  const downloadPDF = async () => {
+    const { default: jsPDF } = await import("jspdf");
+    const { default: autoTable } = await import("jspdf-autotable");
+
+    const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+
+    // ── Header bar ──────────────────────────────────────────────────────────
+    doc.setFillColor(240, 177, 0); // Shifterz yellow
+    doc.rect(0, 0, 297, 22, "F");
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(16);
+    doc.setTextColor(30, 30, 30);
+    doc.text("Shifterz – Customer Report", 14, 14);
+
+    // Generated date (right-aligned)
+    const generated = `Generated: ${new Date().toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}`;
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(50, 50, 50);
+    doc.text(generated, 297 - 14, 14, { align: "right" });
+
+    // Filter label
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "italic");
+    doc.setTextColor(80, 80, 80);
+    const filterLabel = periodFilter === "Custom"
+      ? `Period: ${customFromDate || "—"} to ${customToDate || "—"}`
+      : `Period: ${periodFilter}`;
+    doc.text(filterLabel, 14, 29);
+
+    // Summary stats
+    const totalVisits = filteredCustomers.reduce((s, c) => s + (c.visits || 0), 0);
+    const totalSpend  = filteredCustomers.reduce((s, c) => s + (c.totalSpend || 0), 0);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(30, 30, 30);
+    doc.text(
+      `Total Customers: ${filteredCustomers.length}   |   Total Visits: ${totalVisits}   |   Total Revenue: ₹${totalSpend.toLocaleString("en-IN")}`,
+      14, 35
+    );
+
+    // ── Table ────────────────────────────────────────────────────────────────
+    autoTable(doc, {
+      startY: 40,
+      head: [["ID", "Name", "Phone", "Email", "Vehicle", "Car Model", "Visits", "Total Spend", "Last Visit"]],
+      body: filteredCustomers.map((c) => [
+        c.id,
+        c.name,
+        c.phone,
+        c.email || "—",
+        c.vehicle || "—",
+        c.model || "—",
+        c.visits ?? 0,
+        `₹${(c.totalSpend || 0).toLocaleString("en-IN")}`,
+        c.lastVisit || "—",
+      ]),
+      headStyles: {
+        fillColor: [240, 177, 0],
+        textColor: [30, 30, 30],
+        fontStyle: "bold",
+        fontSize: 8,
+      },
+      bodyStyles: { fontSize: 7.5, textColor: [50, 50, 50] },
+      alternateRowStyles: { fillColor: [250, 250, 250] },
+      columnStyles: {
+        0: { cellWidth: 28 },
+        6: { halign: "center" },
+        7: { halign: "right" },
+      },
+      margin: { left: 14, right: 14 },
+      styles: { overflow: "linebreak", cellPadding: 2.5 },
     });
-    
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", `customers_report_${new Date().toISOString().slice(0, 10)}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+
+    // ── Footer ───────────────────────────────────────────────────────────────
+    const pageCount = (doc as any).internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFontSize(7);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(150, 150, 150);
+      doc.text(`Page ${i} of ${pageCount}`, 297 - 14, 207, { align: "right" });
+      doc.text("Shifterz ERP – Confidential", 14, 207);
+    }
+
+    doc.save(`customers_report_${new Date().toISOString().slice(0, 10)}.pdf`);
   };
 
   if (isLoading) return <div className="p-8">Loading customers...</div>;
@@ -221,9 +293,9 @@ export function CustomerPage() {
 
             {/* Download Button */}
             <button
-              onClick={downloadCSV}
+              onClick={downloadPDF}
               className="p-2.5 hover:bg-gray-100 text-gray-900 rounded-lg border border-gray-200 transition-colors shadow-sm bg-gray-50"
-              title="Download CSV"
+              title="Download PDF Report"
             >
               <Download className="w-4 h-4 text-black" />
             </button>
@@ -281,7 +353,14 @@ export function CustomerPage() {
                   <td className="px-3 py-3 font-semibold text-yellow-600 text-xs whitespace-nowrap">
                     ₹{customer.totalSpend?.toLocaleString("en-IN") || 0}
                   </td>
-                  <td className="px-3 py-3 text-gray-600 text-xs whitespace-nowrap">{customer.lastVisit}</td>
+                  <td className="px-3 py-3 text-gray-600 text-xs whitespace-nowrap">
+                    {customer.lastVisit
+                      ? (() => {
+                          const d = new Date(customer.lastVisit);
+                          return isNaN(d.getTime()) ? customer.lastVisit : d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+                        })()
+                      : "—"}
+                  </td>
                   <td className="px-3 py-3 whitespace-nowrap">
                     <div className="flex items-center gap-2">
                       <button
