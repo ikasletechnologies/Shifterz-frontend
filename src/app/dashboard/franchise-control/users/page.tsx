@@ -428,6 +428,13 @@ export default function UserManagementPage() {
 
       {/* Role summary cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3 mb-6">
+        <button
+          onClick={() => setRoleFilter("ALL")}
+          className={`p-3 rounded-xl border text-left transition-all ${roleFilter === "ALL" ? "border-yellow-400 shadow-md bg-white" : "border-gray-100 bg-white hover:border-gray-200"}`}
+        >
+          <p className="text-xl font-bold" style={{ color: "#374151" }}>{users.length}</p>
+          <p className="text-[10px] font-semibold text-gray-500 mt-0.5 leading-tight">All Employees</p>
+        </button>
         {ROLES.map((r) => {
           const count = users.filter((u) => u.role.split("|")[0] === r.value).length;
           return (

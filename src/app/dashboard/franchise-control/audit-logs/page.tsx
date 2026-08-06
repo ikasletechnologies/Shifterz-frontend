@@ -113,19 +113,7 @@ export default function AuditLogsPage() {
 
   return (
     <div className="p-8 space-y-6 bg-gray-50 min-h-screen">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div></div>
-        <div className="flex gap-2">
-          <button
-            onClick={loadData}
-            className="flex items-center gap-2 px-3 py-2 text-xs font-bold text-gray-600 bg-white border border-gray-200 rounded-xl hover:bg-gray-100 shadow-sm transition-all"
-          >
-            <RefreshCw className="w-4 h-4" />
-            Reload Trail
-          </button>
-        </div>
-      </div>
+
 
       {/* Filter Toolbar */}
       <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 grid grid-cols-1 sm:grid-cols-5 gap-3 items-end">
@@ -211,13 +199,22 @@ export default function AuditLogsPage() {
           </select>
         </div>
 
-        <button
-          onClick={handleExportCSV}
-          className="w-full py-2 text-xs font-bold text-gray-900 bg-yellow-400 rounded-xl hover:bg-yellow-500 transition-all flex items-center justify-center gap-1"
-        >
-          <Download className="w-4 h-4" />
-          Export CSV
-        </button>
+        <div className="flex gap-2 w-full">
+          <button
+            onClick={loadData}
+            className="w-1/2 flex items-center justify-center gap-2 px-2 py-2 text-[11px] font-bold text-gray-600 bg-white border border-gray-200 rounded-xl hover:bg-gray-100 shadow-sm transition-all whitespace-nowrap"
+          >
+            <RefreshCw className="w-4 h-4" />
+            Reload Trail
+          </button>
+          <button
+            onClick={handleExportCSV}
+            className="w-1/2 py-2 px-2 text-[11px] font-bold text-gray-900 bg-yellow-400 rounded-xl hover:bg-yellow-500 transition-all flex items-center justify-center gap-1 whitespace-nowrap"
+          >
+            <Download className="w-4 h-4" />
+            Export CSV
+          </button>
+        </div>
       </div>
 
       {/* Audit Logs Table */}

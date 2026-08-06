@@ -75,19 +75,6 @@ const franchiseControlChildren: Omit<NavItem, "children">[] = [
   { label: "Add Franchise", icon: PlusSquare, href: "/dashboard/franchise-control/add" },
   { label: "Franchise Employees", icon: UsersRound, href: "/dashboard/franchise-control/users" },
   { label: "Employee Approval", icon: UserCog, href: "/dashboard/franchise-control/employee-approval" },
-  { label: "Inventory Requests", icon: PackageSearch, href: "/dashboard/franchise-control/inventory-requests" },
-  { label: "Inventory Approval", icon: PackageCheck, href: "/dashboard/franchise-control/inventory-approval" },
-  { label: "Stock Allocation", icon: Boxes, href: "/dashboard/franchise-control/stock-allocation" },
-  { label: "Branch Transfer", icon: ArrowLeftRight, href: "/dashboard/franchise-control/branch-transfer" },
-  { label: "Purchase Requests", icon: ShoppingCart, href: "/dashboard/franchise-control/purchase-requests" },
-  { label: "Purchase Approval", icon: ClipboardCheck, href: "/dashboard/franchise-control/purchase-approval" },
-  { label: "Service Requests", icon: ConciergeBell, href: "/dashboard/franchise-control/service-requests" },
-  { label: "Service Approval", icon: BadgeCheck, href: "/dashboard/franchise-control/service-approval" },
-  { label: "License Management", icon: Key, href: "/dashboard/franchise-control/licenses" },
-  { label: "Roles & Permissions", icon: ShieldCheck, href: "/dashboard/roles" },
-  { label: "Notifications", icon: Bell, href: "/dashboard/franchise-control/notifications" },
-  { label: "Activity Logs", icon: ActivitySquare, href: "/dashboard/franchise-control/activity-logs" },
-  { label: "Audit Logs", icon: ScrollText, href: "/dashboard/franchise-control/audit-logs" },
 ];
 
 // ── HQ sidebar (Super Admin & HQ User) ───────────────────────────────────────
@@ -148,7 +135,7 @@ export const hqSidebarSections: NavSection[] = [
         module: "franchise"
       },
       { label: "Services", icon: Wrench, href: "/dashboard/services", module: "services" },
-      { label: "Vendors & Purchases", icon: ShoppingCart, href: "/dashboard/franchise-control/purchases", module: "inventory" },
+      { label: "Vendor & Purchase Management", icon: ShoppingCart, href: "/dashboard/franchise-control/purchases", module: "inventory" },
       { label: "Masters & Config", icon: Database, href: "/dashboard/masters", module: "settings" },
       { label: "User Management", icon: UserRoundCog, href: "/dashboard/franchise-control/users", module: "employees" },
     ],
