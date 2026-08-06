@@ -69,7 +69,8 @@ export default function TechniciansPage() {
   const [franchises, setFranchises] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const [activeTab, setActiveTab] = useState<"info" | "workSummary">("info");
+  const [activeTab, setActiveTab] = useState<"info" | "details">("info");
+  const [selectedTechnician, setSelectedTechnician] = useState<TechnicianRow | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [branchFilter, setBranchFilter] = useState("All");
   const [statusFilter, setStatusFilter] = useState("All");
@@ -314,13 +315,6 @@ export default function TechniciansPage() {
 
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-          <HardHat className="w-6 h-6 text-yellow-500" />
-          Technician Management
-        </h1>
-        <p className="text-gray-500 mt-1">Monitor technician workload, rework and productivity</p>
-      </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
         <StatCard
@@ -438,35 +432,6 @@ export default function TechniciansPage() {
         />
       </div>
 
-      {/* Navigation Tab Bar below Status section */}
-      <div className="flex items-center gap-3 border-b border-gray-200 pb-1">
-        <button
-          type="button"
-          onClick={() => setActiveTab("info")}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-all cursor-pointer ${
-            activeTab === "info"
-              ? "bg-blue-600 text-white shadow-md shadow-blue-500/20"
-              : "bg-white text-gray-600 hover:bg-gray-100 border border-gray-200"
-          }`}
-        >
-          <UserCheck2 className="w-4 h-4" />
-          <span>Technician Info</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab("workSummary")}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-all cursor-pointer ${
-            activeTab === "workSummary"
-              ? "bg-blue-600 text-white shadow-md shadow-blue-500/20"
-              : "bg-white text-gray-600 hover:bg-gray-100 border border-gray-200"
-          }`}
-        >
-          <BarChart3 className="w-4 h-4" />
-          <span>Work Summary</span>
-        </button>
-      </div>
-
       {activeTab === "info" ? (
         <>
           <div className="flex flex-nowrap items-center gap-2.5 w-full">
@@ -576,7 +541,7 @@ export default function TechniciansPage() {
               <button
                 type="button"
                 onClick={() => setIsDownloadOpen((prev) => !prev)}
-                className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-3.5 py-2 rounded-lg flex items-center justify-center gap-1.5 transition-colors text-sm whitespace-nowrap cursor-pointer"
+                className="bg-amber-400 hover:bg-amber-500 text-slate-900 font-bold px-3.5 py-2 rounded-xl flex items-center justify-center gap-1.5 transition-colors text-sm whitespace-nowrap cursor-pointer shadow-2xs"
               >
                 <Download className="w-4 h-4" />
                 <span>Download</span>
@@ -903,15 +868,18 @@ export default function TechniciansPage() {
                         </div>
                       )}
 
-                      {/* Work Summary Button directly below Active Status */}
+                      {/* Details Button directly below Active Status */}
                       <div className="pt-3">
                         <button
                           type="button"
-                          onClick={() => setActiveTab("workSummary")}
+                          onClick={() => {
+                            setSelectedTechnician(row);
+                            setActiveTab("details");
+                          }}
                           className="w-full py-2.5 px-4 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all cursor-pointer bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200"
                         >
-                          <BarChart3 className="w-4 h-4" />
-                          <span>Work Summary</span>
+                          <FileText className="w-4 h-4" />
+                          <span>Details</span>
                         </button>
                       </div>
                     </div>
@@ -922,93 +890,156 @@ export default function TechniciansPage() {
           </div>
         </>
       ) : (
-        /* Work Summary Page/Layout matching reference image */
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 max-w-4xl">
-          <div className="flex items-center justify-between mb-8 pb-4 border-b border-gray-100">
-            <div className="flex items-center gap-3.5">
-              <div className="w-12 h-12 rounded-2xl bg-indigo-600 flex items-center justify-center text-white shadow-md shadow-indigo-200 shrink-0">
-                <BarChart3 className="w-6 h-6" />
+        /* Details Page/Layout showing ONLY selected technician's details */
+        (() => {
+          const selectedTech = selectedTechnician || rows[0];
+          if (!selectedTech) {
+            return (
+              <div className="bg-white rounded-2xl p-8 text-center text-slate-500">
+                No technician record selected.
               </div>
-              <h2 className="text-2xl font-bold text-slate-800 tracking-tight">Work Summary</h2>
-            </div>
-            <button
-              type="button"
-              onClick={() => setActiveTab("info")}
-              className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-xl text-sm transition-colors cursor-pointer flex items-center gap-2"
-            >
-              <ChevronLeft className="w-4 h-4" />
-              <span>Back to Technicians info</span>
-            </button>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {/* Assigned Jobs */}
-            <div className="bg-white rounded-2xl border border-slate-100 p-5 flex items-center justify-between shadow-sm hover:border-blue-200 transition-colors">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 shrink-0">
-                  <ClipboardList className="w-6 h-6" />
+            );
+          }
+          return (
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 sm:p-8 max-w-4xl space-y-6">
+              <div className="flex items-center justify-between pb-4 border-b border-gray-100">
+                <div className="flex items-center gap-3.5">
+                  <button
+                    type="button"
+                    onClick={() => { setActiveTab("info"); setSelectedTechnician(null); }}
+                    className="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center transition-colors cursor-pointer shrink-0"
+                    title="Back to Technician List"
+                  >
+                    <ChevronLeft className="w-5 h-5" />
+                  </button>
+                  <div>
+                    <h2 className="text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+                      {selectedTech.name}
+                      <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                        selectedTech.status === "Active" ? "bg-emerald-100 text-emerald-700" : "bg-gray-100 text-gray-700"
+                      }`}>
+                        {selectedTech.status}
+                      </span>
+                    </h2>
+                    <p className="text-xs text-slate-500 font-mono">Employee ID: {selectedTech.id} • Branch: {selectedTech.branch || "Headquarters"}</p>
+                  </div>
                 </div>
-                <span className="font-semibold text-slate-700 text-base">Assigned Jobs</span>
               </div>
-              <span className="text-3xl font-extrabold text-blue-600">{summary?.assignedJobs ?? 6}</span>
-            </div>
 
-            {/* In Progress */}
-            <div className="bg-white rounded-2xl border border-slate-100 p-5 flex items-center justify-between shadow-sm hover:border-emerald-200 transition-colors">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600 shrink-0">
-                  <Wrench className="w-6 h-6" />
+              {/* Technician Info Metadata Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100 text-xs">
+                <div>
+                  <p className="text-slate-400 font-semibold mb-0.5">Phone Number</p>
+                  <p className="font-bold text-slate-800">{selectedTech.phone || "N/A"}</p>
                 </div>
-                <span className="font-semibold text-slate-700 text-base">In Progress</span>
+                <div>
+                  <p className="text-slate-400 font-semibold mb-0.5">Branch</p>
+                  <p className="font-bold text-slate-800">{selectedTech.branch || "Headquarters"}</p>
+                </div>
+                <div>
+                  <p className="text-slate-400 font-semibold mb-0.5">Productivity</p>
+                  <p className="font-bold text-emerald-600">{selectedTech.productivity || 85}%</p>
+                </div>
               </div>
-              <span className="text-3xl font-extrabold text-emerald-600">{summary?.inProgress ?? 2}</span>
-            </div>
 
-            {/* Completed Today */}
-            <div className="bg-white rounded-2xl border border-slate-100 p-5 flex items-center justify-between shadow-sm hover:border-emerald-200 transition-colors">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-500 shrink-0">
-                  <CheckCircle2 className="w-6 h-6" />
-                </div>
-                <span className="font-semibold text-slate-700 text-base">Completed Today</span>
-              </div>
-              <span className="text-3xl font-extrabold text-emerald-500">{summary?.completedToday ?? 4}</span>
-            </div>
+              {/* Individual Metrics Grid (Only for this selected technician) */}
+              <div>
+                <h3 className="text-sm font-bold text-slate-900 mb-3">Record Details & Metrics</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {/* Assigned Jobs */}
+                  <div className="bg-white rounded-xl border border-slate-100 p-4 flex items-center justify-between shadow-2xs">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 shrink-0">
+                        <ClipboardList className="w-5 h-5" />
+                      </div>
+                      <span className="font-semibold text-slate-700 text-xs">Assigned Jobs</span>
+                    </div>
+                    <span className="text-2xl font-extrabold text-blue-600">{selectedTech.assignedJobs ?? 0}</span>
+                  </div>
 
-            {/* Waiting for Parts */}
-            <div className="bg-white rounded-2xl border border-slate-100 p-5 flex items-center justify-between shadow-sm hover:border-amber-200 transition-colors">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-full bg-amber-50 flex items-center justify-center text-amber-500 shrink-0">
-                  <Hourglass className="w-6 h-6" />
-                </div>
-                <span className="font-semibold text-slate-700 text-base">Waiting for Parts</span>
-              </div>
-              <span className="text-3xl font-extrabold text-amber-500">{summary?.waitingParts ?? 1}</span>
-            </div>
+                  {/* In Progress */}
+                  <div className="bg-white rounded-xl border border-slate-100 p-4 flex items-center justify-between shadow-2xs">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600 shrink-0">
+                        <Wrench className="w-5 h-5" />
+                      </div>
+                      <span className="font-semibold text-slate-700 text-xs">In Progress</span>
+                    </div>
+                    <span className="text-2xl font-extrabold text-emerald-600">{selectedTech.inProgress ?? 0}</span>
+                  </div>
 
-            {/* Rework Jobs */}
-            <div className="bg-white rounded-2xl border border-slate-100 p-5 flex items-center justify-between shadow-sm hover:border-rose-200 transition-colors">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-full bg-rose-50 flex items-center justify-center text-rose-500 shrink-0">
-                  <RefreshCw className="w-6 h-6" />
-                </div>
-                <span className="font-semibold text-slate-700 text-base">Rework Jobs</span>
-              </div>
-              <span className="text-3xl font-extrabold text-rose-500">{summary?.rework ?? 0}</span>
-            </div>
+                  {/* Completed Today */}
+                  <div className="bg-white rounded-xl border border-slate-100 p-4 flex items-center justify-between shadow-2xs">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-500 shrink-0">
+                        <CheckCircle2 className="w-5 h-5" />
+                      </div>
+                      <span className="font-semibold text-slate-700 text-xs">Completed Today</span>
+                    </div>
+                    <span className="text-2xl font-extrabold text-emerald-500">{selectedTech.completedToday ?? 0}</span>
+                  </div>
 
-            {/* QC Pending Jobs */}
-            <div className="bg-white rounded-2xl border border-slate-100 p-5 flex items-center justify-between shadow-sm hover:border-indigo-200 transition-colors">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-500 shrink-0">
-                  <Search className="w-6 h-6" />
+                  {/* Waiting for Parts */}
+                  <div className="bg-white rounded-xl border border-slate-100 p-4 flex items-center justify-between shadow-2xs">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center text-amber-500 shrink-0">
+                        <Hourglass className="w-5 h-5" />
+                      </div>
+                      <span className="font-semibold text-slate-700 text-xs">Waiting for Parts</span>
+                    </div>
+                    <span className="text-2xl font-extrabold text-amber-500">{selectedTech.waitingParts ?? 0}</span>
+                  </div>
+
+                  {/* Rework Jobs */}
+                  <div className="bg-white rounded-xl border border-slate-100 p-4 flex items-center justify-between shadow-2xs">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-rose-50 flex items-center justify-center text-rose-500 shrink-0">
+                        <RefreshCw className="w-5 h-5" />
+                      </div>
+                      <span className="font-semibold text-slate-700 text-xs">Rework Jobs</span>
+                    </div>
+                    <span className="text-2xl font-extrabold text-rose-500">{selectedTech.rework ?? 0}</span>
+                  </div>
+
+                  {/* QC Pending Jobs */}
+                  <div className="bg-white rounded-xl border border-slate-100 p-4 flex items-center justify-between shadow-2xs">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-500 shrink-0">
+                        <Search className="w-5 h-5" />
+                      </div>
+                      <span className="font-semibold text-slate-700 text-xs">QC Pending Jobs</span>
+                    </div>
+                    <span className="text-2xl font-extrabold text-indigo-600">{selectedTech.qcPending ?? 0}</span>
+                  </div>
                 </div>
-                <span className="font-semibold text-slate-700 text-base">QC Pending Jobs</span>
               </div>
-              <span className="text-3xl font-extrabold text-indigo-600">{summary?.qcPending ?? 1}</span>
+
+              {/* Specific Jobs Assigned To This Selected Technician */}
+              {selectedTech.jobs && selectedTech.jobs.length > 0 && (
+                <div className="pt-2">
+                  <h3 className="text-sm font-bold text-slate-900 mb-3">Assigned Job Cards for {selectedTech.name}</h3>
+                  <div className="space-y-2">
+                    {selectedTech.jobs.map((job) => (
+                      <div key={job.id} className="flex items-center justify-between bg-slate-50 rounded-xl p-3 text-xs border border-slate-200/80">
+                        <div>
+                          <p className="font-bold text-slate-900">{job.vehicle || job.id}</p>
+                          <p className="text-slate-500">{job.id} • {job.service} {job.customer ? `• ${job.customer}` : ""}</p>
+                        </div>
+                        <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
+                          job.status.includes("Waiting") ? "bg-amber-100 text-amber-700" :
+                          job.status === "Completed" || job.status === "Ready For Billing" ? "bg-emerald-100 text-emerald-700" :
+                          "bg-blue-100 text-blue-700"
+                        }`}>
+                          {job.status}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
-          </div>
-        </div>
+          );
+        })()
       )}
 
       {isEditOpen && editing && (

@@ -460,7 +460,7 @@ export default function WarrantyManagementPage() {
             {/* Generate Warranty Invoice */}
             <button
               onClick={() => setIsGenerateModalOpen(true)}
-              className="bg-slate-900 hover:bg-slate-800 text-white font-bold px-4 py-2.5 rounded-xl flex items-center gap-2 transition-all shadow-xs text-xs whitespace-nowrap"
+              className="bg-amber-400 hover:bg-amber-500 text-slate-900 font-bold px-4 py-2.5 rounded-xl flex items-center gap-2 transition-all shadow-2xs text-xs whitespace-nowrap"
             >
               <Printer className="w-4 h-4" />
               Generate Warranty Invoice
@@ -469,7 +469,7 @@ export default function WarrantyManagementPage() {
             {/* Issue Warranty */}
             <button
               onClick={() => setIsCreateOpen(true)}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2.5 rounded-xl flex items-center gap-2 transition-all shadow-xs text-xs whitespace-nowrap"
+              className="bg-rose-600 hover:bg-rose-700 text-white font-bold px-4 py-2.5 rounded-xl flex items-center gap-2 transition-all shadow-2xs text-xs whitespace-nowrap"
             >
               <Plus className="w-4 h-4 stroke-3" />
               Issue Warranty

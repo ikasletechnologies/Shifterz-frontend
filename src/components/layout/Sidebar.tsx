@@ -91,7 +91,7 @@ const franchiseControlChildren: Omit<NavItem, "children">[] = [
 ];
 
 // ── HQ sidebar (Super Admin & HQ User) ───────────────────────────────────────
-const hqSidebarSections: NavSection[] = [
+export const hqSidebarSections: NavSection[] = [
   {
     label: "OVERVIEW",
     items: [{ label: "Dashboard", icon: Grid3x3, href: "/dashboard", module: "dashboard" }],
@@ -167,7 +167,7 @@ const hqSidebarSections: NavSection[] = [
 ];
 
 // ── Franchise / Branch / Customized role sidebar master list ──────────────────
-const franchiseSidebarSections: NavSection[] = [
+export const franchiseSidebarSections: NavSection[] = [
   {
     label: "OVERVIEW",
     items: [{ label: "Dashboard", icon: Grid3x3, href: "/dashboard", module: "dashboard" }],
@@ -224,7 +224,7 @@ const franchiseSidebarSections: NavSection[] = [
 ];
 
 // ── Billing role sidebar ──────────────────────────────────────────────────────
-const billingSidebarSections: NavSection[] = [
+export const billingSidebarSections: NavSection[] = [
   {
     label: "OVERVIEW",
     items: [
@@ -259,7 +259,7 @@ const billingSidebarSections: NavSection[] = [
 ];
 
 // ── Technician role sidebar ────────────────────────────────────────────
-const technicianSidebarSections: NavSection[] = [
+export const technicianSidebarSections: NavSection[] = [
   {
     label: "OVERVIEW",
     items: [
@@ -282,7 +282,7 @@ const technicianSidebarSections: NavSection[] = [
 ];
 
 // ── Service Advisor role sidebar ──────────────────────────────────────
-const serviceAdvisorSidebarSections: NavSection[] = [
+export const serviceAdvisorSidebarSections: NavSection[] = [
   {
     label: "MAIN MENU",
     items: [

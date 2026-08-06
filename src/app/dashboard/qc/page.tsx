@@ -22,7 +22,7 @@ export default function QCInspectionPage() {
     startInspection, submitChecklist, passQC, failQC, sendRework, uploadPhotos, addRemarks,
   } = useQC();
 
-  const [statusFilter, setStatusFilter] = useState("All");
+  const [statusFilter, setStatusFilter] = useState("Waiting QC");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedJob, setSelectedJob] = useState<QCJob | null>(null);
   const [activeDialog, setActiveDialog] = useState<DialogType>(null);
@@ -30,7 +30,26 @@ export default function QCInspectionPage() {
   const filteredJobs = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     return jobs.filter((j) => {
-      const matchesStatus = statusFilter === "All" || j.status === statusFilter;
+      let matchesStatus = false;
+      if (statusFilter === "Waiting QC") {
+        matchesStatus =
+          j.status === "Waiting QC" ||
+          j.status === "QC Pending" ||
+          j.status === "Completed" ||
+          j.status === "Work Completed";
+      } else if (statusFilter === "Inspecting") {
+        matchesStatus = j.status === "Inspecting" || j.status === "In Inspection";
+      } else if (statusFilter === "Ready for Billing") {
+        matchesStatus =
+          j.status === "Ready for Billing" ||
+          j.status === "Ready For Billing" ||
+          j.status === "QC Passed";
+      } else if (statusFilter === "Rework") {
+        matchesStatus = j.status === "Rework" || j.status === "QC Failed";
+      } else {
+        matchesStatus = j.status === statusFilter;
+      }
+
       const matchesSearch =
         !q ||
         j.vehicle?.toLowerCase().includes(q) ||
@@ -52,13 +71,6 @@ export default function QCInspectionPage() {
 
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-          <ShieldCheck className="w-6 h-6 text-yellow-500" />
-          QC Inspection
-        </h1>
-        <p className="text-gray-500 mt-1">Inspect, pass, fail, or rework jobs sent from the workshop</p>
-      </div>
 
       <QCCard stats={stats} />
 

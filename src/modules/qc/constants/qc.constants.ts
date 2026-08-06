@@ -30,13 +30,10 @@ export const QC_STATUS_COLORS: Record<string, string> = {
 };
 
 export const QC_FILTER_OPTIONS = [
-  "All",
-  "Completed",
   "Waiting QC",
   "Inspecting",
-  "QC Passed",
-  "QC Failed",
-  "Ready For Billing",
+  "Ready for Billing",
+  "Rework",
 ] as const;
 
 // ─── QC Checklist ────────────────────────────────────────────────────────────

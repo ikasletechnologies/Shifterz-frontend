@@ -1,7 +1,7 @@
 "use client";
 
 import { QCStats } from "../types/qc.types";
-import { ClipboardCheck, CheckCircle2, XCircle, RefreshCw, Clock } from "lucide-react";
+import { ShieldCheck, CheckCircle2, RefreshCw, Clock } from "lucide-react";
 
 interface QCCardProps {
   stats: QCStats;
@@ -18,28 +18,28 @@ export function QCCard({ stats }: QCCardProps) {
       iconColor: "text-yellow-500",
     },
     {
-      label: "Passed Today",
-      value: stats.passedToday,
+      label: "Inspecting",
+      value: stats.inspecting,
+      icon: ShieldCheck,
+      color: "bg-blue-50 border-blue-200",
+      textColor: "text-blue-700",
+      iconColor: "text-blue-500",
+    },
+    {
+      label: "Ready for Billing",
+      value: stats.readyForBilling,
       icon: CheckCircle2,
       color: "bg-green-50 border-green-200",
       textColor: "text-green-700",
       iconColor: "text-green-500",
     },
     {
-      label: "Failed Today",
-      value: stats.failedToday,
-      icon: XCircle,
-      color: "bg-red-50 border-red-200",
-      textColor: "text-red-700",
-      iconColor: "text-red-500",
-    },
-    {
-      label: "Rework Pending",
-      value: stats.reworkPending,
+      label: "Rework",
+      value: stats.rework,
       icon: RefreshCw,
-      color: "bg-orange-50 border-orange-200",
-      textColor: "text-orange-700",
-      iconColor: "text-orange-500",
+      color: "bg-rose-50 border-rose-200",
+      textColor: "text-rose-700",
+      iconColor: "text-rose-500",
     },
   ];
 

@@ -7,6 +7,7 @@ interface AddEmployeeDialogProps {
   onClose: () => void;
   onAdd: (employee: any) => void;
   franchises: any[];
+  defaultRole?: string;
 }
 
 const MODULE_OPTIONS = [
@@ -36,19 +37,19 @@ const DEFAULT_ROLE_MODULES: Record<string, string[]> = {
   INVENTORY_EXECUTIVE: ["dashboard", "inventory", "reports"],
 };
 
-export default function AddEmployeeDialog({ isOpen, onClose, onAdd, franchises }: AddEmployeeDialogProps) {
+export default function AddEmployeeDialog({ isOpen, onClose, onAdd, franchises, defaultRole = "TECHNICIAN" }: AddEmployeeDialogProps) {
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
     email: "",
     username: "",
     password: "",
-    role: "TECHNICIAN",
+    role: defaultRole,
     franchiseId: "",
   });
 
   const [selectedModules, setSelectedModules] = useState<string[]>(
-    DEFAULT_ROLE_MODULES["TECHNICIAN"]
+    DEFAULT_ROLE_MODULES[defaultRole] || DEFAULT_ROLE_MODULES["TECHNICIAN"]
   );
 
   const roles = [

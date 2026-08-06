@@ -106,6 +106,7 @@ export function BillingPage() {
     isLoading,
     error,
     handleAddInvoice,
+    handleEditInvoice,
     handleDeleteDocument,
     handleCancelDocument,
     handleShareDocument,
@@ -128,6 +129,7 @@ export function BillingPage() {
 
   const [filter, setFilter] = useState("All");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingDocument, setEditingDocument] = useState<BillingDocument | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isConvertOpen, setIsConvertOpen] = useState(false);
   const [isRecordPaymentOpen, setIsRecordPaymentOpen] = useState(false);
@@ -299,7 +301,10 @@ export function BillingPage() {
             />
           </div>
           <button
-            onClick={() => setIsDialogOpen(true)}
+            onClick={() => {
+              setEditingDocument(null);
+              setIsDialogOpen(true);
+            }}
             className="bg-amber-400 hover:bg-amber-500 text-gray-900 font-bold px-4 py-2 rounded-xl flex items-center gap-1.5 transition-all shadow-xs text-xs shrink-0 whitespace-nowrap"
           >
             <Plus className="w-4 h-4 stroke-3" />
@@ -455,10 +460,13 @@ export function BillingPage() {
                       </button>
                     )}
 
-                    {/* Edit (if Quotation / Estimate) */}
-                    {(doc.type === "Estimate" || doc.type === "Quotation") && doc.status !== "Converted" && (
+                    {/* Edit (if Quotation / Estimate / non-cancelled Invoice) */}
+                    {doc.status !== "Converted" && doc.status !== "Cancelled" && (
                       <button
-                        onClick={() => { setSelectedDocument(doc); setIsPreviewOpen(true); }}
+                        onClick={() => {
+                          setEditingDocument(doc);
+                          setIsDialogOpen(true);
+                        }}
                         className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-50 hover:bg-gray-100 text-gray-700 border border-gray-200 flex items-center gap-1.5 transition-colors shadow-2xs"
                       >
                         <Pencil className="w-3.5 h-3.5 text-gray-500" /> Edit
@@ -509,10 +517,22 @@ export function BillingPage() {
       {/* Dialogs */}
       <NewDocumentDialog
         isOpen={isDialogOpen}
-        onClose={() => setIsDialogOpen(false)}
-        onSubmit={async (newDoc) => {
-          const success = await handleAddInvoice(newDoc);
-          if (success) setIsDialogOpen(false);
+        onClose={() => {
+          setIsDialogOpen(false);
+          setEditingDocument(null);
+        }}
+        initialData={editingDocument}
+        onSubmit={async (docData) => {
+          let success = false;
+          if (editingDocument) {
+            success = await handleEditInvoice(editingDocument.id, docData);
+          } else {
+            success = await handleAddInvoice(docData);
+          }
+          if (success) {
+            setIsDialogOpen(false);
+            setEditingDocument(null);
+          }
         }}
         existingDocuments={documents}
       />

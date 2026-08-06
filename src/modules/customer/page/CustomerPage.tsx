@@ -1,7 +1,6 @@
 "use client";
 import { useState } from "react";
-import { Plus, FileText, Trash2, Search, Download, X, Pencil, Car, User, Phone, Mail, Wrench, History, IndianRupee, Calendar } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { Plus, Trash2, Search, Download, X, Pencil, Car, User, Phone, Mail, Wrench, History, IndianRupee, Calendar } from "lucide-react";
 import AddCustomerDialog from "../components/AddCustomerDialog";
 import EditCustomerDialog from "../components/EditCustomerDialog";
 import { useCustomer } from "@/modules/customer/hooks/useCustomer";
@@ -10,7 +9,6 @@ import { updateCustomer } from "@/lib/api";
 import { toast } from "react-hot-toast";
 
 export function CustomerPage() {
-  const router = useRouter();
   const { customers, isLoading, error, handleAddCustomer, handleDeleteCustomer, fetchCustomers } = useCustomer();
   const [searchQuery, setSearchQuery] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -50,10 +48,6 @@ export function CustomerPage() {
     } catch (err: any) {
       toast.error("Failed to update customer: " + err.message);
     }
-  };
-
-  const handleViewBilling = (customerId: string, customerName: string) => {
-    router.push(`/dashboard/billing?customer=${customerId}&name=${customerName}`);
   };
 
   const filterByPeriod = (customerDateStr: string, period: string) => {
@@ -321,136 +315,147 @@ export function CustomerPage() {
           <p className="text-gray-500">Try adjusting your search or date filters, or create a new customer.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-2 gap-6">
           {filteredCustomers.map((customer) => (
             <div
               key={customer.id}
               className="bg-white rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-md transition-all p-5 flex flex-col justify-between space-y-4"
             >
               <div>
-                {/* Header: Customer ID (Left) & Avatar + Name (Right) */}
-                <div className="flex items-center justify-between gap-3 mb-4">
+                {/* Header: Customer ID (Left) & Plain Edit/Delete Icons (Right) */}
+                <div className="flex items-center justify-between gap-3 mb-4 border-b border-slate-100 pb-3">
                   <h3 className="text-base font-black text-slate-900 tracking-tight font-mono truncate" style={{ color: "#F0B100" }}>
                     {customer.id}
                   </h3>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <div className="w-7 h-7 bg-yellow-500 rounded-full flex items-center justify-center text-white font-bold text-xs shadow-xs">
-                      {customer.name ? customer.name.split(" ").map(n => n[0]).join("") : "?"}
-                    </div>
-                    <span className="font-semibold text-xs text-gray-900 max-w-[120px] truncate">{customer.name}</span>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button
+                      onClick={() => handleEditCustomer(customer)}
+                      className="p-1 text-slate-400 hover:text-blue-600 transition-colors"
+                      title="Edit Customer"
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => confirmDelete(customer)}
+                      className="p-1 text-slate-400 hover:text-red-600 transition-colors"
+                      title="Delete Customer"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
 
-                {/* Details Grid (Left label + icon, Right value text-right) */}
-                <div className="space-y-2.5 text-xs">
-                  {/* Name */}
-                  <div className="flex justify-between items-center py-1 border-b border-slate-50 gap-2">
-                    <div className="flex items-center gap-2 text-slate-500 font-medium shrink-0">
-                      <User className="w-4 h-4 text-slate-400 shrink-0" />
-                      <span>Name</span>
+                {/* Details Grid: Clean Two-Column Layout */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-xs">
+                  {/* Left Column */}
+                  <div className="space-y-2.5">
+                    {/* Vehicle */}
+                    <div className="flex items-center text-xs min-h-[24px]">
+                      <div className="flex items-center gap-1.5 text-slate-500 font-medium w-[95px] shrink-0">
+                        <Car className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                        <span>Vehicle</span>
+                        <span className="ml-auto text-slate-400 font-normal">:</span>
+                      </div>
+                      <p className="font-bold text-slate-900 uppercase font-mono tracking-wider truncate ml-2">
+                        {customer.vehicle || "—"}
+                      </p>
                     </div>
-                    <p className="font-bold text-slate-900 text-right truncate max-w-[160px]">{customer.name || "—"}</p>
+
+                    {/* Name */}
+                    <div className="flex items-center text-xs min-h-[24px]">
+                      <div className="flex items-center gap-1.5 text-slate-500 font-medium w-[95px] shrink-0">
+                        <User className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                        <span>Name</span>
+                        <span className="ml-auto text-slate-400 font-normal">:</span>
+                      </div>
+                      <p className="font-bold text-slate-900 truncate ml-2">
+                        {customer.name || "—"}
+                      </p>
+                    </div>
+
+                    {/* Phone */}
+                    <div className="flex items-center text-xs min-h-[24px]">
+                      <div className="flex items-center gap-1.5 text-slate-500 font-medium w-[95px] shrink-0">
+                        <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                        <span>Phone</span>
+                        <span className="ml-auto text-slate-400 font-normal">:</span>
+                      </div>
+                      <p className="font-bold text-blue-600 font-mono tracking-wider truncate ml-2">
+                        {customer.phone || "—"}
+                      </p>
+                    </div>
+
+                    {/* Email */}
+                    <div className="flex items-center text-xs min-h-[24px]">
+                      <div className="flex items-center gap-1.5 text-slate-500 font-medium w-[95px] shrink-0">
+                        <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                        <span>Email</span>
+                        <span className="ml-auto text-slate-400 font-normal">:</span>
+                      </div>
+                      <p className="font-medium text-slate-700 truncate ml-2">
+                        {customer.email || "—"}
+                      </p>
+                    </div>
                   </div>
 
-                  {/* Phone */}
-                  <div className="flex justify-between items-center py-1 border-b border-slate-50 gap-2">
-                    <div className="flex items-center gap-2 text-slate-500 font-medium shrink-0">
-                      <Phone className="w-4 h-4 text-slate-400 shrink-0" />
-                      <span>Phone</span>
+                  {/* Right Column */}
+                  <div className="space-y-2.5">
+                    {/* Car Model */}
+                    <div className="flex items-center text-xs min-h-[24px]">
+                      <div className="flex items-center gap-1.5 text-slate-500 font-medium w-[95px] shrink-0">
+                        <Wrench className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                        <span>Car Model</span>
+                        <span className="ml-auto text-slate-400 font-normal">:</span>
+                      </div>
+                      <p className="font-bold text-slate-900 truncate ml-2">
+                        {customer.model || "—"}
+                      </p>
                     </div>
-                    <p className="font-bold text-blue-600 font-mono tracking-wider text-right truncate">{customer.phone || "—"}</p>
-                  </div>
 
-                  {/* Email */}
-                  <div className="flex justify-between items-center py-1 border-b border-slate-50 gap-2">
-                    <div className="flex items-center gap-2 text-slate-500 font-medium shrink-0">
-                      <Mail className="w-4 h-4 text-slate-400 shrink-0" />
-                      <span>Email</span>
+                    {/* Visits */}
+                    <div className="flex items-center text-xs min-h-[24px]">
+                      <div className="flex items-center gap-1.5 text-slate-500 font-medium w-[95px] shrink-0">
+                        <History className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                        <span>Visits</span>
+                        <span className="ml-auto text-slate-400 font-normal">:</span>
+                      </div>
+                      <div className="ml-2">
+                        <span className="px-2 py-0.5 bg-gray-100 text-gray-700 text-[10px] font-bold rounded">
+                          {customer.visits ?? 0}
+                        </span>
+                      </div>
                     </div>
-                    <p className="font-medium text-slate-700 text-right truncate max-w-[160px]">{customer.email || "—"}</p>
-                  </div>
 
-                  {/* Vehicle */}
-                  <div className="flex justify-between items-center py-1 border-b border-slate-50 gap-2">
-                    <div className="flex items-center gap-2 text-slate-500 font-medium shrink-0">
-                      <Car className="w-4 h-4 text-blue-600 shrink-0" />
-                      <span>Vehicle</span>
+                    {/* Total Spend */}
+                    <div className="flex items-center text-xs min-h-[24px]">
+                      <div className="flex items-center gap-1.5 text-slate-500 font-medium w-[95px] shrink-0">
+                        <IndianRupee className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                        <span>Total Spend</span>
+                        <span className="ml-auto text-slate-400 font-normal">:</span>
+                      </div>
+                      <p className="font-bold text-yellow-600 ml-2">
+                        ₹{customer.totalSpend?.toLocaleString("en-IN") || 0}
+                      </p>
                     </div>
-                    <p className="font-bold text-slate-900 uppercase font-mono tracking-wider text-right truncate">{customer.vehicle || "—"}</p>
-                  </div>
 
-                  {/* Car Model */}
-                  <div className="flex justify-between items-center py-1 border-b border-slate-50 gap-2">
-                    <div className="flex items-center gap-2 text-slate-500 font-medium shrink-0">
-                      <Wrench className="w-4 h-4 text-slate-400 shrink-0" />
-                      <span>Car Model</span>
+                    {/* Last Visit */}
+                    <div className="flex items-center text-xs min-h-[24px]">
+                      <div className="flex items-center gap-1.5 text-slate-500 font-medium w-[95px] shrink-0">
+                        <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                        <span>Last Visit</span>
+                        <span className="ml-auto text-slate-400 font-normal">:</span>
+                      </div>
+                      <p className="font-bold text-slate-900 ml-2">
+                        {customer.lastVisit
+                          ? (() => {
+                              const d = new Date(customer.lastVisit);
+                              return isNaN(d.getTime()) ? customer.lastVisit : d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+                            })()
+                          : "—"}
+                      </p>
                     </div>
-                    <p className="font-bold text-slate-900 text-right truncate max-w-[160px]">{customer.model || "—"}</p>
-                  </div>
-
-                  {/* Visits */}
-                  <div className="flex justify-between items-center py-1 border-b border-slate-50 gap-2">
-                    <div className="flex items-center gap-2 text-slate-500 font-medium shrink-0">
-                      <History className="w-4 h-4 text-slate-400 shrink-0" />
-                      <span>Visits</span>
-                    </div>
-                    <span className="px-2 py-0.5 bg-gray-100 text-gray-700 text-[10px] font-bold rounded">
-                      {customer.visits ?? 0}
-                    </span>
-                  </div>
-
-                  {/* Total Spend */}
-                  <div className="flex justify-between items-center py-1 border-b border-slate-50 gap-2">
-                    <div className="flex items-center gap-2 text-slate-500 font-medium shrink-0">
-                      <IndianRupee className="w-4 h-4 text-slate-400 shrink-0" />
-                      <span>Total Spend</span>
-                    </div>
-                    <p className="font-bold text-yellow-600 text-right">
-                      ₹{customer.totalSpend?.toLocaleString("en-IN") || 0}
-                    </p>
-                  </div>
-
-                  {/* Last Visit */}
-                  <div className="flex justify-between items-center py-1 gap-2">
-                    <div className="flex items-center gap-2 text-slate-500 font-medium shrink-0">
-                      <Calendar className="w-4 h-4 text-slate-400 shrink-0" />
-                      <span>Last Visit</span>
-                    </div>
-                    <p className="font-bold text-slate-900 text-right">
-                      {customer.lastVisit
-                        ? (() => {
-                            const d = new Date(customer.lastVisit);
-                            return isNaN(d.getTime()) ? customer.lastVisit : d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
-                          })()
-                        : "—"}
-                    </p>
                   </div>
                 </div>
-              </div>
-
-              {/* Action Bar */}
-              <div className="bg-slate-50 border border-slate-100 rounded-xl px-3 py-2 flex items-center justify-end gap-2 mt-2">
-                <button
-                  onClick={() => handleViewBilling(customer.id, customer.name)}
-                  className="p-1.5 hover:bg-white text-gray-600 rounded-lg border border-gray-200 transition-colors shadow-sm"
-                  title="View Billing"
-                >
-                  <FileText className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => handleEditCustomer(customer)}
-                  className="p-1.5 hover:bg-blue-50 text-blue-500 rounded-lg border border-blue-100 transition-colors shadow-sm"
-                  title="Edit Customer"
-                >
-                  <Pencil className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => confirmDelete(customer)}
-                  className="p-1.5 hover:bg-red-50 text-red-500 rounded-lg border border-red-100 transition-colors shadow-sm"
-                  title="Delete Customer"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
               </div>
             </div>
           ))}

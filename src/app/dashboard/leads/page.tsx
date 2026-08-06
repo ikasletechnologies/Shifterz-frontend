@@ -197,9 +197,22 @@ export default function LeadsPage() {
   // Change Status
   const executeStatusChange = async (id: string, newStatus: string, currentLead: Lead) => {
     try {
-      const updatedLead = { ...currentLead, status: newStatus };
+      const updatedLead = { 
+        ...currentLead,
+        name: currentLead.name || "",
+        email: currentLead.email || "",
+        phone: currentLead.phone || "",
+        vehicle: currentLead.vehicle || "",
+        source: currentLead.source || "JustDial",
+        service: currentLead.service || "PPF Full Body",
+        budget: currentLead.budget || "₹0",
+        status: newStatus,
+        assignedTo: currentLead.assignedTo || (currentLead as any).assigned || "Unassigned",
+        assigned: (currentLead as any).assigned || currentLead.assignedTo || "Unassigned"
+      };
       const updated = await updateLead(id, updatedLead);
-      setLeads(leads.map(lead => lead.id === id ? updated : lead));
+      setLeads((prevLeads) => prevLeads.map(lead => lead.id === id ? { ...lead, ...updated, status: newStatus } : lead));
+      toast.success(`Lead status updated to ${newStatus}`);
 
       if (newStatus === "Converted" && currentLead.status !== "Converted") {
         try {
@@ -218,7 +231,7 @@ export default function LeadsPage() {
         }
       }
     } catch (err: any) {
-      alert("Failed to update status: " + err.message);
+      toast.error("Failed to update status: " + err.message);
       console.error(err);
     }
   };

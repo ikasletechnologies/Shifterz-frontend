@@ -18,6 +18,7 @@ interface NewDocumentDialogProps {
   onClose: () => void;
   onSubmit?: (doc: any) => void;
   existingDocuments?: any[];
+  initialData?: any;
 }
 
 function numberToWords(num: number): string {
@@ -43,6 +44,7 @@ export default function NewDocumentDialog({
   onClose,
   onSubmit,
   existingDocuments = [],
+  initialData = null,
 }: NewDocumentDialogProps) {
   const [focusedItemIndex, setFocusedItemIndex] = useState<number | null>(null);
   const [isLoadingServices, setIsLoadingServices] = useState(false);
@@ -94,6 +96,92 @@ export default function NewDocumentDialog({
   const [jobId, setJobId] = useState<string>("");
 
   useEffect(() => {
+    if (isOpen) {
+      if (initialData) {
+        setFormData({
+          type: initialData.type || "Estimate",
+          status: initialData.status || "Pending",
+          client: initialData.client || "",
+          phone: initialData.phone || "",
+          vehicle: initialData.vehicle || "",
+          model: initialData.model || "",
+          chassisNo: initialData.chassisNo || "",
+          engineNo: initialData.engineNo || "",
+          mileage: initialData.mileage || "",
+          fuelType: initialData.fuelType || "Petrol",
+          billingAddress: initialData.billingAddress || "",
+          discount: (initialData.discount || 0).toString(),
+          invoiceDate: initialData.date ? new Date(initialData.date).toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
+          dueDate: initialData.dueDate ? new Date(initialData.dueDate).toISOString().split("T")[0] : "",
+          notes: initialData.notes || "",
+          gstNumber: initialData.gstNumber || "",
+          jobCardNo: initialData.jobCardNo || "",
+          serviceAdvisor: initialData.serviceAdvisor || "",
+          technician: initialData.technician || "",
+          serviceCategory: initialData.serviceCategory || "General Service",
+          customerComplaint: initialData.customerComplaint || "",
+          workDescription: initialData.workDescription || "",
+          advanceAmount: (initialData.advanceAmount || "0.00").toString(),
+          bankDetails: initialData.bankDetails || "Bank: Example Bank\nAccount Name: ABC Trading Pvt. Ltd.\nAccount No.: XXXXXXXX",
+          paymentTerms: initialData.paymentTerms || "Cash",
+          deliveryTerms: initialData.deliveryTerms || "Delivery within 15 days after receipt of advance payment.",
+          authorizedSignatory: initialData.authorizedSignatory || "Authorized Signatory",
+          warranty: initialData.warranty || "3 Months / 5,000 KM",
+          discountReason: initialData.discountReason || "",
+        });
+        if (Array.isArray(initialData.items) && initialData.items.length > 0) {
+          setItems(initialData.items);
+        } else if (initialData.service || initialData.amount) {
+          setItems([{
+            desc: initialData.service || "Service Charge",
+            qty: 1,
+            price: initialData.amount || 0,
+            amount: initialData.amount || 0,
+            discountPercent: 0,
+            gstPercent: 18,
+            warranty: initialData.warranty || ""
+          }]);
+        }
+      } else {
+        setFormData({
+          type: "Estimate",
+          status: "Pending",
+          client: "",
+          phone: "",
+          vehicle: "",
+          model: "",
+          chassisNo: "",
+          engineNo: "",
+          mileage: "",
+          fuelType: "Petrol",
+          billingAddress: "",
+          discount: "",
+          invoiceDate: new Date().toISOString().split("T")[0],
+          dueDate: "",
+          notes: "",
+          gstNumber: "",
+          jobCardNo: "",
+          serviceAdvisor: "",
+          technician: "",
+          serviceCategory: "General Service",
+          customerComplaint: "",
+          workDescription: "",
+          advanceAmount: "0.00",
+          bankDetails: "Bank: Example Bank\nAccount Name: ABC Trading Pvt. Ltd.\nAccount No.: XXXXXXXX",
+          paymentTerms: "Cash",
+          deliveryTerms: "Delivery within 15 days after receipt of advance payment.",
+          authorizedSignatory: "Authorized Signatory",
+          warranty: "3 Months / 5,000 KM",
+          discountReason: "",
+        });
+        setItems([
+          { desc: "", qty: 1, price: 0, amount: 0, discountPercent: 0, gstPercent: 18, warranty: "" }
+        ]);
+      }
+    }
+  }, [isOpen, initialData]);
+
+  useEffect(() => {
     const updateClock = () => {
       setCurrentTime(new Date().toLocaleTimeString('en-US', { hour12: true }));
     };
@@ -103,6 +191,9 @@ export default function NewDocumentDialog({
   }, []);
 
   const nextDocNo = useMemo(() => {
+    if (initialData && initialData.id) {
+      return initialData.id;
+    }
     const date = new Date(formData.invoiceDate || Date.now());
     const year = date.getFullYear();
     const month = date.getMonth();
@@ -126,7 +217,7 @@ export default function NewDocumentDialog({
       }
     });
     return `${docTypePrefix}${maxId + 1}`;
-  }, [formData.type, formData.invoiceDate, existingDocuments]);
+  }, [formData.type, formData.invoiceDate, existingDocuments, initialData]);
 
   const handleVehicleBlur = async () => {
     const vNo = formData.vehicle.trim().toUpperCase();
@@ -337,7 +428,7 @@ export default function NewDocumentDialog({
       const totalDiscount = lineDiscountAmount + overallDiscountAmount;
 
       const newDoc = {
-        id: nextDocNo,
+        id: initialData?.id || nextDocNo,
         type: formData.type,
         client: formData.client,
         phone: formData.phone,
@@ -382,8 +473,8 @@ export default function NewDocumentDialog({
         {/* Top Header Row with Stepper Bar & Clock */}
         <div className="bg-white px-6 py-4 border-b border-slate-200 flex items-center justify-between gap-4 shrink-0">
           <div>
-            <h2 className="text-xl font-black text-slate-900">New Document</h2>
-            <p className="text-xs text-slate-500 font-medium">Create Estimate, Quotation or Invoice</p>
+            <h2 className="text-xl font-black text-slate-900">{initialData ? "Edit Document" : "New Document"}</h2>
+            <p className="text-xs text-slate-500 font-medium">{initialData ? "Edit Estimate, Quotation or Invoice" : "Create Estimate, Quotation or Invoice"}</p>
           </div>
 
           {/* Stepper Bar */}

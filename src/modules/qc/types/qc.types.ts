@@ -46,9 +46,12 @@ export interface ChecklistResult {
 
 export interface QCStats {
   waitingQC: number;
-  passedToday: number;
-  failedToday: number;
-  reworkPending: number;
+  inspecting: number;
+  readyForBilling: number;
+  rework: number;
+  passedToday?: number;
+  failedToday?: number;
+  reworkPending?: number;
 }
 
 export interface QCRemarksPayload {

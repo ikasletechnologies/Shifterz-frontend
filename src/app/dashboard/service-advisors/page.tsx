@@ -2,18 +2,23 @@
 
 import { useState, useEffect, useCallback } from "react";
 import {
-  Headset, Search, Filter, ChevronLeft, ChevronRight, Pencil, Trash2,
+  Headset, Search, Filter, ChevronLeft, ChevronRight, Pencil, Trash2, Plus,
   Users, UserCheck2, UserX2, Briefcase, Loader2, CheckCircle2, TrendingUp, X
 } from "lucide-react";
 import { StatCard } from "@/components/dashboard/StatCard";
 import EditEmployeeDialog from "@/components/employees/EditEmployeeDialog";
-import { getServiceAdvisorManagementStats, getFranchises, updateEmployee, deleteEmployee } from "@/lib/api";
+import AddEmployeeDialog from "@/components/employees/AddEmployeeDialog";
+import { getServiceAdvisorManagementStats, getFranchises, createEmployee, updateEmployee, deleteEmployee } from "@/lib/api";
 import { toast } from "react-hot-toast";
 
 interface AdvisorRow {
   id: string;
   name: string;
   phone: string;
+  email?: string;
+  username?: string;
+  role?: string;
+  permissions?: string[];
   status: string;
   branch: string;
   franchiseId: string | null;
@@ -49,6 +54,7 @@ export default function ServiceAdvisorsPage() {
 
   const [editing, setEditing] = useState<AdvisorRow | null>(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isAddOpen, setIsAddOpen] = useState(false);
 
   const fetchData = useCallback(async () => {
     try {
@@ -76,6 +82,30 @@ export default function ServiceAdvisorsPage() {
   }, []);
 
   const totalPages = Math.ceil(total / PAGE_SIZE) || 1;
+
+  const handleAdd = async (employeeData: any) => {
+    try {
+      await createEmployee({
+        ...employeeData,
+        role: "SERVICE_ADVISOR",
+        franchiseId: (employeeData.franchiseId && employeeData.franchiseId !== "HQ") ? employeeData.franchiseId : null
+      });
+      toast.success("Service advisor created successfully");
+      setIsAddOpen(false);
+      setSearchTerm("");
+      setBranchFilter("All");
+      setStatusFilter("All");
+      setCurrentPage(1);
+
+      // Direct fetch to guarantee immediate state refresh
+      const data = await getServiceAdvisorManagementStats({ page: "1", pageSize: String(PAGE_SIZE) });
+      setRows(data.list || []);
+      setSummary(data.summary || null);
+      setTotal(data.total || 0);
+    } catch (err: any) {
+      toast.error("Failed to create service advisor: " + err.message);
+    }
+  };
 
   const openEdit = (row: AdvisorRow) => {
     setEditing(row);
@@ -106,23 +136,12 @@ export default function ServiceAdvisorsPage() {
 
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-          <Headset className="w-6 h-6 text-yellow-500" />
-          Service Advisor Management
-        </h1>
-        <p className="text-gray-500 mt-1">Monitor service advisor workload and productivity</p>
-      </div>
-
       {summary && (
-        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <StatCard title="Total Advisors" value={summary.total} icon={Users} color="blue" />
           <StatCard title="Active Advisors" value={summary.active} icon={UserCheck2} color="green" />
           <StatCard title="Inactive Advisors" value={summary.inactive} icon={UserX2} color="gray" />
           <StatCard title="Assigned Jobs" value={summary.assignedJobs} icon={Briefcase} color="purple" />
-          <StatCard title="In Progress" value={summary.inProgress} icon={Loader2} color="orange" />
-          <StatCard title="Completed Today" value={summary.completedToday} icon={CheckCircle2} color="green" />
-          <StatCard title="Avg Productivity" value={`${summary.avgProductivity}%`} icon={TrendingUp} color="blue" />
         </div>
       )}
 
@@ -159,17 +178,13 @@ export default function ServiceAdvisorsPage() {
             ))}
           </select>
         </div>
-        <div className="relative">
-          <select
-            value={statusFilter}
-            onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
-            className="pl-4 pr-8 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500/20 appearance-none"
-          >
-            <option value="All">All Status</option>
-            <option value="Active">Active</option>
-            <option value="Inactive">Inactive</option>
-          </select>
-        </div>
+        <button
+          onClick={() => setIsAddOpen(true)}
+          className="bg-amber-400 hover:bg-amber-500 text-slate-900 font-bold px-4 py-2 rounded-xl flex items-center gap-1.5 transition-all shadow-xs text-xs shrink-0 whitespace-nowrap cursor-pointer"
+        >
+          <Plus className="w-4 h-4 stroke-3" />
+          Add Advisor
+        </button>
       </div>
 
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
@@ -181,11 +196,11 @@ export default function ServiceAdvisorsPage() {
             <thead className="bg-gray-50/50 border-b border-gray-100 text-xs text-gray-500 uppercase font-semibold tracking-wider">
               <tr>
                 <th className="px-6 py-4">Emp ID</th>
-                <th className="px-6 py-4">Advisor</th>
+                <th className="px-6 py-4">Advisor Name</th>
+                <th className="px-6 py-4">Phone Number</th>
                 <th className="px-6 py-4">Branch</th>
                 <th className="px-6 py-4">Assigned Jobs</th>
                 <th className="px-6 py-4">Completed</th>
-                <th className="px-6 py-4">Productivity</th>
                 <th className="px-6 py-4">Status</th>
                 <th className="px-6 py-4">Action</th>
               </tr>
@@ -199,24 +214,11 @@ export default function ServiceAdvisorsPage() {
                 rows.map((row) => (
                   <tr key={row.id} className="hover:bg-gray-50/50 transition-colors">
                     <td className="px-6 py-4 font-mono text-xs font-bold text-yellow-600 whitespace-nowrap">{row.id}</td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <p className="font-semibold text-gray-900">{row.name}</p>
-                      <p className="text-xs text-gray-500">{row.phone}</p>
-                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap font-semibold text-gray-900">{row.name}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-gray-600 font-medium">{row.phone || "—"}</td>
                     <td className="px-6 py-4 text-gray-600 whitespace-nowrap">{row.branch}</td>
                     <td className="px-6 py-4 text-gray-700">{row.assignedJobs}</td>
                     <td className="px-6 py-4 text-gray-700">{row.completed}</td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2 min-w-[110px]">
-                        <span className="text-xs font-bold text-gray-700 w-9">{row.productivity}%</span>
-                        <div className="flex-1 bg-gray-100 rounded-full h-1.5">
-                          <div
-                            className={`h-1.5 rounded-full ${row.productivity >= 80 ? "bg-green-500" : row.productivity >= 50 ? "bg-yellow-500" : "bg-red-500"}`}
-                            style={{ width: `${Math.min(100, row.productivity)}%` }}
-                          />
-                        </div>
-                      </div>
-                    </td>
                     <td className="px-6 py-4">
                       <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${row.status === "Active" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
                         {row.status}
@@ -238,51 +240,24 @@ export default function ServiceAdvisorsPage() {
             </tbody>
           </table>
         </div>
-
-        {total > 0 && (
-          <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100">
-            <p className="text-sm text-gray-500">
-              Showing <span className="font-medium text-gray-900">{(currentPage - 1) * PAGE_SIZE + 1}</span> to{" "}
-              <span className="font-medium text-gray-900">{Math.min(currentPage * PAGE_SIZE, total)}</span> of{" "}
-              <span className="font-medium text-gray-900">{total}</span> entries
-            </p>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                disabled={currentPage === 1}
-                className="p-2 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                <button
-                  key={page}
-                  onClick={() => setCurrentPage(page)}
-                  className={`w-8 h-8 rounded-xl text-sm font-bold transition-colors ${
-                    currentPage === page ? "bg-yellow-500 text-white border border-yellow-600 shadow-sm" : "text-gray-600 hover:bg-gray-100 border border-transparent"
-                  }`}
-                >
-                  {page}
-                </button>
-              ))}
-              <button
-                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                disabled={currentPage === totalPages}
-                className="p-2 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        )}
       </div>
+
+      {isAddOpen && (
+        <AddEmployeeDialog
+          isOpen={isAddOpen}
+          onClose={() => setIsAddOpen(false)}
+          onAdd={handleAdd}
+          franchises={franchises}
+          defaultRole="SERVICE_ADVISOR"
+        />
+      )}
 
       {isEditOpen && editing && (
         <EditEmployeeDialog
           isOpen={isEditOpen}
           onClose={() => setIsEditOpen(false)}
           onEdit={handleEdit}
-          employee={{ ...editing, role: "SERVICE_ADVISOR" }}
+          employee={{ ...editing, role: editing.role || "SERVICE_ADVISOR" }}
           franchises={franchises}
         />
       )}

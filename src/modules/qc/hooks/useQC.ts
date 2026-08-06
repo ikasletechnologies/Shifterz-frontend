@@ -160,6 +160,9 @@ export function useQC() {
       j.status === "Work Completed" ||
       j.status === "QC Pending"
     ).length,
+    inspecting: jobs.filter((j) => j.status === "Inspecting" || j.status === "In Inspection").length,
+    readyForBilling: jobs.filter((j) => j.status === "Ready for Billing" || j.status === "Ready For Billing" || j.status === "QC Passed").length,
+    rework: jobs.filter((j) => j.status === "Rework" || j.status === "QC Failed").length,
     passedToday: jobs.filter(
       (j) => j.status === "QC Passed" && (j.passedAt || "").startsWith(today)
     ).length,

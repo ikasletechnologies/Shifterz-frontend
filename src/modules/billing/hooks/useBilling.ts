@@ -183,12 +183,25 @@ export function useBilling() {
   };
 
 
+  const handleEditInvoice = async (id: string, updatedDoc: Partial<BillingDocument>) => {
+    try {
+      const updated = await updateInvoice(id, updatedDoc);
+      setDocuments((prev) => prev.map((doc) => (doc.id === id ? { ...doc, ...updated } : doc)));
+      toast.success("Document updated successfully");
+      return true;
+    } catch (err: any) {
+      toast.error("Failed to update document: " + err.message);
+      return false;
+    }
+  };
+
   return {
     documents,
     isLoading,
     error,
     fetchInvoices,
     handleAddInvoice,
+    handleEditInvoice,
     handleDeleteDocument,
     handleCancelDocument,
     handleShareDocument,

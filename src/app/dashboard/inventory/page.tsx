@@ -30,18 +30,34 @@ export default function InventoryPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isAdjustStockOpen, setIsAdjustStockOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
+  const [itemToDelete, setItemToDelete] = useState<InventoryItem | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Search & Filter States
   const [searchQuery, setSearchQuery] = useState("");
   const [filterCategory, setFilterCategory] = useState("All Categories");
   const [filterReportType, setFilterReportType] = useState("All Reports");
   const [filterFranchise, setFilterFranchise] = useState("All Franchises");
-  const [dateFrom, setDateFrom] = useState("2025-05-01");
-  const [dateTo, setDateTo] = useState("2025-05-07");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
   const [compareWith, setCompareWith] = useState("Previous Period");
   const [activeCategoryFilter, setActiveCategoryFilter] = useState("All");
 
   const [dbCategories, setDbCategories] = useState<string[]>([]);
+
+  const getTodayISO = () => new Date().toISOString().split("T")[0];
+
+  const handleFromDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    if (val && getTodayISO() && val > getTodayISO()) return;
+    setFromDate(val);
+  };
+
+  const handleToDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    if (val && getTodayISO() && val > getTodayISO()) return;
+    setToDate(val);
+  };
 
   useEffect(() => {
     async function fetchInventoryAndSettings() {
@@ -103,13 +119,21 @@ export default function InventoryPage() {
     }
   };
 
-  const handleDeleteItem = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this inventory item?")) return;
+  const confirmDelete = (item: InventoryItem) => {
+    setItemToDelete(item);
+  };
+
+  const executeDelete = async () => {
+    if (!itemToDelete) return;
     try {
-      await deleteInventoryItem(id);
-      setItems(items.filter((item) => item.id !== id));
+      setIsDeleting(true);
+      await deleteInventoryItem(itemToDelete.id);
+      setItems((prevItems) => prevItems.filter((item) => item.id !== itemToDelete.id));
+      setItemToDelete(null);
     } catch (err: any) {
       alert("Failed to delete: " + err.message);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -179,7 +203,7 @@ export default function InventoryPage() {
         String(item.reorder),
         item.supplier || "—",
         item.location || "—",
-        item.stock <= item.reorder ? "Low Stock" : "OK"
+        item.stock <= item.reorder ? "LOW STOCK" : "Normal"
       ]);
 
       autoTable(doc, {
@@ -187,16 +211,93 @@ export default function InventoryPage() {
         head: tableHead,
         body: tableBody,
         theme: "striped",
-        headStyles: { fillColor: [15, 23, 42], textColor: [255, 255, 255], fontStyle: "bold", fontSize: 8 },
-        bodyStyles: { fontSize: 8, textColor: [30, 41, 59] },
-        alternateRowStyles: { fillColor: [248, 250, 252] },
-        margin: { left: 14, right: 14 }
+        headStyles: { fillColor: [30, 41, 59], textColor: 255, fontStyle: "bold", fontSize: 9 },
+        styles: { fontSize: 8, cellPadding: 2.5 },
       });
 
-      doc.save(`inventory_report_${new Date().toISOString().slice(0, 10)}.pdf`);
-    } catch (err) {
-      console.error(err);
-      alert("Failed to download PDF report");
+      doc.save(`inventory_report_${new Date().toISOString().split("T")[0]}.pdf`);
+    } catch (err: any) {
+      alert("Failed to download PDF: " + err.message);
+    }
+  };
+
+  const downloadSingleItemPDF = async (item: InventoryItem) => {
+    try {
+      const { default: jsPDF } = await import("jspdf");
+      const { default: autoTable } = await import("jspdf-autotable");
+      const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+
+      // Header Banner
+      doc.setFillColor(15, 23, 42);
+      doc.rect(0, 0, 210, 26, "F");
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(15);
+      doc.setTextColor(255, 255, 255);
+      doc.text("SHIFTERZ AUTO - INVENTORY ITEM RECORD", 14, 16);
+
+      doc.setFontSize(8);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(203, 213, 225);
+      doc.text(`Generated: ${new Date().toLocaleString("en-IN")}`, 210 - 14, 16, { align: "right" });
+
+      // Item Header Card Box
+      doc.setFillColor(248, 250, 252);
+      doc.rect(14, 32, 182, 18, "F");
+      doc.setDrawColor(226, 232, 240);
+      doc.rect(14, 32, 182, 18, "S");
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(13);
+      doc.setTextColor(15, 23, 42);
+      doc.text(item.name || "Inventory Item", 18, 43);
+
+      doc.setFontSize(9);
+      doc.setTextColor(109, 40, 217);
+      doc.text(`Category: ${item.category || "General"}`, 210 - 18, 43, { align: "right" });
+
+      const itemTotalVal = (item.stock || 0) * (item.cost || 0);
+      const isLow = (item.stock || 0) <= (item.reorder || 0);
+
+      const tableData = [
+        ["Item Code / ID", item.id || "—"],
+        ["Item Name", item.name || "—"],
+        ["Category", item.category || "—"],
+        ["Current Stock", `${item.stock || 0} ${item.unit || "Units"}`],
+        ["Reorder Level", `${item.reorder || 0} ${item.unit || "Units"}`],
+        ["Stock Status", isLow ? "LOW STOCK ALERT" : "Normal Stock"],
+        ["Cost per Unit", `₹${(item.cost || 0).toLocaleString("en-IN")}`],
+        ["Total Stock Value", `₹${itemTotalVal.toLocaleString("en-IN")}`],
+        ["Supplier", item.supplier || "—"],
+        ["Location / Rack", item.location || "—"],
+      ];
+
+      autoTable(doc, {
+        startY: 56,
+        head: [["Attribute", "Details"]],
+        body: tableData,
+        theme: "striped",
+        headStyles: {
+          fillColor: [30, 41, 59],
+          textColor: 255,
+          fontStyle: "bold",
+          fontSize: 10,
+        },
+        bodyStyles: {
+          fontSize: 9.5,
+          textColor: 30,
+        },
+        columnStyles: {
+          0: { cellWidth: 65, fontStyle: "bold", textColor: [71, 85, 105] },
+          1: { cellWidth: 117, fontStyle: "normal" },
+        },
+        margin: { left: 14, right: 14 },
+      });
+
+      const safeName = (item.name || "item").toLowerCase().replace(/[^a-z0-9]/g, "_");
+      doc.save(`${safeName}_${item.id || "record"}.pdf`);
+    } catch (err: any) {
+      alert("Failed to download item PDF: " + err.message);
     }
   };
 
@@ -224,23 +325,6 @@ export default function InventoryPage() {
       {error && (
         <div className="bg-rose-50 border border-rose-200 rounded-xl p-4 text-rose-700 text-xs font-semibold">
           ⚠️ {error}
-        </div>
-      )}
-
-      {/* Low Stock Banner Alert if low stock items exist */}
-      {lowStockItems.length > 0 && (
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-3.5 flex items-center justify-between text-xs text-amber-900">
-          <div className="flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
-            <span className="font-bold">Low Stock Alert ({lowStockItems.length} items):</span>
-            <span className="truncate">{lowStockItems.map((item) => `${item.name} (${item.stock} ${item.unit})`).join(" · ")}</span>
-          </div>
-          <button
-            onClick={() => setIsDialogOpen(true)}
-            className="px-3 py-1 bg-amber-400 hover:bg-amber-500 font-bold text-slate-900 rounded-lg shrink-0 text-xs shadow-2xs transition-colors"
-          >
-            + Restock Item
-          </button>
         </div>
       )}
 
@@ -303,6 +387,23 @@ export default function InventoryPage() {
         </div>
       </div>
 
+      {/* Low Stock Banner Alert if low stock items exist */}
+      {lowStockItems.length > 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-3.5 flex items-center justify-between text-xs text-amber-900">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+            <span className="font-bold">Low Stock Alert ({lowStockItems.length} items):</span>
+            <span className="truncate">{lowStockItems.map((item) => `${item.name} (${item.stock} ${item.unit})`).join(" · ")}</span>
+          </div>
+          <button
+            onClick={() => setIsDialogOpen(true)}
+            className="px-3 py-1 bg-amber-400 hover:bg-amber-500 font-bold text-slate-900 rounded-lg shrink-0 text-xs shadow-2xs transition-colors"
+          >
+            + Restock Item
+          </button>
+        </div>
+      )}
+
       {/* Filter Bar Card Row */}
       <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs space-y-3">
         {/* Search Bar Input (Top) */}
@@ -326,14 +427,14 @@ export default function InventoryPage() {
         </div>
 
         {/* Filter Section (Below Search Bar) */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 items-end">
+        <div className="flex flex-wrap items-end gap-3">
           {/* Report Type */}
-          <div>
+          <div className="flex-1 min-w-[140px]">
             <label className="block text-[11px] font-bold text-slate-500 mb-1">Report Type</label>
             <select
               value={filterReportType}
               onChange={(e) => setFilterReportType(e.target.value)}
-              className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white font-semibold text-slate-700"
+              className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white font-semibold text-slate-700 h-[36px]"
             >
               <option value="All Reports">All Reports</option>
               <option value="Inventory Reports">Inventory Reports</option>
@@ -342,69 +443,92 @@ export default function InventoryPage() {
           </div>
 
           {/* Franchise */}
-          <div>
+          <div className="flex-1 min-w-[140px]">
             <label className="block text-[11px] font-bold text-slate-500 mb-1">Franchise</label>
             <select
               value={filterFranchise}
               onChange={(e) => setFilterFranchise(e.target.value)}
-              className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white font-semibold text-slate-700"
+              className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white font-semibold text-slate-700 h-[36px]"
             >
               <option value="All Franchises">All Franchises</option>
               <option value="Headquarters">Headquarters</option>
             </select>
           </div>
 
-          {/* Date Range */}
+          {/* From Date Filter */}
           <div>
-            <label className="block text-[11px] font-bold text-slate-500 mb-1">Date Range</label>
-            <div className="relative flex items-center">
-              <Calendar className="w-3.5 h-3.5 absolute left-3 text-slate-400" />
+            <label className="block text-[11px] font-bold text-slate-500 mb-1">From Date</label>
+            <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-xl px-2.5 py-2 shrink-0 h-[36px]">
+              <span className="text-xs font-semibold text-slate-500 whitespace-nowrap">From:</span>
               <input
-                type="text"
-                value={`${dateFrom} - ${dateTo}`}
-                onChange={(e) => {
-                  const parts = e.target.value.split(" - ");
-                  if (parts[0]) setDateFrom(parts[0]);
-                  if (parts[1]) setDateTo(parts[1]);
-                }}
-                className="w-full pl-8 pr-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium truncate"
+                type="date"
+                value={fromDate}
+                max={getTodayISO()}
+                onChange={handleFromDateChange}
+                className="bg-transparent border-none text-xs text-slate-800 focus:outline-none cursor-pointer p-0"
               />
+              <button
+                type="button"
+                disabled={!fromDate}
+                onClick={() => fromDate && setFromDate("")}
+                className={`p-0.5 rounded transition-colors flex items-center justify-center shrink-0 ${
+                  fromDate
+                    ? "text-slate-600 hover:text-slate-900 hover:bg-slate-100 cursor-pointer"
+                    : "text-slate-300 cursor-not-allowed opacity-50"
+                }`}
+                title={fromDate ? "Clear From Date" : ""}
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+
+          {/* To Date Filter */}
+          <div>
+            <label className="block text-[11px] font-bold text-slate-500 mb-1">To Date</label>
+            <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-xl px-2.5 py-2 shrink-0 h-[36px]">
+              <span className="text-xs font-semibold text-slate-500 whitespace-nowrap">To:</span>
+              <input
+                type="date"
+                value={toDate}
+                max={getTodayISO()}
+                onChange={handleToDateChange}
+                className="bg-transparent border-none text-xs text-slate-800 focus:outline-none cursor-pointer p-0"
+              />
+              <button
+                type="button"
+                disabled={!toDate}
+                onClick={() => toDate && setToDate("")}
+                className={`p-0.5 rounded transition-colors flex items-center justify-center shrink-0 ${
+                  toDate
+                    ? "text-slate-600 hover:text-slate-900 hover:bg-slate-100 cursor-pointer"
+                    : "text-slate-300 cursor-not-allowed opacity-50"
+                }`}
+                title={toDate ? "Clear To Date" : ""}
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
             </div>
           </div>
 
           {/* Compare With */}
-          <div>
+          <div className="flex-1 min-w-[140px]">
             <label className="block text-[11px] font-bold text-slate-500 mb-1">Compare With</label>
             <select
               value={compareWith}
               onChange={(e) => setCompareWith(e.target.value)}
-              className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white font-semibold text-slate-700"
+              className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white font-semibold text-slate-700 h-[36px]"
             >
               <option value="Previous Period">Previous Period</option>
               <option value="Previous Year">Previous Year</option>
             </select>
           </div>
 
-          {/* Category */}
-          <div>
-            <label className="block text-[11px] font-bold text-slate-500 mb-1">Category</label>
-            <select
-              value={filterCategory}
-              onChange={(e) => setFilterCategory(e.target.value)}
-              className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white font-semibold text-slate-700"
-            >
-              <option value="All Categories">All Categories</option>
-              {dbCategories.map((cat, i) => (
-                <option key={i} value={cat}>{cat}</option>
-              ))}
-            </select>
-          </div>
-
           {/* Add Item Button */}
-          <div>
+          <div className="shrink-0">
             <button
               onClick={() => setIsDialogOpen(true)}
-              className="w-full px-4 py-2 text-xs font-bold text-slate-900 bg-amber-400 hover:bg-amber-500 rounded-xl transition-all shadow-2xs flex items-center justify-center gap-1.5 whitespace-nowrap"
+              className="px-4 py-2 text-xs font-bold text-slate-900 bg-amber-400 hover:bg-amber-500 rounded-xl transition-all shadow-2xs flex items-center justify-center gap-1.5 whitespace-nowrap h-[36px]"
             >
               <Plus className="w-3.5 h-3.5 stroke-3 shrink-0" />
               Add Item
@@ -449,7 +573,7 @@ export default function InventoryPage() {
           <div className="flex items-center gap-2">
             <button
               onClick={downloadPDF}
-              className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition-colors shadow-2xs"
+              className="px-3.5 py-2 bg-amber-400 hover:bg-amber-500 text-slate-900 text-xs font-bold rounded-xl flex items-center gap-1.5 transition-colors shadow-2xs"
             >
               <Download className="w-3.5 h-3.5" />
               PDF Report
@@ -561,16 +685,16 @@ export default function InventoryPage() {
 
                           {/* Download PDF Icon Button */}
                           <button
-                            onClick={downloadPDF}
+                            onClick={() => downloadSingleItemPDF(item)}
                             className="p-1.5 rounded-lg text-slate-500 hover:text-slate-700 hover:bg-slate-100 border border-slate-200 transition-colors bg-white shadow-2xs"
-                            title="Download PDF"
+                            title="Download Item PDF"
                           >
                             <Download className="w-3.5 h-3.5" />
                           </button>
 
                           {/* Delete Item Button */}
                           <button
-                            onClick={() => handleDeleteItem(item.id)}
+                            onClick={() => confirmDelete(item)}
                             className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-50 border border-rose-200 transition-colors shadow-2xs"
                             title="Delete Item"
                           >
@@ -604,6 +728,55 @@ export default function InventoryPage() {
         item={selectedItem ? { name: selectedItem.name, stock: selectedItem.stock } : undefined}
         onSubmit={handleAdjustStock}
       />
+
+      {/* Delete Confirmation Modal */}
+      {itemToDelete && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl border border-slate-100 animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-rose-100 text-rose-600 rounded-xl flex items-center justify-center shrink-0">
+                  <Trash2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">Confirm Deletion</h3>
+                  <p className="text-xs text-slate-500">This action cannot be undone.</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setItemToDelete(null)}
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-600 mb-6">
+              Are you sure you want to delete <strong className="text-slate-900">{itemToDelete.name}</strong> from the inventory records?
+            </p>
+
+            <div className="flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setItemToDelete(null)}
+                className="px-4 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={executeDelete}
+                className="px-4 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition-colors shadow-2xs disabled:opacity-50 flex items-center gap-1.5"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                {isDeleting ? "Deleting..." : "Confirm Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

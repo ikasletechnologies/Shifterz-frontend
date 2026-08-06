@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Key, Plus, AlertCircle, Calendar, CheckCircle2, ShieldAlert, Award, Hash, Zap, Send, Shield } from "lucide-react";
+import { Key, Plus, AlertCircle, Calendar, CheckCircle2, ShieldAlert, Award, Hash, Zap, Send, Shield, Search, X } from "lucide-react";
 import { getLicenses, createLicense, activateLicense, getFranchises } from "@/lib/api";
 import { toast } from "react-hot-toast";
 
@@ -25,6 +25,7 @@ export default function LicensesPage() {
   const [franchises, setFranchises] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [authorized, setAuthorized] = useState<boolean | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
 
   // License Generator State
   const [showAddForm, setShowAddForm] = useState(false);
@@ -156,16 +157,27 @@ export default function LicensesPage() {
     <div className="p-8 space-y-6 bg-gray-50 min-h-screen">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-black text-gray-900 tracking-tight flex items-center gap-2">
-            <Key className="w-7 h-7 text-yellow-500" />
-            License Monitoring & Control
-          </h1>
-          <p className="text-sm text-gray-500 font-medium mt-1">
-            Generate licensing keys, allocate branch limits, and monitor organization user quotas.
-          </p>
-        </div>
-        <div className="flex gap-3">
+        <div></div>
+        <div className="flex gap-3 items-center">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search keys..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-9 pr-9 py-2 text-xs font-bold bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-yellow-400 w-64 shadow-sm"
+            />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                title="Clear search"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
           <button
             onClick={() => setShowActivateModal(true)}
             className="flex items-center gap-2 px-4 py-2 text-xs font-bold text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 shadow-sm transition-all"
@@ -317,7 +329,12 @@ export default function LicensesPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50 text-xs font-semibold text-gray-700">
-                {licenses.map(lic => {
+                {licenses
+                  .filter((l) => 
+                    l.licenseKey.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                    (l.organizationId || "").toLowerCase().includes(searchTerm.toLowerCase())
+                  )
+                  .map(lic => {
                   const isExpired = new Date(lic.expiryDate).getTime() < Date.now();
                   const targetFranchise = franchises.find(f => f.id === lic.organizationId);
 

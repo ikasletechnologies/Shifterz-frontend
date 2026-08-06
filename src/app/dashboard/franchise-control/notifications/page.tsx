@@ -14,8 +14,9 @@ import {
   ShieldAlert,
   Info,
   RefreshCw,
+  Trash2,
 } from "lucide-react";
-import { getNotifications, markNotificationRead, markAllNotificationsRead, broadcastNotification } from "@/lib/api";
+import { getNotifications, markNotificationRead, markAllNotificationsRead, clearAllNotifications, broadcastNotification } from "@/lib/api";
 import { toast } from "react-hot-toast";
 
 export default function NotificationCenterPage() {
@@ -82,6 +83,17 @@ export default function NotificationCenterPage() {
       toast.success("All notifications marked as read");
     } catch (e: any) {
       toast.error("Failed to mark all read: " + e.message);
+    }
+  };
+
+  const handleClearAll = async () => {
+    if (!window.confirm("Are you sure you want to delete all notifications? This action cannot be undone.")) return;
+    try {
+      await clearAllNotifications();
+      setNotifications([]);
+      toast.success("All notifications cleared");
+    } catch (e: any) {
+      toast.error("Failed to clear notifications: " + e.message);
     }
   };
 
@@ -198,9 +210,16 @@ export default function NotificationCenterPage() {
             System Announcements
           </button>
         </div>
-
         <div className="flex items-center gap-2">
-          <Filter className="w-4 h-4 text-gray-400" />
+          {notifications.length > 0 && (
+            <button
+              onClick={handleClearAll}
+              className="px-4 py-2 bg-red-50 hover:bg-red-100 text-red-600 font-bold text-xs rounded-lg transition flex items-center gap-2"
+              title="Clear all notifications"
+            >
+              <Trash2 className="w-4 h-4" /> Clear All
+            </button>
+          )}
           <select
             value={filterType}
             onChange={(e) => setFilterType(e.target.value)}

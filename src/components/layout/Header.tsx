@@ -6,173 +6,51 @@ import Link from "next/link";
 import { Bell, Settings, User, LogOut, Clock, Menu, CheckCheck } from "lucide-react";
 import { getSettings, getNotifications, markAllNotificationsRead } from "@/lib/api";
 import { SidebarContext } from "@/lib/context/SidebarContext";
+import {
+  hqSidebarSections,
+  franchiseSidebarSections,
+  billingSidebarSections,
+  technicianSidebarSections,
+  serviceAdvisorSidebarSections,
+} from "./Sidebar";
 
-const pageHeaders: Record<string, { title: string; description: string }> = {
-  "/dashboard": {
-    title: "Dashboard",
-    description: "Welcome to Shifterz Pro Suite",
-  },
-  "/dashboard/carin": {
-    title: "Car In / Out",
-    description: "Manage vehicle check-in and check-out",
-  },
-  "/dashboard/jobs": {
-    title: "Job Card",
-    description: "Manage job cards and workshop activities",
-  },
-  "/dashboard/live-status": {
-    title: "Live Status",
-    description: "Real-time view of every active vehicle in the workshop",
-  },
-
-  "/dashboard/leads": {
-    title: "Leads",
-    description: "Manage your sales leads",
-  },
-  "/dashboard/customers": {
-    title: "Customers",
-    description: "Manage customer information",
-  },
-  "/dashboard/billing": {
-    title: "Billing",
-    description: "Manage billing documents and invoices",
-  },
-  "/dashboard/payments": {
-    title: "Payments",
-    description: "Track and manage payments",
-  },
-  "/dashboard/inventory": {
-    title: "Inventory",
-    description: "Manage inventory items and stock",
-  },
-  "/dashboard/reports": {
-    title: "Reports",
-    description: "View business reports and analytics",
-  },
-  "/dashboard/employees": {
-    title: "Employees",
-    description: "Manage employees and staff records",
-  },
-  "/dashboard/attendance": {
-    title: "Attendance",
-    description: "Track staff attendance",
-  },
-  "/dashboard/franchise": {
-    title: "Franchise",
-    description: "Manage franchise locations and performance",
-  },
-  "/dashboard/services": {
-    title: "Services",
-    description: "Manage services offered",
-  },
-  "/dashboard/settings": {
-    title: "Settings",
-    description: "Configure system settings",
-  },
-  "/dashboard/roles": {
-    title: "Roles & Permissions",
-    description: "Manage user roles and access control",
-  },
-  "/dashboard/profile": {
-    title: "Profile",
-    description: "View and update your profile",
-  },
-  "/dashboard/franchise-control/users": {
-    title: "User Management",
-    description: "Manage user accounts and permissions",
-  },
-  "/dashboard/franchise-control/inventory-requests": {
-    title: "Inventory Requests",
-    description: "Request inventory stock from HQ",
-  },
-  "/dashboard/franchise-control/inventory-approval": {
-    title: "Inventory Approval",
-    description: "Approve stock requests from franchises",
-  },
-  "/dashboard/franchise-control/stock-allocation": {
-    title: "Stock Allocation",
-    description: "Allocate and dispatch inventory stock to branches",
-  },
-  "/dashboard/franchise-control/service-requests": {
-    title: "Service Requests",
-    description: "Request custom services or pricing approval",
-  },
-  "/dashboard/franchise-control/service-approval": {
-    title: "Service Approval",
-    description: "Review and approve service requests",
-  },
-  "/dashboard/franchise-control/roles": {
-    title: "Roles & Permissions",
-    description: "Configure system permissions",
-  },
-  "/dashboard/franchise-control/notifications": {
-    title: "Notifications",
-    description: "System alerts and notifications",
-  },
-  "/dashboard/franchise-control/activity-logs": {
-    title: "Activity Logs",
-    description: "View system activity history",
-  },
-  "/dashboard/franchise-control/audit-logs": {
-    title: "Audit Logs",
-    description: "View security audit trails",
-  },
-  "/technician": {
-    title: "Technician Portal",
-    description: "Manage your assigned jobs",
-  },
-  "/technician/my-jobs": {
-    title: "My Jobs",
-    description: "View and update your assigned workshop tasks",
-  },
-  "/technician/attendance": {
-    title: "Attendance",
-    description: "View your attendance record",
-  },
-  "/technician/profile": {
-    title: "Profile",
-    description: "Manage technician profile",
-  },
-};
-
-// Also support routes without /dashboard prefix for fallback
-Object.keys(pageHeaders).forEach((key) => {
-  if (key.startsWith("/dashboard/")) {
-    const shortKey = key.replace("/dashboard", "");
-    if (!pageHeaders[shortKey]) {
-      pageHeaders[shortKey] = pageHeaders[key];
-    }
-  }
-});
-
-function getPageHeader(pathname: string): { title: string; description: string } {
+function getPageHeaderTitle(pathname: string): string {
   if (!pathname) {
-    return { title: "Dashboard", description: "Welcome to Shifterz Pro Suite" };
+    return "Dashboard";
   }
 
-  // 1. Direct match
-  if (pageHeaders[pathname]) {
-    return pageHeaders[pathname];
-  }
+  const allSections = [
+    ...hqSidebarSections,
+    ...franchiseSidebarSections,
+    ...billingSidebarSections,
+    ...technicianSidebarSections,
+    ...serviceAdvisorSidebarSections,
+  ];
 
-  // 2. Normalized match (with or without /dashboard prefix)
-  const normalizedPath = pathname.startsWith("/dashboard")
-    ? pathname
-    : `/dashboard${pathname.startsWith("/") ? "" : "/"}${pathname}`;
+  const allItems: { label: string; href: string }[] = [];
+  allSections.forEach((section) => {
+    section.items.forEach((item) => {
+      allItems.push({ label: item.label, href: item.href });
+      if (item.children) {
+        item.children.forEach((child) => {
+          allItems.push({ label: child.label, href: child.href });
+        });
+      }
+    });
+  });
 
-  if (pageHeaders[normalizedPath]) {
-    return pageHeaders[normalizedPath];
-  }
+  // Sort by length descending for best match
+  allItems.sort((a, b) => b.href.length - a.href.length);
 
-  // 3. Prefix matching for sub-routes
-  const sortedKeys = Object.keys(pageHeaders).sort((a, b) => b.length - a.length);
-  for (const key of sortedKeys) {
-    if (key !== "/dashboard" && (pathname.startsWith(key) || normalizedPath.startsWith(key))) {
-      return pageHeaders[key];
+  for (const item of allItems) {
+    if (item.href === "/dashboard" || item.href === "/technician") {
+      if (pathname === item.href) return item.label;
+    } else if (pathname.startsWith(item.href)) {
+      return item.label;
     }
   }
 
-  // 4. Dynamic fallback from URL route segment
+  // Fallback
   const segments = pathname.split("/").filter(Boolean);
   const lastSegment = segments[segments.length - 1] || "dashboard";
   const title = lastSegment
@@ -180,10 +58,7 @@ function getPageHeader(pathname: string): { title: string; description: string }
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");
 
-  return {
-    title: title || "Dashboard",
-    description: "Welcome to Shifterz Pro Suite",
-  };
+  return title || "Dashboard";
 }
 
 function getCurrentTime(): string {
@@ -261,7 +136,7 @@ export default function Header() {
     return () => clearInterval(timer);
   }, []);
 
-  const pageInfo = getPageHeader(pathname);
+  const pageTitle = getPageHeaderTitle(pathname);
 
   return (
     <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
@@ -276,8 +151,7 @@ export default function Header() {
             <Menu className="w-6 h-6 text-gray-600" />
           </button>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">{pageInfo.title}</h1>
-            <p className="text-sm text-gray-500 mt-1">{pageInfo.description}</p>
+            <h1 className="text-2xl font-bold text-gray-900">{pageTitle}</h1>
           </div>
         </div>
 

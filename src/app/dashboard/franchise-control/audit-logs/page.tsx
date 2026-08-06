@@ -68,8 +68,14 @@ export default function AuditLogsPage() {
     } else {
       setAuthorized(false);
     }
-    loadData();
   }, []);
+
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(() => {
+      loadData();
+    }, 300);
+    return () => clearTimeout(delayDebounceFn);
+  }, [search, moduleFilter, actionFilter, branchFilter]);
 
   const handleExportCSV = () => {
     if (logs.length === 0) {
@@ -109,15 +115,7 @@ export default function AuditLogsPage() {
     <div className="p-8 space-y-6 bg-gray-50 min-h-screen">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-black text-gray-900 tracking-tight flex items-center gap-2">
-            <ScrollText className="w-7 h-7 text-yellow-500" />
-            Audit & Traceability Trail
-          </h1>
-          <p className="text-sm text-gray-500 font-medium mt-1">
-            Browse and inspect immutable state modifications, user activities, and data audits across all branches.
-          </p>
-        </div>
+        <div></div>
         <div className="flex gap-2">
           <button
             onClick={loadData}
@@ -125,13 +123,6 @@ export default function AuditLogsPage() {
           >
             <RefreshCw className="w-4 h-4" />
             Reload Trail
-          </button>
-          <button
-            onClick={handleExportCSV}
-            className="flex items-center gap-2 px-3 py-2 text-xs font-bold text-gray-900 bg-yellow-400 rounded-xl hover:bg-yellow-500 shadow-sm transition-all"
-          >
-            <Download className="w-4 h-4" />
-            Export CSV
           </button>
         </div>
       </div>
@@ -221,11 +212,11 @@ export default function AuditLogsPage() {
         </div>
 
         <button
-          onClick={loadData}
+          onClick={handleExportCSV}
           className="w-full py-2 text-xs font-bold text-gray-900 bg-yellow-400 rounded-xl hover:bg-yellow-500 transition-all flex items-center justify-center gap-1"
         >
-          <Filter className="w-4 h-4" />
-          Apply Filters
+          <Download className="w-4 h-4" />
+          Export CSV
         </button>
       </div>
 

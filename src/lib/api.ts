@@ -23,10 +23,10 @@ export async function apiCall(
         const user = JSON.parse(userStr);
         if (finalOptions.method && ["POST", "PUT"].includes(finalOptions.method.toUpperCase()) && finalOptions.body) {
           const bodyObj = JSON.parse(finalOptions.body as string);
-          if (finalOptions.method.toUpperCase() === "POST" && !bodyObj.createdBy && !endpoint.includes("/vendors")) {
+          if (finalOptions.method.toUpperCase() === "POST" && !bodyObj.createdBy && !endpoint.includes("/vendors") && !endpoint.includes("/employees")) {
             bodyObj.createdBy = user.name || user.username;
           }
-          if (finalOptions.method.toUpperCase() === "PUT" && !bodyObj.modifiedBy && !endpoint.includes("/vendors")) {
+          if (finalOptions.method.toUpperCase() === "PUT" && !bodyObj.modifiedBy && !endpoint.includes("/vendors") && !endpoint.includes("/employees")) {
             bodyObj.modifiedBy = user.name || user.username;
           }
           finalOptions.body = JSON.stringify(bodyObj);
@@ -49,7 +49,20 @@ export async function apiCall(
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
-    const errorMessage = error.error || `API Error: ${response.statusText}`;
+    let errorMessage = error.message || error.error || `API Error: ${response.statusText}`;
+    if (error.details) {
+      const detailsStr = Array.isArray(error.details)
+        ? error.details.map((d: any) => (typeof d === "object" ? d.message || JSON.stringify(d) : String(d))).join(", ")
+        : JSON.stringify(error.details);
+      errorMessage = `${errorMessage}: ${detailsStr}`;
+    } else if (error.errors) {
+      const errorsStr = Array.isArray(error.errors)
+        ? error.errors.map((e: any) => (typeof e === "object" ? e.message || JSON.stringify(e) : String(e))).join(", ")
+        : typeof error.errors === "object"
+        ? Object.entries(error.errors).map(([k, v]) => `${k}: ${v}`).join(", ")
+        : String(error.errors);
+      errorMessage = `${errorMessage}: ${errorsStr}`;
+    }
 
     if (response.status === 401 && typeof window !== "undefined") {
       localStorage.removeItem("token");
@@ -121,16 +134,26 @@ export async function getLeads() {
 }
 
 export async function createLead(lead: any) {
+  const { _id, id: leadId, createdAt, updatedAt, __v, ...rawLead } = lead || {};
+  const cleanLead: Record<string, any> = {};
+  for (const [key, val] of Object.entries(rawLead)) {
+    cleanLead[key] = val === null || val === undefined ? "" : val;
+  }
   return apiCall("/leads", {
     method: "POST",
-    body: JSON.stringify(lead),
+    body: JSON.stringify(cleanLead),
   });
 }
 
 export async function updateLead(id: string, lead: any) {
+  const { _id, id: leadId, createdAt, updatedAt, __v, ...rawLead } = lead || {};
+  const cleanLead: Record<string, any> = {};
+  for (const [key, val] of Object.entries(rawLead)) {
+    cleanLead[key] = val === null || val === undefined ? "" : val;
+  }
   return apiCall(`/leads/${id}`, {
     method: "PUT",
-    body: JSON.stringify(lead),
+    body: JSON.stringify(cleanLead),
   });
 }
 
@@ -679,6 +702,12 @@ export async function markNotificationRead(id: string) {
 export async function markAllNotificationsRead() {
   return apiCall("/hq/notifications/read-all", {
     method: "POST"
+  });
+}
+
+export async function clearAllNotifications() {
+  return apiCall("/hq/notifications/clear-all", {
+    method: "DELETE"
   });
 }
 

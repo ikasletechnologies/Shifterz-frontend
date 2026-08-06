@@ -2,7 +2,7 @@
 
 import { PhoneInput } from "@/components/common/PhoneInput";
 import { useState, useEffect } from "react";
-import { Plus, Trash2, Pencil, ArrowLeftRight, X, Eye, EyeOff } from "lucide-react";
+import { Plus, Trash2, Pencil, ArrowLeftRight, X, Eye, EyeOff, Search } from "lucide-react";
 import AddEmployeeDialog from "@/components/employees/AddEmployeeDialog";
 import EditEmployeeDialog from "@/components/employees/EditEmployeeDialog";
 import { getEmployees, createEmployee, updateEmployee, deleteEmployee, getFranchises, createMemberTransfer, uploadFile, getMemberTransfers, updateMemberTransfer, deleteMemberTransfer } from "@/lib/api";
@@ -30,6 +30,8 @@ export default function EmployeesPage() {
   const [isTransferOpen, setIsTransferOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [currentUser, setCurrentUser] = useState<any>(null);
+
+  const [searchQuery, setSearchQuery] = useState("");
 
   const [showPassword, setShowPassword] = useState(false);
 
@@ -238,27 +240,69 @@ export default function EmployeesPage() {
 
   const canManageEmployees = currentUser?.role === "SUPER_ADMIN" || currentUser?.role === "HQ_USER";
 
+  const filteredEmployees = employees.filter((emp) => {
+    if (!searchQuery) return true;
+    const q = searchQuery.toLowerCase();
+    return (
+      (emp.name || "").toLowerCase().includes(q) ||
+      (emp.id || "").toLowerCase().includes(q) ||
+      (emp.phone || "").toLowerCase().includes(q) ||
+      (emp.email || "").toLowerCase().includes(q) ||
+      (emp.role || "").toLowerCase().includes(q) ||
+      (emp.franchise?.name || "").toLowerCase().includes(q)
+    );
+  });
+
+  const filteredMemberRequests = memberRequests.filter((r) => {
+    if (!searchQuery) return true;
+    const q = searchQuery.toLowerCase();
+    return (
+      (r.employeeName || r.newMemberName || "").toLowerCase().includes(q) ||
+      (r.newMemberPhone || "").toLowerCase().includes(q) ||
+      (r.newMemberEmail || "").toLowerCase().includes(q) ||
+      (r.employeeRole || "").toLowerCase().includes(q) ||
+      (r.toFranchiseName || "").toLowerCase().includes(q)
+    );
+  });
+
   return (
     <div className="p-8">
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Employees</h1>
-          <p className="text-gray-500 mt-1">Manage staff, roles, and access</p>
+      <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+        {/* Search Bar Input */}
+        <div className="relative min-w-[240px] max-w-md flex-1">
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search Employees, Phone, Role, Branch..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-9 pr-8 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all font-medium"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
         </div>
-        <div className="flex items-center gap-2">
+
+        {/* Action Button (Yellow) */}
+        <div className="flex items-center gap-2 shrink-0">
           {canManageEmployees && (
             <button
               onClick={() => setIsAddOpen(true)}
-              className="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors flex items-center gap-2"
+              className="bg-amber-400 hover:bg-amber-500 text-slate-900 font-bold px-4 py-2.5 rounded-xl text-sm transition-colors flex items-center gap-2 shadow-2xs whitespace-nowrap"
             >
-              <Plus className="w-4 h-4" />
+              <Plus className="w-4 h-4 stroke-3" />
               Add Employee
             </button>
           )}
           {!canManageEmployees && currentUser?.franchiseId && (
             <button
               onClick={() => setIsTransferOpen(true)}
-              className="bg-yellow-400 hover:bg-yellow-400 text-gray-900 px-4 py-2 rounded-xl text-sm font-semibold transition-colors flex items-center justify-center shadow-sm"
+              className="bg-amber-400 hover:bg-amber-500 text-slate-900 font-bold px-4 py-2.5 rounded-xl text-sm transition-colors flex items-center justify-center shadow-2xs whitespace-nowrap"
             >
               Request members
             </button>
@@ -296,7 +340,7 @@ export default function EmployeesPage() {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {canManageEmployees ? (
-                employees.map((emp) => {
+                filteredEmployees.map((emp) => {
                   return (
                     <tr key={emp.id} className="hover:bg-gray-50/50 transition-colors">
                       <td className="px-6 py-4 text-sm font-medium text-gray-900">{emp.id}</td>
@@ -344,7 +388,7 @@ export default function EmployeesPage() {
                   );
                 })
               ) : (
-                memberRequests.map((r) => {
+                filteredMemberRequests.map((r) => {
                   const statusColors = 
                     r.status === "Approved" 
                       ? "bg-green-100 text-green-700" 
