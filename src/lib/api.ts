@@ -23,10 +23,10 @@ export async function apiCall(
         const user = JSON.parse(userStr);
         if (finalOptions.method && ["POST", "PUT"].includes(finalOptions.method.toUpperCase()) && finalOptions.body) {
           const bodyObj = JSON.parse(finalOptions.body as string);
-          if (finalOptions.method.toUpperCase() === "POST" && !bodyObj.createdBy && !endpoint.includes("/vendors") && !endpoint.includes("/employees")) {
+          if (finalOptions.method.toUpperCase() === "POST" && !bodyObj.createdBy && !endpoint.includes("/vendors") && !endpoint.includes("/employees") && !endpoint.includes("/services")) {
             bodyObj.createdBy = user.name || user.username;
           }
-          if (finalOptions.method.toUpperCase() === "PUT" && !bodyObj.modifiedBy && !endpoint.includes("/vendors") && !endpoint.includes("/employees")) {
+          if (finalOptions.method.toUpperCase() === "PUT" && !bodyObj.modifiedBy && !endpoint.includes("/vendors") && !endpoint.includes("/employees") && !endpoint.includes("/services")) {
             bodyObj.modifiedBy = user.name || user.username;
           }
           finalOptions.body = JSON.stringify(bodyObj);

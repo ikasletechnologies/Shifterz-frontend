@@ -106,12 +106,13 @@ export default function AddServiceDialog({ isOpen, onClose, serviceData, onSave 
       />
       
       {/* Dialog */}
-      <div className="relative bg-white rounded-xl w-full max-w-2xl overflow-hidden shadow-2xl">
-        <div className="flex items-center justify-between p-6 pb-4 border-b border-gray-100">
+      <div className="relative bg-white rounded-xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden shadow-2xl">
+        <div className="flex items-center justify-between p-6 pb-4 border-b border-gray-100 shrink-0">
           <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
             <span className="text-[#f59e0b] text-2xl">🏢</span> {isEditing ? "Edit Service" : "Add Service"}
           </h2>
           <button 
+            type="button"
             onClick={onClose}
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors border border-gray-200"
           >
@@ -119,7 +120,8 @@ export default function AddServiceDialog({ isOpen, onClose, serviceData, onSave 
           </button>
         </div>
         
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+          <div className="p-6 space-y-6 overflow-y-auto flex-1">
           <div className="grid grid-cols-2 gap-x-6 gap-y-4">
             <div className="col-span-2 sm:col-span-1 space-y-1.5">
               <label className="text-[11px] font-bold text-[#64748b] uppercase tracking-wider">Service Code</label>
@@ -244,13 +246,16 @@ export default function AddServiceDialog({ isOpen, onClose, serviceData, onSave 
               />
             </div>
           </div>
+          </div>
           
-          <button 
-            type="submit"
-            className="w-full bg-[#f59e0b] hover:bg-[#d97706] text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2 transition-colors shadow-sm"
-          >
-            <Check className="w-5 h-5 stroke-3" /> Save
-          </button>
+          <div className="p-6 border-t border-gray-100 shrink-0 bg-gray-50">
+            <button 
+              type="submit"
+              className="w-full bg-[#f59e0b] hover:bg-[#d97706] text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2 transition-colors shadow-sm"
+            >
+              <Check className="w-5 h-5 stroke-3" /> Save
+            </button>
+          </div>
         </form>
       </div>
     </div>

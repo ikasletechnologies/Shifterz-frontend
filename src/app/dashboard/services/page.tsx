@@ -65,10 +65,23 @@ export default function ServicesPage() {
 
   const handleSave = async (data: any) => {
     try {
+      const payload = {
+        code: data.code,
+        name: data.name,
+        category: data.category,
+        price: data.price,
+        minPrice: data.minPrice,
+        gst: data.gst,
+        duration: data.duration,
+        warranty: data.warranty,
+        desc: data.desc,
+        status: data.status,
+      };
+
       if (data.id) {
-        await updateService(data.id, data);
+        await updateService(data.id, payload);
       } else {
-        await createService(data);
+        await createService(payload);
       }
       await fetchServices();
     } catch (err: any) {
