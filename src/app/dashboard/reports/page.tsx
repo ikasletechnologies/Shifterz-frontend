@@ -72,6 +72,20 @@ export default function ReportsPage() {
     }
   };
 
+  // Helper to ensure data is always a valid Array
+  const safeArray = (data: any): any[] => {
+    if (!data) return [];
+    if (Array.isArray(data)) return data;
+    if (typeof data === "object") {
+      const keys = ["data", "rows", "items", "reports", "summary", "businessSummary", "revenueAnalysis", "franchiseRevenue", "franchisePerformance", "franchises", "jobSummary"];
+      for (const key of keys) {
+        if (Array.isArray(data[key])) return data[key];
+      }
+      if (Object.keys(data).length > 0) return [data];
+    }
+    return [];
+  };
+
   useEffect(() => {
     fetchReportData();
   }, [activeCategory, subReport, fromDate, toDate]);
@@ -83,42 +97,42 @@ export default function ReportsPage() {
       if (activeCategory === "executive") {
         const res = await getHQSummaryReport().catch(() => null);
         if (res) {
-          if (subReport === "business-summary") setTableRows(res.summary || res.businessSummary || [res]);
-          else if (subReport === "revenue-analysis") setTableRows(res.revenueAnalysis || res.franchiseRevenue || [res]);
-          else setTableRows(res.franchisePerformance || res.franchises || [res]);
+          if (subReport === "business-summary") setTableRows(safeArray(res.summary || res.businessSummary || res));
+          else if (subReport === "revenue-analysis") setTableRows(safeArray(res.revenueAnalysis || res.franchiseRevenue || res));
+          else setTableRows(safeArray(res.franchisePerformance || res.franchises || res));
         } else {
-          const overview = await getReports();
-          setTableRows(overview?.jobSummary || []);
+          const overview = await getReports().catch(() => null);
+          setTableRows(safeArray(overview?.jobSummary || overview));
         }
       } else if (activeCategory === "workshop") {
         const rows = await getWorkshopReport(subReport, fromDate, toDate).catch(async () => {
-          const res = await getReports();
+          const res = await getReports().catch(() => null);
           const r = res || {};
           if (subReport === "progress") return r.jobSummary || [];
-          if (subReport === "completed") return r.jobSummary?.filter((j: any) => j.status === "Completed") || [];
+          if (subReport === "completed") return Array.isArray(r.jobSummary) ? r.jobSummary.filter((j: any) => j.status === "Completed") : [];
           return r.jobSummary || [];
         });
-        setTableRows(Array.isArray(rows) ? rows : []);
+        setTableRows(safeArray(rows));
       } else if (activeCategory === "crm") {
-        const rows = await getCrmReport(subReport, fromDate, toDate);
-        setTableRows(Array.isArray(rows) ? rows : []);
+        const rows = await getCrmReport(subReport, fromDate, toDate).catch(() => []);
+        setTableRows(safeArray(rows));
       } else if (activeCategory === "customer") {
-        const rows = await getCustomerReport(subReport, fromDate, toDate);
-        setTableRows(Array.isArray(rows) ? rows : []);
+        const rows = await getCustomerReport(subReport, fromDate, toDate).catch(() => []);
+        setTableRows(safeArray(rows));
       } else if (activeCategory === "employee") {
-        const rows = await getEmployeeReport(subReport, fromDate, toDate);
-        setTableRows(Array.isArray(rows) ? rows : []);
+        const rows = await getEmployeeReport(subReport, fromDate, toDate).catch(() => []);
+        setTableRows(safeArray(rows));
       } else if (activeCategory === "financial") {
         if (subReport === "invoices") {
-          const invs = await getInvoiceRegister();
-          setBillingRows(invs || []);
+          const invs = await getInvoiceRegister().catch(() => []);
+          setBillingRows(safeArray(invs));
         } else {
-          const rows = await getFinancialReport(subReport, fromDate, toDate);
-          setTableRows(Array.isArray(rows) ? rows : []);
+          const rows = await getFinancialReport(subReport, fromDate, toDate).catch(() => []);
+          setTableRows(safeArray(rows));
         }
       } else if (activeCategory === "inventory") {
-        const rows = await getInventoryReport(subReport, fromDate, toDate);
-        setTableRows(Array.isArray(rows) ? rows : []);
+        const rows = await getInventoryReport(subReport, fromDate, toDate).catch(() => []);
+        setTableRows(safeArray(rows));
       }
     } catch (err: any) {
       setError(err.message || "Failed to load report data");
@@ -420,7 +434,7 @@ export default function ReportsPage() {
         ) : (
           // Dynamic JSON Array Table Display
           <div className="overflow-x-auto">
-            {tableRows.length === 0 ? (
+            {safeArray(tableRows).length === 0 ? (
               <div className="py-16 text-center text-slate-400 font-medium">
                 No report records found for the selected filters.
               </div>
@@ -428,7 +442,7 @@ export default function ReportsPage() {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="border-b border-slate-200 bg-slate-50/75 text-slate-600 text-xs font-semibold uppercase tracking-wider">
-                    {Object.keys(tableRows[0] || {}).map((col, idx) => (
+                    {Object.keys(safeArray(tableRows)[0] || {}).map((col, idx) => (
                       <th key={idx} className="py-3.5 px-4 capitalize">
                         {col.replace(/([A-Z])/g, " $1")}
                       </th>
@@ -436,14 +450,14 @@ export default function ReportsPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-sm">
-                  {tableRows.map((row, idx) => (
+                  {safeArray(tableRows).map((row, idx) => (
                     <tr key={idx} className="hover:bg-slate-50/50 transition">
-                      {Object.values(row).map((val: any, vIdx) => (
+                      {Object.values(row || {}).map((val: any, vIdx) => (
                         <td key={vIdx} className="py-3 px-4 text-slate-700">
-                          {typeof val === "number" && Object.keys(row)[vIdx].toLowerCase().includes("price") ||
-                           typeof val === "number" && Object.keys(row)[vIdx].toLowerCase().includes("amount") ||
-                           typeof val === "number" && Object.keys(row)[vIdx].toLowerCase().includes("value") ||
-                           typeof val === "number" && Object.keys(row)[vIdx].toLowerCase().includes("revenue") ? (
+                          {typeof val === "number" && Object.keys(row || {})[vIdx]?.toLowerCase().includes("price") ||
+                           typeof val === "number" && Object.keys(row || {})[vIdx]?.toLowerCase().includes("amount") ||
+                           typeof val === "number" && Object.keys(row || {})[vIdx]?.toLowerCase().includes("value") ||
+                           typeof val === "number" && Object.keys(row || {})[vIdx]?.toLowerCase().includes("revenue") ? (
                             <span className="font-mono font-semibold">₹{val.toLocaleString("en-IN")}</span>
                           ) : typeof val === "number" ? (
                             <span className="font-mono">{val.toLocaleString("en-IN")}</span>

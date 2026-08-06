@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { useState, useEffect, useRef } from "react";
-import { Plus, ChevronDown, Trash2, Pencil, Search, X } from "lucide-react";
+import { Plus, ChevronDown, Trash2, Pencil, Search, X, Car, User, Phone, Wrench, Tag, Calendar, UserCheck } from "lucide-react";
 import AddLeadDialog from "@/components/leads/AddLeadDialog";
 import EditLeadDialog from "@/components/leads/EditLeadDialog";
 import { getLeads, createLead, deleteLead, updateLead, createCustomer } from "@/lib/api";
@@ -365,66 +365,136 @@ export default function LeadsPage() {
         </div>
       </div>
 
-      {/* Table */}
-      <div className="bg-white rounded-lg border border-gray-200 overflow-visible">
-        <div className="overflow-visible">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-gray-200 bg-gray-50/75">
-                <th className="px-6 py-4 text-left text-xs font-bold text-gray-800 uppercase tracking-wider">ID</th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-gray-800 uppercase tracking-wider">Name</th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-gray-800 uppercase tracking-wider">Phone</th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-gray-800 uppercase tracking-wider">Source</th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-gray-800 uppercase tracking-wider">Service</th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-gray-800 uppercase tracking-wider">Vehicle</th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-gray-800 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-gray-800 uppercase tracking-wider">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {filteredLeads.map((lead, index) => (
-                <tr key={lead.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-6 py-4 text-xs font-mono font-bold" style={{ color: "#F0B100" }}>{lead.id}</td>
-                  <td className="px-6 py-4 text-sm">
-                    <div className="font-semibold text-gray-900">{lead.name}</div>
-                    <div className="text-xs text-gray-500">{lead.email}</div>
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-700">{lead.phone}</td>
-                  <td className="px-6 py-4 text-sm">
-                    <span className={`px-2.5 py-1 rounded text-xs font-semibold ${getSourceColor(lead.source)}`}>
+      {/* Cards Grid */}
+      {filteredLeads.length === 0 ? (
+        <div className="bg-white border border-gray-100 rounded-2xl p-12 flex flex-col items-center justify-center text-center shadow-sm">
+          <div className="w-16 h-16 bg-yellow-50 text-yellow-500 rounded-full flex items-center justify-center mb-4">
+            <User className="w-8 h-8" />
+          </div>
+          <h3 className="text-xl font-bold text-gray-900 mb-2">No leads found</h3>
+          <p className="text-gray-500">Try adjusting your search or filters, or create a new lead.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredLeads.map((lead, index) => (
+            <div
+              key={lead.id}
+              className="bg-white rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-md transition-all p-5 flex flex-col justify-between space-y-4"
+            >
+              <div>
+                {/* Header: Lead ID (Left) & Status Dropdown + Source Badge (Right) */}
+                <div className="flex items-center justify-between gap-3 mb-4">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <h3 className="text-base font-black text-slate-900 tracking-tight font-mono truncate" style={{ color: "#F0B100" }}>
+                      {lead.id}
+                    </h3>
+                    <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold shrink-0 ${getSourceColor(lead.source)}`}>
                       {lead.source}
                     </span>
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-700">{lead.service}</td>
-                  <td className="px-6 py-4 text-sm text-gray-700">{lead.vehicle}</td>
-                  <td className="px-6 py-4 text-sm">
-                    <StatusDropdown lead={lead} handleStatusChange={handleStatusChange} dropUp={index >= filteredLeads.length - 2} />
-                  </td>
-                  <td className="px-6 py-4 text-sm flex items-center gap-2">
-                    <button
-                      onClick={() => {
-                        setLeadToEdit(lead);
-                        setIsEditDialogOpen(true);
-                      }}
-                      className="p-1 hover:bg-blue-100 rounded transition-colors"
-                      title="Edit Lead"
-                    >
-                      <Pencil className="w-4 h-4 text-blue-600" />
-                    </button>
-                    <button
-                      onClick={() => handleDeleteLead(lead.id)}
-                      className="p-1 hover:bg-red-100 rounded transition-colors"
-                      title="Delete Lead"
-                    >
-                      <Trash2 className="w-4 h-4 text-red-600" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  </div>
+                  <StatusDropdown lead={lead} handleStatusChange={handleStatusChange} dropUp={index >= filteredLeads.length - 2} />
+                </div>
+
+                {/* Details List (Left label + icon, Right value text-right) */}
+                <div className="space-y-2.5 text-xs">
+                  {/* Name */}
+                  <div className="flex justify-between items-center py-1 border-b border-slate-50 gap-2">
+                    <div className="flex items-center gap-2 text-slate-500 font-medium shrink-0">
+                      <User className="w-4 h-4 text-slate-400 shrink-0" />
+                      <span>Name</span>
+                    </div>
+                    <div className="text-right truncate max-w-[170px]">
+                      <p className="font-bold text-slate-900 truncate">{lead.name || "—"}</p>
+                      {lead.email && <p className="text-[11px] text-slate-400 truncate">{lead.email}</p>}
+                    </div>
+                  </div>
+
+                  {/* Phone */}
+                  <div className="flex justify-between items-center py-1 border-b border-slate-50 gap-2">
+                    <div className="flex items-center gap-2 text-slate-500 font-medium shrink-0">
+                      <Phone className="w-4 h-4 text-slate-400 shrink-0" />
+                      <span>Phone</span>
+                    </div>
+                    <p className="font-bold text-blue-600 font-mono tracking-wider text-right truncate">{lead.phone || "—"}</p>
+                  </div>
+
+                  {/* Vehicle */}
+                  <div className="flex justify-between items-center py-1 border-b border-slate-50 gap-2">
+                    <div className="flex items-center gap-2 text-slate-500 font-medium shrink-0">
+                      <Car className="w-4 h-4 text-blue-600 shrink-0" />
+                      <span>Vehicle</span>
+                    </div>
+                    <p className="font-bold text-slate-900 uppercase font-mono tracking-wider text-right truncate">{lead.vehicle || "—"}</p>
+                  </div>
+
+                  {/* Service */}
+                  <div className="flex justify-between items-center py-1 border-b border-slate-50 gap-2">
+                    <div className="flex items-center gap-2 text-slate-500 font-medium shrink-0">
+                      <Wrench className="w-4 h-4 text-slate-400 shrink-0" />
+                      <span>Service</span>
+                    </div>
+                    <p className="font-bold text-slate-900 text-right truncate max-w-[170px]">{lead.service || "—"}</p>
+                  </div>
+
+                  {/* Source */}
+                  <div className="flex justify-between items-center py-1 border-b border-slate-50 gap-2">
+                    <div className="flex items-center gap-2 text-slate-500 font-medium shrink-0">
+                      <Tag className="w-4 h-4 text-slate-400 shrink-0" />
+                      <span>Source</span>
+                    </div>
+                    <span className={`px-2 py-0.5 rounded text-xs font-semibold ${getSourceColor(lead.source)}`}>
+                      {lead.source}
+                    </span>
+                  </div>
+
+                  {/* Date (if present) */}
+                  {lead.date && (
+                    <div className="flex justify-between items-center py-1 border-b border-slate-50 gap-2">
+                      <div className="flex items-center gap-2 text-slate-500 font-medium shrink-0">
+                        <Calendar className="w-4 h-4 text-slate-400 shrink-0" />
+                        <span>Date</span>
+                      </div>
+                      <p className="font-bold text-slate-900 text-right">{lead.date}</p>
+                    </div>
+                  )}
+
+                  {/* Assigned To (if present) */}
+                  {lead.assignedTo && (
+                    <div className="flex justify-between items-center py-1 gap-2">
+                      <div className="flex items-center gap-2 text-slate-500 font-medium shrink-0">
+                        <UserCheck className="w-4 h-4 text-slate-400 shrink-0" />
+                        <span>Assigned To</span>
+                      </div>
+                      <p className="font-bold text-slate-900 text-right truncate max-w-[150px]">{lead.assignedTo}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Action Bar */}
+              <div className="bg-slate-50 border border-slate-100 rounded-xl px-3 py-2 flex items-center justify-end gap-2 mt-2">
+                <button
+                  onClick={() => {
+                    setLeadToEdit(lead);
+                    setIsEditDialogOpen(true);
+                  }}
+                  className="p-1.5 hover:bg-blue-50 text-blue-600 rounded-lg border border-blue-100 transition-colors shadow-sm"
+                  title="Edit Lead"
+                >
+                  <Pencil className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => handleDeleteLead(lead.id)}
+                  className="p-1.5 hover:bg-red-50 text-red-600 rounded-lg border border-red-100 transition-colors shadow-sm"
+                  title="Delete Lead"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
-      </div>
+      )}
 
       {/* Dialog */}
       <AddLeadDialog

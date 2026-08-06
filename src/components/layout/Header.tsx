@@ -24,10 +24,7 @@ const pageHeaders: Record<string, { title: string; description: string }> = {
     title: "Live Status",
     description: "Real-time view of every active vehicle in the workshop",
   },
-  "/dashboard/outpass": {
-    title: "Outpass",
-    description: "Manage vehicle out passes",
-  },
+
   "/dashboard/leads": {
     title: "Leads",
     description: "Manage your sales leads",

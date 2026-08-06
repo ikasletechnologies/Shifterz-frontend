@@ -14,7 +14,6 @@ const MODULE_OPTIONS = [
   { value: "dashboard",  label: "Dashboard" },
   { value: "carin",      label: "Car In / Out" },
   { value: "jobs",       label: "Job Cards" },
-  { value: "outpass",    label: "Out Pass" },
   { value: "leads",      label: "Leads" },
   { value: "customers",  label: "Customers" },
   { value: "billing",    label: "Billing" },
@@ -26,16 +25,14 @@ const MODULE_OPTIONS = [
 ];
 
 const DEFAULT_ROLE_MODULES: Record<string, string[]> = {
-  SUPER_ADMIN: ["dashboard", "carin", "jobs", "outpass", "leads", "customers", "billing", "payments", "inventory", "reports", "employees", "attendance"],
-  HQ_USER: ["dashboard", "carin", "jobs", "outpass", "leads", "customers", "billing", "payments", "inventory", "reports", "employees", "attendance"],
-  FRANCHISE_ADMIN: ["dashboard", "carin", "jobs", "outpass", "leads", "customers", "billing", "payments", "inventory", "employees", "attendance"],
-  BRANCH_MANAGER: ["dashboard", "carin", "jobs", "outpass", "customers", "billing", "payments", "inventory"],
-  RECEPTION_EXECUTIVE: ["dashboard", "carin", "outpass", "customers", "leads"],
-  SERVICE_ADVISOR: ["dashboard", "carin", "jobs", "customers", "leads"],
-  TECHNICIAN: ["dashboard", "jobs", "attendance"],
-  QUALITY_INSPECTOR: ["dashboard", "jobs", "carin"],
+  SUPER_ADMIN: ["dashboard", "carin", "jobs", "leads", "customers", "billing", "payments", "inventory", "reports", "employees", "attendance"],
+  HQ_USER: ["dashboard", "carin", "jobs", "leads", "customers", "billing", "payments", "inventory", "reports", "employees", "attendance"],
+  FRANCHISE_ADMIN: ["dashboard", "carin", "jobs", "leads", "customers", "billing", "payments", "inventory", "reports", "employees", "attendance"],
+  MANAGER: ["dashboard", "carin", "jobs", "leads", "customers", "billing", "payments", "inventory", "reports", "employees", "attendance"],
+  SERVICE_ADVISOR: ["dashboard", "carin", "jobs", "leads", "customers", "billing"],
+  TECHNICIAN: ["dashboard", "jobs"],
   BILLING_EXECUTIVE: ["dashboard", "billing", "payments", "reports"],
-  INVENTORY_EXECUTIVE: ["dashboard", "inventory", "reports"],
+  QC_INSPECTOR: ["dashboard", "jobs"],
 };
 
 export default function EditEmployeeDialog({ isOpen, onClose, onEdit, employee, franchises }: EditEmployeeDialogProps) {

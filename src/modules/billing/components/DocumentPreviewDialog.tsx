@@ -366,13 +366,6 @@ export default function DocumentPreviewDialog({
           </div>
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             <button
-              onClick={handlePrint}
-              className="bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-semibold px-2 sm:px-4 py-1.5 sm:py-2 rounded-lg flex items-center gap-1 sm:gap-2 transition-colors text-xs sm:text-base"
-            >
-              <Printer className="w-4 sm:w-5 h-4 sm:h-5" />
-              <span className="hidden sm:inline">Print</span>
-            </button>
-            <button
               onClick={onClose}
               className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
             >

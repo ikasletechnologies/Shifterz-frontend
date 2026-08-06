@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { Plus, FileText, Trash2, Search, Download, X, Pencil } from "lucide-react";
+import { Plus, FileText, Trash2, Search, Download, X, Pencil, Car, User, Phone, Mail, Wrench, History, IndianRupee, Calendar } from "lucide-react";
 import { useRouter } from "next/navigation";
 import AddCustomerDialog from "../components/AddCustomerDialog";
 import EditCustomerDialog from "../components/EditCustomerDialog";
@@ -311,87 +311,151 @@ export function CustomerPage() {
         </div>
       </div>
 
-      {/* Table */}
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-100 bg-gray-50">
-                <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-900 uppercase tracking-wider whitespace-nowrap">ID</th>
-                <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-900 uppercase tracking-wider whitespace-nowrap">Name</th>
-                <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-900 uppercase tracking-wider whitespace-nowrap">Phone</th>
-                <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-900 uppercase tracking-wider whitespace-nowrap">Email</th>
-                <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-900 uppercase tracking-wider whitespace-nowrap">Vehicle</th>
-                <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-900 uppercase tracking-wider whitespace-nowrap">Car Model</th>
-                <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-900 uppercase tracking-wider whitespace-nowrap">Visits</th>
-                <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-900 uppercase tracking-wider whitespace-nowrap">Total Spend</th>
-                <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-900 uppercase tracking-wider whitespace-nowrap">Last Visit</th>
-                <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-900 uppercase tracking-wider whitespace-nowrap">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {filteredCustomers.map((customer) => (
-                <tr key={customer.id} className="hover:bg-gray-50/50 transition-colors">
-                  <td className="px-3 py-3 text-xs font-mono font-bold whitespace-nowrap" style={{ color: "#F0B100" }}>{customer.id}</td>
-                  <td className="px-3 py-3 whitespace-nowrap">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-yellow-500 rounded-full flex items-center justify-center text-white font-bold text-xs">
-                        {customer.name.split(" ").map(n => n[0]).join("")}
-                      </div>
-                      <span className="font-semibold text-gray-900">{customer.name}</span>
-                    </div>
-                  </td>
-                  <td className="px-3 py-3 text-gray-600 whitespace-nowrap text-xs">{customer.phone}</td>
-                  <td className="px-3 py-3 text-gray-600 text-xs whitespace-nowrap">{customer.email}</td>
-                  <td className="px-3 py-3 text-gray-600 text-xs font-medium whitespace-nowrap">{customer.vehicle}</td>
-                  <td className="px-3 py-3 text-gray-600 text-xs whitespace-nowrap">{customer.model}</td>
-                  <td className="px-3 py-3 text-center whitespace-nowrap">
-                    <span className="px-2 py-1 bg-gray-100 text-gray-700 text-[10px] font-bold rounded">
-                      {customer.visits}
-                    </span>
-                  </td>
-                  <td className="px-3 py-3 font-semibold text-yellow-600 text-xs whitespace-nowrap">
-                    ₹{customer.totalSpend?.toLocaleString("en-IN") || 0}
-                  </td>
-                  <td className="px-3 py-3 text-gray-600 text-xs whitespace-nowrap">
-                    {customer.lastVisit
-                      ? (() => {
-                          const d = new Date(customer.lastVisit);
-                          return isNaN(d.getTime()) ? customer.lastVisit : d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
-                        })()
-                      : "—"}
-                  </td>
-                  <td className="px-3 py-3 whitespace-nowrap">
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => handleViewBilling(customer.id, customer.name)}
-                        className="p-1.5 hover:bg-gray-100 text-gray-600 rounded-md border border-gray-200 transition-colors shadow-sm"
-                        title="View Billing"
-                      >
-                        <FileText className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        onClick={() => handleEditCustomer(customer)}
-                        className="p-1.5 hover:bg-blue-50 text-blue-500 rounded-md border border-blue-100 transition-colors shadow-sm"
-                        title="Edit Customer"
-                      >
-                        <Pencil className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        onClick={() => confirmDelete(customer)}
-                        className="p-1.5 hover:bg-red-50 text-red-400 rounded-md border border-red-100 transition-colors shadow-sm"
-                        title="Delete Customer"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {/* Cards Grid */}
+      {filteredCustomers.length === 0 ? (
+        <div className="bg-white border border-gray-100 rounded-2xl p-12 flex flex-col items-center justify-center text-center shadow-sm">
+          <div className="w-16 h-16 bg-yellow-50 text-yellow-500 rounded-full flex items-center justify-center mb-4">
+            <User className="w-8 h-8" />
+          </div>
+          <h3 className="text-xl font-bold text-gray-900 mb-2">No customers found</h3>
+          <p className="text-gray-500">Try adjusting your search or date filters, or create a new customer.</p>
         </div>
-      </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredCustomers.map((customer) => (
+            <div
+              key={customer.id}
+              className="bg-white rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-md transition-all p-5 flex flex-col justify-between space-y-4"
+            >
+              <div>
+                {/* Header: Customer ID (Left) & Avatar + Name (Right) */}
+                <div className="flex items-center justify-between gap-3 mb-4">
+                  <h3 className="text-base font-black text-slate-900 tracking-tight font-mono truncate" style={{ color: "#F0B100" }}>
+                    {customer.id}
+                  </h3>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <div className="w-7 h-7 bg-yellow-500 rounded-full flex items-center justify-center text-white font-bold text-xs shadow-xs">
+                      {customer.name ? customer.name.split(" ").map(n => n[0]).join("") : "?"}
+                    </div>
+                    <span className="font-semibold text-xs text-gray-900 max-w-[120px] truncate">{customer.name}</span>
+                  </div>
+                </div>
+
+                {/* Details Grid (Left label + icon, Right value text-right) */}
+                <div className="space-y-2.5 text-xs">
+                  {/* Name */}
+                  <div className="flex justify-between items-center py-1 border-b border-slate-50 gap-2">
+                    <div className="flex items-center gap-2 text-slate-500 font-medium shrink-0">
+                      <User className="w-4 h-4 text-slate-400 shrink-0" />
+                      <span>Name</span>
+                    </div>
+                    <p className="font-bold text-slate-900 text-right truncate max-w-[160px]">{customer.name || "—"}</p>
+                  </div>
+
+                  {/* Phone */}
+                  <div className="flex justify-between items-center py-1 border-b border-slate-50 gap-2">
+                    <div className="flex items-center gap-2 text-slate-500 font-medium shrink-0">
+                      <Phone className="w-4 h-4 text-slate-400 shrink-0" />
+                      <span>Phone</span>
+                    </div>
+                    <p className="font-bold text-blue-600 font-mono tracking-wider text-right truncate">{customer.phone || "—"}</p>
+                  </div>
+
+                  {/* Email */}
+                  <div className="flex justify-between items-center py-1 border-b border-slate-50 gap-2">
+                    <div className="flex items-center gap-2 text-slate-500 font-medium shrink-0">
+                      <Mail className="w-4 h-4 text-slate-400 shrink-0" />
+                      <span>Email</span>
+                    </div>
+                    <p className="font-medium text-slate-700 text-right truncate max-w-[160px]">{customer.email || "—"}</p>
+                  </div>
+
+                  {/* Vehicle */}
+                  <div className="flex justify-between items-center py-1 border-b border-slate-50 gap-2">
+                    <div className="flex items-center gap-2 text-slate-500 font-medium shrink-0">
+                      <Car className="w-4 h-4 text-blue-600 shrink-0" />
+                      <span>Vehicle</span>
+                    </div>
+                    <p className="font-bold text-slate-900 uppercase font-mono tracking-wider text-right truncate">{customer.vehicle || "—"}</p>
+                  </div>
+
+                  {/* Car Model */}
+                  <div className="flex justify-between items-center py-1 border-b border-slate-50 gap-2">
+                    <div className="flex items-center gap-2 text-slate-500 font-medium shrink-0">
+                      <Wrench className="w-4 h-4 text-slate-400 shrink-0" />
+                      <span>Car Model</span>
+                    </div>
+                    <p className="font-bold text-slate-900 text-right truncate max-w-[160px]">{customer.model || "—"}</p>
+                  </div>
+
+                  {/* Visits */}
+                  <div className="flex justify-between items-center py-1 border-b border-slate-50 gap-2">
+                    <div className="flex items-center gap-2 text-slate-500 font-medium shrink-0">
+                      <History className="w-4 h-4 text-slate-400 shrink-0" />
+                      <span>Visits</span>
+                    </div>
+                    <span className="px-2 py-0.5 bg-gray-100 text-gray-700 text-[10px] font-bold rounded">
+                      {customer.visits ?? 0}
+                    </span>
+                  </div>
+
+                  {/* Total Spend */}
+                  <div className="flex justify-between items-center py-1 border-b border-slate-50 gap-2">
+                    <div className="flex items-center gap-2 text-slate-500 font-medium shrink-0">
+                      <IndianRupee className="w-4 h-4 text-slate-400 shrink-0" />
+                      <span>Total Spend</span>
+                    </div>
+                    <p className="font-bold text-yellow-600 text-right">
+                      ₹{customer.totalSpend?.toLocaleString("en-IN") || 0}
+                    </p>
+                  </div>
+
+                  {/* Last Visit */}
+                  <div className="flex justify-between items-center py-1 gap-2">
+                    <div className="flex items-center gap-2 text-slate-500 font-medium shrink-0">
+                      <Calendar className="w-4 h-4 text-slate-400 shrink-0" />
+                      <span>Last Visit</span>
+                    </div>
+                    <p className="font-bold text-slate-900 text-right">
+                      {customer.lastVisit
+                        ? (() => {
+                            const d = new Date(customer.lastVisit);
+                            return isNaN(d.getTime()) ? customer.lastVisit : d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+                          })()
+                        : "—"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Bar */}
+              <div className="bg-slate-50 border border-slate-100 rounded-xl px-3 py-2 flex items-center justify-end gap-2 mt-2">
+                <button
+                  onClick={() => handleViewBilling(customer.id, customer.name)}
+                  className="p-1.5 hover:bg-white text-gray-600 rounded-lg border border-gray-200 transition-colors shadow-sm"
+                  title="View Billing"
+                >
+                  <FileText className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => handleEditCustomer(customer)}
+                  className="p-1.5 hover:bg-blue-50 text-blue-500 rounded-lg border border-blue-100 transition-colors shadow-sm"
+                  title="Edit Customer"
+                >
+                  <Pencil className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => confirmDelete(customer)}
+                  className="p-1.5 hover:bg-red-50 text-red-500 rounded-lg border border-red-100 transition-colors shadow-sm"
+                  title="Delete Customer"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Dialogs */}
       <AddCustomerDialog

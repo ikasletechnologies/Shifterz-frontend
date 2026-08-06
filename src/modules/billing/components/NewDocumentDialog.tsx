@@ -1,17 +1,16 @@
 "use client";
-/* eslint-disable react-hooks/exhaustive-deps, @typescript-eslint/no-explicit-any */
 
 import { PhoneInput } from "@/components/common/PhoneInput";
 import { useState, useEffect, useMemo } from "react";
-import { X, FileText, Plus, Trash2, Loader2 } from "lucide-react";
+import {
+  X, FileText, Plus, Trash2, Loader2, Clock, Eye,
+  MapPin, CheckCircle2, ArrowRight
+} from "lucide-react";
 import { toast } from "react-hot-toast";
 import { fetchVehicleDetails, getServices } from "@/lib/api";
 import { getJobCards } from "@/modules/job-card/services/job-card.service";
 import { JobCard } from "@/modules/job-card/types/job-card.types";
 
-// 13.3: an Invoice may only be raised against a job card that has passed QC —
-// same status set the backend gates on (billing.service.ts) and the billing
-// queue already filters to (BillingJobCards.tsx).
 const BILLING_ELIGIBLE_JOB_STATUSES = ["Ready For Billing", "QC Passed", "Delivered", "Out"];
 
 interface NewDocumentDialogProps {
@@ -21,18 +20,23 @@ interface NewDocumentDialogProps {
   existingDocuments?: any[];
 }
 
-const COMMON_SERVICES = [
-  "PPF Full Body",
-  "PPF Bonnet + Roof",
-  "PPF Partial (Hood)",
-  "C3 Pro Coating",
-  "Ceramic Coating",
-  "Graphene Coating",
-  "Interior Detailing",
-  "Paint Correction (1-step)",
-  "Full Paint Correction",
-  "Window Tinting"
-];
+function numberToWords(num: number): string {
+  if (!num || num <= 0) return "Rupees Zero Only";
+  const a = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+  const b = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+  
+  function inWords(n: number): string {
+    if (n < 20) return a[n];
+    if (n < 100) return b[Math.floor(n / 10)] + (n % 10 ? ' ' + a[n % 10] : '');
+    if (n < 1000) return a[Math.floor(n / 100)] + ' Hundred' + (n % 100 ? ' ' + inWords(n % 100) : '');
+    if (n < 100000) return inWords(Math.floor(n / 1000)) + ' Thousand' + (n % 1000 ? ' ' + inWords(n % 1000) : '');
+    if (n < 10000000) return inWords(Math.floor(n / 100000)) + ' Lakh' + (n % 100000 ? ' ' + inWords(n % 100000) : '');
+    return inWords(Math.floor(n / 10000000)) + ' Crore' + (n % 10000000 ? ' ' + inWords(n % 10000000) : '');
+  }
+  
+  const integerPart = Math.floor(num);
+  return `Rupees ${inWords(integerPart)} Only`;
+}
 
 export default function NewDocumentDialog({
   isOpen,
@@ -42,22 +46,38 @@ export default function NewDocumentDialog({
 }: NewDocumentDialogProps) {
   const [focusedItemIndex, setFocusedItemIndex] = useState<number | null>(null);
   const [isLoadingServices, setIsLoadingServices] = useState(false);
+  const [activeTab, setActiveTab] = useState<"service" | "parts">("service");
+  const [currentTime, setCurrentTime] = useState("");
+
   const [formData, setFormData] = useState({
     type: "Estimate",
     status: "Pending",
     client: "",
     phone: "",
     vehicle: "",
+    model: "",
+    chassisNo: "",
+    engineNo: "",
+    mileage: "",
+    fuelType: "Petrol",
+    billingAddress: "",
     discount: "",
     invoiceDate: new Date().toISOString().split("T")[0],
     dueDate: "",
     notes: "",
     gstNumber: "",
+    jobCardNo: "",
+    serviceAdvisor: "",
+    technician: "",
+    serviceCategory: "General Service",
+    customerComplaint: "",
+    workDescription: "",
+    advanceAmount: "0.00",
     bankDetails: "Bank: Example Bank\nAccount Name: ABC Trading Pvt. Ltd.\nAccount No.: XXXXXXXX",
-    paymentTerms: "50% advance payment.\nBalance before shipment.",
+    paymentTerms: "Cash",
     deliveryTerms: "Delivery within 15 days after receipt of advance payment.",
     authorizedSignatory: "Authorized Signatory",
-    warranty: "",
+    warranty: "3 Months / 5,000 KM",
     discountReason: "",
   });
 
@@ -73,10 +93,19 @@ export default function NewDocumentDialog({
   const [isLoadingJobs, setIsLoadingJobs] = useState(false);
   const [jobId, setJobId] = useState<string>("");
 
+  useEffect(() => {
+    const updateClock = () => {
+      setCurrentTime(new Date().toLocaleTimeString('en-US', { hour12: true }));
+    };
+    updateClock();
+    const timer = setInterval(updateClock, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
   const nextDocNo = useMemo(() => {
     const date = new Date(formData.invoiceDate || Date.now());
     const year = date.getFullYear();
-    const month = date.getMonth(); // 0-indexed, 0 = Jan, 3 = Apr
+    const month = date.getMonth();
     const startYear = month >= 3 ? year : year - 1;
     const endYear = startYear + 1;
     const fy = `${startYear.toString().slice(2)}-${endYear.toString().slice(2)}`;
@@ -114,8 +143,8 @@ export default function NewDocumentDialog({
         }));
         toast.success("Vehicle details auto-filled!");
       }
-    } catch (err) {
-      // Vehicle not found or error, do nothing silently
+    } catch {
+      // Ignore
     } finally {
       setIsFetchingVehicle(false);
     }
@@ -129,16 +158,29 @@ export default function NewDocumentDialog({
         client: "",
         phone: "",
         vehicle: "",
+        model: "",
+        chassisNo: "",
+        engineNo: "",
+        mileage: "",
+        fuelType: "Petrol",
+        billingAddress: "",
         discount: "",
         invoiceDate: new Date().toISOString().split("T")[0],
         dueDate: "",
         notes: "",
         gstNumber: "",
+        jobCardNo: "",
+        serviceAdvisor: "",
+        technician: "",
+        serviceCategory: "General Service",
+        customerComplaint: "",
+        workDescription: "",
+        advanceAmount: "0.00",
         bankDetails: "Bank: Example Bank\nAccount Name: ABC Trading Pvt. Ltd.\nAccount No.: XXXXXXXX",
-        paymentTerms: "50% advance payment.\nBalance before shipment.",
+        paymentTerms: "Cash",
         deliveryTerms: "Delivery within 15 days after receipt of advance payment.",
         authorizedSignatory: "Authorized Signatory",
-        warranty: "",
+        warranty: "3 Months / 5,000 KM",
         discountReason: "",
       });
       setItems([{ desc: "", qty: 1, price: 0, amount: 0, discountPercent: 0, gstPercent: 18, warranty: "" }]);
@@ -146,7 +188,6 @@ export default function NewDocumentDialog({
     }
   }, [isOpen]);
 
-  // 13.3: only Invoices (not Quotations/Estimates) are gated on a QC-passed job card.
   useEffect(() => {
     if (isOpen && formData.type === "Invoice") {
       setIsLoadingJobs(true);
@@ -171,10 +212,10 @@ export default function NewDocumentDialog({
         client: job.customer,
         phone: job.phone || job.customerPhone || prev.phone,
         vehicle: job.vehicle,
+        jobCardNo: job.id,
+        serviceAdvisor: (job as any).serviceAdvisor || prev.serviceAdvisor,
       }));
 
-      // §13.3/§13.5: Auto-populate line items from the job card's service.
-      // Match the job's service name against the Service Master to pull price & warranty.
       const jobServiceName = (job.service || "").trim();
       if (jobServiceName && availableServices.length > 0) {
         const matched = availableServices.find(
@@ -262,9 +303,7 @@ export default function NewDocumentDialog({
   };
 
   const handleChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-    >
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
     if (name === "phone") {
@@ -284,7 +323,6 @@ export default function NewDocumentDialog({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validate vehicle number format if provided: TN 04 AB 1234
     if (formData.vehicle.trim()) {
       const vehicleRegex = /^[A-Z]{2}\s\d{2}\s[A-Z]{1,2}\s\d{1,4}$/;
       if (!vehicleRegex.test(formData.vehicle)) {
@@ -294,8 +332,6 @@ export default function NewDocumentDialog({
     }
 
     if (onSubmit) {
-      // 13.6: line-item discounts (per item, computed above) plus one overall
-      // invoice-level discount % applied on top of the post-line-discount subtotal.
       const overallDiscountPercent = parseFloat(formData.discount) || 0;
       const overallDiscountAmount = ((baseAmount - lineDiscountAmount) * overallDiscountPercent) / 100;
       const totalDiscount = lineDiscountAmount + overallDiscountAmount;
@@ -306,7 +342,7 @@ export default function NewDocumentDialog({
         client: formData.client,
         phone: formData.phone,
         vehicle: formData.vehicle,
-        service: items.length > 0 ? items[0].desc : "Multiple Items", // fallback
+        service: items.length > 0 ? items[0].desc : "Multiple Items",
         amount: baseAmount,
         gst: gstAmount,
         discount: totalDiscount,
@@ -326,501 +362,708 @@ export default function NewDocumentDialog({
       };
       onSubmit(newDoc);
     }
-    
-    // Reset handled by useEffect when isOpen becomes false
     onClose();
   };
 
   if (!isOpen) return null;
 
+  const overallDiscountPercent = parseFloat(formData.discount) || 0;
+  const overallDiscountAmount = ((baseAmount - lineDiscountAmount) * overallDiscountPercent) / 100;
+  const totalDiscount = lineDiscountAmount + overallDiscountAmount;
+  const taxableAmount = Math.max(0, baseAmount - totalDiscount);
+  const cgstAmount = gstAmount / 2;
+  const sgstAmount = gstAmount / 2;
+  const grandTotal = taxableAmount + gstAmount;
+
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 sm:p-4 overflow-y-auto">
-      <div className="bg-white rounded-lg p-3 sm:p-4 md:p-6 lg:p-8 w-full max-w-xs sm:max-w-lg md:max-w-2xl lg:max-w-4xl shadow-xl max-h-[95vh] overflow-y-auto my-auto">
-        <div className="flex items-center justify-between mb-4 sm:mb-6 sticky top-0 bg-white z-10 pb-3 sm:pb-4 border-b">
-          <div className="flex items-center gap-2 sm:gap-3">
-            <FileText className="w-5 sm:w-6 h-5 sm:h-6 text-yellow-500" />
-            <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">New Document</h2>
-            <span className="ml-2 px-3 py-1 bg-yellow-100 text-yellow-800 text-xs font-bold rounded-full border border-yellow-200 uppercase tracking-wider">
-              {nextDocNo}
-            </span>
+    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-3 sm:p-6 overflow-y-auto">
+      <div className="bg-slate-50/95 rounded-2xl w-full max-w-[1400px] shadow-2xl border border-slate-200/80 max-h-[92vh] flex flex-col my-auto overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+        
+        {/* Top Header Row with Stepper Bar & Clock */}
+        <div className="bg-white px-6 py-4 border-b border-slate-200 flex items-center justify-between gap-4 shrink-0">
+          <div>
+            <h2 className="text-xl font-black text-slate-900">New Document</h2>
+            <p className="text-xs text-slate-500 font-medium">Create Estimate, Quotation or Invoice</p>
           </div>
-          <button
-            onClick={onClose}
-            className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
-          >
-            <X className="w-5 sm:w-6 h-5 sm:h-6 text-gray-600" />
-          </button>
+
+          {/* Stepper Bar */}
+          <div className="hidden md:flex items-center gap-6">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center shadow-xs">
+                1
+              </div>
+              <div>
+                <p className="text-xs font-bold text-slate-900">Document Type</p>
+                <p className="text-[10px] text-slate-400">Select type</p>
+              </div>
+            </div>
+            <div className="w-12 h-0.5 bg-slate-200" />
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-slate-100 text-slate-500 font-bold text-xs flex items-center justify-center border border-slate-200">
+                2
+              </div>
+              <div>
+                <p className="text-xs font-bold text-slate-600">Customer & Vehicle</p>
+                <p className="text-[10px] text-slate-400">Enter details</p>
+              </div>
+            </div>
+            <div className="w-12 h-0.5 bg-slate-200" />
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-slate-100 text-slate-500 font-bold text-xs flex items-center justify-center border border-slate-200">
+                3
+              </div>
+              <div>
+                <p className="text-xs font-bold text-slate-600">Items & Summary</p>
+                <p className="text-[10px] text-slate-400">Add items and finalize</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Clock & Close Controls */}
+          <div className="flex items-center gap-3">
+            {currentTime && (
+              <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 rounded-xl text-xs font-mono font-bold text-slate-700">
+                <Clock className="w-3.5 h-3.5 text-slate-500" />
+                {currentTime}
+              </div>
+            )}
+            <button
+              onClick={onClose}
+              className="p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4 md:space-y-5 lg:space-y-6">
-          {/* Row 1: Type & Status */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 md:gap-5 lg:gap-6">
-            <div>
-              <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">
-                Document Type <span className="text-red-500">*</span>
-              </label>
-              <select
-                name="type"
-                value={formData.type}
-                onChange={handleChange}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400 bg-gray-50"
-                required
-              >
-                <option>Estimate</option>
-                <option>Quotation</option>
-                <option>Invoice</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">
-                Status
-              </label>
-              <select
-                name="status"
-                value={formData.status}
-                onChange={handleChange}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400 bg-gray-50"
-              >
-                <option>Draft</option>
-                <option>Estimate</option>
-                <option>Quotation</option>
-                <option>Approved</option>
-                <option>Invoice Generated</option>
-                <option>Partially Paid</option>
-                <option>Paid</option>
-                <option>Completed</option>
-                <option>Cancelled</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Job Card (Invoices only — 13.3: only QC-passed job cards may be billed) */}
-          {formData.type === "Invoice" && (
-            <div>
-              <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">
-                Job Card
-              </label>
-              <select
-                value={jobId}
-                onChange={(e) => handleJobSelect(e.target.value)}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400 bg-gray-50"
-              >
-                <option value="">
-                  {isLoadingJobs ? "Loading job cards..." : "No job card (manual entry)"}
-                </option>
-                {eligibleJobs.map((job) => (
-                  <option key={job.id} value={job.id}>
-                    {job.vehicle} — {job.customer} ({job.id})
-                  </option>
-                ))}
-              </select>
-              {eligibleJobs.length === 0 && !isLoadingJobs && (
-                <p className="text-xs text-gray-400 mt-1">No QC-passed job cards available to bill.</p>
-              )}
-            </div>
-          )}
-
-          {/* Row 2: Client & Phone */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 md:gap-5 lg:gap-6">
-            <div>
-              <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">
-                Client Name <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                name="client"
-                value={formData.client}
-                onChange={handleChange}
-                placeholder="Full name"
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400 bg-gray-50"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">
-                Phone
-              </label>
-              <PhoneInput
-                name="phone"
-                value={formData.phone}
-                onChange={handleChange}
-                placeholder="XXXXX XXXXX"
-              />
-            </div>
-          </div>
-
-          {/* Row 3: Vehicle & Dates */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 md:gap-5 lg:gap-6">
-            <div>
-              <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2 flex justify-between">
-                <span>Vehicle No.</span>
-                {isFetchingVehicle && <Loader2 className="w-3 h-3 animate-spin text-gray-400" />}
-              </label>
-              <input
-                type="text"
-                name="vehicle"
-                value={formData.vehicle}
-                onChange={handleChange}
-                onBlur={handleVehicleBlur}
-                placeholder="TN 04 XX 0000"
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400 bg-gray-50 uppercase"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">
-                Invoice Date
-              </label>
-              <input
-                type="date"
-                name="invoiceDate"
-                value={formData.invoiceDate}
-                onChange={handleChange}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400 bg-gray-50 uppercase"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">
-                Due Date
-              </label>
-              <input
-                type="date"
-                name="dueDate"
-                value={formData.dueDate}
-                onChange={handleChange}
-                min={formData.invoiceDate}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400 bg-gray-50 uppercase"
-              />
-            </div>
-          </div>
-
-          <hr className="my-6" />
-
-          {/* Line Items Section */}
-          <div>
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-bold text-gray-900">Line Items</h3>
-              <button
-                type="button"
-                onClick={addItem}
-                className="bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-bold px-3 py-1.5 rounded flex items-center gap-1"
-              >
-                <Plus className="w-3 h-3" /> Add Item
-              </button>
-            </div>
-
-            <div className="hidden sm:flex gap-2 sm:gap-3 lg:gap-4 text-[10px] font-semibold text-gray-400 uppercase tracking-wide px-1">
-              <div className="flex-grow">Service</div>
-              <div className="w-16 sm:w-20 lg:w-24 shrink-0">Qty</div>
-              <div className="w-20 sm:w-28 lg:w-32 shrink-0">Price</div>
-              <div className="w-20 sm:w-28 lg:w-32 shrink-0">Amount</div>
-              <div className="w-14 sm:w-16 shrink-0">Disc %</div>
-              <div className="w-14 sm:w-16 shrink-0">GST %</div>
-              <div className="w-24 sm:w-28 shrink-0">Warranty</div>
-              <div className="w-7 shrink-0" />
-            </div>
-            <div className="space-y-2 sm:space-y-3">
-              {items.map((item, index) => (
-                <div key={index} className="flex gap-2 sm:gap-3 lg:gap-4 items-start">
-                  <div className="flex-grow relative">
-                    <input
-                      type="text"
-                      data-item-index={index}
-                      value={item.desc}
-                      onChange={(e) => handleItemChange(index, "desc", e.target.value)}
-                      onFocus={() => setFocusedItemIndex(index)}
-                      onBlur={() => setTimeout(() => setFocusedItemIndex(null), 200)}
-                      placeholder="Service Description"
-                      className="w-full px-2 sm:px-3 py-2 border border-yellow-300 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:outline-none text-sm"
-                      required
-                      autoComplete="off"
-                    />
-                    {focusedItemIndex === index && (
-                      <div className="absolute z-50 w-full mt-1 bg-white border-2 border-yellow-400 rounded-lg shadow-2xl max-h-56 overflow-y-auto top-full left-0"
+        {/* Scrollable Form Body */}
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            
+            {/* Left Column (Document Type & Customer & Vehicle) - 7 cols */}
+            <div className="lg:col-span-7 space-y-6">
+              
+              {/* Document Type Selection Cards */}
+              <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs space-y-4">
+                <h3 className="text-sm font-bold text-slate-900">Document Type</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {[
+                    { type: "Estimate", label: "Estimate", desc: "Prepare an estimate" },
+                    { type: "Quotation", label: "Quotation", desc: "Convert estimate to quotation" },
+                    { type: "Invoice", label: "Invoice", desc: "Convert quotation to invoice" },
+                  ].map((item) => {
+                    const isSelected = formData.type === item.type;
+                    return (
+                      <button
+                        type="button"
+                        key={item.type}
+                        onClick={() => setFormData((prev) => ({ ...prev, type: item.type }))}
+                        className={`p-4 rounded-xl border text-left transition-all flex flex-col justify-between h-24 ${
+                          isSelected
+                            ? "bg-blue-50/50 border-blue-500 ring-2 ring-blue-500/20"
+                            : "bg-white border-slate-200 hover:border-slate-300"
+                        }`}
                       >
-                        {isLoadingServices ? (
-                          <div className="px-4 py-4 text-sm text-gray-600 text-center font-medium">
-                            <Loader2 className="w-4 h-4 animate-spin inline mr-2" />
-                            Loading services...
+                        <div className="flex items-center justify-between w-full">
+                          <div className={`p-2 rounded-lg ${isSelected ? "bg-blue-100 text-blue-600" : "bg-purple-50 text-purple-600"}`}>
+                            <FileText className="w-4 h-4" />
                           </div>
-                        ) : availableServices.length === 0 ? (
-                          <div className="px-4 py-4 text-sm text-gray-500 text-center">
-                            No services available
+                          <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${isSelected ? "border-blue-600 bg-blue-600 text-white" : "border-slate-300"}`}>
+                            {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
                           </div>
-                        ) : (
-                          <>
-                            {/* Show database services only */}
-                            {availableServices
-                              .filter(s => !item.desc || s.name.toLowerCase().includes(item.desc.toLowerCase()))
-                              .map((service) => (
-                                <div
-                                  key={service.id}
-                                  className="px-4 py-3 hover:bg-yellow-100 cursor-pointer text-sm text-gray-800 font-semibold transition-colors border-b border-gray-100 last:border-0 bg-yellow-50/50"
-                                  onMouseDown={(e) => {
-                                    e.preventDefault(); // Prevents input onBlur from closing the dropdown before selection is registered
-                                    const newItems = [...items];
-                                    newItems[index].desc = service.name;
-                                    newItems[index].price = service.price || 0;
-                                    newItems[index].amount = newItems[index].qty * (service.price || 0);
-                                    // §13.5/§13.7: per-line warranty defaults from Service Master, editable before finalization.
-                                    newItems[index].warranty = service.warranty || "";
-                                    setItems(newItems);
-                                    setFocusedItemIndex(null);
-                                    // Also set global warranty if empty
-                                    if (service.warranty && !formData.warranty) {
-                                      setFormData((prev) => ({ ...prev, warranty: service.warranty }));
-                                    }
-                                  }}
-                                >
-                                  <div className="font-bold text-gray-900">{service.name}</div>
-                                  <div className="text-xs text-gray-600">₹{service.price?.toLocaleString("en-IN") || 0}</div>
-                                </div>
-                              ))}
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold text-slate-900">{item.label}</p>
+                          <p className="text-[10px] text-slate-500 font-medium">{item.desc}</p>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
 
-                            {/* Message when no matches */}
-                            {item.desc && availableServices.filter(s => s.name.toLowerCase().includes(item.desc.toLowerCase())).length === 0 && (
-                              <div className="px-4 py-3 bg-gray-50 text-sm text-gray-500 font-medium border-t border-gray-100">
-                                No services match "{item.desc}"
-                              </div>
-                            )}
-                          </>
-                        )}
+              {/* Customer & Vehicle Details Card */}
+              <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs space-y-6">
+                <h3 className="text-sm font-bold text-slate-900 border-b border-slate-100 pb-3">Customer & Vehicle</h3>
+                
+                {/* Customer Details */}
+                <div className="space-y-4">
+                  <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider">Customer Details</h4>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="sm:col-span-2">
+                      <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                        Customer <span className="text-red-500">*</span>
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          name="client"
+                          value={formData.client}
+                          onChange={handleChange}
+                          placeholder="Hari (8825972129)"
+                          className="flex-1 px-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+                          required
+                        />
+                        <button
+                          type="button"
+                          className="px-3 py-2 bg-blue-50 text-blue-600 font-bold text-xs rounded-xl hover:bg-blue-100 border border-blue-100 transition-colors flex items-center gap-1 shrink-0"
+                        >
+                          <Plus className="w-3.5 h-3.5" /> New
+                        </button>
                       </div>
-                    )}
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-600 mb-1">Phone</label>
+                      <PhoneInput
+                        name="phone"
+                        value={formData.phone}
+                        onChange={handleChange}
+                        placeholder="8825972129"
+                      />
+                    </div>
                   </div>
-                  <div className="w-16 sm:w-20 lg:w-24 shrink-0">
-                    <input
-                      type="number"
-                      value={item.qty}
-                      onChange={(e) => handleItemChange(index, "qty", parseFloat(e.target.value))}
-                      placeholder="Qty"
-                      className="w-full px-2 sm:px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-400 text-sm"
-                      min="1"
-                      required
-                    />
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-600 mb-1">GSTIN (If applicable)</label>
+                      <input
+                        type="text"
+                        name="gstNumber"
+                        value={formData.gstNumber}
+                        onChange={handleChange}
+                        placeholder="33ABCDE1234F1Z5"
+                        maxLength={15}
+                        className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono uppercase"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-600 mb-1">Billing Address</label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          name="billingAddress"
+                          value={formData.billingAddress}
+                          onChange={handleChange}
+                          placeholder="12, Gandhi Street, Mettupalayam Road, Coimbatore"
+                          className="w-full pl-3 pr-8 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                        <MapPin className="w-3.5 h-3.5 text-blue-500 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                      </div>
+                    </div>
                   </div>
-                  <div className="w-20 sm:w-28 lg:w-32 shrink-0">
-                    <input
-                      type="number"
-                      value={item.price}
-                      onChange={(e) => handleItemChange(index, "price", parseFloat(e.target.value))}
-                      placeholder="Price"
-                      className="w-full px-2 sm:px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-400 text-sm"
-                      min="0"
-                      required
-                    />
+                </div>
+
+                {/* Vehicle Details */}
+                <div className="space-y-4 pt-3 border-t border-slate-100">
+                  <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider">Vehicle Details</h4>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-600 mb-1 flex items-center justify-between">
+                        <span>Vehicle Number <span className="text-red-500">*</span></span>
+                        {isFetchingVehicle && <Loader2 className="w-3 h-3 animate-spin text-blue-500" />}
+                      </label>
+                      <input
+                        type="text"
+                        name="vehicle"
+                        value={formData.vehicle}
+                        onChange={handleChange}
+                        onBlur={handleVehicleBlur}
+                        placeholder="TN 09 XY 5678"
+                        className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono font-bold uppercase"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                        Model <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        name="model"
+                        value={formData.model}
+                        onChange={handleChange}
+                        placeholder="Maruti Baleno Zeta"
+                        className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
                   </div>
-                  <div className="w-20 sm:w-28 lg:w-32 shrink-0">
-                    <input
-                      type="number"
-                      value={item.amount}
-                      readOnly
-                      placeholder="Amount"
-                      className="w-full px-2 sm:px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed text-sm"
-                    />
+                </div>
+
+                {/* Job / Service Details */}
+                <div className="space-y-4 pt-3 border-t border-slate-100">
+                  <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider">Job / Service Details</h4>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-600 mb-1">Job Card No.</label>
+                      {formData.type === "Invoice" && eligibleJobs.length > 0 ? (
+                        <select
+                          value={jobId}
+                          onChange={(e) => handleJobSelect(e.target.value)}
+                          className="w-full px-2.5 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono bg-white"
+                        >
+                          <option value="">Manual Entry</option>
+                          {eligibleJobs.map((j) => (
+                            <option key={j.id} value={j.id}>{j.id} ({j.vehicle})</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <input
+                          type="text"
+                          name="jobCardNo"
+                          value={formData.jobCardNo}
+                          onChange={handleChange}
+                          placeholder="JC-26-27-1025"
+                          className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+                        />
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-600 mb-1">Service Advisor</label>
+                      <input
+                        type="text"
+                        name="serviceAdvisor"
+                        value={formData.serviceAdvisor}
+                        onChange={handleChange}
+                        placeholder="Arun Kumar"
+                        className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-600 mb-1">Technician</label>
+                      <input
+                        type="text"
+                        name="technician"
+                        value={formData.technician}
+                        onChange={handleChange}
+                        placeholder="Karthik"
+                        className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                        Service Category <span className="text-red-500">*</span>
+                      </label>
+                      <select
+                        name="serviceCategory"
+                        value={formData.serviceCategory}
+                        onChange={handleChange}
+                        className="w-full px-2.5 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                      >
+                        <option>General Service</option>
+                        <option>Bodywork & Paint</option>
+                        <option>PPF & Coating</option>
+                        <option>Electrical & Diagnostics</option>
+                        <option>AC Repair</option>
+                      </select>
+                    </div>
                   </div>
-                  <div className="w-14 sm:w-16 shrink-0">
-                    <input
-                      type="number"
-                      value={item.discountPercent}
-                      onChange={(e) => handleItemChange(index, "discountPercent", parseFloat(e.target.value) || 0)}
-                      placeholder="Disc %"
-                      title="Line discount %"
-                      className="w-full px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-400 text-sm"
-                      min="0"
-                      max="100"
-                    />
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-600 mb-1">Customer Complaint / Request</label>
+                      <textarea
+                        name="customerComplaint"
+                        value={formData.customerComplaint}
+                        onChange={handleChange}
+                        rows={2}
+                        placeholder="Car not picking up, engine noise..."
+                        className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-600 mb-1">Work Description</label>
+                      <textarea
+                        name="workDescription"
+                        value={formData.workDescription}
+                        onChange={handleChange}
+                        rows={2}
+                        placeholder="General service, engine check, replace oil filter..."
+                        className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                      />
+                    </div>
                   </div>
-                  <div className="w-14 sm:w-16 shrink-0">
-                    <input
-                      type="number"
-                      value={item.gstPercent}
-                      onChange={(e) => handleItemChange(index, "gstPercent", parseFloat(e.target.value) || 0)}
-                      placeholder="GST %"
-                      title="Line GST %"
-                      className="w-full px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-400 text-sm"
-                      min="0"
-                      max="100"
-                    />
+                </div>
+
+                {/* Terms & Warranty */}
+                <div className="space-y-4 pt-3 border-t border-slate-100">
+                  <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider">Terms & Warranty</h4>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-600 mb-1">Payment Terms</label>
+                      <select
+                        name="paymentTerms"
+                        value={formData.paymentTerms}
+                        onChange={handleChange}
+                        className="w-full px-2.5 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                      >
+                        <option>Cash</option>
+                        <option>UPI / Online</option>
+                        <option>Credit Card</option>
+                        <option>50% Advance</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-600 mb-1">Advance Amount</label>
+                      <input
+                        type="text"
+                        name="advanceAmount"
+                        value={formData.advanceAmount}
+                        onChange={handleChange}
+                        placeholder="0.00"
+                        className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-600 mb-1">Warranty</label>
+                      <input
+                        type="text"
+                        name="warranty"
+                        value={formData.warranty}
+                        onChange={handleChange}
+                        placeholder="3 Months / 5,000 KM"
+                        className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-600 mb-1">Terms & Conditions (Optional)</label>
+                      <input
+                        type="text"
+                        name="deliveryTerms"
+                        value={formData.deliveryTerms}
+                        onChange={handleChange}
+                        placeholder="Thank you for choosing Shifterz Auto Care."
+                        className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 truncate"
+                      />
+                    </div>
                   </div>
-                  <div className="w-24 sm:w-28 shrink-0">
+                </div>
+
+              </div>
+            </div>
+
+            {/* Right Column (Document Info & Items & Summary) - 5 cols */}
+            <div className="lg:col-span-5 space-y-6">
+              
+              {/* Document Info Card */}
+              <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs space-y-4">
+                <h3 className="text-sm font-bold text-slate-900">Document Info</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">Document No.</label>
                     <input
                       type="text"
-                      value={item.warranty || ""}
-                      onChange={(e) => handleItemChange(index, "warranty", e.target.value)}
-                      placeholder="e.g. 12 months"
-                      title="Line warranty"
-                      className="w-full px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-400 text-sm"
+                      value={nextDocNo}
+                      readOnly
+                      className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl bg-slate-50 font-mono font-bold text-slate-800 cursor-not-allowed"
                     />
                   </div>
-                  <div className="pt-2 shrink-0">
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                      Document Date <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="date"
+                      name="invoiceDate"
+                      value={formData.invoiceDate}
+                      onChange={handleChange}
+                      className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      required
+                    />
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">Valid Till (For Quotation)</label>
+                    <input
+                      type="date"
+                      name="dueDate"
+                      value={formData.dueDate}
+                      onChange={handleChange}
+                      min={formData.invoiceDate}
+                      className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Items & Summary Card */}
+              <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs space-y-5">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                  <h3 className="text-sm font-bold text-slate-900">Items & Summary</h3>
+                  
+                  {/* Tabs */}
+                  <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
                     <button
                       type="button"
-                      onClick={() => removeItem(index)}
-                      className="text-red-500 hover:text-red-700 p-1"
-                      disabled={items.length === 1}
+                      onClick={() => setActiveTab("service")}
+                      className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${
+                        activeTab === "service" ? "bg-white text-blue-600 shadow-2xs" : "text-slate-500"
+                      }`}
                     >
-                      <Trash2 className="w-5 h-5" />
+                      Service Items
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab("parts")}
+                      className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${
+                        activeTab === "parts" ? "bg-white text-blue-600 shadow-2xs" : "text-slate-500"
+                      }`}
+                    >
+                      Parts / Items
                     </button>
                   </div>
                 </div>
-              ))}
-            </div>
 
-            {/* Totals */}
-            {(() => {
-              const overallDiscountPercent = parseFloat(formData.discount) || 0;
-              const overallDiscountAmount = ((baseAmount - lineDiscountAmount) * overallDiscountPercent) / 100;
-              const totalDiscount = lineDiscountAmount + overallDiscountAmount;
-              const grandTotal = baseAmount + gstAmount - totalDiscount;
-              return (
-            <div className="flex justify-end mt-3 sm:mt-4 text-xs sm:text-sm overflow-x-auto">
-              <div className="w-56 sm:w-64 md:w-72 space-y-2 shrink-0">
-                <div className="flex justify-between">
-                  <span className="font-semibold text-gray-600">Subtotal:</span>
-                  <span>₹{baseAmount.toFixed(2)}</span>
+                {/* Items Table */}
+                <div className="overflow-x-auto border border-slate-100 rounded-xl">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-slate-50 text-[10px] uppercase tracking-wider text-slate-400 font-bold border-b border-slate-100">
+                      <tr>
+                        <th className="py-2.5 px-2 text-center w-8">#</th>
+                        <th className="py-2.5 px-2">Item Description</th>
+                        <th className="py-2.5 px-2 w-14 text-center">Qty.</th>
+                        <th className="py-2.5 px-2 w-20 text-right">Rate (₹)</th>
+                        <th className="py-2.5 px-2 w-16 text-center">Disc. (%)</th>
+                        <th className="py-2.5 px-2 w-14 text-center">GST (%)</th>
+                        <th className="py-2.5 px-2 w-24 text-right">Amount (₹)</th>
+                        <th className="py-2.5 px-2 w-8 text-center" />
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {items.map((item, index) => {
+                        const lineAmount = (item.qty || 0) * (item.price || 0);
+                        return (
+                          <tr key={index} className="hover:bg-slate-50/50">
+                            <td className="py-2 px-2 text-center font-bold text-slate-400 text-[11px]">{index + 1}</td>
+                            <td className="py-2 px-2 relative">
+                              <input
+                                type="text"
+                                value={item.desc}
+                                onChange={(e) => handleItemChange(index, "desc", e.target.value)}
+                                onFocus={() => setFocusedItemIndex(index)}
+                                onBlur={() => setTimeout(() => setFocusedItemIndex(null), 200)}
+                                placeholder="Item description"
+                                className="w-full px-2 py-1 border border-slate-200 rounded-lg text-xs font-semibold focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                required
+                              />
+                              {focusedItemIndex === index && (
+                                <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-48 overflow-y-auto top-full left-0">
+                                  {isLoadingServices ? (
+                                    <div className="p-3 text-xs text-slate-400 text-center">
+                                      <Loader2 className="w-3.5 h-3.5 animate-spin inline mr-1" /> Loading...
+                                    </div>
+                                  ) : availableServices.length === 0 ? (
+                                    <div className="p-3 text-xs text-slate-400 text-center">No services found</div>
+                                  ) : (
+                                    availableServices
+                                      .filter(s => !item.desc || s.name.toLowerCase().includes(item.desc.toLowerCase()))
+                                      .map((service) => (
+                                        <div
+                                          key={service.id}
+                                          className="p-2.5 hover:bg-blue-50 cursor-pointer text-xs transition-colors border-b border-slate-50 last:border-0"
+                                          onMouseDown={(e) => {
+                                            e.preventDefault();
+                                            const newItems = [...items];
+                                            newItems[index].desc = service.name;
+                                            newItems[index].price = service.price || 0;
+                                            newItems[index].amount = newItems[index].qty * (service.price || 0);
+                                            newItems[index].warranty = service.warranty || "";
+                                            setItems(newItems);
+                                            setFocusedItemIndex(null);
+                                          }}
+                                        >
+                                          <p className="font-bold text-slate-900">{service.name}</p>
+                                          <p className="text-[10px] text-slate-500">₹{service.price?.toLocaleString("en-IN")}</p>
+                                        </div>
+                                      ))
+                                  )}
+                                </div>
+                              )}
+                            </td>
+                            <td className="py-2 px-2">
+                              <input
+                                type="number"
+                                value={item.qty}
+                                onChange={(e) => handleItemChange(index, "qty", parseFloat(e.target.value) || 0)}
+                                min="1"
+                                className="w-full px-1 py-1 border border-slate-200 rounded-lg text-xs text-center font-bold"
+                              />
+                            </td>
+                            <td className="py-2 px-2">
+                              <input
+                                type="number"
+                                value={item.price}
+                                onChange={(e) => handleItemChange(index, "price", parseFloat(e.target.value) || 0)}
+                                min="0"
+                                className="w-full px-1 py-1 border border-slate-200 rounded-lg text-xs text-right font-bold"
+                              />
+                            </td>
+                            <td className="py-2 px-2">
+                              <input
+                                type="number"
+                                value={item.discountPercent}
+                                onChange={(e) => handleItemChange(index, "discountPercent", parseFloat(e.target.value) || 0)}
+                                min="0"
+                                max="100"
+                                className="w-full px-1 py-1 border border-slate-200 rounded-lg text-xs text-center"
+                              />
+                            </td>
+                            <td className="py-2 px-2">
+                              <input
+                                type="number"
+                                value={item.gstPercent}
+                                onChange={(e) => handleItemChange(index, "gstPercent", parseFloat(e.target.value) || 0)}
+                                min="0"
+                                max="100"
+                                className="w-full px-1 py-1 border border-slate-200 rounded-lg text-xs text-center"
+                              />
+                            </td>
+                            <td className="py-2 px-2 text-right font-mono font-bold text-slate-900">
+                              {lineAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                            </td>
+                            <td className="py-2 px-2 text-center">
+                              <button
+                                type="button"
+                                onClick={() => removeItem(index)}
+                                disabled={items.length === 1}
+                                className="text-red-500 hover:text-red-700 disabled:opacity-30 p-1"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
                 </div>
-                {lineDiscountAmount > 0 && (
-                  <div className="flex justify-between text-gray-500">
-                    <span>Line Item Discounts:</span>
-                    <span>-₹{lineDiscountAmount.toFixed(2)}</span>
+
+                {/* Add Item Button */}
+                <button
+                  type="button"
+                  onClick={addItem}
+                  className="px-3 py-1.5 bg-blue-50 text-blue-600 font-bold text-xs rounded-xl hover:bg-blue-100 border border-blue-100 transition-colors flex items-center gap-1"
+                >
+                  <Plus className="w-3.5 h-3.5" /> Add Item
+                </button>
+
+                {/* Calculation Summary */}
+                <div className="pt-3 border-t border-slate-100 space-y-2 text-xs">
+                  <div className="flex justify-between items-center text-slate-600">
+                    <span className="font-semibold">Sub Total</span>
+                    <span className="font-mono font-bold text-slate-900">₹{baseAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</span>
                   </div>
-                )}
-                <div className="flex justify-between">
-                  <span className="font-semibold text-gray-600">GST:</span>
-                  <span>₹{gstAmount.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="font-semibold text-gray-600">Overall Discount (%):</span>
-                  <div className="flex items-center gap-1 sm:gap-2">
-                    <input
-                      type="number"
-                      name="discount"
-                      value={formData.discount}
-                      onChange={handleChange}
-                      className="w-16 sm:w-20 px-2 py-1 border border-gray-300 rounded text-right text-sm"
-                      placeholder="0"
-                      min="0"
-                      max="100"
-                    />
-                    <span className="text-sm text-gray-500">%</span>
+
+                  <div className="flex justify-between items-center text-slate-600">
+                    <span className="font-semibold">Discount</span>
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center border border-slate-200 rounded-lg overflow-hidden bg-slate-50 text-[11px]">
+                        <span className="px-2 py-0.5 text-slate-500 font-bold border-r border-slate-200">₹</span>
+                        <input
+                          type="number"
+                          name="discount"
+                          value={formData.discount}
+                          onChange={handleChange}
+                          placeholder="0.00"
+                          className="w-16 px-2 py-0.5 text-right font-mono bg-white focus:outline-none"
+                        />
+                      </div>
+                      <span className="font-mono font-bold text-slate-900">₹{totalDiscount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between items-center text-slate-600">
+                    <span className="font-semibold">Taxable Amount</span>
+                    <span className="font-mono font-bold text-slate-900">₹{taxableAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</span>
+                  </div>
+
+                  <div className="flex justify-between items-center text-slate-600">
+                    <span className="font-semibold">CGST (9%)</span>
+                    <span className="font-mono text-slate-900">₹{cgstAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</span>
+                  </div>
+
+                  <div className="flex justify-between items-center text-slate-600">
+                    <span className="font-semibold">SGST (9%)</span>
+                    <span className="font-mono text-slate-900">₹{sgstAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</span>
+                  </div>
+
+                  <div className="flex justify-between items-center text-slate-600">
+                    <span className="font-semibold">Round Off</span>
+                    <span className="font-mono text-slate-900">₹0.00</span>
+                  </div>
+
+                  <div className="flex justify-between items-center pt-3 border-t border-slate-200 font-black text-base text-blue-600">
+                    <span>Grand Total (₹)</span>
+                    <span className="font-mono text-lg">₹{grandTotal.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</span>
+                  </div>
+
+                  {/* Amount in Words */}
+                  <div className="bg-blue-50/70 border border-blue-100 rounded-xl p-3 mt-4 space-y-1">
+                    <p className="text-[10px] font-bold text-blue-600 uppercase tracking-wider">Amount in Words</p>
+                    <p className="text-xs font-bold text-slate-800">{numberToWords(grandTotal)}</p>
                   </div>
                 </div>
-                {totalDiscount > 0 && (
-                  <div>
-                    <label className="block text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-1">
-                      Discount Reason
-                    </label>
-                    <input
-                      type="text"
-                      name="discountReason"
-                      value={formData.discountReason}
-                      onChange={handleChange}
-                      placeholder="Reason for discount"
-                      className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm"
-                    />
-                  </div>
-                )}
-                <div className="text-xs text-gray-500 text-right">
-                  ₹{totalDiscount.toFixed(2)} total discount
-                </div>
-                <div className="flex justify-between pt-2 border-t font-bold text-lg">
-                  <span>Total:</span>
-                  <span className="text-yellow-600">
-                    ₹{grandTotal.toFixed(2)}
-                  </span>
-                </div>
+
               </div>
-            </div>
-              );
-            })()}
-          </div>
 
-          <hr className="my-4 sm:my-5 lg:my-6" />
-
-          {/* Additional Terms */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 md:gap-5 lg:gap-6">
-            <div>
-              <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">
-                Payment Terms
-              </label>
-              <textarea
-                name="paymentTerms"
-                value={formData.paymentTerms}
-                onChange={handleChange}
-                rows={3}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-400 resize-none text-sm"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">
-                Delivery Terms
-              </label>
-              <textarea
-                name="deliveryTerms"
-                value={formData.deliveryTerms}
-                onChange={handleChange}
-                rows={3}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-400 resize-none text-sm"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">
-                Bank Details
-              </label>
-              <textarea
-                name="bankDetails"
-                value={formData.bankDetails}
-                onChange={handleChange}
-                rows={3}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-400 resize-none text-sm"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">
-                Authorized Signatory Name
-              </label>
-              <input
-                type="text"
-                name="authorizedSignatory"
-                value={formData.authorizedSignatory}
-                onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-400 text-sm mb-4"
-              />
-              <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">
-                Client GSTIN (Optional)
-              </label>
-              <input
-                type="text"
-                name="gstNumber"
-                value={formData.gstNumber}
-                onChange={handleChange}
-                maxLength={15}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-400 text-sm uppercase"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">
-                Warranty
-              </label>
-              <input
-                type="text"
-                name="warranty"
-                value={formData.warranty}
-                onChange={handleChange}
-                placeholder="e.g. 12 months / 15,000 km"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-400 text-sm"
-              />
             </div>
           </div>
-
-          {/* Submit Button */}
-          <button
-            type="submit"
-            className="w-full bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-bold py-3 rounded-lg transition-colors flex items-center justify-center gap-2 mt-4"
-          >
-            ✓ Generate Document
-          </button>
         </form>
+
+        {/* Modal Sticky Footer Action Bar */}
+        <div className="bg-white px-6 py-4 border-t border-slate-200 flex items-center justify-between gap-4 shrink-0">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-5 py-2.5 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setFormData((prev) => ({ ...prev, status: "Draft" }));
+                toast.success("Saved as Draft");
+              }}
+              className="px-5 py-2.5 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors"
+            >
+              Save as Draft
+            </button>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => toast.success("Previewing document...")}
+              className="px-5 py-2.5 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-1.5 transition-colors"
+            >
+              <Eye className="w-4 h-4 text-slate-500" /> Preview
+            </button>
+            <button
+              type="button"
+              onClick={handleSubmit}
+              className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl flex items-center gap-2 transition-all shadow-xs"
+            >
+              Save & Next <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+
       </div>
     </div>
   );

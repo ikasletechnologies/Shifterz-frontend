@@ -137,8 +137,19 @@ export function useBilling() {
       const invoiceId = documentToMarkPaid.id;
       const totalAmount = (documentToMarkPaid.amount || 0) + (documentToMarkPaid.gst || 0) - (documentToMarkPaid.discount || 0);
       const currentPaidAmount = documentToMarkPaid.paidAmount || 0;
-      const newPaidAmount = currentPaidAmount + (paymentData.amount || 0);
+      const paymentAmount = Number(paymentData.amount) || 0;
+      const newPaidAmount = currentPaidAmount + paymentAmount;
       const isFullyPaid = newPaidAmount >= totalAmount;
+
+      // Optimistically update UI immediately so user sees instant feedback
+      const optimisticStatus = isFullyPaid ? "Paid" : "Partially Paid";
+      setDocuments(prev =>
+        prev.map(d =>
+          d.id === invoiceId
+            ? { ...d, status: optimisticStatus, paidAmount: newPaidAmount }
+            : d
+        )
+      );
 
       const paymentRecord = {
         invoiceId,
@@ -146,39 +157,31 @@ export function useBilling() {
         phone: documentToMarkPaid.phone,
         vehicle: documentToMarkPaid.vehicle,
         service: documentToMarkPaid.service,
-        amount: paymentData.amount || totalAmount,
+        amount: paymentAmount || totalAmount,
         mode: paymentData.mode || "Cash",
         date: paymentData.date || new Date().toISOString().split("T")[0],
         ref: paymentData.reference || invoiceId,
         notes: paymentData.notes || "",
+        multipleModes: paymentData.multipleModes,
       };
 
+      // Create the payment record (backend auto-updates invoice status too)
       await createPayment(paymentRecord);
 
-      const updatedStatus = isFullyPaid ? "Paid" : "Partially Paid";
-      await updateInvoice(invoiceId, {
-        ...documentToMarkPaid,
-        status: updatedStatus,
-        paidAmount: newPaidAmount
-      });
+      // Re-fetch all invoices from backend so paidAmount is computed
+      // from actual payment records — always accurate after reload
+      await fetchInvoices();
 
-      setDocuments(
-        documents.map((d) =>
-          d.id === invoiceId ? {
-            ...d,
-            status: updatedStatus,
-            paidAmount: newPaidAmount
-          } : d
-        )
-      );
-
-      toast.success(`Payment recorded! Status: ${updatedStatus}`);
+      toast.success(`Payment recorded! Status: ${optimisticStatus}`);
       return true;
     } catch (err: any) {
+      // Revert optimistic update on failure by re-fetching
+      await fetchInvoices();
       toast.error("Failed to record payment: " + err.message);
       return false;
     }
   };
+
 
   return {
     documents,

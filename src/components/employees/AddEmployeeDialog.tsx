@@ -13,7 +13,6 @@ const MODULE_OPTIONS = [
   { value: "dashboard",  label: "Dashboard" },
   { value: "carin",      label: "Car In / Out" },
   { value: "jobs",       label: "Job Cards" },
-  { value: "outpass",    label: "Out Pass" },
   { value: "leads",      label: "Leads" },
   { value: "customers",  label: "Customers" },
   { value: "billing",    label: "Billing" },
