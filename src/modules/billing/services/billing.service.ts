@@ -23,6 +23,13 @@ export async function deleteInvoice(id: string): Promise<void> {
   return apiCall(`/invoices/${id}`, { method: "DELETE" });
 }
 
+export async function convertInvoice(id: string, payload: { type: string, amount: number, gst: number, discount: number }): Promise<BillingDocument> {
+  return apiCall(`/invoices/${id}/convert`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
 export async function cancelInvoice(id: string, reason: string): Promise<BillingDocument> {
   return apiCall(`/invoices/${id}/cancel`, {
     method: "PATCH",

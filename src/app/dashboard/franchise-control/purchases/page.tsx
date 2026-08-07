@@ -219,14 +219,14 @@ export default function PurchaseManagementPage() {
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-medium border border-slate-700 transition-all"
           >
             <Building2 className="w-4 h-4 text-emerald-400" />
-            + Add Supplier (Vendor)
+            Add Supplier (Vendor)
           </button>
           <button
             onClick={() => setPoDialogOpen(true)}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium shadow-lg shadow-emerald-600/20 transition-all"
           >
             <Plus className="w-4 h-4" />
-            + New Purchase Order
+            New Purchase Order
           </button>
         </div>
       </div>
@@ -464,7 +464,7 @@ export default function PurchaseManagementPage() {
               <Building2 className="w-12 h-12 mx-auto text-slate-600 opacity-50" />
               <p className="text-base font-medium">No Suppliers (Vendors) Found</p>
               <p className="text-xs text-slate-500">
-                Click &quot;+ Add Supplier (Vendor)&quot; above to add suppliers to the Headquarters Vendor Master repository.
+                Click &quot;Add Supplier (Vendor)&quot; above to add suppliers to the Headquarters Vendor Master repository.
               </p>
             </div>
           ) : (

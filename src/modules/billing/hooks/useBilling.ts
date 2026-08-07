@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { BillingDocument } from "@/modules/billing/types/billing.types";
-import { getInvoices, createInvoice, updateInvoice, deleteInvoice, cancelInvoice, shareInvoice } from "@/modules/billing/services/billing.service";
+import { getInvoices, createInvoice, updateInvoice, deleteInvoice, cancelInvoice, shareInvoice, convertInvoice } from "@/modules/billing/services/billing.service";
 import { createPayment } from "@/modules/payment/services/payment.service";
 import { toast } from "react-hot-toast";
 
@@ -77,53 +77,23 @@ export function useBilling() {
 
   const handleConvertDocument = async (documentToConvert: BillingDocument, convertedData: any) => {
     try {
-      const date = new Date();
-      const year = date.getFullYear();
-      const month = date.getMonth();
-      const startYear = month >= 3 ? year : year - 1;
-      const endYear = startYear + 1;
-      const fy = `${startYear.toString().slice(2)}-${endYear.toString().slice(2)}`;
-
-      const docTypeMap: Record<string, string> = {
-        Invoice: `STZ-${fy}-`,
-        Quotation: `STZ-QT-${fy}-`,
-        Estimate: `STZ-EST-${fy}-`,
-      };
-      const docTypePrefix = docTypeMap[convertedData.type] || `STZ-DOC-${fy}-`;
-
-      let maxId = 0;
-      const relevantDocs = documents.filter((doc) => doc.id?.startsWith(docTypePrefix));
-      relevantDocs.forEach((doc) => {
-        const numStr = doc.id.replace(docTypePrefix, "");
-        const num = parseInt(numStr, 10);
-        if (!isNaN(num) && num > maxId) {
-          maxId = num;
-        }
+      // Call the backend endpoint which updates the record in-place and allocates a new ID
+      const createdDoc = await convertInvoice(documentToConvert.id, {
+        type: convertedData.type,
+        amount: convertedData.amount,
+        gst: convertedData.gst,
+        discount: convertedData.discount
       });
-      const newDocId = `${docTypePrefix}${maxId + 1}`;
 
-      const newDoc = {
-        ...convertedData,
-        id: newDocId,
-        date: new Date().toISOString().split("T")[0],
-      };
-
-      await createInvoice(newDoc);
-
-      const updatedOriginal = {
-        ...documentToConvert,
-        status: "Converted",
-      };
-      await updateInvoice(documentToConvert.id, updatedOriginal);
-
+      // Update the UI state by replacing the old document with the converted one
       setDocuments((prevDocs) => [
-        ...prevDocs.map((doc) =>
-          doc.id === documentToConvert.id ? updatedOriginal : doc
-        ),
-        newDoc as BillingDocument,
+        ...prevDocs.filter((doc) => doc.id !== documentToConvert.id),
+        createdDoc as BillingDocument,
       ]);
 
-      toast.success(`${documentToConvert.type} converted to ${convertedData.type} (${newDocId})`);
+      await fetchInvoices();
+
+      toast.success(`${documentToConvert.type} converted to ${convertedData.type} (${createdDoc.id})`);
       return true;
     } catch (err: any) {
       toast.error("Failed to convert document: " + err.message);
