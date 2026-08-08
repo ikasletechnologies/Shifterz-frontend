@@ -1,11 +1,14 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import {
   Plus, Eye, Pencil, Trash2, Ban, Search, Receipt, ArrowRight, History, X,
   Car, Phone, Printer, MoreHorizontal, Download,
-  SlidersHorizontal, FileText, Wallet, Clock, AlertTriangle, CreditCard
+  SlidersHorizontal, FileText, Wallet, Clock, AlertTriangle, CreditCard, Ticket
 } from "lucide-react";
+import { createOutPass } from "@/lib/api";
+import { toast } from "react-hot-toast";
 import NewDocumentDialog from "../components/NewDocumentDialog";
 import DocumentPreviewDialog from "../components/DocumentPreviewDialog";
 import ConvertDocumentDialog from "../components/ConvertDocumentDialog";
@@ -115,6 +118,7 @@ function CardMoreDropdown({
 }
 
 export function BillingPage() {
+  const router = useRouter();
   const {
     documents,
     isLoading,
@@ -126,6 +130,24 @@ export function BillingPage() {
     handleConvertDocument,
     handleRecordPayment
   } = useBilling();
+
+  const handleGenerateOutPass = async (doc: BillingDocument) => {
+    try {
+      const vehStr = doc.vehicle && doc.vehicle !== "-" ? doc.vehicle : "N/A";
+      await createOutPass({
+        vehicle: vehStr,
+        customer: doc.client || "Walk-in Customer",
+        phone: doc.phone || "",
+        service: doc.service || "General Service",
+        invoiceId: doc.id,
+        customerConfirmation: true,
+        outTime: new Date().toISOString()
+      });
+      toast.success(`Out pass generated for Invoice ${doc.id}`);
+    } catch (err: any) {
+      toast.error("Failed to generate out pass: " + (err.message || "Error"));
+    }
+  };
 
   const [filter, setFilter] = useState("All");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -458,9 +480,18 @@ export function BillingPage() {
                   </div>
                 </div>
 
-                {/* Add Payment Button (Footer) */}
-                {doc.type === "Invoice" && doc.status !== "Paid" && doc.status !== "Cancelled" && (
-                  <div className="flex justify-end pt-4 border-t border-gray-50 mt-4">
+                {/* Add Payment / Go to Out Pass Button (Footer) */}
+                <div className="flex justify-end gap-2 pt-4 border-t border-gray-50 mt-4">
+                  {(doc.status === "Paid" || doc.status === "Completed") && (
+                    <button
+                      onClick={() => handleGenerateOutPass(doc)}
+                      className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-bold rounded-xl transition-colors shadow-sm flex items-center gap-2"
+                    >
+                      <Ticket className="w-4 h-4" />
+                      Generate Out Pass
+                    </button>
+                  )}
+                  {doc.type === "Invoice" && doc.status !== "Paid" && doc.status !== "Cancelled" && (
                     <button
                       onClick={() => handleMarkAsPaid(doc.id)}
                       className="px-4 py-2 bg-emerald-600 text-white text-sm font-bold rounded-xl hover:bg-emerald-700 transition-colors shadow-sm flex items-center gap-2"
@@ -468,8 +499,8 @@ export function BillingPage() {
                       <CreditCard className="w-4 h-4" />
                       Add Payment
                     </button>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             );
           })}
@@ -613,3 +644,5 @@ export function BillingPage() {
     </div>
   );
 }
+
+export default BillingPage;

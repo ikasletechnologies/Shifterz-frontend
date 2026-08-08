@@ -473,7 +473,7 @@ export function VehicleCheckinPage() {
   return (
     <div className="p-4 sm:p-6 md:p-8">
       {/* Interactive Quick Filter Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
         <button
           type="button"
           onClick={() => setStatusFilter("All")}
@@ -507,24 +507,6 @@ export function VehicleCheckinPage() {
           </div>
           <div className={`p-3 rounded-xl transition-colors ${statusFilter === "In Workshop" ? "bg-emerald-600 text-white shadow-xs" : "bg-emerald-50 text-emerald-600"}`}>
             <Wrench className="w-6 h-6" />
-          </div>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setStatusFilter("Delivered")}
-          className={`p-4 rounded-xl border text-left flex items-center justify-between transition-all cursor-pointer ${statusFilter === "Delivered"
-              ? "bg-red-50/70 border-red-500 ring-2 ring-red-500/20 shadow-sm"
-              : "bg-white border-gray-200 hover:border-red-300 hover:bg-gray-50/60"
-            }`}
-        >
-          <div>
-            <p className="text-xs font-bold uppercase tracking-wider text-red-600">Delivered</p>
-            <p className="text-2xl font-black text-red-700 mt-1">{deliveredCount}</p>
-            <p className="text-xs text-gray-500 mt-0.5 font-medium">Only delivered cars</p>
-          </div>
-          <div className={`p-3 rounded-xl transition-colors ${statusFilter === "Delivered" ? "bg-red-600 text-white shadow-xs" : "bg-red-50 text-red-600"}`}>
-            <CheckCircle className="w-6 h-6" />
           </div>
         </button>
       </div>
@@ -649,14 +631,6 @@ export function VehicleCheckinPage() {
           Vehicle Check-In
         </button>
 
-        {/* 6. Vehicle Check-Out Button */}
-        <button
-          onClick={handleCheckOutButtonClick}
-          className="bg-red-600 hover:bg-red-700 text-white font-medium px-3.5 py-2 rounded-lg flex items-center justify-center gap-1.5 transition-colors text-sm shrink-0 whitespace-nowrap"
-        >
-          <LogOut className="w-4 h-4" />
-          Vehicle Check-Out
-        </button>
       </div>
 
       {/* Main Display Area (Cards / Table) */}

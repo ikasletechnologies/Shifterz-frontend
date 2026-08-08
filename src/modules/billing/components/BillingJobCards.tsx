@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Search, X, FileText, CheckCircle2, AlertCircle, Printer, CreditCard } from "lucide-react";
-import { getJobs, getInvoices, getPayments } from "@/lib/api";
+import { Search, X, FileText, CheckCircle2, AlertCircle, Printer, CreditCard, Ticket } from "lucide-react";
+import { getJobs, getInvoices, getPayments, createOutPass } from "@/lib/api";
+import { toast } from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import NewDocumentDialog from "./NewDocumentDialog";
 import RecordPaymentDialog from "../../payment/components/RecordPaymentDialog";
@@ -20,6 +21,26 @@ export default function BillingJobCards() {
   const [isRecordPaymentOpen, setIsRecordPaymentOpen] = useState(false);
   
   const [selectedContext, setSelectedContext] = useState<any>(null);
+
+  const handleGenerateOutPass = async (jobItem: any) => {
+    try {
+      const inv = jobItem.invoice;
+      await createOutPass({
+        vehicle: jobItem.vehicle,
+        customer: jobItem.customer || "",
+        phone: jobItem.phone || "",
+        service: jobItem.service || "",
+        jobCardId: jobItem.id,
+        invoiceId: inv?.id,
+        customerConfirmation: true,
+        outTime: new Date().toISOString()
+      });
+      toast.success(`Out pass generated for ${jobItem.vehicle}`);
+      await loadData();
+    } catch (err: any) {
+      toast.error("Failed to generate out pass: " + (err.message || "Error"));
+    }
+  };
 
   const loadData = useCallback(async () => {
     try {
@@ -204,10 +225,10 @@ export default function BillingJobCards() {
                   } else if (j.billingStatus === "Fully Paid") {
                     actionBtn = (
                       <button 
-                        onClick={() => router.push('/dashboard/billing')}
-                        className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-200 text-xs font-bold rounded shadow-sm flex items-center gap-1 transition-colors whitespace-nowrap"
+                        onClick={() => handleGenerateOutPass(j)}
+                        className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded shadow-sm flex items-center gap-1 transition-colors whitespace-nowrap"
                       >
-                        <Printer className="w-3.5 h-3.5" /> Print Receipt
+                        <Ticket className="w-3.5 h-3.5" /> Generate Out Pass
                       </button>
                     );
                   } else {
