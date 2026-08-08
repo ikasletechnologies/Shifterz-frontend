@@ -3,7 +3,8 @@
 import { Download } from "lucide-react";
 import { LiveVehicleRecord } from "../types/live-status.types";
 import { JobCard } from "@/modules/job-card/types/job-card.types";
-import { downloadCSV, rowsToCSV } from "@/lib/csv";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 function formatTime(value?: string): string {
   if (!value) return "";
@@ -20,38 +21,81 @@ function todayStamp(): string {
 }
 
 function exportLiveWorkshopStatus(records: LiveVehicleRecord[]) {
+  const doc = new jsPDF();
   const rows = records.map((r) => [
-    r.vehicle,
-    r.customer,
+    r.vehicle || "",
+    r.customer || "",
     r.jobCardId || "",
     r.technician || "Unassigned",
-    r.stage,
-    r.priority,
+    r.stage || "",
+    r.priority || "",
     formatTime(r.checkInTime),
     formatTime(r.eta),
     statusOf(r),
   ]);
-  const csv = rowsToCSV(
-    ["Vehicle", "Customer", "Job Card #", "Assigned To", "Stage", "Priority", "Check-In", "ETA", "Status"],
-    rows
-  );
-  downloadCSV(csv, `Live_Workshop_Status_${todayStamp()}.csv`);
+  
+  doc.setFontSize(16);
+  doc.text("Live Workshop Status", 14, 15);
+  doc.setFontSize(10);
+  doc.text(`Generated: ${formatTime(new Date().toISOString())}`, 14, 22);
+
+  autoTable(doc, {
+    startY: 25,
+    head: [["Vehicle", "Customer", "Job Card #", "Assigned To", "Stage", "Priority", "Check-In", "ETA", "Status"]],
+    body: rows,
+    styles: { fontSize: 8 },
+  });
+
+  doc.save(`Live_Workshop_Status_${todayStamp()}.pdf`);
 }
 
 function exportDelayedVehicles(records: LiveVehicleRecord[]) {
+  const doc = new jsPDF();
   const rows = records
     .filter((r) => r.isDelayed)
-    .map((r) => [r.vehicle, r.customer, r.jobCardId || "", r.technician || "Unassigned", r.stage, `${r.delayMinutes ?? 0}m`]);
-  const csv = rowsToCSV(["Vehicle", "Customer", "Job Card #", "Assigned To", "Stage", "Delay"], rows);
-  downloadCSV(csv, `Delayed_Vehicle_Report_${todayStamp()}.csv`);
+    .map((r) => [
+      r.vehicle || "", 
+      r.customer || "", 
+      r.jobCardId || "", 
+      r.technician || "Unassigned", 
+      r.stage || "", 
+      `${r.delayMinutes ?? 0}m`
+    ]);
+    
+  doc.setFontSize(16);
+  doc.text("Delayed Vehicle Report", 14, 15);
+  doc.setFontSize(10);
+  doc.text(`Generated: ${formatTime(new Date().toISOString())}`, 14, 22);
+
+  autoTable(doc, {
+    startY: 25,
+    head: [["Vehicle", "Customer", "Job Card #", "Assigned To", "Stage", "Delay"]],
+    body: rows,
+    styles: { fontSize: 9 },
+  });
+
+  doc.save(`Delayed_Vehicle_Report_${todayStamp()}.pdf`);
 }
 
 function exportReadyForDelivery(records: LiveVehicleRecord[]) {
+  const doc = new jsPDF();
   const rows = records
     .filter((r) => r.stage === "Ready for Delivery" || r.stage === "Outpass Generated")
-    .map((r) => [r.vehicle, r.customer, r.jobCardId || "", r.technician || "Unassigned", r.stage]);
-  const csv = rowsToCSV(["Vehicle", "Customer", "Job Card #", "Assigned To", "Stage"], rows);
-  downloadCSV(csv, `Ready_For_Delivery_${todayStamp()}.csv`);
+    .map((r) => [r.vehicle || "", r.customer || "", r.jobCardId || "", r.technician || "Unassigned", r.stage || ""]);
+    
+  doc.setFontSize(16);
+  doc.text("Ready for Delivery Report", 14, 15);
+  doc.setFontSize(10);
+  doc.text(`Generated: ${formatTime(new Date().toISOString())}`, 14, 22);
+
+  autoTable(doc, {
+    startY: 25,
+    head: [["Vehicle", "Customer", "Job Card #", "Assigned To", "Stage"]],
+    body: rows,
+    styles: { fontSize: 9 },
+  });
+
+  doc.save(`Ready_For_Delivery_${todayStamp()}.pdf`);
 }
 
 function exportEmployeeWorkload(records: LiveVehicleRecord[]) {
@@ -60,9 +104,24 @@ function exportEmployeeWorkload(records: LiveVehicleRecord[]) {
     const name = r.technician || "Unassigned";
     counts.set(name, (counts.get(name) || 0) + 1);
   });
-  const rows = Array.from(counts.entries()).sort((a, b) => b[1] - a[1]);
-  const csv = rowsToCSV(["Employee", "Active Vehicles"], rows);
-  downloadCSV(csv, `Employee_Workload_${todayStamp()}.csv`);
+  const rows = Array.from(counts.entries())
+    .sort((a, b) => b[1] - a[1])
+    .map(([name, count]) => [name, count.toString()]);
+    
+  const doc = new jsPDF();
+  doc.setFontSize(16);
+  doc.text("Employee Workload Report", 14, 15);
+  doc.setFontSize(10);
+  doc.text(`Generated: ${formatTime(new Date().toISOString())}`, 14, 22);
+
+  autoTable(doc, {
+    startY: 25,
+    head: [["Employee", "Active Vehicles"]],
+    body: rows,
+    styles: { fontSize: 10 },
+  });
+
+  doc.save(`Employee_Workload_${todayStamp()}.pdf`);
 }
 
 function exportAvgTurnaround(jobCards: JobCard[]) {
@@ -70,21 +129,33 @@ function exportAvgTurnaround(jobCards: JobCard[]) {
     (j) => ["Delivered", "Out", "Delivery"].includes(j.status) && j.startDate && j.actualCompletion
   );
   const durationsHrs = completed
-    .map((j) => (new Date(j.actualCompletion).getTime() - new Date(j.startDate).getTime()) / 3_600_000)
+    .map((j) => (new Date(j.actualCompletion as string).getTime() - new Date(j.startDate as string).getTime()) / 3_600_000)
     .filter((h) => isFinite(h) && h >= 0);
   const avg = durationsHrs.length ? durationsHrs.reduce((a, b) => a + b, 0) / durationsHrs.length : 0;
 
   const rows = completed.map((j) => [
-    j.vehicle,
-    j.customer,
-    j.startDate,
-    j.actualCompletion,
-    (((new Date(j.actualCompletion).getTime() - new Date(j.startDate).getTime()) / 3_600_000) || 0).toFixed(1),
+    j.vehicle || "",
+    j.customer || "",
+    formatTime(j.startDate),
+    formatTime(j.actualCompletion),
+    (((new Date(j.actualCompletion as string).getTime() - new Date(j.startDate as string).getTime()) / 3_600_000) || 0).toFixed(1),
   ]);
   rows.push(["", "", "", "Average Turnaround (hrs)", avg.toFixed(1)]);
 
-  const csv = rowsToCSV(["Vehicle", "Customer", "Start Date", "Delivered Date", "Turnaround (hrs)"], rows);
-  downloadCSV(csv, `Avg_Turnaround_Report_${todayStamp()}.csv`);
+  const doc = new jsPDF();
+  doc.setFontSize(16);
+  doc.text("Average Turnaround Report", 14, 15);
+  doc.setFontSize(10);
+  doc.text(`Generated: ${formatTime(new Date().toISOString())}`, 14, 22);
+
+  autoTable(doc, {
+    startY: 25,
+    head: [["Vehicle", "Customer", "Start Date", "Delivered Date", "Turnaround (hrs)"]],
+    body: rows,
+    styles: { fontSize: 9 },
+  });
+
+  doc.save(`Avg_Turnaround_Report_${todayStamp()}.pdf`);
 }
 
 interface LiveStatusReportsProps {

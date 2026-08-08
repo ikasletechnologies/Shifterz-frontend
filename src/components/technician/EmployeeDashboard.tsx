@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { apiCall } from "@/lib/api";
-import { Loader2, Car, Calendar, CheckCircle2, Clock, MapPin, Search, X, User } from "lucide-react";
+import { Loader2, Car, Calendar, CheckCircle2, Clock, MapPin, Search, X, User, Phone, Wrench } from "lucide-react";
 import { PriorityBadge } from "@/modules/job-card/components/PriorityBadge";
 import JobActionDialog from "./JobActionDialog";
 
@@ -134,25 +134,17 @@ export default function EmployeeDashboard() {
                 onClick={() => setSelectedJob(job)}
                 className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow cursor-pointer group relative overflow-hidden"
               >
-                {isCompleted ? (
-                  <div className="absolute top-0 right-0 bg-green-500 text-white text-[10px] font-bold px-3 py-1 rounded-bl-lg">
+                {isCompleted && (
+                  <div className="absolute top-0 right-0 bg-green-500 text-white text-[10px] font-bold px-3 py-1 rounded-bl-lg z-10">
                     Completed
                   </div>
-                ) : (
-                  job.priority === "High" && (
-                    <div className="absolute top-0 right-0 bg-red-500 text-white text-[10px] font-bold px-3 py-1 rounded-bl-lg">
-                      URGENT
-                    </div>
-                  )
                 )}
 
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h3 className="text-lg font-bold text-gray-900 group-hover:text-yellow-600 transition-colors">
-                      {job.vehicle}
-                    </h3>
-                    <p className="text-sm text-gray-500 font-medium">{job.service}</p>
-                  </div>
+                {/* Header Section */}
+                <div className="flex items-center justify-between mb-4">
+                  <span className="font-mono font-black text-amber-600 tracking-wider">
+                    {job.id}
+                  </span>
                   {!isCompleted && (
                     <span className={`px-2.5 py-1 text-xs font-semibold rounded-full border ${getStatusColor(job.status)}`}>
                       {job.status}
@@ -160,39 +152,87 @@ export default function EmployeeDashboard() {
                   )}
                 </div>
 
-                {/* Sub-info: Job ID (Col 1), Technician (Col 2), Priority (Col 3) */}
-                <div className="mt-3.5 pt-2.5 border-t border-gray-50 grid grid-cols-3 items-center text-xs text-gray-600">
-                  <span className="font-mono font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-200/50 justify-self-start w-fit">
-                    {job.id}
-                  </span>
-                  <span className="flex items-center gap-1 font-medium text-gray-700 justify-self-center truncate max-w-full" title={job.technician || "Unassigned"}>
-                    <User className="w-3.5 h-3.5 text-gray-400 shrink-0" /> <span className="truncate">{job.technician || "Unassigned"}</span>
-                  </span>
-                  <div className="justify-self-end">
-                    {job.priority ? <PriorityBadge priority={job.priority} /> : null}
+                <div className="space-y-3 text-xs px-1">
+                  {/* Vehicle */}
+                  <div className="grid grid-cols-[120px_20px_1fr] items-center py-1">
+                    <div className="flex items-center gap-2 text-gray-500 font-medium shrink-0">
+                      <Car className="w-4 h-4 text-gray-400 shrink-0" />
+                      <span>Vehicle No</span>
+                    </div>
+                    <span className="text-gray-300 font-bold text-center mt-0.5">:</span>
+                    <p className="font-bold text-gray-900 uppercase tracking-wide text-left truncate">{job.vehicle}</p>
                   </div>
-                </div>
 
-                {/* Customer Info below Priority */}
-                <div className="mt-2 text-xs text-gray-600 space-y-0.5 font-medium">
-                  <div className="flex items-center gap-1.5 text-gray-700">
-                    <span className="text-gray-400 font-medium">Customer:</span>
-                    <span className="font-semibold">{job.customer || "Walk-in"}</span>
+                  {/* Service */}
+                  <div className="grid grid-cols-[120px_20px_1fr] items-center py-1">
+                    <div className="flex items-center gap-2 text-gray-500 font-medium shrink-0">
+                      <Wrench className="w-4 h-4 text-gray-400 shrink-0" />
+                      <span>Service</span>
+                    </div>
+                    <span className="text-gray-300 font-bold text-center mt-0.5">:</span>
+                    <p className="font-bold text-gray-900 text-left truncate">{job.service}</p>
                   </div>
-                  <div className="flex items-center gap-1.5 text-gray-600 text-[11px]">
-                    <span className="text-gray-400 font-medium">Phone:</span>
-                    <span className="font-mono text-gray-800 font-medium">{job.phone || job.customerPhone || "—"}</span>
-                  </div>
-                </div>
 
-                <div className="space-y-2 mt-3 pt-3 border-t border-gray-50">
-                  <div className="flex items-center text-sm text-gray-600">
-                    <Calendar className="w-4 h-4 mr-2 text-gray-400" />
-                    Started: {new Date(job.startDate).toLocaleDateString()}
+                  {/* Priority */}
+                  <div className="grid grid-cols-[120px_20px_1fr] items-center py-1">
+                    <div className="flex items-center gap-2 text-gray-500 font-medium shrink-0">
+                      <CheckCircle2 className="w-4 h-4 text-gray-400 shrink-0" />
+                      <span>Priority</span>
+                    </div>
+                    <span className="text-gray-300 font-bold text-center mt-0.5">:</span>
+                    <div className="text-left">
+                      {job.priority ? <PriorityBadge priority={job.priority} /> : <span className="font-bold text-gray-900">—</span>}
+                    </div>
                   </div>
-                  <div className="flex items-center text-sm text-gray-600">
-                    <Clock className="w-4 h-4 mr-2 text-gray-400" />
-                    Est. Completion: {new Date(job.estCompletion).toLocaleDateString()}
+
+                  {/* Technician */}
+                  <div className="grid grid-cols-[120px_20px_1fr] items-center py-1">
+                    <div className="flex items-center gap-2 text-gray-500 font-medium shrink-0">
+                      <User className="w-4 h-4 text-gray-400 shrink-0" />
+                      <span>Technician</span>
+                    </div>
+                    <span className="text-gray-300 font-bold text-center mt-0.5">:</span>
+                    <p className="font-bold text-gray-900 text-left truncate">{job.technician || "Unassigned"}</p>
+                  </div>
+
+                  {/* Customer */}
+                  <div className="grid grid-cols-[120px_20px_1fr] items-center py-1">
+                    <div className="flex items-center gap-2 text-gray-500 font-medium shrink-0">
+                      <User className="w-4 h-4 text-gray-400 shrink-0" />
+                      <span>Customer</span>
+                    </div>
+                    <span className="text-gray-300 font-bold text-center mt-0.5">:</span>
+                    <p className="font-bold text-gray-900 text-left truncate">{job.customer || "Walk-in"}</p>
+                  </div>
+
+                  {/* Phone */}
+                  <div className="grid grid-cols-[120px_20px_1fr] items-center py-1">
+                    <div className="flex items-center gap-2 text-gray-500 font-medium shrink-0">
+                      <Phone className="w-4 h-4 text-gray-400 shrink-0" />
+                      <span>Phone</span>
+                    </div>
+                    <span className="text-gray-300 font-bold text-center mt-0.5">:</span>
+                    <p className="font-bold text-blue-600 font-mono tracking-wider text-left truncate">{job.phone || job.customerPhone || "—"}</p>
+                  </div>
+
+                  {/* Started Date */}
+                  <div className="grid grid-cols-[120px_20px_1fr] items-center py-1">
+                    <div className="flex items-center gap-2 text-gray-500 font-medium shrink-0">
+                      <Calendar className="w-4 h-4 text-gray-400 shrink-0" />
+                      <span>Started</span>
+                    </div>
+                    <span className="text-gray-300 font-bold text-center mt-0.5">:</span>
+                    <p className="font-bold text-gray-900 text-left truncate">{new Date(job.startDate).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}</p>
+                  </div>
+
+                  {/* Est. Completion */}
+                  <div className="grid grid-cols-[120px_20px_1fr] items-center py-1">
+                    <div className="flex items-center gap-2 text-gray-500 font-medium shrink-0">
+                      <Clock className="w-4 h-4 text-gray-400 shrink-0" />
+                      <span>Est. Comp.</span>
+                    </div>
+                    <span className="text-gray-300 font-bold text-center mt-0.5">:</span>
+                    <p className="font-bold text-gray-900 text-left truncate">{new Date(job.estCompletion).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}</p>
                   </div>
                 </div>
               </div>

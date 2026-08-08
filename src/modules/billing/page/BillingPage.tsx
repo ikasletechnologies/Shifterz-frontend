@@ -3,14 +3,14 @@
 import { useState, useEffect, useRef } from "react";
 import {
   Plus, Eye, Pencil, Trash2, Ban, Search, Receipt, ArrowRight, History, X,
-  Car, Phone, Printer, MoreHorizontal,
+  Car, Phone, Printer, MoreHorizontal, Download,
   SlidersHorizontal, FileText, Wallet, Clock, AlertTriangle, CreditCard
 } from "lucide-react";
 import NewDocumentDialog from "../components/NewDocumentDialog";
 import DocumentPreviewDialog from "../components/DocumentPreviewDialog";
 import ConvertDocumentDialog from "../components/ConvertDocumentDialog";
 import { CancelInvoiceDialog } from "../components/CancelInvoiceDialog";
-import { ShareInvoiceMenu, DownloadPdfButton } from "../components/ShareInvoiceMenu";
+import { ShareInvoiceMenu, downloadInvoicePdf } from "../components/ShareInvoiceMenu";
 import RecordPaymentDialog from "@/modules/payment/components/RecordPaymentDialog";
 import PaymentReceiptDialog from "@/modules/payment/components/PaymentReceiptDialog";
 import PaymentHistoryDialog from "@/modules/payment/components/PaymentHistoryDialog";
@@ -24,6 +24,9 @@ function CardMoreDropdown({
   onViewReceipt,
   onCancel,
   onDelete,
+  onConvert,
+  onPrint,
+  onDownload,
 }: {
   doc: BillingDocument;
   isBillingExecutive: boolean;
@@ -31,6 +34,9 @@ function CardMoreDropdown({
   onViewReceipt: () => void;
   onCancel: () => void;
   onDelete: (id: string) => void;
+  onConvert?: () => void;
+  onPrint?: () => void;
+  onDownload?: () => void;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -49,14 +55,38 @@ function CardMoreDropdown({
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="p-1.5 rounded-lg text-xs font-bold bg-gray-50 hover:bg-gray-100 text-gray-600 border border-gray-200 transition-colors shadow-2xs"
+        className="p-1.5 text-xs font-bold text-gray-400 hover:text-gray-900 transition-colors flex items-center justify-center"
         title="More Actions"
       >
         <MoreHorizontal className="w-4 h-4" />
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 bottom-full mb-2 w-48 rounded-xl shadow-lg bg-white border border-gray-100 py-1 z-50 animate-in fade-in duration-150">
+        <div className="absolute right-0 top-full mt-2 w-48 rounded-xl shadow-lg bg-white border border-gray-100 py-1 z-50 animate-in fade-in duration-150">
+          {onConvert && (
+            <button
+              onClick={() => { setIsOpen(false); onConvert(); }}
+              className="w-full text-left px-3 py-2 text-xs font-medium hover:bg-blue-50 text-blue-600 flex items-center gap-2 transition-colors"
+            >
+              <ArrowRight className="w-3.5 h-3.5" /> Convert Document
+            </button>
+          )}
+          {onPrint && (
+            <button
+              onClick={() => { setIsOpen(false); onPrint(); }}
+              className="w-full text-left px-3 py-2 text-xs font-medium hover:bg-gray-50 text-gray-700 flex items-center gap-2 transition-colors"
+            >
+              <Printer className="w-3.5 h-3.5" /> Print
+            </button>
+          )}
+          {onDownload && (
+            <button
+              onClick={() => { setIsOpen(false); onDownload(); }}
+              className="w-full text-left px-3 py-2 text-xs font-medium hover:bg-gray-50 text-gray-700 flex items-center gap-2 transition-colors"
+            >
+              <Download className="w-3.5 h-3.5" /> Download PDF
+            </button>
+          )}
           {(doc.status === "Paid" || doc.status === "Partially Paid") && (
             <button
               onClick={() => { setIsOpen(false); onViewHistory(); }}
@@ -273,7 +303,7 @@ export function BillingPage() {
               className={`text-xs px-3.5 py-1.5 rounded-lg transition-all ${filter === tab
                 ? "bg-white text-gray-900 font-bold shadow-xs"
                 : "text-gray-600 hover:text-gray-900 font-medium"
-              }`}
+                }`}
             >
               {tab}
             </button>
@@ -323,7 +353,7 @@ export function BillingPage() {
           <p className="text-gray-500">Try adjusting your search or date filters, or create a new document.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-6">
           {filteredDocs.map((doc) => {
             const totalAmount = (doc.amount || 0) + (doc.gst || 0) - (doc.discount || 0);
             const rawPaidAmount = doc.paidAmount || 0;
@@ -348,18 +378,16 @@ export function BillingPage() {
                   {/* Card Top Bar: Doc ID, Type Badge, and Status Badge */}
                   <div className="flex items-center justify-between gap-3 mb-4 pb-3 border-b border-gray-100">
                     <div className="flex items-center gap-2 min-w-0">
-                      <div className={`p-2 rounded-xl shrink-0 ${
-                        doc.type === "Invoice" ? "bg-purple-100 text-purple-600" :
+                      <div className={`p-2 rounded-xl shrink-0 ${doc.type === "Invoice" ? "bg-purple-100 text-purple-600" :
                         doc.type === "Quotation" ? "bg-blue-100 text-blue-600" :
-                        "bg-emerald-100 text-emerald-600"
-                      }`}>
+                          "bg-emerald-100 text-emerald-600"
+                        }`}>
                         <FileText className="w-4 h-4" />
                       </div>
-                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold shrink-0 ${
-                        doc.type === "Invoice" ? "bg-purple-50 text-purple-700" :
+                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold shrink-0 ${doc.type === "Invoice" ? "bg-purple-50 text-purple-700" :
                         doc.type === "Quotation" ? "bg-blue-50 text-blue-700" :
-                        "bg-emerald-50 text-emerald-700"
-                      }`}>
+                          "bg-emerald-50 text-emerald-700"
+                        }`}>
                         {doc.type}
                       </span>
                       <h3 className="text-sm font-black text-gray-900 tracking-tight font-mono truncate">
@@ -367,71 +395,94 @@ export function BillingPage() {
                       </h3>
                     </div>
 
-                    <span className={`px-3 py-1 rounded-full text-[11px] font-bold shrink-0 ${
-                      doc.status === "Paid" || doc.status === "Completed" ? "bg-emerald-100 text-emerald-700" :
-                      doc.status === "Partially Paid" ? "bg-amber-100 text-amber-700" :
-                      doc.status === "Payment Pending" || doc.status === "Pending" ? "bg-red-100 text-red-600" :
-                      doc.status === "Cancelled" ? "bg-red-100 text-red-600" :
-                      doc.type === "Quotation" ? "bg-blue-100 text-blue-700" :
-                      "bg-gray-100 text-gray-700"
-                    }`}>
-                      {doc.status}
-                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() => { setSelectedDocument(doc); setIsPreviewOpen(true); }}
+                        className="p-1.5 text-xs font-bold text-gray-400 hover:text-gray-900 transition-colors flex items-center justify-center"
+                        title="View"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </button>
+                      {doc.status !== "Converted" && doc.status !== "Cancelled" && (
+                        <button
+                          onClick={() => {
+                            setEditingDocument(doc);
+                            setIsDialogOpen(true);
+                          }}
+                          className="p-1.5 text-xs font-bold text-gray-400 hover:text-gray-900 transition-colors flex items-center justify-center"
+                          title="Edit"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </button>
+                      )}
+                      <ShareInvoiceMenu doc={doc} onLogShare={handleShareDocument} />
+                      <CardMoreDropdown
+                        doc={doc}
+                        isBillingExecutive={isBillingExecutive}
+                        onViewHistory={() => { setDocumentForPaymentHistory(doc); setIsPaymentHistoryOpen(true); }}
+                        onViewReceipt={() => { setSelectedPaymentDocument(doc); setIsPaymentReceiptOpen(true); }}
+                        onCancel={() => { setDocumentToCancel(doc); setIsCancelOpen(true); }}
+                        onDelete={() => handleDeleteDocument(doc.id)}
+                        onConvert={(doc.type === "Estimate" || doc.type === "Quotation") && doc.status !== "Paid" && doc.status !== "Converted" ? () => { setDocumentToConvert(doc); setIsConvertOpen(true); } : undefined}
+                        onPrint={() => { setSelectedDocument(doc); setIsPreviewOpen(true); }}
+                        onDownload={() => downloadInvoicePdf(doc)}
+                      />
+                    </div>
                   </div>
 
                   {/* 2-Column Aligned Details Grid (4 Left, 4 Right) */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 lg:gap-16 text-sm px-2 pb-2">
                     {/* Left Column (4 Fields) */}
-                    <div className="space-y-2.5">
-                      <div className="grid grid-cols-[130px_14px_1fr] items-center">
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-[140px_20px_1fr] items-center">
                         <span className="font-medium text-gray-500">Vehicle No</span>
-                        <span className="text-gray-400 font-bold">:</span>
-                        <span className="font-bold text-gray-900 uppercase font-mono">{doc.vehicle || "—"}</span>
+                        <span className="text-gray-300 font-bold text-center">:</span>
+                        <span className="font-bold text-gray-900 uppercase font-mono whitespace-nowrap">{doc.vehicle || "—"}</span>
                       </div>
 
-                      <div className="grid grid-cols-[130px_14px_1fr] items-center">
+                      <div className="grid grid-cols-[140px_20px_1fr] items-center">
                         <span className="font-medium text-gray-500">Customer Name</span>
-                        <span className="text-gray-400 font-bold">:</span>
-                        <span className="font-bold text-gray-900 truncate">{doc.client || "—"}</span>
+                        <span className="text-gray-300 font-bold text-center">:</span>
+                        <span className="font-bold text-gray-900 whitespace-nowrap">{doc.client || "—"}</span>
                       </div>
 
-                      <div className="grid grid-cols-[130px_14px_1fr] items-center">
+                      <div className="grid grid-cols-[140px_20px_1fr] items-center">
                         <span className="font-medium text-gray-500">Service</span>
-                        <span className="text-gray-400 font-bold">:</span>
-                        <span className="font-bold text-gray-900 truncate">{doc.service || "—"}</span>
+                        <span className="text-gray-300 font-bold text-center">:</span>
+                        <span className="font-bold text-gray-900 whitespace-nowrap">{doc.service || "—"}</span>
                       </div>
 
-                      <div className="grid grid-cols-[130px_14px_1fr] items-center">
+                      <div className="grid grid-cols-[140px_20px_1fr] items-center">
                         <span className="font-medium text-gray-500">Phone</span>
-                        <span className="text-gray-400 font-bold">:</span>
-                        <span className="font-bold text-blue-600 font-mono">{doc.phone || "—"}</span>
+                        <span className="text-gray-300 font-bold text-center">:</span>
+                        <span className="font-bold text-blue-600 font-mono whitespace-nowrap">{doc.phone || "—"}</span>
                       </div>
                     </div>
 
                     {/* Right Column (4 Fields) */}
-                    <div className="space-y-2.5">
-                      <div className="grid grid-cols-[130px_14px_1fr] items-center">
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-[140px_20px_1fr] items-center">
                         <span className="font-medium text-gray-500">Date</span>
-                        <span className="text-gray-400 font-bold">:</span>
-                        <span className="font-bold text-gray-900">{formattedDate}</span>
+                        <span className="text-gray-300 font-bold text-center">:</span>
+                        <span className="font-bold text-gray-900 whitespace-nowrap">{formattedDate}</span>
                       </div>
 
-                      <div className="grid grid-cols-[130px_14px_1fr] items-center">
+                      <div className="grid grid-cols-[140px_20px_1fr] items-center">
                         <span className="font-medium text-gray-500">Total Amount</span>
-                        <span className="text-gray-400 font-bold">:</span>
-                        <span className="font-bold text-gray-900">₹{totalAmount.toLocaleString("en-IN")}</span>
+                        <span className="text-gray-300 font-bold text-center">:</span>
+                        <span className="font-bold text-gray-900 whitespace-nowrap">₹{totalAmount.toLocaleString("en-IN")}</span>
                       </div>
 
-                      <div className="grid grid-cols-[130px_14px_1fr] items-center">
+                      <div className="grid grid-cols-[140px_20px_1fr] items-center">
                         <span className="font-medium text-gray-500">Paid Amount</span>
-                        <span className="text-gray-400 font-bold">:</span>
-                        <span className="font-bold text-emerald-600">₹{paidAmount.toLocaleString("en-IN")}</span>
+                        <span className="text-gray-300 font-bold text-center">:</span>
+                        <span className="font-bold text-emerald-600 whitespace-nowrap">₹{paidAmount.toLocaleString("en-IN")}</span>
                       </div>
 
-                      <div className="grid grid-cols-[130px_14px_1fr] items-center">
+                      <div className="grid grid-cols-[140px_20px_1fr] items-center">
                         <span className="font-medium text-gray-500">Pending Amount</span>
-                        <span className="text-gray-400 font-bold">:</span>
-                        <span className={`font-bold ${remainingAmount > 0 ? "text-red-600" : "text-emerald-600"}`}>
+                        <span className="text-gray-300 font-bold text-center">:</span>
+                        <span className={`font-bold whitespace-nowrap ${remainingAmount > 0 ? "text-red-600" : "text-emerald-600"}`}>
                           ₹{remainingAmount.toLocaleString("en-IN")}
                         </span>
                       </div>
@@ -439,75 +490,18 @@ export function BillingPage() {
                   </div>
                 </div>
 
-                {/* Bottom Section / Action Buttons Row */}
-                <div className="pt-3 border-t border-gray-100 flex items-center justify-between gap-2 flex-wrap">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    {/* View */}
+                {/* Add Payment Button (Footer) */}
+                {doc.type === "Invoice" && doc.status !== "Paid" && doc.status !== "Cancelled" && (
+                  <div className="flex justify-end pt-4 border-t border-gray-50 mt-4">
                     <button
-                      onClick={() => { setSelectedDocument(doc); setIsPreviewOpen(true); }}
-                      className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-50 hover:bg-gray-100 text-gray-700 border border-gray-200 flex items-center gap-1.5 transition-colors shadow-2xs"
+                      onClick={() => handleMarkAsPaid(doc.id)}
+                      className="px-4 py-2 bg-emerald-600 text-white text-sm font-bold rounded-xl hover:bg-emerald-700 transition-colors shadow-sm flex items-center gap-2"
                     >
-                      <Eye className="w-3.5 h-3.5 text-gray-500" /> View
+                      <CreditCard className="w-4 h-4" />
+                      Add Payment
                     </button>
-
-                    {/* Add Payment (if Invoice & unpaid) */}
-                    {doc.type === "Invoice" && doc.status !== "Paid" && doc.status !== "Cancelled" && (
-                      <button
-                        onClick={() => handleMarkAsPaid(doc.id)}
-                        className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-100 flex items-center gap-1.5 transition-colors shadow-2xs"
-                      >
-                        <CreditCard className="w-3.5 h-3.5 text-blue-600" /> Add Payment
-                      </button>
-                    )}
-
-                    {/* Edit (if Quotation / Estimate / non-cancelled Invoice) */}
-                    {doc.status !== "Converted" && doc.status !== "Cancelled" && (
-                      <button
-                        onClick={() => {
-                          setEditingDocument(doc);
-                          setIsDialogOpen(true);
-                        }}
-                        className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-50 hover:bg-gray-100 text-gray-700 border border-gray-200 flex items-center gap-1.5 transition-colors shadow-2xs"
-                      >
-                        <Pencil className="w-3.5 h-3.5 text-gray-500" /> Edit
-                      </button>
-                    )}
-
-                    {/* Convert (if Quotation / Estimate) */}
-                    {(doc.type === "Estimate" || doc.type === "Quotation") && doc.status !== "Paid" && doc.status !== "Converted" && (
-                      <button
-                        onClick={() => { setDocumentToConvert(doc); setIsConvertOpen(true); }}
-                        className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-100 flex items-center gap-1.5 transition-colors shadow-2xs"
-                      >
-                        <ArrowRight className="w-3.5 h-3.5 text-blue-600" /> Convert
-                      </button>
-                    )}
-
-                    {/* Print */}
-                    <button
-                      onClick={() => { setSelectedDocument(doc); setIsPreviewOpen(true); }}
-                      className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-50 hover:bg-gray-100 text-gray-700 border border-gray-200 flex items-center gap-1.5 transition-colors shadow-2xs"
-                    >
-                      <Printer className="w-3.5 h-3.5 text-gray-500" /> Print
-                    </button>
-
-                    {/* Download PDF */}
-                    <DownloadPdfButton doc={doc} />
-
-                    {/* Share */}
-                    <ShareInvoiceMenu doc={doc} onLogShare={handleShareDocument} />
                   </div>
-
-                  {/* More Options Dropdown (...) */}
-                  <CardMoreDropdown
-                    doc={doc}
-                    isBillingExecutive={isBillingExecutive}
-                    onViewHistory={() => { setDocumentForPaymentHistory(doc); setIsPaymentHistoryOpen(true); }}
-                    onViewReceipt={() => { setSelectedPaymentDocument(doc); setIsPaymentReceiptOpen(true); }}
-                    onCancel={() => { setDocumentToCancel(doc); setIsCancelOpen(true); }}
-                    onDelete={() => handleDeleteDocument(doc.id)}
-                  />
-                </div>
+                )}
               </div>
             );
           })}

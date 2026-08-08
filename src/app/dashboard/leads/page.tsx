@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { useState, useEffect, useRef } from "react";
-import { Plus, ChevronDown, Trash2, Pencil, Search, X, Car, User, Phone, Wrench, Tag, Calendar, UserCheck } from "lucide-react";
+import { Plus, ChevronDown, Trash2, Pencil, Search, X, Car, User, Phone, Wrench, Tag, Calendar, UserCheck, Mail } from "lucide-react";
 import AddLeadDialog from "@/components/leads/AddLeadDialog";
 import EditLeadDialog from "@/components/leads/EditLeadDialog";
 import { getLeads, createLead, deleteLead, updateLead, createCustomer } from "@/lib/api";
@@ -121,8 +121,11 @@ export default function LeadsPage() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [leadToEdit, setLeadToEdit] = useState<Lead | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+
   const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const [pendingStatusChange, setPendingStatusChange] = useState<{ id: string; newStatus: string; lead: Lead } | null>(null);
+  const [showLostModal, setShowLostModal] = useState(false);
+  const [lostReason, setLostReason] = useState("");
+  const [pendingStatusChange, setPendingStatusChange] = useState<{ id: string, newStatus: string, lead: Lead } | null>(null);
 
   // Load leads from backend
   useEffect(() => {
@@ -195,7 +198,7 @@ export default function LeadsPage() {
   };
 
   // Change Status
-  const executeStatusChange = async (id: string, newStatus: string, currentLead: Lead) => {
+  const executeStatusChange = async (id: string, newStatus: string, currentLead: Lead, reason?: string) => {
     try {
       const updatedLead = { 
         ...currentLead,
@@ -208,7 +211,8 @@ export default function LeadsPage() {
         budget: currentLead.budget || "₹0",
         status: newStatus,
         assignedTo: currentLead.assignedTo || (currentLead as any).assigned || "Unassigned",
-        assigned: (currentLead as any).assigned || currentLead.assignedTo || "Unassigned"
+        assigned: (currentLead as any).assigned || currentLead.assignedTo || "Unassigned",
+        ...(reason && { lostReason: reason })
       };
       const updated = await updateLead(id, updatedLead);
       setLeads((prevLeads) => prevLeads.map(lead => lead.id === id ? { ...lead, ...updated, status: newStatus } : lead));
@@ -240,6 +244,11 @@ export default function LeadsPage() {
     if (newStatus === "Converted") {
       setPendingStatusChange({ id, newStatus, lead: currentLead });
       setShowConfirmModal(true);
+      return;
+    }
+    if (newStatus === "Lost") {
+      setPendingStatusChange({ id, newStatus, lead: currentLead });
+      setShowLostModal(true);
       return;
     }
     await executeStatusChange(id, newStatus, currentLead);
@@ -395,115 +404,119 @@ export default function LeadsPage() {
               className="bg-white rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-md transition-all p-5 flex flex-col justify-between space-y-4"
             >
               <div>
-                {/* Header: Lead ID (Left) & Status Dropdown + Source Badge (Right) */}
+                {/* Header: Lead ID (Left) & Status Dropdown + Actions (Right) */}
                 <div className="flex items-center justify-between gap-3 mb-4">
                   <div className="flex items-center gap-2 min-w-0">
                     <h3 className="text-base font-black text-slate-900 tracking-tight font-mono truncate" style={{ color: "#F0B100" }}>
                       {lead.id}
                     </h3>
-                    <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold shrink-0 ${getSourceColor(lead.source)}`}>
-                      {lead.source}
-                    </span>
                   </div>
-                  <StatusDropdown lead={lead} handleStatusChange={handleStatusChange} dropUp={index >= filteredLeads.length - 2} />
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <StatusDropdown lead={lead} handleStatusChange={handleStatusChange} dropUp={index >= filteredLeads.length - 2} />
+                    <button
+                      onClick={() => {
+                        setLeadToEdit(lead);
+                        setIsEditDialogOpen(true);
+                      }}
+                      className="p-1.5 text-slate-400 hover:text-blue-600 transition-colors"
+                      title="Edit Lead"
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteLead(lead.id)}
+                      className="p-1.5 text-slate-400 hover:text-red-600 transition-colors"
+                      title="Delete Lead"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
 
-                {/* Details List (Left label + icon, Right value text-right) */}
-                <div className="space-y-2.5 text-xs">
+                {/* Details List (Grid Layout) */}
+                <div className="space-y-3 text-xs px-1">
                   {/* Name */}
-                  <div className="flex justify-between items-center py-1 border-b border-slate-50 gap-2">
+                  <div className="grid grid-cols-[100px_20px_1fr] items-start py-1 border-b border-slate-50">
                     <div className="flex items-center gap-2 text-slate-500 font-medium shrink-0">
                       <User className="w-4 h-4 text-slate-400 shrink-0" />
                       <span>Name</span>
                     </div>
-                    <div className="text-right truncate max-w-[170px]">
-                      <p className="font-bold text-slate-900 truncate">{lead.name || "—"}</p>
-                      {lead.email && <p className="text-[11px] text-slate-400 truncate">{lead.email}</p>}
-                    </div>
+                    <span className="text-slate-300 font-bold text-center mt-0.5">:</span>
+                    <p className="font-bold text-slate-900 text-left truncate">{lead.name || "—"}</p>
                   </div>
 
                   {/* Phone */}
-                  <div className="flex justify-between items-center py-1 border-b border-slate-50 gap-2">
+                  <div className="grid grid-cols-[100px_20px_1fr] items-center py-1 border-b border-slate-50">
                     <div className="flex items-center gap-2 text-slate-500 font-medium shrink-0">
                       <Phone className="w-4 h-4 text-slate-400 shrink-0" />
                       <span>Phone</span>
                     </div>
-                    <p className="font-bold text-blue-600 font-mono tracking-wider text-right truncate">{lead.phone || "—"}</p>
+                    <span className="text-slate-300 font-bold text-center">:</span>
+                    <p className="font-bold text-blue-600 font-mono tracking-wider text-left truncate">{lead.phone || "—"}</p>
                   </div>
 
                   {/* Vehicle */}
-                  <div className="flex justify-between items-center py-1 border-b border-slate-50 gap-2">
+                  <div className="grid grid-cols-[100px_20px_1fr] items-center py-1 border-b border-slate-50">
                     <div className="flex items-center gap-2 text-slate-500 font-medium shrink-0">
                       <Car className="w-4 h-4 text-blue-600 shrink-0" />
                       <span>Vehicle</span>
                     </div>
-                    <p className="font-bold text-slate-900 uppercase font-mono tracking-wider text-right truncate">{lead.vehicle || "—"}</p>
+                    <span className="text-slate-300 font-bold text-center">:</span>
+                    <p className="font-bold text-slate-900 uppercase font-mono tracking-wider text-left truncate">{lead.vehicle || "—"}</p>
                   </div>
 
                   {/* Service */}
-                  <div className="flex justify-between items-center py-1 border-b border-slate-50 gap-2">
+                  <div className="grid grid-cols-[100px_20px_1fr] items-center py-1 border-b border-slate-50">
                     <div className="flex items-center gap-2 text-slate-500 font-medium shrink-0">
                       <Wrench className="w-4 h-4 text-slate-400 shrink-0" />
                       <span>Service</span>
                     </div>
-                    <p className="font-bold text-slate-900 text-right truncate max-w-[170px]">{lead.service || "—"}</p>
+                    <span className="text-slate-300 font-bold text-center">:</span>
+                    <p className="font-bold text-slate-900 text-left truncate">{lead.service || "—"}</p>
                   </div>
 
-                  {/* Source */}
-                  <div className="flex justify-between items-center py-1 border-b border-slate-50 gap-2">
+                  {/* Email */}
+                  <div className="grid grid-cols-[100px_20px_1fr] items-center py-1 border-b border-slate-50">
                     <div className="flex items-center gap-2 text-slate-500 font-medium shrink-0">
-                      <Tag className="w-4 h-4 text-slate-400 shrink-0" />
-                      <span>Source</span>
+                      <Mail className="w-4 h-4 text-slate-400 shrink-0" />
+                      <span>Email</span>
                     </div>
-                    <span className={`px-2 py-0.5 rounded text-xs font-semibold ${getSourceColor(lead.source)}`}>
-                      {lead.source}
-                    </span>
+                    <span className="text-slate-300 font-bold text-center">:</span>
+                    <p className="font-bold text-slate-900 text-left truncate">{lead.email || "—"}</p>
                   </div>
 
                   {/* Date (if present) */}
                   {lead.date && (
-                    <div className="flex justify-between items-center py-1 border-b border-slate-50 gap-2">
+                    <div className="grid grid-cols-[100px_20px_1fr] items-center py-1 border-b border-slate-50">
                       <div className="flex items-center gap-2 text-slate-500 font-medium shrink-0">
                         <Calendar className="w-4 h-4 text-slate-400 shrink-0" />
                         <span>Date</span>
                       </div>
-                      <p className="font-bold text-slate-900 text-right">{lead.date}</p>
+                      <span className="text-slate-300 font-bold text-center">:</span>
+                      <p className="font-bold text-slate-900 text-left truncate">
+                        {(() => {
+                          const d = new Date(lead.date);
+                          return isNaN(d.getTime()) ? lead.date : d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+                        })()}
+                      </p>
                     </div>
                   )}
 
                   {/* Assigned To (if present) */}
                   {lead.assignedTo && (
-                    <div className="flex justify-between items-center py-1 gap-2">
+                    <div className="grid grid-cols-[100px_20px_1fr] items-center py-1">
                       <div className="flex items-center gap-2 text-slate-500 font-medium shrink-0">
                         <UserCheck className="w-4 h-4 text-slate-400 shrink-0" />
                         <span>Assigned To</span>
                       </div>
-                      <p className="font-bold text-slate-900 text-right truncate max-w-[150px]">{lead.assignedTo}</p>
+                      <span className="text-slate-300 font-bold text-center">:</span>
+                      <p className="font-bold text-slate-900 text-left truncate">{lead.assignedTo}</p>
                     </div>
                   )}
                 </div>
               </div>
 
-              {/* Action Bar */}
-              <div className="bg-slate-50 border border-slate-100 rounded-xl px-3 py-2 flex items-center justify-end gap-2 mt-2">
-                <button
-                  onClick={() => {
-                    setLeadToEdit(lead);
-                    setIsEditDialogOpen(true);
-                  }}
-                  className="p-1.5 hover:bg-blue-50 text-blue-600 rounded-lg border border-blue-100 transition-colors shadow-sm"
-                  title="Edit Lead"
-                >
-                  <Pencil className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => handleDeleteLead(lead.id)}
-                  className="p-1.5 hover:bg-red-50 text-red-600 rounded-lg border border-red-100 transition-colors shadow-sm"
-                  title="Delete Lead"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
+
             </div>
           ))}
         </div>
@@ -554,6 +567,53 @@ export default function LeadsPage() {
                 className="px-4 py-2 text-sm font-semibold text-gray-900 bg-yellow-400 hover:bg-yellow-500 rounded-lg transition-colors shadow-sm"
               >
                 Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Lost Reason Dialog */}
+      {showLostModal && pendingStatusChange && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] p-4">
+          <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-2xl animate-in fade-in zoom-in duration-200 text-gray-900">
+            <h3 className="text-lg font-bold text-gray-900 mb-2">Mark Lead as Lost</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              Please provide a reason for losing this lead (<strong className="text-gray-800">{pendingStatusChange.lead.name}</strong>).
+            </p>
+            <textarea
+              className="w-full border border-gray-200 rounded-lg p-3 text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none mb-6 resize-none"
+              rows={3}
+              placeholder="e.g., Price too high, chose competitor..."
+              value={lostReason}
+              onChange={(e) => setLostReason(e.target.value)}
+            />
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setShowLostModal(false);
+                  setPendingStatusChange(null);
+                  setLostReason("");
+                }}
+                className="px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  if (!lostReason.trim()) {
+                    toast.error("Please provide a reason");
+                    return;
+                  }
+                  setShowLostModal(false);
+                  if (pendingStatusChange) {
+                    await executeStatusChange(pendingStatusChange.id, pendingStatusChange.newStatus, pendingStatusChange.lead, lostReason);
+                  }
+                  setPendingStatusChange(null);
+                  setLostReason("");
+                }}
+                className="px-4 py-2 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors shadow-sm"
+              >
+                Confirm Lost
               </button>
             </div>
           </div>

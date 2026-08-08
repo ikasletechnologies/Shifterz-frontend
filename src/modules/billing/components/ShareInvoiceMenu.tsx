@@ -312,10 +312,10 @@ export function ShareInvoiceMenu({ doc, onLogShare }: ShareInvoiceMenuProps) {
       <button
         ref={buttonRef}
         onClick={handleToggle}
-        className="p-1.5 rounded-lg text-xs font-bold bg-gray-50 hover:bg-gray-100 text-gray-600 border border-gray-200 transition-colors shadow-2xs flex items-center gap-1.5"
+        className="p-1.5 text-xs font-bold text-gray-400 hover:text-gray-900 transition-colors flex items-center justify-center"
         title="Share Document"
       >
-        <Share2 className="w-4 h-4 text-gray-600" />
+        <Share2 className="w-4 h-4" />
       </button>
       {dropdownMenu}
     </div>

@@ -268,20 +268,6 @@ export const technicianSidebarSections: NavSection[] = [
   },
 ];
 
-// ── Service Advisor role sidebar ──────────────────────────────────────
-export const serviceAdvisorSidebarSections: NavSection[] = [
-  {
-    label: "MAIN MENU",
-    items: [
-      { label: "Dashboard", icon: Grid3x3, href: "/dashboard", module: "dashboard" },
-      { label: "Customers", icon: Users2, href: "/dashboard/customers", module: "customers" },
-      { label: "Car In / Out", icon: Car, href: "/dashboard/carin", module: "carin" },
-      { label: "Job Cards", icon: Briefcase, href: "/dashboard/jobs", module: "jobs" },
-      { label: "My Assigned Jobs", icon: ClipboardCheck, href: "/technician/my-jobs" },
-      { label: "My  Profile", icon: User, href: "/dashboard/profile" },
-    ],
-  }
-];
 
 // ── NavLink component ────────────────────────────────────────────────────────
 function NavLink({
@@ -467,8 +453,6 @@ export default function Sidebar() {
     rawSections = technicianSidebarSections;
   } else if (baseRole === "BILLING") {
     rawSections = billingSidebarSections;
-  } else if (baseRole === "SERVICE_ADVISOR") {
-    rawSections = serviceAdvisorSidebarSections;
   }
 
   // 2. Filter list based on custom modules (if present)

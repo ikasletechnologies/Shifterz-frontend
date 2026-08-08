@@ -11,7 +11,6 @@ import {
   franchiseSidebarSections,
   billingSidebarSections,
   technicianSidebarSections,
-  serviceAdvisorSidebarSections,
 } from "./Sidebar";
 
 function getPageHeaderTitle(pathname: string): string {
@@ -24,7 +23,6 @@ function getPageHeaderTitle(pathname: string): string {
     ...franchiseSidebarSections,
     ...billingSidebarSections,
     ...technicianSidebarSections,
-    ...serviceAdvisorSidebarSections,
   ];
 
   const allItems: { label: string; href: string }[] = [];
