@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { BillingDocument } from "@/modules/billing/types/billing.types";
-import { getInvoices, createInvoice, updateInvoice, deleteInvoice, cancelInvoice, shareInvoice, convertInvoice } from "@/modules/billing/services/billing.service";
+import { getInvoices, createInvoice, updateInvoice, cancelInvoice, shareInvoice, convertInvoice } from "@/modules/billing/services/billing.service";
 import { createPayment } from "@/modules/payment/services/payment.service";
 import { toast } from "react-hot-toast";
 
@@ -37,18 +37,6 @@ export function useBilling() {
       return true;
     } catch (err: any) {
       toast.error("Failed to create document: " + err.message);
-      return false;
-    }
-  };
-
-  const handleDeleteDocument = async (id: string) => {
-    try {
-      await deleteInvoice(id);
-      setDocuments((prev) => prev.filter((doc) => doc.id !== id));
-      toast.success("Document deleted successfully");
-      return true;
-    } catch (err: any) {
-      toast.error("Failed to delete document: " + err.message);
       return false;
     }
   };
@@ -172,7 +160,6 @@ export function useBilling() {
     fetchInvoices,
     handleAddInvoice,
     handleEditInvoice,
-    handleDeleteDocument,
     handleCancelDocument,
     handleShareDocument,
     handleConvertDocument,

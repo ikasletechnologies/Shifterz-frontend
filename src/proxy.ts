@@ -57,8 +57,10 @@ export function proxy(request: NextRequest) {
     ];
 
     if (protectedModules.includes(moduleName)) {
-      if (userPermissions.length > 0 && !userPermissions.includes(moduleName)) {
-        return NextResponse.redirect(new URL("/dashboard", request.url));
+      if (userRole && !userRole.startsWith("SUPER_ADMIN")) {
+        if (userPermissions.length > 0 && !userPermissions.includes(moduleName)) {
+          return NextResponse.redirect(new URL("/dashboard", request.url));
+        }
       }
     }
   }

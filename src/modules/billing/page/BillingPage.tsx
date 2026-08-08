@@ -19,21 +19,17 @@ import { BillingDocument } from "@/modules/billing/types/billing.types";
 
 function CardMoreDropdown({
   doc,
-  isBillingExecutive,
   onViewHistory,
   onViewReceipt,
   onCancel,
-  onDelete,
   onConvert,
   onPrint,
   onDownload,
 }: {
   doc: BillingDocument;
-  isBillingExecutive: boolean;
   onViewHistory: () => void;
   onViewReceipt: () => void;
   onCancel: () => void;
-  onDelete: (id: string) => void;
   onConvert?: () => void;
   onPrint?: () => void;
   onDownload?: () => void;
@@ -111,19 +107,7 @@ function CardMoreDropdown({
               <Ban className="w-3.5 h-3.5" /> Cancel Invoice
             </button>
           )}
-          {!isBillingExecutive && (
-            <button
-              onClick={() => {
-                setIsOpen(false);
-                if (confirm("Delete this document? This permanently removes it and frees its number for reuse.")) {
-                  onDelete(doc.id);
-                }
-              }}
-              className="w-full text-left px-3 py-2 text-xs font-medium hover:bg-red-50 text-red-600 flex items-center gap-2 transition-colors"
-            >
-              <Trash2 className="w-3.5 h-3.5" /> Delete Document
-            </button>
-          )}
+
         </div>
       )}
     </div>
@@ -137,25 +121,11 @@ export function BillingPage() {
     error,
     handleAddInvoice,
     handleEditInvoice,
-    handleDeleteDocument,
     handleCancelDocument,
     handleShareDocument,
     handleConvertDocument,
     handleRecordPayment
   } = useBilling();
-
-  const [userRole, setUserRole] = useState<string>("");
-
-  useEffect(() => {
-    try {
-      const u = localStorage.getItem("user");
-      if (u) setUserRole((JSON.parse(u).role || "").toUpperCase());
-    } catch {
-      // Ignore
-    }
-  }, []);
-
-  const isBillingExecutive = userRole.includes("BILLING") || userRole.includes("ACCOUNTANT");
 
   const [filter, setFilter] = useState("All");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -418,11 +388,9 @@ export function BillingPage() {
                       <ShareInvoiceMenu doc={doc} onLogShare={handleShareDocument} />
                       <CardMoreDropdown
                         doc={doc}
-                        isBillingExecutive={isBillingExecutive}
                         onViewHistory={() => { setDocumentForPaymentHistory(doc); setIsPaymentHistoryOpen(true); }}
                         onViewReceipt={() => { setSelectedPaymentDocument(doc); setIsPaymentReceiptOpen(true); }}
                         onCancel={() => { setDocumentToCancel(doc); setIsCancelOpen(true); }}
-                        onDelete={() => handleDeleteDocument(doc.id)}
                         onConvert={(doc.type === "Estimate" || doc.type === "Quotation") && doc.status !== "Paid" && doc.status !== "Converted" ? () => { setDocumentToConvert(doc); setIsConvertOpen(true); } : undefined}
                         onPrint={() => { setSelectedDocument(doc); setIsPreviewOpen(true); }}
                         onDownload={() => downloadInvoicePdf(doc)}

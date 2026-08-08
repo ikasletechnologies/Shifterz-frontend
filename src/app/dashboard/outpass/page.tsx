@@ -1,10 +1,8 @@
-"use client";
+ "use client";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
 import {
-  Plus,
   Printer,
   Edit2,
   Search,
@@ -22,10 +20,12 @@ import {
   ChevronDown,
   FileSpreadsheet,
   FileText,
+  CheckCircle,
+  XCircle,
 } from "lucide-react";
 import NewOutPassDialog from "@/components/outpass/NewOutPassDialog";
 import PrintPassDialog from "@/components/outpass/PrintPassDialog";
-import { getOutPasses, createOutPass, updateOutPass } from "@/lib/api";
+import { getOutPasses, createOutPass, updateOutPass, approveOutpass, rejectOutpass } from "@/lib/api";
 import { toast } from "react-hot-toast";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -52,7 +52,6 @@ interface OutPass {
 }
 
 export default function OutPassPage() {
-  const router = useRouter();
   const [outPasses, setOutPasses] = useState<OutPass[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isPrintOpen, setIsPrintOpen] = useState(false);
@@ -66,6 +65,19 @@ export default function OutPassPage() {
   const [viewMode, setViewMode] = useState<"cards" | "table">("cards");
   const [isDownloadOpen, setIsDownloadOpen] = useState(false);
   const [activeCardDownloadId, setActiveCardDownloadId] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    const userStr = localStorage.getItem("user");
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        setUserRole(user.role?.split("|")[0] || null);
+      } catch (e) {}
+    }
+  }, []);
+
+  const isSuperAdmin = userRole === "SUPER_ADMIN";
 
   const fetchOutPasses = useCallback(async () => {
     try {
@@ -103,6 +115,30 @@ export default function OutPassPage() {
   const handlePrintClick = (pass: OutPass) => {
     setSelectedPass(pass);
     setIsPrintOpen(true);
+  };
+
+  const handleApproveClick = async (pass: OutPass) => {
+    if (!confirm(`Are you sure you want to approve out pass ${pass.passId || pass.id}?`)) return;
+    try {
+      await approveOutpass(pass.id);
+      toast.success("Out pass approved successfully");
+      fetchOutPasses();
+    } catch (err: any) {
+      toast.error("Failed to approve out pass");
+      console.error(err);
+    }
+  };
+
+  const handleRejectClick = async (pass: OutPass) => {
+    if (!confirm(`Are you sure you want to reject out pass ${pass.passId || pass.id}?`)) return;
+    try {
+      await rejectOutpass(pass.id);
+      toast.success("Out pass rejected successfully");
+      fetchOutPasses();
+    } catch (err: any) {
+      toast.error("Failed to reject out pass");
+      console.error(err);
+    }
   };
 
   const filteredOutPasses = outPasses.filter((pass) => {
@@ -474,15 +510,6 @@ export default function OutPassPage() {
           )}
         </div>
 
-        {/* 5. Vehicle Check-In Button */}
-        <button
-          onClick={() => router.push("/dashboard/carin")}
-          className="bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-semibold px-3.5 py-2 rounded-lg flex items-center justify-center gap-1.5 transition-colors text-sm shrink-0 whitespace-nowrap"
-        >
-          <Plus className="w-4 h-4" />
-          Vehicle Check-In
-        </button>
-
         {/* 6. Vehicle Check-Out Button (New Out Pass) */}
         <button
           onClick={() => { setEditingPass(null); setIsDialogOpen(true); }}
@@ -565,9 +592,13 @@ export default function OutPassPage() {
                           )}
                         </div>
 
-                        <span className="bg-red-600 text-white text-[11px] font-semibold px-3 py-1 rounded-full whitespace-nowrap shadow-2xs">
+                        <button
+                          type="button"
+                          onClick={() => handlePrintClick(pass)}
+                          className="bg-red-600 hover:bg-red-700 text-white text-[11px] font-semibold px-3 py-1 rounded-full whitespace-nowrap shadow-2xs transition-colors cursor-pointer"
+                        >
                           View
-                        </span>
+                        </button>
                       </div>
                       </div>
 
@@ -656,6 +687,26 @@ export default function OutPassPage() {
                           )}
                         </div>
                       )}
+
+                      {/* Super Admin Actions */}
+                      {isSuperAdmin && (!pass.status || pass.status === "Pending") && (
+                        <div className="mt-3 pt-3 border-t border-red-100/70 flex gap-2">
+                          <button
+                            onClick={() => handleApproveClick(pass)}
+                            className="flex-1 bg-emerald-100 hover:bg-emerald-200 text-emerald-700 font-bold py-1.5 rounded-lg text-xs transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                          >
+                            <CheckCircle className="w-3.5 h-3.5" />
+                            Approve
+                          </button>
+                          <button
+                            onClick={() => handleRejectClick(pass)}
+                            className="flex-1 bg-red-100 hover:bg-red-200 text-red-700 font-bold py-1.5 rounded-lg text-xs transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                          >
+                            <XCircle className="w-3.5 h-3.5" />
+                            Reject
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -723,17 +774,35 @@ export default function OutPassPage() {
                       <div className="flex items-center gap-1.5">
                         <button
                           onClick={() => handlePrintClick(pass)}
-                          className="bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-semibold px-2 py-1 rounded text-[10px] transition-colors flex items-center gap-1"
+                          className="bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-semibold px-2 py-1 rounded text-[10px] transition-colors flex items-center gap-1 cursor-pointer"
                         >
                           <Printer className="w-3 h-3" />
                           Print
                         </button>
                         <button
                           onClick={() => { setEditingPass(pass); setIsDialogOpen(true); }}
-                          className="p-1 hover:bg-gray-100 rounded transition-colors"
+                          className="p-1 hover:bg-gray-100 rounded transition-colors cursor-pointer"
                         >
                           <Edit2 className="w-3.5 h-3.5 text-gray-600" />
                         </button>
+                        {isSuperAdmin && (!pass.status || pass.status === "Pending") && (
+                          <>
+                            <button
+                              onClick={() => handleApproveClick(pass)}
+                              className="p-1 text-emerald-600 hover:bg-emerald-50 rounded transition-colors cursor-pointer"
+                              title="Approve"
+                            >
+                              <CheckCircle className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleRejectClick(pass)}
+                              className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors cursor-pointer"
+                              title="Reject"
+                            >
+                              <XCircle className="w-4 h-4" />
+                            </button>
+                          </>
+                        )}
                       </div>
                     </td>
                   </tr>

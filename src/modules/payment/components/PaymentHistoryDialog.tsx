@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X, Printer, History, RotateCcw } from "lucide-react";
-import { getPayments, getSettings, createRefund } from "@/lib/api";
+import { X, Printer, History } from "lucide-react";
+import { getPayments, getSettings } from "@/lib/api";
 
 interface PaymentHistoryDialogProps {
   isOpen: boolean;
@@ -66,25 +66,6 @@ export default function PaymentHistoryDialog({
     }
   };
 
-  const handleRefund = async (payment: Payment) => {
-    const reason = prompt("Enter reason for refund:", "Customer requested refund");
-    if (!reason) return;
-    try {
-      setIsLoading(true);
-      await createRefund({
-        originalPaymentId: payment.id,
-        amount: Number(payment.amount),
-        reason,
-        approvedBy: "Admin",
-      });
-      alert("Refund processed successfully!");
-      await fetchPayments();
-    } catch (err: any) {
-      alert("Error processing refund: " + (err.message || "Unknown error"));
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handlePrintReceipt = (payment: Payment) => {
     const totalAmount =
@@ -350,14 +331,7 @@ export default function PaymentHistoryDialog({
                     <p className="text-xs text-gray-500">{payment.date}</p>
                   </div>
                   <div className="flex items-center gap-1.5 shrink-0">
-                    <button
-                      onClick={() => handleRefund(payment)}
-                      className="px-2 py-1 bg-red-50 hover:bg-red-100 text-red-600 rounded text-xs font-bold flex items-center gap-1 transition-colors"
-                      title="Process Refund"
-                    >
-                      <RotateCcw className="w-3.5 h-3.5" />
-                      Refund
-                    </button>
+
                     <button
                       onClick={() => handlePrintReceipt(payment)}
                       className="p-1.5 sm:p-2 hover:bg-blue-100 rounded-lg transition-colors text-blue-600"

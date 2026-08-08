@@ -89,6 +89,7 @@ export const hqSidebarSections: NavSection[] = [
       { label: "Car In / Out", icon: Car, href: "/dashboard/carin", module: "carin" },
       { label: "Job Cards", icon: Briefcase, href: "/dashboard/jobs", module: "jobs" },
       { label: "Live Status", icon: ActivitySquare, href: "/dashboard/live-status", module: "jobs" },
+      { label: "Out Pass", icon: Ticket, href: "/dashboard/outpass", module: "outpass" },
     ],
   },
   {
@@ -165,6 +166,7 @@ export const franchiseSidebarSections: NavSection[] = [
       { label: "Car In / Out", icon: Car, href: "/dashboard/carin", module: "carin" },
       { label: "Job Cards", icon: Briefcase, href: "/dashboard/jobs", module: "jobs" },
       { label: "Live Status", icon: ActivitySquare, href: "/dashboard/live-status", module: "jobs" },
+      { label: "Out Pass", icon: Ticket, href: "/dashboard/outpass", module: "outpass" },
     ],
   },
   {
@@ -218,17 +220,13 @@ export const billingSidebarSections: NavSection[] = [
       { label: "Dashboard", icon: Grid3x3, href: "/dashboard", module: "dashboard" },
     ],
   },
-  {
-    label: "WORKSHOP",
-    items: [
-      { label: "Ready For Billing", icon: Briefcase, href: "/dashboard/jobs?status=Ready For Billing", module: "jobs" },
-    ],
-  },
+
   {
     label: "SALES & BILLING",
     items: [
       { label: "Billing", icon: FileText, href: "/dashboard/billing", module: "billing" },
       { label: "Payments", icon: CreditCard, href: "/dashboard/payments", module: "payments" },
+      { label: "Warranties", icon: Shield, href: "/dashboard/warranties", module: "billing" },
     ],
   },
   {
@@ -264,6 +262,35 @@ export const technicianSidebarSections: NavSection[] = [
     label: "SETTINGS",
     items: [
       { label: "Profile", icon: User, href: "/technician/profile" },
+    ],
+  },
+];
+// ── Receptionist role sidebar ───────────────────────────────────────────
+export const receptionistSidebarSections: NavSection[] = [
+  {
+    label: "OVERVIEW",
+    items: [
+      { label: "Dashboard", icon: Grid3x3, href: "/dashboard", module: "dashboard" },
+    ],
+  },
+  {
+    label: "FRONT DESK",
+    items: [
+      { label: "Car In / Out", icon: Car, href: "/dashboard/carin", module: "carin" },
+      { label: "Outpass", icon: Ticket, href: "/dashboard/outpass", module: "outpass" },
+    ],
+  },
+  {
+    label: "CRM",
+    items: [
+      { label: "Leads", icon: Users, href: "/dashboard/leads", module: "leads" },
+      { label: "Customers", icon: Users2, href: "/dashboard/customers", module: "customers" },
+    ],
+  },
+  {
+    label: "SETTINGS",
+    items: [
+      { label: "Profile", icon: User, href: "/dashboard/profile" },
     ],
   },
 ];
@@ -451,8 +478,10 @@ export default function Sidebar() {
 
   if (baseRole === "TECHNICIAN" || baseRole === "EMPLOYEE") {
     rawSections = technicianSidebarSections;
-  } else if (baseRole === "BILLING") {
+  } else if (baseRole === "BILLING" || baseRole === "BILLING_EXECUTIVE") {
     rawSections = billingSidebarSections;
+  } else if (baseRole === "RECEPTIONIST" || baseRole === "RECEPTION_EXECUTIVE") {
+    rawSections = receptionistSidebarSections;
   }
 
   // 2. Filter list based on custom modules (if present)
@@ -462,6 +491,11 @@ export default function Sidebar() {
         if (baseRole === "SUPER_ADMIN") return true;
         if (!item.module || !allowedModules) return true;
         return allowedModules.includes(item.module);
+      }).map((item) => {
+        if (baseRole === "SUPER_ADMIN" && item.module === "carin" && item.label === "Car In / Out") {
+          return { ...item, label: "Car In" };
+        }
+        return item;
       });
       return {
         ...sec,

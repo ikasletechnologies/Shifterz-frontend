@@ -2,13 +2,13 @@
 
 import { useState, useEffect } from "react";
 import {
-  Plus, Eye, Printer, MessageCircle, RotateCcw, Trash2, Search, X,
+  Plus, Eye, Printer, MessageCircle, RotateCcw, Search, X,
   Wallet, Banknote, CreditCard, Smartphone, ChevronLeft, ChevronRight
 } from "lucide-react";
 import PaymentReceiptDialog from "@/modules/payment/components/PaymentReceiptDialog";
 import RecordPaymentDialog from "@/modules/payment/components/RecordPaymentDialog";
 import PaymentHistoryDialog from "@/modules/payment/components/PaymentHistoryDialog";
-import { getPayments, createPayment, deletePayment } from "@/lib/api";
+import { getPayments, createPayment } from "@/lib/api";
 
 interface Payment {
   id: string;
@@ -109,15 +109,6 @@ export default function PaymentsPage() {
     }
   };
 
-  const handleDeletePayment = async (id: string) => {
-    if (!confirm("Delete this payment receipt? This will update the associated invoice balance.")) return;
-    try {
-      await deletePayment(id);
-      setPayments(payments.filter((p) => p.id !== id));
-    } catch (err: any) {
-      alert("Failed to delete: " + err.message);
-    }
-  };
 
   const formatDate = (dateStr: string) => {
     if (!dateStr) return "—";
@@ -415,14 +406,7 @@ export default function PaymentsPage() {
                           <RotateCcw className="w-3.5 h-3.5" />
                         </button>
 
-                        {/* Delete */}
-                        <button
-                          onClick={() => handleDeletePayment(p.id)}
-                          className="p-1.5 rounded-lg text-red-500 hover:bg-red-50 border border-red-100 transition-colors bg-red-50/50 shadow-2xs"
-                          title="Delete Payment"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+
                       </div>
                     </td>
                   </tr>

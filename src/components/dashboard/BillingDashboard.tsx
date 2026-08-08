@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import {
   FileText, Wallet, Clock, Search, Plus, Printer, CreditCard, ChevronRight, CheckCircle2, AlertCircle
 } from "lucide-react";
-import { getInvoices, getJobs, getPayments } from "@/lib/api";
+import { getInvoices, getPayments } from "@/lib/api";
 import NewDocumentDialog from "@/modules/billing/components/NewDocumentDialog";
 import RecordPaymentDialog from "@/modules/payment/components/RecordPaymentDialog";
 import PaymentHistoryDialog from "@/modules/payment/components/PaymentHistoryDialog";
@@ -13,7 +13,6 @@ import { useRouter } from "next/navigation";
 export default function BillingDashboard() {
   const router = useRouter();
   const [invoices, setInvoices] = useState<any[]>([]);
-  const [jobs, setJobs] = useState<any[]>([]);
   const [payments, setPayments] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -29,13 +28,11 @@ export default function BillingDashboard() {
     async function loadData() {
       try {
         setIsLoading(true);
-        const [invData, jobData, payData] = await Promise.all([
+        const [invData, payData] = await Promise.all([
           getInvoices(),
-          getJobs(),
           getPayments()
         ]);
         setInvoices(invData || []);
-        setJobs(jobData || []);
         setPayments(payData || []);
       } catch (err) {
         console.error("Failed to load operational data", err);
@@ -57,22 +54,12 @@ export default function BillingDashboard() {
   const pendingInvoices = invoices.filter(i => i.status === "Pending" || i.status === "Partially Paid" || i.status === "Overdue");
   const pendingCollectionsCount = pendingInvoices.length;
   
-  const vehiclesWaitingBilling = jobs.filter(j => j.status === "Ready For Billing" || j.status === "QC Passed");
-  
   // Outstanding amount total
   const totalOutstanding = pendingInvoices.reduce((sum, doc) => {
     const total = doc.total || (doc.amount + (doc.gst || 0) - (doc.discount || 0));
     const paid = doc.paidAmount || 0;
     return sum + (total - paid);
   }, 0);
-
-  // ── Pending Actions (Queue) ──
-  const pendingQueue = vehiclesWaitingBilling.map(j => ({
-    id: j.id,
-    customer: j.customer,
-    amount: "N/A", // Job might not have amount until billed
-    job: j
-  }));
 
   // ── Recent Payments ──
   const recentPayments = [...payments].sort((a, b) => b.id.localeCompare(a.id)).slice(0, 5);
@@ -112,7 +99,7 @@ export default function BillingDashboard() {
           <h2 className="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2">
             <Clock className="w-5 h-5 text-blue-500" /> Today's Billing
           </h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm flex flex-col justify-center">
               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Invoices Created</p>
               <p className="text-2xl font-black text-gray-900">{invoicesCreatedToday}</p>
@@ -125,61 +112,10 @@ export default function BillingDashboard() {
               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Pending Collections</p>
               <p className="text-2xl font-black text-amber-600">{pendingCollectionsCount}</p>
             </div>
-            <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm flex flex-col justify-center">
-              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Vehicles Waiting</p>
-              <p className="text-2xl font-black text-red-500">{pendingQueue.length}</p>
-            </div>
           </div>
         </section>
 
-        {/* 2. Pending Actions (Billing Queue) */}
-        <section>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-              <AlertCircle className="w-5 h-5 text-red-500" /> Pending Billing Queue
-            </h2>
-            <button onClick={() => router.push('/dashboard/jobs')} className="text-xs font-bold text-blue-600 hover:underline">View All</button>
-          </div>
-          <div className="bg-white border border-gray-100 shadow-sm rounded-xl overflow-hidden">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-gray-50 border-b border-gray-100 text-gray-500 text-[11px]">
-                  <th className="px-4 py-3 text-left font-bold uppercase tracking-wider">Job Card</th>
-                  <th className="px-4 py-3 text-left font-bold uppercase tracking-wider">Customer</th>
-                  <th className="px-4 py-3 text-left font-bold uppercase tracking-wider">Status</th>
-                  <th className="px-4 py-3 text-right font-bold uppercase tracking-wider">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {pendingQueue.length === 0 ? (
-                  <tr><td colSpan={4} className="p-8 text-center text-gray-400 text-xs font-medium">No vehicles waiting for billing</td></tr>
-                ) : (
-                  pendingQueue.map((item) => (
-                    <tr key={item.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-4 py-3 font-mono font-bold text-blue-600">{item.id}</td>
-                      <td className="px-4 py-3 font-semibold text-gray-900">{item.customer}</td>
-                      <td className="px-4 py-3">
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-yellow-100 text-yellow-800 uppercase">{item.job.status}</span>
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <button 
-                          onClick={() => {
-                            setIsNewDocOpen(true);
-                          }}
-                          className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded shadow-sm transition-colors"
-                        >
-                          Bill Now
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-        {/* 3. Outstanding Payments */}
+        {/* 2. Outstanding Payments */}
         <section>
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
@@ -231,7 +167,7 @@ export default function BillingDashboard() {
           </div>
         </section>
 
-        {/* 4. Recent Payments */}
+        {/* 3. Recent Payments */}
         <section>
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">

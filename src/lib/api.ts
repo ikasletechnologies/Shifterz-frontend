@@ -337,6 +337,18 @@ export async function updateOutPass(id: string, outPass: any) {
   });
 }
 
+export async function approveOutpass(id: string) {
+  return apiCall(`/outpass/${id}/approve`, {
+    method: "POST",
+  });
+}
+
+export async function rejectOutpass(id: string) {
+  return apiCall(`/outpass/${id}/reject`, {
+    method: "POST",
+  });
+}
+
 // ═══════════════════════════════════════════════════════════════
 // REPORTS (§16)
 // ═══════════════════════════════════════════════════════════════
