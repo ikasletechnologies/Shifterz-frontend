@@ -8,6 +8,15 @@ import EditEmployeeDialog from "@/components/employees/EditEmployeeDialog";
 import { getEmployees, createEmployee, updateEmployee, deleteEmployee, getFranchises, createMemberTransfer, uploadFile, getMemberTransfers, updateMemberTransfer, deleteMemberTransfer } from "@/lib/api";
 import { toast } from "react-hot-toast";
 
+const FRANCHISE_ASSIGNABLE_ROLES = [
+  "RECEPTION_EXECUTIVE",
+  "SERVICE_ADVISOR",
+  "TECHNICIAN",
+  "QUALITY_INSPECTOR",
+  "BILLING_EXECUTIVE",
+  "INVENTORY_EXECUTIVE",
+];
+
 interface Employee {
   id: string;
   name: string;
@@ -66,7 +75,7 @@ export default function EmployeesPage() {
           setCurrentUser(user);
         }
         
-        const canManage = user?.role === "SUPER_ADMIN" || user?.role === "HQ_USER";
+        const canManage = user?.role === "SUPER_ADMIN" || user?.role === "HQ_USER" || user?.role === "FRANCHISE_ADMIN";
         if (canManage) {
           const empData = await getEmployees();
           let franData = [];
@@ -238,7 +247,8 @@ export default function EmployeesPage() {
     return <div className="p-8 text-center text-gray-500">Loading employees...</div>;
   }
 
-  const canManageEmployees = currentUser?.role === "SUPER_ADMIN" || currentUser?.role === "HQ_USER";
+  const canManageEmployees = currentUser?.role === "SUPER_ADMIN" || currentUser?.role === "HQ_USER" || currentUser?.role === "FRANCHISE_ADMIN";
+  const isFranchiseAdmin = currentUser?.role === "FRANCHISE_ADMIN";
 
   const filteredEmployees = employees.filter((emp) => {
     if (!searchQuery) return true;
@@ -471,6 +481,8 @@ export default function EmployeesPage() {
         onClose={() => setIsAddOpen(false)}
         onAdd={handleAdd}
         franchises={franchises}
+        allowedRoles={isFranchiseAdmin ? FRANCHISE_ASSIGNABLE_ROLES : undefined}
+        lockFranchiseId={isFranchiseAdmin ? currentUser?.franchiseId : undefined}
       />
 
       {selectedEmployee && (
@@ -480,6 +492,8 @@ export default function EmployeesPage() {
           onEdit={handleEdit}
           employee={selectedEmployee}
           franchises={franchises}
+          allowedRoles={isFranchiseAdmin ? FRANCHISE_ASSIGNABLE_ROLES : undefined}
+          lockFranchiseId={isFranchiseAdmin ? currentUser?.franchiseId : undefined}
         />
       )}
 

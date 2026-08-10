@@ -8,6 +8,8 @@ interface AddEmployeeDialogProps {
   onAdd: (employee: any) => void;
   franchises: any[];
   defaultRole?: string;
+  allowedRoles?: string[];
+  lockFranchiseId?: string;
 }
 
 const MODULE_OPTIONS = [
@@ -37,7 +39,7 @@ const DEFAULT_ROLE_MODULES: Record<string, string[]> = {
   INVENTORY_EXECUTIVE: ["dashboard", "inventory", "reports"],
 };
 
-export default function AddEmployeeDialog({ isOpen, onClose, onAdd, franchises, defaultRole = "TECHNICIAN" }: AddEmployeeDialogProps) {
+export default function AddEmployeeDialog({ isOpen, onClose, onAdd, franchises, defaultRole = "TECHNICIAN", allowedRoles, lockFranchiseId }: AddEmployeeDialogProps) {
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
@@ -45,14 +47,14 @@ export default function AddEmployeeDialog({ isOpen, onClose, onAdd, franchises, 
     username: "",
     password: "",
     role: defaultRole,
-    franchiseId: "",
+    franchiseId: lockFranchiseId || "",
   });
 
   const [selectedModules, setSelectedModules] = useState<string[]>(
     DEFAULT_ROLE_MODULES[defaultRole] || DEFAULT_ROLE_MODULES["TECHNICIAN"]
   );
 
-  const roles = [
+  const roles = allowedRoles || [
     "SUPER_ADMIN",
     "HQ_USER",
     "FRANCHISE_ADMIN",
@@ -90,10 +92,10 @@ export default function AddEmployeeDialog({ isOpen, onClose, onAdd, franchises, 
       email: "",
       username: "",
       password: "",
-      role: "TECHNICIAN",
-      franchiseId: "",
+      role: defaultRole,
+      franchiseId: lockFranchiseId || "",
     });
-    setSelectedModules(DEFAULT_ROLE_MODULES["TECHNICIAN"]);
+    setSelectedModules(DEFAULT_ROLE_MODULES[defaultRole] || DEFAULT_ROLE_MODULES["TECHNICIAN"]);
   };
 
   return (
@@ -179,19 +181,21 @@ export default function AddEmployeeDialog({ isOpen, onClose, onAdd, franchises, 
                 </select>
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium text-gray-700">Branch</label>
-                <select
-                  value={formData.franchiseId}
-                  onChange={(e) => setFormData({ ...formData, franchiseId: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all outline-none bg-white"
-                >
-                  <option value="">Select Branch (HQ)</option>
-                  {franchises.map(f => (
-                    <option key={f.id} value={f.id}>{f.name} ({f.city})</option>
-                  ))}
-                </select>
-              </div>
+              {!lockFranchiseId && (
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-gray-700">Branch</label>
+                  <select
+                    value={formData.franchiseId}
+                    onChange={(e) => setFormData({ ...formData, franchiseId: e.target.value })}
+                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all outline-none bg-white"
+                  >
+                    <option value="">Select Branch (HQ)</option>
+                    {franchises.map(f => (
+                      <option key={f.id} value={f.id}>{f.name} ({f.city})</option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               {/* Permissions customizer */}
               <div className="col-span-2 mt-4 pt-4 border-t border-gray-100">

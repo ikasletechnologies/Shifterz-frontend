@@ -3,9 +3,8 @@
 
 import { useState, useEffect } from "react";
 import {
-  TrendingUp, ShoppingBag, FileText, Package, LineChart, IndianRupee, Users,
-  Filter, CreditCard, Store, Eye, Download, Trash2, Plus, Sliders, AlertTriangle,
-  Calendar, Search, X
+  Package, IndianRupee, Store, Download, Trash2, Plus, Sliders, AlertTriangle,
+  Search, X
 } from "lucide-react";
 import InventoryItemDialog from "@/components/inventory/InventoryItemDialog";
 import AdjustStockDialog from "@/components/inventory/AdjustStockDialog";
@@ -41,7 +40,6 @@ export default function InventoryPage() {
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [compareWith, setCompareWith] = useState("Previous Period");
-  const [activeCategoryFilter, setActiveCategoryFilter] = useState("All");
 
   const [dbCategories, setDbCategories] = useState<string[]>([]);
 
@@ -81,13 +79,11 @@ export default function InventoryPage() {
     fetchInventoryAndSettings();
   }, []);
 
-  // Live Inventory Metrics & Calculations
+  // Live Inventory Metrics & Calculations (derived directly from real inventory records)
   const lowStockItems = items.filter((item) => item.stock <= item.reorder);
   const totalSkus = items.length;
   const totalValue = items.reduce((sum, item) => sum + (item.stock * item.cost), 0);
-  const totalOutstandingVal = lowStockItems.reduce((sum, item) => sum + (item.reorder * item.cost), 0) || 48650;
-  const totalSalesVal = Math.round(totalValue * 0.6) || 189450;
-  const totalRevenueVal = Math.round(totalValue * 0.75) || 237300;
+  const totalSuppliers = new Set(items.map((item) => item.supplier).filter(Boolean)).size;
 
   // Filtered Items Logic
   const filteredItems = items.filter((item) => {
@@ -101,12 +97,7 @@ export default function InventoryPage() {
     const matchesCatSelect =
       filterCategory === "All Categories" || item.category === filterCategory;
 
-    const matchesCardCat =
-      activeCategoryFilter === "All" ||
-      item.category.toLowerCase().includes(activeCategoryFilter.toLowerCase()) ||
-      (activeCategoryFilter === "Low Stock" && item.stock <= item.reorder);
-
-    return matchesSearch && matchesCatSelect && matchesCardCat;
+    return matchesSearch && matchesCatSelect;
   });
 
   const handleAddItem = async (newItem: any) => {
@@ -301,17 +292,6 @@ export default function InventoryPage() {
     }
   };
 
-  const reportCategories = [
-    { id: "Sales", title: "Sales Reports", sub: "View sales summary and trends", icon: LineChart, color: "text-emerald-500 bg-emerald-50" },
-    { id: "Revenue", title: "Revenue Reports", sub: "Track revenue and profitability", icon: IndianRupee, color: "text-purple-500 bg-purple-50" },
-    { id: "Employee", title: "Employee Performance", sub: "Performance insights by employee", icon: Users, color: "text-orange-500 bg-orange-50" },
-    { id: "Lead", title: "Lead Conversion", sub: "Lead to customer conversion stats", icon: Filter, color: "text-blue-500 bg-blue-50" },
-    { id: "Inventory", title: "Inventory Reports", sub: "Stock status and movement", icon: Package, color: "text-amber-500 bg-amber-50" },
-    { id: "Payment", title: "Payment Reports", sub: "Payment collections and details", icon: CreditCard, color: "text-teal-500 bg-teal-50" },
-    { id: "Outstanding", title: "Outstanding Reports", sub: "Pending payments and follow-ups", icon: FileText, color: "text-rose-500 bg-rose-50" },
-    { id: "Franchise", title: "Franchise Performance", sub: "Franchise-wise performance overview", icon: Store, color: "text-indigo-500 bg-indigo-50" },
-  ];
-
   if (isLoading) {
     return (
       <div className="p-8 text-center text-slate-400 font-medium text-sm">
@@ -328,61 +308,49 @@ export default function InventoryPage() {
         </div>
       )}
 
-      {/* Top 4 KPI Summary Cards Grid */}
+      {/* Top KPI Summary Cards Grid — all figures derived directly from inventory records */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Card 1: Total Revenue */}
+        {/* Card 1: Total Items */}
         <div className="bg-white rounded-2xl border border-slate-100 p-4 shadow-2xs flex items-center justify-between">
           <div>
-            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Total Revenue (All)</p>
-            <p className="text-2xl font-bold text-slate-900">₹{totalRevenueVal.toLocaleString("en-IN")}</p>
-            <p className="text-[11px] text-emerald-600 font-bold mt-1 flex items-center gap-1">
-              <span>↑ 18.6%</span> <span className="text-slate-400 font-normal">vs last month</span>
-            </p>
-          </div>
-          <div className="p-3 bg-emerald-100 text-emerald-600 rounded-2xl shrink-0">
-            <TrendingUp className="w-5 h-5" />
-          </div>
-        </div>
-
-        {/* Card 2: Total Sales */}
-        <div className="bg-white rounded-2xl border border-slate-100 p-4 shadow-2xs flex items-center justify-between">
-          <div>
-            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Total Sales (All)</p>
-            <p className="text-2xl font-bold text-slate-900">₹{totalSalesVal.toLocaleString("en-IN")}</p>
-            <p className="text-[11px] text-emerald-600 font-bold mt-1 flex items-center gap-1">
-              <span>↑ 16.2%</span> <span className="text-slate-400 font-normal">vs last month</span>
-            </p>
-          </div>
-          <div className="p-3 bg-purple-100 text-purple-600 rounded-2xl shrink-0">
-            <ShoppingBag className="w-5 h-5" />
-          </div>
-        </div>
-
-        {/* Card 3: Total Outstanding */}
-        <div className="bg-white rounded-2xl border border-slate-100 p-4 shadow-2xs flex items-center justify-between">
-          <div>
-            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Total Outstanding</p>
-            <p className="text-2xl font-bold text-slate-900">₹{totalOutstandingVal.toLocaleString("en-IN")}</p>
-            <p className="text-[11px] text-rose-600 font-bold mt-1 flex items-center gap-1">
-              <span>↑ 7.3%</span> <span className="text-slate-400 font-normal">vs last month</span>
-            </p>
-          </div>
-          <div className="p-3 bg-orange-100 text-orange-600 rounded-2xl shrink-0">
-            <FileText className="w-5 h-5" />
-          </div>
-        </div>
-
-        {/* Card 4: Total Inventory Value */}
-        <div className="bg-white rounded-2xl border border-slate-100 p-4 shadow-2xs flex items-center justify-between">
-          <div>
-            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Total Inventory Value</p>
-            <p className="text-2xl font-bold text-slate-900">₹{totalValue > 0 ? totalValue.toLocaleString("en-IN") : "3,12,800"}</p>
-            <p className="text-[11px] text-emerald-600 font-bold mt-1 flex items-center gap-1">
-              <span>↑ 12.8%</span> <span className="text-slate-400 font-normal">vs last month</span>
-            </p>
+            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Total Items</p>
+            <p className="text-2xl font-bold text-slate-900">{totalSkus}</p>
           </div>
           <div className="p-3 bg-blue-100 text-blue-600 rounded-2xl shrink-0">
             <Package className="w-5 h-5" />
+          </div>
+        </div>
+
+        {/* Card 2: Total Inventory Value */}
+        <div className="bg-white rounded-2xl border border-slate-100 p-4 shadow-2xs flex items-center justify-between">
+          <div>
+            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Total Inventory Value</p>
+            <p className="text-2xl font-bold text-slate-900">₹{totalValue.toLocaleString("en-IN")}</p>
+          </div>
+          <div className="p-3 bg-emerald-100 text-emerald-600 rounded-2xl shrink-0">
+            <IndianRupee className="w-5 h-5" />
+          </div>
+        </div>
+
+        {/* Card 3: Low Stock Items */}
+        <div className="bg-white rounded-2xl border border-slate-100 p-4 shadow-2xs flex items-center justify-between">
+          <div>
+            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Low Stock Items</p>
+            <p className="text-2xl font-bold text-slate-900">{lowStockItems.length}</p>
+          </div>
+          <div className="p-3 bg-rose-100 text-rose-600 rounded-2xl shrink-0">
+            <AlertTriangle className="w-5 h-5" />
+          </div>
+        </div>
+
+        {/* Card 4: Suppliers */}
+        <div className="bg-white rounded-2xl border border-slate-100 p-4 shadow-2xs flex items-center justify-between">
+          <div>
+            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Suppliers</p>
+            <p className="text-2xl font-bold text-slate-900">{totalSuppliers}</p>
+          </div>
+          <div className="p-3 bg-indigo-100 text-indigo-600 rounded-2xl shrink-0">
+            <Store className="w-5 h-5" />
           </div>
         </div>
       </div>
@@ -537,35 +505,6 @@ export default function InventoryPage() {
         </div>
       </div>
 
-      {/* Report Categories Section */}
-      <div className="space-y-3">
-        <h2 className="text-sm font-bold text-slate-900">Report Categories</h2>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {reportCategories.map((cat, i) => {
-            const IconComponent = cat.icon;
-            const isSelected = activeCategoryFilter === cat.id;
-            return (
-              <div
-                key={i}
-                onClick={() => setActiveCategoryFilter(isSelected ? "All" : cat.id)}
-                className={`bg-white rounded-2xl border p-4 shadow-2xs hover:border-blue-200 transition-all cursor-pointer flex items-center gap-3 group ${
-                  isSelected ? "border-blue-500 ring-2 ring-blue-500/20 bg-blue-50/10" : "border-slate-100"
-                }`}
-              >
-                <div className={`p-3 rounded-2xl shrink-0 ${cat.color} group-hover:scale-105 transition-transform`}>
-                  <IconComponent className="w-5 h-5" />
-                </div>
-                <div className="min-w-0">
-                  <h3 className="text-xs font-bold text-slate-900 truncate">{cat.title}</h3>
-                  <p className="text-[11px] text-slate-400 truncate mt-0.5">{cat.sub}</p>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
       {/* Reports / Inventory Overview Section */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
@@ -669,18 +608,6 @@ export default function InventoryPage() {
                           >
                             <Sliders className="w-3.5 h-3.5 text-emerald-600" />
                             Stock Adjust
-                          </button>
-
-                          {/* View Details */}
-                          <button
-                            onClick={() => {
-                              setSelectedItem(item);
-                              setIsAdjustStockOpen(true);
-                            }}
-                            className="p-1.5 rounded-lg text-slate-500 hover:text-slate-700 hover:bg-slate-100 border border-slate-200 transition-colors bg-white shadow-2xs"
-                            title="View Item"
-                          >
-                            <Eye className="w-3.5 h-3.5" />
                           </button>
 
                           {/* Download PDF Icon Button */}

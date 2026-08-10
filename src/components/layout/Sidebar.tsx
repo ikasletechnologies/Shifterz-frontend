@@ -50,6 +50,7 @@ import {
   HardHat,
   Headset,
   Key,
+  Receipt,
 } from "lucide-react";
 import { SidebarContext } from "@/lib/context/SidebarContext";
 
@@ -122,6 +123,9 @@ export const hqSidebarSections: NavSection[] = [
       { label: "Technicians", icon: HardHat, href: "/dashboard/technicians", module: "employees" },
       { label: "QC Inspection", icon: ShieldCheck, href: "/dashboard/qc", module: "jobs" },
       { label: "Service Advisors", icon: Headset, href: "/dashboard/service-advisors", module: "employees" },
+      { label: "Billing Staff", icon: Receipt, href: "/dashboard/billing-staff", module: "employees" },
+      { label: "Receptionists", icon: ConciergeBell, href: "/dashboard/receptionists", module: "employees" },
+      { label: "Inventory Staff", icon: PackageSearch, href: "/dashboard/inventory-staff", module: "employees" },
       { label: "Attendance", icon: Clock, href: "/dashboard/attendance", module: "attendance" },
     ],
   },
@@ -199,6 +203,9 @@ export const franchiseSidebarSections: NavSection[] = [
       { label: "Technicians", icon: HardHat, href: "/dashboard/technicians", module: "employees" },
       { label: "QC Inspection", icon: ShieldCheck, href: "/dashboard/qc", module: "jobs" },
       { label: "Service Advisors", icon: Headset, href: "/dashboard/service-advisors", module: "employees" },
+      { label: "Billing Staff", icon: Receipt, href: "/dashboard/billing-staff", module: "employees" },
+      { label: "Receptionists", icon: ConciergeBell, href: "/dashboard/receptionists", module: "employees" },
+      { label: "Inventory Staff", icon: PackageSearch, href: "/dashboard/inventory-staff", module: "employees" },
       { label: "Attendance", icon: Clock, href: "/dashboard/attendance", module: "attendance" },
     ],
   },
@@ -296,6 +303,12 @@ export const receptionistSidebarSections: NavSection[] = [
 ];
 
 
+// Matches href exactly, or as a path segment (so "/dashboard/inventory" doesn't
+// falsely match "/dashboard/inventory-staff").
+function isPathActive(pathname: string, href: string) {
+  return pathname === href || pathname.startsWith(href + "/");
+}
+
 // ── NavLink component ────────────────────────────────────────────────────────
 function NavLink({
   item,
@@ -310,14 +323,14 @@ function NavLink({
 
   const anyChildActive =
     hasChildren &&
-    item.children!.some((c) => pathname.startsWith(c.href));
+    item.children!.some((c) => isPathActive(pathname, c.href));
 
   const [open, setOpen] = useState(anyChildActive ?? false);
 
   const isActive =
     item.href === "/dashboard" || item.href === "/technician"
       ? pathname === item.href
-      : pathname.startsWith(item.href) && !hasChildren;
+      : isPathActive(pathname, item.href) && !hasChildren;
 
   const Icon = item.icon;
   const Chevron = open ? ChevronDown : ChevronRight;
@@ -377,7 +390,7 @@ function NavLink({
           }}
         >
           {item.children!.map((child) => {
-            const childActive = pathname.startsWith(child.href);
+            const childActive = isPathActive(pathname, child.href);
             const ChildIcon = child.icon;
             return (
               <Link

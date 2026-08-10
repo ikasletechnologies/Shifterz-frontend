@@ -563,6 +563,21 @@ export async function getServiceAdvisorManagementStats(params?: Record<string, s
   return apiCall(`/service-advisors/management${query}`);
 }
 
+export async function getBillingExecutiveManagementStats(params?: Record<string, string | number>) {
+  const query = params ? `?${new URLSearchParams(params as Record<string, string>).toString()}` : "";
+  return apiCall(`/billing-executives/management${query}`);
+}
+
+export async function getReceptionistManagementStats(params?: Record<string, string | number>) {
+  const query = params ? `?${new URLSearchParams(params as Record<string, string>).toString()}` : "";
+  return apiCall(`/receptionists/management${query}`);
+}
+
+export async function getInventoryExecutiveManagementStats(params?: Record<string, string | number>) {
+  const query = params ? `?${new URLSearchParams(params as Record<string, string>).toString()}` : "";
+  return apiCall(`/inventory-executives/management${query}`);
+}
+
 // ═══════════════════════════════════════════════════════════════
 // ATTENDANCE
 // ═══════════════════════════════════════════════════════════════

@@ -335,48 +335,46 @@ export default function AddFranchiseDialog({ isOpen, onClose, franchiseData, onS
               </div>
             </div>
 
-            {!isEditing && (
-              <div>
-                <h3 className="text-sm font-bold text-gray-900 mb-4 pb-2 border-b border-gray-100 flex items-center gap-2 mt-2">
-                  <span className="w-1.5 h-4 bg-yellow-400 rounded-full"></span>
-                  Administrator Account
-                </h3>
-                <div className="grid grid-cols-2 gap-x-6 gap-y-4">
-                  <div className="col-span-2 sm:col-span-1 space-y-1.5">
-                    <label className="text-[11px] font-bold text-[#64748b] uppercase tracking-wider">Admin Username *</label>
-                    <input 
+            <div>
+              <h3 className="text-sm font-bold text-gray-900 mb-4 pb-2 border-b border-gray-100 flex items-center gap-2 mt-2">
+                <span className="w-1.5 h-4 bg-yellow-400 rounded-full"></span>
+                Administrator Account
+              </h3>
+              <div className="grid grid-cols-2 gap-x-6 gap-y-4">
+                <div className="col-span-2 sm:col-span-1 space-y-1.5">
+                  <label className="text-[11px] font-bold text-[#64748b] uppercase tracking-wider">Admin Username {!isEditing && "*"}</label>
+                  <input
+                    required={!isEditing}
+                    type="text"
+                    value={formData.adminUsername || ""}
+                    onChange={e => setFormData({...formData, adminUsername: e.target.value})}
+                    className="w-full px-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm text-[#334155] focus:outline-none focus:ring-2 focus:ring-[#f59e0b] focus:bg-white transition-colors"
+                    placeholder="branch_admin"
+                  />
+                </div>
+
+                <div className="col-span-2 sm:col-span-1 space-y-1.5">
+                  <label className="text-[11px] font-bold text-[#64748b] uppercase tracking-wider">{isEditing ? "Reset Password" : "Admin Password *"}</label>
+                  <div className="relative">
+                    <input
                       required={!isEditing}
-                      type="text" 
-                      value={formData.adminUsername || ""}
-                      onChange={e => setFormData({...formData, adminUsername: e.target.value})}
-                      className="w-full px-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm text-[#334155] focus:outline-none focus:ring-2 focus:ring-[#f59e0b] focus:bg-white transition-colors"
-                      placeholder="branch_admin"
+                      type={showPassword ? "text" : "password"}
+                      value={formData.adminPassword || ""}
+                      onChange={e => setFormData({...formData, adminPassword: e.target.value})}
+                      className="w-full pl-4 pr-10 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm text-[#334155] focus:outline-none focus:ring-2 focus:ring-[#f59e0b] focus:bg-white transition-colors"
+                      placeholder={isEditing ? "Leave blank to keep current password" : "••••••••"}
                     />
-                  </div>
-                  
-                  <div className="col-span-2 sm:col-span-1 space-y-1.5">
-                    <label className="text-[11px] font-bold text-[#64748b] uppercase tracking-wider">Admin Password *</label>
-                    <div className="relative">
-                      <input 
-                        required={!isEditing}
-                        type={showPassword ? "text" : "password"} 
-                        value={formData.adminPassword || ""}
-                        onChange={e => setFormData({...formData, adminPassword: e.target.value})}
-                        className="w-full pl-4 pr-10 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm text-[#334155] focus:outline-none focus:ring-2 focus:ring-[#f59e0b] focus:bg-white transition-colors"
-                        placeholder="••••••••"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
-                      >
-                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
-                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
                   </div>
                 </div>
               </div>
-            )}
+            </div>
           </div>
 
           <div className="p-6 border-t border-gray-100 flex-shrink-0 bg-white">
