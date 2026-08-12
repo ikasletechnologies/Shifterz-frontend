@@ -10,6 +10,7 @@ import {
   deleteVehicleCheckIn
 } from "../services/vehicle-checkin.service";
 import { toast } from "react-hot-toast";
+import { getScopedFranchiseId, scopeToFranchise } from "@/lib/franchise-scope";
 
 export function useVehicleCheckin() {
   const [cars, setCars] = useState<CarEntry[]>([]);
@@ -18,8 +19,9 @@ export function useVehicleCheckin() {
   const fetchCars = useCallback(async () => {
     try {
       setIsLoading(true);
-      const data = await getVehicleCheckIns();
-      setCars(data || []);
+      const franchiseId = getScopedFranchiseId();
+      const data = await getVehicleCheckIns(franchiseId);
+      setCars(scopeToFranchise(data || []));
     } catch (err) {
       console.error("Failed to fetch vehicle check-ins:", err);
     } finally {

@@ -319,8 +319,9 @@ export async function deleteCarIn(id: string) {
 // ═══════════════════════════════════════════════════════════════
 // OUT PASS
 // ═══════════════════════════════════════════════════════════════
-export async function getOutPasses() {
-  return apiCall("/outpass");
+export async function getOutPasses(franchiseId?: string) {
+  const query = franchiseId ? `?franchiseId=${encodeURIComponent(franchiseId)}` : "";
+  return apiCall(`/outpass${query}`);
 }
 
 export async function createOutPass(outPass: any) {

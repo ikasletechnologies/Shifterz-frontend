@@ -6,6 +6,7 @@ import { JobCard } from "@/modules/job-card/types/job-card.types";
 import { getVehicleCheckIns } from "@/modules/vehicle-checkin/services/vehicle-checkin.service";
 import { getInvoices } from "@/modules/billing/services/billing.service";
 import { getOutPasses } from "@/lib/api";
+import { getScopedFranchiseId, scopeToFranchise } from "@/lib/franchise-scope";
 import { LiveOutPassInput, LiveVehicleRecord } from "../types/live-status.types";
 import { deriveLiveStatus } from "../lib/deriveLiveStatus";
 import { POLL_INTERVAL_MS } from "../constants/live-status.constants";
@@ -31,14 +32,18 @@ export function useLiveStatus() {
   const fetchAll = useCallback(async () => {
     try {
       if (isFirstLoad.current) setIsLoading(true);
+      const franchiseId = getScopedFranchiseId();
       const [jobCards, checkIns, outPasses, invoices] = await Promise.all([
-        safeFetch(getJobCards, "job cards"),
-        safeFetch(getVehicleCheckIns, "vehicle check-ins"),
-        safeFetch<LiveOutPassInput>(getOutPasses, "outpasses"),
+        safeFetch(() => getJobCards(franchiseId), "job cards"),
+        safeFetch(() => getVehicleCheckIns(franchiseId), "vehicle check-ins"),
+        safeFetch<LiveOutPassInput>(() => getOutPasses(franchiseId), "outpasses"),
         safeFetch(getInvoices, "invoices"),
       ]);
-      setRecords(deriveLiveStatus(jobCards, checkIns, outPasses, invoices));
-      setAllJobCards(jobCards);
+      const scopedJobCards = scopeToFranchise(jobCards);
+      const scopedCheckIns = scopeToFranchise(checkIns);
+      const scopedOutPasses = scopeToFranchise(outPasses);
+      setRecords(deriveLiveStatus(scopedJobCards, scopedCheckIns, scopedOutPasses, invoices));
+      setAllJobCards(scopedJobCards);
       setLastUpdated(new Date());
       setError(null);
     } catch (err: unknown) {

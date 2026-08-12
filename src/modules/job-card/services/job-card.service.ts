@@ -1,8 +1,9 @@
 import { apiCall } from "@/services/api.client";
 import { JobCard, JobCardFormData } from "../types/job-card.types";
 
-export async function getJobCards(): Promise<JobCard[]> {
-  return apiCall("/jobs");
+export async function getJobCards(franchiseId?: string): Promise<JobCard[]> {
+  const query = franchiseId ? `?franchiseId=${encodeURIComponent(franchiseId)}` : "";
+  return apiCall(`/jobs${query}`);
 }
 
 export async function createJobCard(data: JobCardFormData): Promise<JobCard> {

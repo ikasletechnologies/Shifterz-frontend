@@ -28,6 +28,7 @@ import {
 import NewOutPassDialog from "@/components/outpass/NewOutPassDialog";
 import PrintPassDialog from "@/components/outpass/PrintPassDialog";
 import { getOutPasses, createOutPass, updateOutPass, approveOutpass, rejectOutpass } from "@/lib/api";
+import { getScopedFranchiseId, scopeToFranchise } from "@/lib/franchise-scope";
 import { toast } from "react-hot-toast";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -86,8 +87,9 @@ export default function OutPassPage() {
   const fetchOutPasses = useCallback(async () => {
     try {
       setIsLoading(true);
-      const data = await getOutPasses();
-      setOutPasses(data || []);
+      const franchiseId = getScopedFranchiseId();
+      const data = await getOutPasses(franchiseId);
+      setOutPasses(scopeToFranchise(data || []));
     } catch (err: any) {
       setError("Failed to load outpasses: " + err.message);
       console.error(err);

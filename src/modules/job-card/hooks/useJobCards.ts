@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect } from "react";
 import { JobCard, JobCardFormData, JobCardStats } from "../types/job-card.types";
 import { getJobCards, createJobCard, updateJobCard, deleteJobCard } from "../services/job-card.service";
 import { toast } from "react-hot-toast";
+import { getScopedFranchiseId, scopeToFranchise } from "@/lib/franchise-scope";
 
 export function useJobCards() {
   const [jobCards, setJobCards] = useState<JobCard[]>([]);
@@ -13,8 +14,9 @@ export function useJobCards() {
   const fetchJobCards = useCallback(async () => {
     try {
       setIsLoading(true);
-      const data = await getJobCards();
-      setJobCards(data || []);
+      const franchiseId = getScopedFranchiseId();
+      const data = await getJobCards(franchiseId);
+      setJobCards(scopeToFranchise(data || []));
       setError(null);
     } catch (err: any) {
       setError("Failed to load job cards: " + err.message);

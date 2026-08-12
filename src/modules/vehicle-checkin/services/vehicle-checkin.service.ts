@@ -1,8 +1,9 @@
 import { apiCall } from "@/services/api.client";
 import { CarEntry } from "../types/vehicle-checkin.types";
 
-export async function getVehicleCheckIns(): Promise<CarEntry[]> {
-  return apiCall("/carin");
+export async function getVehicleCheckIns(franchiseId?: string): Promise<CarEntry[]> {
+  const query = franchiseId ? `?franchiseId=${encodeURIComponent(franchiseId)}` : "";
+  return apiCall(`/carin${query}`);
 }
 
 export async function createVehicleCheckIn(data: Partial<CarEntry>): Promise<CarEntry> {
