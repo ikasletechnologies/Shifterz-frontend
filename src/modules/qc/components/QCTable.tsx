@@ -126,12 +126,12 @@ export function QCTable({
 
             {/* Vehicle Section */}
             <div className="flex items-center gap-3 pt-1">
-              <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl">
+              <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl shrink-0">
                 <Car className="w-6 h-6" />
               </div>
-              <div>
-                <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Vehicle No</p>
-                <p className="text-base font-bold font-mono text-gray-900 tracking-wider">
+              <div className="min-w-0">
+                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-0.5">Vehicle No</p>
+                <p className="text-base font-bold font-mono text-slate-900 tracking-wider uppercase">
                   {job.vehicle || "TN 13 AR 1342"}
                 </p>
               </div>

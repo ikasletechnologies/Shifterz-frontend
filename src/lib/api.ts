@@ -876,7 +876,8 @@ export async function createWarranty(data: {
 }
 
 export async function generateWarrantyFromInvoice(invoiceId: string): Promise<WarrantyRecord[]> {
-  return apiCall(`/warranties/generate-from-invoice/${invoiceId}`, {
+  const cleanId = encodeURIComponent(invoiceId.trim());
+  return apiCall(`/warranties/generate-from-invoice/${cleanId}`, {
     method: "POST",
   });
 }

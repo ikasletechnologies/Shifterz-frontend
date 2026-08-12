@@ -427,13 +427,44 @@ export default function NewDocumentDialog({
       const overallDiscountAmount = ((baseAmount - lineDiscountAmount) * overallDiscountPercent) / 100;
       const totalDiscount = lineDiscountAmount + overallDiscountAmount;
 
+      const validItems = items.filter((i) => i.desc && i.desc.trim() !== "");
+      let computedService = "";
+      if (validItems.length > 0) {
+        computedService = validItems.length > 1
+          ? `${validItems[0].desc.trim()} (+${validItems.length - 1} more)`
+          : validItems[0].desc.trim();
+      } else if (items.length > 0 && items[0].desc && items[0].desc.trim() !== "") {
+        computedService = items[0].desc.trim();
+      } else if (formData.workDescription && formData.workDescription.trim() !== "") {
+        computedService = formData.workDescription.trim();
+      } else if (formData.serviceCategory && formData.serviceCategory.trim() !== "") {
+        computedService = formData.serviceCategory.trim();
+      } else if (initialData && initialData.service && initialData.service.trim() !== "" && initialData.service !== "—") {
+        computedService = initialData.service.trim();
+      } else {
+        computedService = "General Service";
+      }
+
       const newDoc = {
         id: initialData?.id || nextDocNo,
         type: formData.type,
         client: formData.client,
         phone: formData.phone,
         vehicle: formData.vehicle,
-        service: items.length > 0 ? items[0].desc : "Multiple Items",
+        model: formData.model || "",
+        chassisNo: formData.chassisNo || "",
+        engineNo: formData.engineNo || "",
+        mileage: formData.mileage || "",
+        fuelType: formData.fuelType || "Petrol",
+        billingAddress: formData.billingAddress || "",
+        service: computedService,
+        serviceCategory: formData.serviceCategory || "General Service",
+        customerComplaint: formData.customerComplaint || "",
+        workDescription: formData.workDescription || "",
+        advanceAmount: formData.advanceAmount || "0.00",
+        serviceAdvisor: formData.serviceAdvisor || "",
+        technician: formData.technician || "",
+        jobCardNo: formData.jobCardNo || "",
         amount: baseAmount,
         gst: gstAmount,
         discount: totalDiscount,

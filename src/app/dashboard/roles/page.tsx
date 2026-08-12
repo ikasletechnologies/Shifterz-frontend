@@ -22,7 +22,7 @@ const ROLES = [
 // ── Permission matrix ────────────────────────────────────────────────────────
 const PERMISSIONS = [
   { module: "Dashboard",         key: "dashboard" },
-  { module: "Car In / Out",      key: "carin" },
+  { module: "Car In",            key: "carin" },
   { module: "Job Cards",         key: "jobs" },
   { module: "Out Pass",          key: "outpass" },
   { module: "Leads",             key: "leads" },
@@ -44,7 +44,7 @@ const DEFAULT_MATRIX: Record<string, Record<string, boolean>> = {
   FRANCHISE_ADMIN: Object.fromEntries(PERMISSIONS.map(p => [p.key, !["settings", "roles"].includes(p.key)])),
   BRANCH_MANAGER:  Object.fromEntries(PERMISSIONS.map(p => [p.key, !["settings", "roles", "employees"].includes(p.key)])),
   RECEPTION_EXECUTIVE: Object.fromEntries(PERMISSIONS.map(p => [p.key, ["dashboard", "carin", "outpass", "customers", "leads"].includes(p.key)])),
-  SERVICE_ADVISOR: Object.fromEntries(PERMISSIONS.map(p => [p.key, ["dashboard", "carin", "jobs", "customers", "leads"].includes(p.key)])),
+  SERVICE_ADVISOR: Object.fromEntries(PERMISSIONS.map(p => [p.key, ["dashboard", "carin", "jobs", "outpass", "customers", "leads"].includes(p.key)])),
   TECHNICIAN:      Object.fromEntries(PERMISSIONS.map(p => [p.key, ["dashboard", "jobs", "attendance"].includes(p.key)])),
   QUALITY_INSPECTOR: Object.fromEntries(PERMISSIONS.map(p => [p.key, ["dashboard", "jobs", "carin"].includes(p.key)])),
   BILLING_EXECUTIVE: Object.fromEntries(PERMISSIONS.map(p => [p.key, ["dashboard", "billing", "payments", "reports"].includes(p.key)])),

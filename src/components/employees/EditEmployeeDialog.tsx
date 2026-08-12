@@ -14,7 +14,7 @@ interface EditEmployeeDialogProps {
 
 const MODULE_OPTIONS = [
   { value: "dashboard",  label: "Dashboard" },
-  { value: "carin",      label: "Car In / Out" },
+  { value: "carin",      label: "Car In" },
   { value: "jobs",       label: "Job Cards" },
   { value: "leads",      label: "Leads" },
   { value: "customers",  label: "Customers" },
@@ -31,7 +31,7 @@ const DEFAULT_ROLE_MODULES: Record<string, string[]> = {
   HQ_USER: ["dashboard", "carin", "jobs", "leads", "customers", "billing", "payments", "inventory", "reports", "employees", "attendance"],
   FRANCHISE_ADMIN: ["dashboard", "carin", "jobs", "leads", "customers", "billing", "payments", "inventory", "reports", "employees", "attendance"],
   MANAGER: ["dashboard", "carin", "jobs", "leads", "customers", "billing", "payments", "inventory", "reports", "employees", "attendance"],
-  SERVICE_ADVISOR: ["dashboard", "carin", "jobs", "leads", "customers", "billing"],
+  SERVICE_ADVISOR: ["dashboard", "carin", "jobs", "outpass", "leads", "customers", "billing"],
   TECHNICIAN: ["dashboard", "jobs"],
   BILLING_EXECUTIVE: ["dashboard", "billing", "payments", "reports"],
   QC_INSPECTOR: ["dashboard", "jobs"],

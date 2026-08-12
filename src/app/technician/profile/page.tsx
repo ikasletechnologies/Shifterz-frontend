@@ -2,7 +2,8 @@
 
 import { PhoneInput } from "@/components/common/PhoneInput";
 import { useEffect, useState } from "react";
-import { User, Mail, Phone, Lock, Save, Eye, EyeOff, Shield } from "lucide-react";
+import { User, Mail, Phone, Lock, Save, Eye, EyeOff, Shield, Building2 } from "lucide-react";
+import { getFranchises } from "@/lib/api";
 
 interface UserProfile {
   id?: string;
@@ -11,6 +12,8 @@ interface UserProfile {
   phone: string;
   username: string;
   role: string;
+  franchiseId?: string | null;
+  franchiseName?: string;
 }
 
 export default function ProfilePage() {
@@ -20,6 +23,8 @@ export default function ProfilePage() {
     phone: "",
     username: "",
     role: "",
+    franchiseId: null,
+    franchiseName: "",
   });
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword]         = useState("");
@@ -32,20 +37,40 @@ export default function ProfilePage() {
   const [pwError, setPwError]                 = useState("");
 
   useEffect(() => {
-    const userStr = localStorage.getItem("user");
-    if (userStr) {
-      try {
-        const u = JSON.parse(userStr);
-        setProfile({
-          id:       u.id,
-          name:     u.name     || "",
-          email:    u.email    || "",
-          phone:    u.phone    || "",
-          username: u.username || "",
-          role:     u.role     || "",
-        });
-      } catch {}
+    async function loadProfile() {
+      const userStr = localStorage.getItem("user");
+      if (userStr) {
+        try {
+          const u = JSON.parse(userStr);
+          const extractStringName = (val: any): string => {
+            if (!val) return "";
+            if (typeof val === "string") return val;
+            if (typeof val === "object" && val.name) return String(val.name);
+            return "";
+          };
+
+          let franName = extractStringName(u.franchiseName) || extractStringName(u.branch) || extractStringName(u.franchise);
+          if (!franName && u.franchiseId) {
+            try {
+              const franchises = await getFranchises();
+              const found = franchises.find((f: any) => f.id === u.franchiseId);
+              if (found) franName = found.name;
+            } catch {}
+          }
+          setProfile({
+            id:       u.id,
+            name:     u.name     || "",
+            email:    u.email    || "",
+            phone:    u.phone    || "",
+            username: u.username || "",
+            role:     u.role     || "",
+            franchiseId: u.franchiseId || null,
+            franchiseName: franName || (u.franchiseId ? "Assigned Branch" : "Headquarters"),
+          });
+        } catch {}
+      }
     }
+    loadProfile();
   }, []);
 
   const roleLabel = (r: string) =>
@@ -61,9 +86,7 @@ export default function ProfilePage() {
     }
 
     setSaving(true);
-    // TODO: wire to PATCH /api/profile endpoint
-    await new Promise(r => setTimeout(r, 800)); // simulate network
-    // Update localStorage name
+    await new Promise(r => setTimeout(r, 800));
     const userStr = localStorage.getItem("user");
     if (userStr) {
       try {
@@ -104,11 +127,16 @@ export default function ProfilePage() {
           </div>
           <div>
             <p className="text-xl font-bold text-gray-900">{profile.name || profile.username}</p>
-            <span className="inline-flex items-center gap-1.5 mt-1 px-3 py-0.5 rounded-full bg-yellow-100 text-yellow-800 text-xs font-semibold">
-              <Shield className="w-3 h-3" />
-              {roleLabel(profile.role)}
-            </span>
-            <p className="text-sm text-gray-400 mt-1">@{profile.username}</p>
+            <div className="flex items-center gap-2 mt-1 flex-wrap">
+              <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-yellow-100 text-yellow-800 text-xs font-semibold">
+                <Shield className="w-3 h-3" />
+                {roleLabel(profile.role)}
+              </span>
+              <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-blue-50 text-blue-700 text-xs font-semibold border border-blue-100">
+                <Building2 className="w-3 h-3 text-blue-500" />
+                {profile.franchiseName || "Headquarters"}
+              </span>
+            </div>
           </div>
         </div>
 
@@ -127,6 +155,20 @@ export default function ProfilePage() {
                   onChange={e => setProfile(p => ({ ...p, name: e.target.value }))}
                   placeholder="Your full name"
                   className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-yellow-400 bg-gray-50"
+                />
+              </div>
+            </div>
+
+            {/* Assigned Franchise */}
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 mb-1.5">Assigned Franchise</label>
+              <div className="relative">
+                <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-500" />
+                <input
+                  type="text"
+                  value={profile.franchiseName || "Headquarters"}
+                  readOnly
+                  className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-gray-900 bg-gray-50 cursor-not-allowed"
                 />
               </div>
             </div>

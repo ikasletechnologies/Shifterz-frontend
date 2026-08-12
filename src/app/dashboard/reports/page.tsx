@@ -1,16 +1,17 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { 
   Download, Filter, Calendar, Building2, Wrench, Users, UserCheck, 
   Briefcase, DollarSign, Package, RefreshCw, FileSpreadsheet, 
-  TrendingUp, AlertTriangle, ChevronRight, BarChart3
+  TrendingUp, AlertTriangle, ChevronRight, BarChart3, Search, X
 } from "lucide-react";
 import { 
   getReports, getHQSummaryReport, getCrmReport, getCustomerReport, getEmployeeReport, 
-  getFinancialReport, getInventoryReport, getWorkshopReport, downloadReportCsv 
+  getFinancialReport, getInventoryReport, getWorkshopReport, downloadReportCsv, getFranchises
 } from "@/lib/api";
 import { getInvoiceRegister } from "@/modules/billing/services/billing.service";
+import { getJobCards } from "@/modules/job-card/services/job-card.service";
 import { BillingReportRow } from "@/modules/billing/types/billing.types";
 
 type TabCategory = "executive" | "workshop" | "crm" | "customer" | "employee" | "financial" | "inventory";
@@ -19,10 +20,10 @@ export default function ReportsPage() {
   const [activeCategory, setActiveCategory] = useState<TabCategory>("executive");
   const [subReport, setSubReport] = useState<string>("business-summary");
   
-  // Global Filters (§16.12)
+  // Global Filters & Search
+  const [searchTerm, setSearchTerm] = useState<string>("");
   const [fromDate, setFromDate] = useState<string>("");
   const [toDate, setToDate] = useState<string>("");
-  const [datePreset, setDatePreset] = useState<string>("month");
   
   // State for loaded tables
   const [tableRows, setTableRows] = useState<any[]>([]);
@@ -31,30 +32,39 @@ export default function ReportsPage() {
   const [error, setError] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
 
-  // Set default date range on mount
-  useEffect(() => {
-    applyDatePreset("month");
-  }, []);
+  const getTodayISO = () => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
 
-  const applyDatePreset = (preset: string) => {
-    setDatePreset(preset);
-    const today = new Date();
-    const todayStr = today.toISOString().split("T")[0] || '';
-    if (preset === "today") {
-      setFromDate(todayStr);
-      setToDate(todayStr);
-    } else if (preset === "week") {
-      const weekAgo = new Date();
-      weekAgo.setDate(today.getDate() - 7);
-      setFromDate(weekAgo.toISOString().split("T")[0] || '');
-      setToDate(todayStr);
-    } else if (preset === "month") {
-      const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
-      setFromDate(firstDay.toISOString().split("T")[0] || '');
-      setToDate(todayStr);
-    } else if (preset === "all") {
+  const handleFromDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    if (!val) {
       setFromDate("");
+      return;
+    }
+    if (toDate && val > toDate) {
+      setFromDate(toDate);
+      setToDate(val);
+    } else {
+      setFromDate(val);
+    }
+  };
+
+  const handleToDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    if (!val) {
       setToDate("");
+      return;
+    }
+    if (fromDate && val < fromDate) {
+      setToDate(fromDate);
+      setFromDate(val);
+    } else {
+      setToDate(val);
     }
   };
 
@@ -90,19 +100,155 @@ export default function ReportsPage() {
     fetchReportData();
   }, [activeCategory, subReport, fromDate, toDate]);
 
+  const fetchFranchisePerformanceData = async () => {
+    const [franchises, jobs, invoices] = await Promise.all([
+      getFranchises().catch(() => []),
+      getJobCards().catch(() => []),
+      getInvoiceRegister().catch(() => []),
+    ]);
+
+    const franList = Array.isArray(franchises) ? franchises : [];
+    const jobList = Array.isArray(jobs) ? jobs : [];
+    const invList = Array.isArray(invoices) ? invoices : [];
+
+    const filteredJobs = jobList.filter((j: any) => {
+      if (!fromDate && !toDate) return true;
+      const jDate = (j.createdAt || j.date || "").split("T")[0];
+      if (!jDate) return true;
+      if (fromDate && jDate < fromDate) return false;
+      if (toDate && jDate > toDate) return false;
+      return true;
+    });
+
+    const filteredInvoices = invList.filter((i: any) => {
+      if (!fromDate && !toDate) return true;
+      const iDate = (i.date || i.createdAt || "").split("T")[0];
+      if (!iDate) return true;
+      if (fromDate && iDate < fromDate) return false;
+      if (toDate && iDate > toDate) return false;
+      return true;
+    });
+
+    const branchMap: Record<string, {
+      id: string;
+      name: string;
+      totalJobs: number;
+      completedJobs: number;
+      customers: Set<string>;
+      revenue: number;
+    }> = {};
+
+    branchMap["HQ"] = {
+      id: "HQ",
+      name: "Headquarters (HQ)",
+      totalJobs: 0,
+      completedJobs: 0,
+      customers: new Set(),
+      revenue: 0,
+    };
+
+    franList.forEach((f: any) => {
+      const key = f.id || f.name;
+      branchMap[key] = {
+        id: f.id,
+        name: f.name || "Franchise Branch",
+        totalJobs: 0,
+        completedJobs: 0,
+        customers: new Set(),
+        revenue: 0,
+      };
+    });
+
+    filteredJobs.forEach((j: any) => {
+      const fId = j.franchiseId || j.branchId || "HQ";
+      let targetKey = fId;
+      if (!branchMap[targetKey]) {
+        const found = Object.keys(branchMap).find((k) => branchMap[k].name.toLowerCase() === String(j.branch || j.franchiseName || "").toLowerCase());
+        targetKey = found || "HQ";
+      }
+
+      const b = branchMap[targetKey];
+      if (b) {
+        b.totalJobs += 1;
+        const statusUpper = (j.status || "").toUpperCase();
+        const isDone = statusUpper.includes("COMPLETE") || statusUpper.includes("DELIVER") || statusUpper.includes("READY");
+        if (isDone) {
+          b.completedJobs += 1;
+        }
+
+        const cust = j.customerName || j.client || j.customerPhone || j.vehicleNo || j.id;
+        if (cust) b.customers.add(cust);
+
+        const amt = Number(j.grandTotal || j.totalAmount || j.total || j.amount || 0);
+        b.revenue += amt;
+      }
+    });
+
+    filteredInvoices.forEach((i: any) => {
+      const fId = i.franchiseId || "HQ";
+      const b = branchMap[fId] || branchMap["HQ"];
+      if (b && b.revenue === 0) {
+        b.revenue += Number(i.total || i.amount || 0);
+      }
+    });
+
+    const branchEntries = Object.values(branchMap).filter((b) => b.totalJobs > 0 || b.revenue > 0 || b.id === "HQ");
+
+    const calculated = branchEntries.map((b) => {
+      const completionRatePct = b.totalJobs > 0 ? (b.completedJobs / b.totalJobs) * 100 : 0;
+      const avgRevPerJob = b.completedJobs > 0 ? Math.round(b.revenue / b.completedJobs) : (b.totalJobs > 0 ? Math.round(b.revenue / b.totalJobs) : 0);
+      const customersCount = b.customers.size;
+
+      const completionPart = (completionRatePct * 0.5);
+      const customerPart = Math.min(30, customersCount * 3);
+      const revenuePart = Math.min(20, Math.round(b.revenue / 5000));
+      const rawScore = Math.min(100, Math.max(10, Math.round(completionPart + customerPart + revenuePart)));
+
+      return {
+        id: b.id,
+        name: b.name,
+        revenue: b.revenue,
+        totalJobs: b.totalJobs,
+        completedJobs: b.completedJobs,
+        customersCount,
+        avgRevPerJob,
+        completionRatePct,
+        score: rawScore,
+      };
+    });
+
+    calculated.sort((a, b) => b.score - a.score || b.revenue - a.revenue);
+
+    return calculated.map((item, index) => ({
+      "Rank": `#${index + 1}`,
+      "Franchise / Branch": item.name,
+      "Total Revenue": `₹${item.revenue.toLocaleString("en-IN")}`,
+      "Total Jobs Completed": item.completedJobs,
+      "Total Customers Served": item.customersCount,
+      "Average Revenue per Job": `₹${item.avgRevPerJob.toLocaleString("en-IN")}`,
+      "Job Completion Rate": `${item.completionRatePct.toFixed(1)}%`,
+      "Branch Performance Score": `${item.score} / 100`,
+    }));
+  };
+
   const fetchReportData = async () => {
     setIsLoading(true);
     setError(null);
     try {
       if (activeCategory === "executive") {
-        const res = await getHQSummaryReport().catch(() => null);
-        if (res) {
-          if (subReport === "business-summary") setTableRows(safeArray(res.summary || res.businessSummary || res));
-          else if (subReport === "revenue-analysis") setTableRows(safeArray(res.revenueAnalysis || res.franchiseRevenue || res));
-          else setTableRows(safeArray(res.franchisePerformance || res.franchises || res));
+        if (subReport === "franchise-performance") {
+          const perfRows = await fetchFranchisePerformanceData();
+          setTableRows(perfRows);
         } else {
-          const overview = await getReports().catch(() => null);
-          setTableRows(safeArray(overview?.jobSummary || overview));
+          const res = await getHQSummaryReport().catch(() => null);
+          if (res) {
+            if (subReport === "business-summary") setTableRows(safeArray(res.summary || res.businessSummary || res));
+            else if (subReport === "revenue-analysis") setTableRows(safeArray(res.revenueAnalysis || res.franchiseRevenue || res));
+            else setTableRows(safeArray(res.franchisePerformance || res.franchises || res));
+          } else {
+            const overview = await getReports().catch(() => null);
+            setTableRows(safeArray(overview?.jobSummary || overview));
+          }
         }
       } else if (activeCategory === "workshop") {
         const rows = await getWorkshopReport(subReport, fromDate, toDate).catch(async () => {
@@ -142,43 +288,135 @@ export default function ReportsPage() {
     }
   };
 
-  const handleExportCsv = async () => {
+  const formatHeaderLabel = (key: string): string => {
+    return key
+      .replace(/([A-Z])/g, " $1")
+      .replace(/_/g, " ")
+      .replace(/^\w/, (c) => c.toUpperCase())
+      .trim();
+  };
+
+  const handleExportWord = async () => {
     try {
       setIsExporting(true);
+
+      let headers: string[] = [];
+      let rowsData: string[][] = [];
+
       if (activeCategory === "financial" && subReport === "invoices") {
-        // Export billing register CSV
-        const headers = ["Invoice No", "Date", "Customer", "Phone", "Amount", "GST", "Total", "Status"];
-        const csvRows = [
-          headers.join(","),
-          ...billingRows.map((row: any) => [
-            `"${row.invoiceNo || row.id || ''}"`,
-            `"${row.date || ''}"`,
-            `"${String(row.customerName || row.client || '').replace(/"/g, '""')}"`,
-            `"${row.phone || ''}"`,
-            row.amount || 0,
-            row.gst || 0,
-            row.total || 0,
-            `"${row.status || ''}"`
-          ].join(","))
-        ];
-        const blob = new Blob([csvRows.join("\n")], { type: "text/csv;charset=utf-8;" });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.setAttribute("download", `billing_invoices_${fromDate || 'all'}.csv`);
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-      } else {
-        await downloadReportCsv(
-          activeCategory === "executive" ? "hq-summary" : activeCategory, 
-          subReport, 
-          fromDate, 
-          toDate
+        headers = ["Invoice No", "Date", "Customer", "Phone", "Amount", "GST", "Total", "Status"];
+        rowsData = filteredBillingRows.map((row: any) => [
+          String(row.invoiceNo || row.id || "-"),
+          String(row.date || "-"),
+          String(row.customerName || row.client || "-"),
+          String(row.phone || "-"),
+          String(row.amount || 0),
+          String(row.gst || 0),
+          String(row.total || 0),
+          String(row.status || "-"),
+        ]);
+      } else if (filteredTableRows.length > 0) {
+        const sampleKeys = Object.keys(filteredTableRows[0]).filter(
+          (k) => typeof filteredTableRows[0][k] !== "object" && k !== "isDeleted" && k !== "id"
+        );
+        const keys = sampleKeys.length > 0 ? sampleKeys : Object.keys(filteredTableRows[0]).slice(0, 10);
+        headers = keys.map(formatHeaderLabel);
+        rowsData = filteredTableRows.map((row: any) =>
+          keys.map((k) => {
+            const val = row[k];
+            if (val === null || val === undefined) return "-";
+            if (typeof val === "object") return JSON.stringify(val);
+            return String(val);
+          })
         );
       }
+
+      const categoryNames: Record<TabCategory, string> = {
+        executive: "Executive HQ Reports",
+        workshop: "Workshop & Service Reports",
+        crm: "CRM & Lead Reports",
+        customer: "Customer & Fleet Reports",
+        employee: "Employee & HR Reports",
+        financial: "Financial & Billing Reports",
+        inventory: "Inventory & Spare Parts Reports",
+      };
+
+      const title = `${categoryNames[activeCategory] || activeCategory} — ${subReport.replace(/-/g, " ").toUpperCase()}`;
+      const headersHtml = headers
+        .map((h) => `<th style="background-color:#2563eb;color:#ffffff;padding:8px 10px;border:1px solid #1d4ed8;font-size:10pt;text-align:left;">${h}</th>`)
+        .join("");
+
+      const rowsHtml =
+        rowsData.length > 0
+          ? rowsData
+              .map(
+                (r, idx) =>
+                  `<tr style="background-color:${idx % 2 === 0 ? "#ffffff" : "#f8fafc"};">` +
+                  r
+                    .map(
+                      (cell) =>
+                        `<td style="padding:7px 10px;border:1px solid #cbd5e1;font-size:9.5pt;color:#334155;">${cell
+                          .replace(/&/g, "&amp;")
+                          .replace(/</g, "&lt;")
+                          .replace(/>/g, "&gt;")}</td>`
+                    )
+                    .join("") +
+                  `</tr>`
+              )
+              .join("")
+          : `<tr><td colspan="${headers.length || 1}" style="padding:16px;text-align:center;color:#64748b;">No report data available for the selected criteria.</td></tr>`;
+
+      const docxHtml = `
+<html xmlns:o="urn:schemas-microsoft-com:office:office"
+      xmlns:w="urn:schemas-microsoft-com:office:word"
+      xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+<meta charset="utf-8">
+<title>${title}</title>
+<style>
+  body { font-family: 'Segoe UI', Arial, sans-serif; margin: 30pt; color: #1e293b; }
+  h1 { color: #1e3a8a; font-size: 18pt; margin-bottom: 6pt; border-bottom: 2.5pt solid #2563eb; padding-bottom: 6pt; }
+  .meta { color: #475569; font-size: 9.5pt; margin-bottom: 18pt; line-height: 1.5; }
+  table { width: 100%; border-collapse: collapse; margin-top: 12pt; }
+  .footer { margin-top: 28pt; font-size: 8.5pt; color: #94a3b8; border-top: 1pt solid #e2e8f0; padding-top: 8pt; text-align: right; }
+</style>
+</head>
+<body>
+  <h1>${title}</h1>
+  <p class="meta">
+    <strong>Category:</strong> ${categoryNames[activeCategory] || activeCategory} &nbsp;&nbsp;|&nbsp;&nbsp;
+    <strong>Report:</strong> ${subReport} &nbsp;&nbsp;|&nbsp;&nbsp;
+    <strong>Filter:</strong> ${fromDate || "Start"} to ${toDate || "Today"} &nbsp;&nbsp;|&nbsp;&nbsp;
+    <strong>Exported:</strong> ${new Date().toLocaleString()}
+  </p>
+  <table>
+    <thead>
+      <tr>${headersHtml}</tr>
+    </thead>
+    <tbody>
+      ${rowsHtml}
+    </tbody>
+  </table>
+  <div class="footer">
+    Confidential &mdash; Generated by Shifterz Auto Management System
+  </div>
+</body>
+</html>
+      `;
+
+      const blob = new Blob(["\ufeff" + docxHtml], {
+        type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `report_${subReport}_${fromDate || "all"}.docx`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
     } catch (err: any) {
-      alert("Export failed: " + (err.message || "Unknown error"));
+      alert("Export Word failed: " + (err.message || "Unknown error"));
     } finally {
       setIsExporting(false);
     }
@@ -218,25 +456,46 @@ export default function ReportsPage() {
       { id: "contribution", label: "Revenue Contribution" }
     ],
     financial: [
+      { id: "invoices", label: "Billing / Invoice Register" },
       { id: "payment-register", label: "Payment Register" },
-      { id: "outstanding", label: "Outstanding Report" },
-      { id: "collection", label: "Collection Summary" },
-      { id: "payment-modes", label: "Payment Modes Summary" },
-      { id: "invoices", label: "Invoice Register" }
+      { id: "pending-payments", label: "Pending Payments" },
+      { id: "gst-report", label: "GST Report" }
     ],
     inventory: [
-      { id: "register", label: "Product Register" },
-      { id: "summary", label: "Stock Summary" },
-      { id: "ledger", label: "Stock Ledger" },
-      { id: "low-stock", label: "Low Stock Alert" },
-      { id: "valuation", label: "Inventory Valuation" }
+      { id: "register", label: "Inventory Stock Register" },
+      { id: "valuation", label: "Valuation Report" },
+      { id: "consumption", label: "Spare Consumption" },
+      { id: "reorder", label: "Reorder / Low Stock List" }
     ]
   };
 
+  const filteredBillingRows = useMemo(() => {
+    if (!searchTerm.trim()) return billingRows;
+    const query = searchTerm.toLowerCase();
+    return billingRows.filter((r: any) =>
+      Object.values(r || {}).some((val) =>
+        String(val || "").toLowerCase().includes(query)
+      )
+    );
+  }, [billingRows, searchTerm]);
+
+  const filteredTableRows = useMemo(() => {
+    const arr = safeArray(tableRows);
+    if (!searchTerm.trim()) return arr;
+    const query = searchTerm.toLowerCase();
+    return arr.filter((r: any) =>
+      Object.values(r || {}).some((val) =>
+        typeof val === "object"
+          ? JSON.stringify(val).toLowerCase().includes(query)
+          : String(val || "").toLowerCase().includes(query)
+      )
+    );
+  }, [tableRows, searchTerm]);
+
   return (
-    <div className="p-8 space-y-8 bg-slate-50 min-h-screen">
-      {/* Page Title & Global Action */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="p-8 max-w-7xl mx-auto space-y-6">
+      {/* Header (§16.1) */}
+      <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
             <FileSpreadsheet className="w-7 h-7 text-blue-600" />
@@ -248,7 +507,7 @@ export default function ReportsPage() {
         </div>
 
         <button
-          onClick={handleExportCsv}
+          onClick={handleExportWord}
           disabled={isExporting || isLoading}
           className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl shadow-sm transition disabled:opacity-50"
         >
@@ -257,61 +516,83 @@ export default function ReportsPage() {
         </button>
       </div>
 
-      {/* Global Filter Bar (§16.12) */}
-      <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-2 text-slate-700 font-semibold text-sm">
-          <Filter className="w-4 h-4 text-blue-600" />
-          <span>Filter Criteria:</span>
+      {/* Search & Date Filter Bar */}
+      <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-3">
+        {/* Search Bar on Left */}
+        <div className="relative min-w-[240px] max-w-md flex-1">
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search report details..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-9 pr-8 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+          />
+          {searchTerm && (
+            <button
+              onClick={() => setSearchTerm("")}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
-          {/* Quick Preset Buttons */}
-          <div className="inline-flex bg-slate-100 rounded-lg p-1">
-            {[
-              { id: "today", label: "Today" },
-              { id: "week", label: "Last 7 Days" },
-              { id: "month", label: "This Month" },
-              { id: "all", label: "All Time" },
-            ].map(preset => (
-              <button
-                key={preset.id}
-                onClick={() => applyDatePreset(preset.id)}
-                className={`px-3 py-1 text-xs font-semibold rounded-md transition ${
-                  datePreset === preset.id
-                    ? "bg-white text-blue-600 shadow-sm"
-                    : "text-slate-600 hover:text-slate-900"
-                }`}
-              >
-                {preset.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Custom From Date */}
-          <div className="flex items-center gap-1.5">
-            <label className="text-xs font-medium text-slate-500">From:</label>
+        {/* Date Filters on Right (Car In Style) */}
+        <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+          {/* From Date Filter */}
+          <div className="flex items-center gap-1.5 bg-white border border-gray-300 rounded-lg px-2.5 py-2 shrink-0">
+            <span className="text-xs font-semibold text-gray-500 whitespace-nowrap">From:</span>
             <input
               type="date"
               value={fromDate}
-              onChange={e => { setFromDate(e.target.value); setDatePreset("custom"); }}
-              className="text-xs px-2.5 py-1.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              max={getTodayISO()}
+              onChange={handleFromDateChange}
+              className="bg-transparent border-none text-xs text-gray-800 focus:outline-none cursor-pointer p-0"
             />
+            <button
+              type="button"
+              disabled={!fromDate}
+              onClick={() => setFromDate("")}
+              className={`p-0.5 rounded transition-colors flex items-center justify-center shrink-0 ${
+                fromDate
+                  ? "text-gray-600 hover:text-gray-900 hover:bg-gray-100 cursor-pointer"
+                  : "text-gray-300 cursor-not-allowed opacity-50"
+              }`}
+              title={fromDate ? "Clear From Date" : ""}
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
           </div>
 
-          {/* Custom To Date */}
-          <div className="flex items-center gap-1.5">
-            <label className="text-xs font-medium text-slate-500">To:</label>
+          {/* To Date Filter */}
+          <div className="flex items-center gap-1.5 bg-white border border-gray-300 rounded-lg px-2.5 py-2 shrink-0">
+            <span className="text-xs font-semibold text-gray-500 whitespace-nowrap">To:</span>
             <input
               type="date"
               value={toDate}
-              onChange={e => { setToDate(e.target.value); setDatePreset("custom"); }}
-              className="text-xs px-2.5 py-1.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              max={getTodayISO()}
+              onChange={handleToDateChange}
+              className="bg-transparent border-none text-xs text-gray-800 focus:outline-none cursor-pointer p-0"
             />
+            <button
+              type="button"
+              disabled={!toDate}
+              onClick={() => setToDate("")}
+              className={`p-0.5 rounded transition-colors flex items-center justify-center shrink-0 ${
+                toDate
+                  ? "text-gray-600 hover:text-gray-900 hover:bg-gray-100 cursor-pointer"
+                  : "text-gray-300 cursor-not-allowed opacity-50"
+              }`}
+              title={toDate ? "Clear To Date" : ""}
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
           </div>
 
           <button
             onClick={fetchReportData}
-            className="p-1.5 text-slate-500 hover:text-blue-600 rounded-lg transition"
+            className="p-2 text-slate-500 hover:text-blue-600 hover:bg-slate-100 rounded-lg transition"
             title="Refresh Data"
           >
             <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin text-blue-600" : ""}`} />
@@ -399,14 +680,14 @@ export default function ReportsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-sm">
-                {billingRows.length === 0 ? (
+                {filteredBillingRows.length === 0 ? (
                   <tr>
                     <td colSpan={8} className="py-8 text-center text-slate-400">
-                      No invoices found for the selected date range.
+                      No invoices found for the selected search or date range.
                     </td>
                   </tr>
                 ) : (
-                  billingRows.map((r: any, idx: number) => (
+                  filteredBillingRows.map((r: any, idx: number) => (
                     <tr key={idx} className="hover:bg-slate-50/50 transition">
                       <td className="py-3 px-4 font-semibold text-blue-600">{String(r.invoiceNo || r.id || '')}</td>
                       <td className="py-3 px-4 text-slate-600">{String(r.date || '')}</td>
@@ -434,7 +715,7 @@ export default function ReportsPage() {
         ) : (
           // Dynamic JSON Array Table Display
           <div className="overflow-x-auto">
-            {safeArray(tableRows).length === 0 ? (
+            {filteredTableRows.length === 0 ? (
               <div className="py-16 text-center text-slate-400 font-medium">
                 No report records found for the selected filters.
               </div>
@@ -442,7 +723,7 @@ export default function ReportsPage() {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="border-b border-slate-200 bg-slate-50/75 text-slate-600 text-xs font-semibold uppercase tracking-wider">
-                    {Object.keys(safeArray(tableRows)[0] || {}).map((col, idx) => (
+                    {Object.keys(filteredTableRows[0] || {}).map((col, idx) => (
                       <th key={idx} className="py-3.5 px-4 capitalize">
                         {col.replace(/([A-Z])/g, " $1")}
                       </th>
@@ -450,19 +731,25 @@ export default function ReportsPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-sm">
-                  {safeArray(tableRows).map((row, idx) => (
+                  {filteredTableRows.map((row, idx) => (
                     <tr key={idx} className="hover:bg-slate-50/50 transition">
                       {Object.values(row || {}).map((val: any, vIdx) => (
                         <td key={vIdx} className="py-3 px-4 text-slate-700">
-                          {typeof val === "number" && Object.keys(row || {})[vIdx]?.toLowerCase().includes("price") ||
-                           typeof val === "number" && Object.keys(row || {})[vIdx]?.toLowerCase().includes("amount") ||
-                           typeof val === "number" && Object.keys(row || {})[vIdx]?.toLowerCase().includes("value") ||
-                           typeof val === "number" && Object.keys(row || {})[vIdx]?.toLowerCase().includes("revenue") ? (
+                          {typeof val === "number" && (Object.keys(row || {})[vIdx]?.toLowerCase().includes("price") ||
+                           Object.keys(row || {})[vIdx]?.toLowerCase().includes("amount") ||
+                           Object.keys(row || {})[vIdx]?.toLowerCase().includes("value") ||
+                           Object.keys(row || {})[vIdx]?.toLowerCase().includes("revenue")) ? (
                             <span className="font-mono font-semibold">₹{val.toLocaleString("en-IN")}</span>
                           ) : typeof val === "number" ? (
                             <span className="font-mono">{val.toLocaleString("en-IN")}</span>
+                          ) : typeof val === "object" && val !== null ? (
+                            <span className="text-xs text-slate-600 font-mono">
+                              {Array.isArray(val)
+                                ? val.map((item) => (typeof item === "object" && item !== null ? JSON.stringify(item) : String(item ?? ''))).join(", ")
+                                : Object.entries(val).map(([k, v]) => `${k}: ${typeof v === 'object' && v !== null ? JSON.stringify(v) : (v ?? '')}`).join(", ")}
+                            </span>
                           ) : (
-                            val || "N/A"
+                            String(val ?? "N/A")
                           )}
                         </td>
                       ))}

@@ -102,7 +102,7 @@ function CardMoreDropdown({
               <Receipt className="w-3.5 h-3.5" /> View Payment Details
             </button>
           )}
-          {doc.status !== "Cancelled" && (
+          {doc.status !== "Cancelled" && doc.status !== "Paid" && doc.status !== "Partially Paid" && (
             <button
               onClick={() => { setIsOpen(false); onCancel(); }}
               className="w-full text-left px-3 py-2 text-xs font-medium hover:bg-red-50 text-red-600 flex items-center gap-2 transition-colors"
@@ -123,6 +123,9 @@ export function BillingPage() {
     documents,
     isLoading,
     error,
+    outPasses,
+    setOutPasses,
+    hasOutPass,
     handleAddInvoice,
     handleEditInvoice,
     handleCancelDocument,
@@ -134,7 +137,7 @@ export function BillingPage() {
   const handleGenerateOutPass = async (doc: BillingDocument) => {
     try {
       const vehStr = doc.vehicle && doc.vehicle !== "-" ? doc.vehicle : "N/A";
-      await createOutPass({
+      const newOutpass = await createOutPass({
         vehicle: vehStr,
         customer: doc.client || "Walk-in Customer",
         phone: doc.phone || "",
@@ -143,6 +146,7 @@ export function BillingPage() {
         customerConfirmation: true,
         outTime: new Date().toISOString()
       });
+      setOutPasses((prev) => [...prev, newOutpass || { invoiceId: doc.id, vehicle: vehStr, status: "Pending" }]);
       toast.success(`Out pass generated for Invoice ${doc.id}`);
     } catch (err: any) {
       toast.error("Failed to generate out pass: " + (err.message || "Error"));
@@ -179,29 +183,40 @@ export function BillingPage() {
     return matchesFilter && matchesSearch && matchesDate;
   });
 
-  const totalInvoiced = documents.reduce((sum, doc) => sum + (doc.amount + doc.gst - doc.discount), 0);
-  const collected = documents
-    .filter((doc) => doc.status === "Paid" || doc.status === "Completed")
-    .reduce((sum, doc) => sum + (doc.amount + doc.gst - doc.discount), 0);
-  const pending = documents
-    .filter((doc) => doc.status === "Pending" || doc.status === "Partially Paid" || doc.status === "Payment Pending" || doc.status === "Invoice Generated")
-    .reduce((sum, doc) => sum + (doc.amount + doc.gst - doc.discount), 0);
-  const overdue = documents
-    .filter((doc) => doc.status === "Overdue")
-    .reduce((sum, doc) => sum + (doc.amount + doc.gst - doc.discount), 0);
+  const activeDocs = documents.filter((doc) => doc.status !== "Cancelled");
 
-  const totalInvoicedCount = documents.length;
-  const collectedCount = documents.filter((doc) => doc.status === "Paid" || doc.status === "Completed").length;
-  const pendingCount = documents.filter((doc) => doc.status === "Pending" || doc.status === "Partially Paid" || doc.status === "Payment Pending" || doc.status === "Invoice Generated").length;
-  const overdueCount = documents.filter((doc) => doc.status === "Overdue").length;
+  const getDocVal = (doc: any) => {
+    const amt = Number(doc.amount || 0);
+    const gst = Number(doc.gst || 0);
+    const disc = Number(doc.discount || 0);
+    return amt + gst - disc;
+  };
+
+  const totalInvoiced = activeDocs.reduce((sum, doc) => sum + getDocVal(doc), 0);
+  const collected = activeDocs
+    .filter((doc) => doc.status === "Paid" || doc.status === "Completed")
+    .reduce((sum, doc) => sum + getDocVal(doc), 0);
+  const pending = activeDocs
+    .filter((doc) => ["Pending", "Partially Paid", "Payment Pending", "Invoice Generated"].includes(doc.status))
+    .reduce((sum, doc) => sum + getDocVal(doc), 0);
+  const overdue = activeDocs
+    .filter((doc) => doc.status === "Overdue")
+    .reduce((sum, doc) => sum + getDocVal(doc), 0);
+
+  const totalInvoicedCount = activeDocs.length;
+  const collectedCount = activeDocs.filter((doc) => doc.status === "Paid" || doc.status === "Completed").length;
+  const pendingCount = activeDocs.filter((doc) => ["Pending", "Partially Paid", "Payment Pending", "Invoice Generated"].includes(doc.status)).length;
+  const overdueCount = activeDocs.filter((doc) => doc.status === "Overdue").length;
+
 
   const handleMarkAsPaid = (id: string) => {
     const doc = documents.find((d) => d.id === id);
-    if (doc && doc.status !== "Paid") {
+    if (doc && doc.type === "Invoice" && doc.status !== "Paid" && doc.status !== "Cancelled") {
       setDocumentToMarkPaid(doc);
       setIsRecordPaymentOpen(true);
     }
   };
+
 
   if (isLoading) return <div className="p-8 text-center text-gray-500">Loading invoices...</div>;
 
@@ -367,9 +382,9 @@ export function BillingPage() {
                 className="bg-white rounded-2xl border border-gray-200/90 p-5 shadow-xs hover:shadow-md transition-all flex flex-col justify-between space-y-4"
               >
                 <div>
-                  {/* Card Top Bar: Doc ID, Type Badge, and Status Badge */}
-                  <div className="flex items-center justify-between gap-3 mb-4 pb-3 border-b border-gray-100">
-                    <div className="flex items-center gap-2 min-w-0">
+                  {/* Card Top Bar: Doc ID, Type Badge, Vehicle Badge, and Action Buttons */}
+                  <div className="flex items-center justify-between gap-3 mb-4 pb-3 border-b border-gray-100 flex-wrap">
+                    <div className="flex items-center gap-2 min-w-0 flex-wrap">
                       <div className={`p-2 rounded-xl shrink-0 ${doc.type === "Invoice" ? "bg-purple-100 text-purple-600" :
                         doc.type === "Quotation" ? "bg-blue-100 text-blue-600" :
                           "bg-emerald-100 text-emerald-600"
@@ -425,9 +440,11 @@ export function BillingPage() {
                     {/* Left Column (4 Fields) */}
                     <div className="space-y-3">
                       <div className="grid grid-cols-[140px_20px_1fr] items-center">
-                        <span className="font-medium text-gray-500">Vehicle No</span>
+                        <span className="font-semibold text-gray-600">Vehicle No</span>
                         <span className="text-gray-300 font-bold text-center">:</span>
-                        <span className="font-bold text-gray-900 uppercase font-mono whitespace-nowrap">{doc.vehicle || "—"}</span>
+                        <span className="font-bold text-slate-900 font-mono text-sm tracking-wider uppercase">
+                          {doc.vehicle || "—"}
+                        </span>
                       </div>
 
                       <div className="grid grid-cols-[140px_20px_1fr] items-center">
@@ -439,7 +456,11 @@ export function BillingPage() {
                       <div className="grid grid-cols-[140px_20px_1fr] items-center">
                         <span className="font-medium text-gray-500">Service</span>
                         <span className="text-gray-300 font-bold text-center">:</span>
-                        <span className="font-bold text-gray-900 whitespace-nowrap">{doc.service || "—"}</span>
+                        <span className="font-bold text-gray-900 whitespace-nowrap">
+                          {doc.service && doc.service !== "—" && doc.service !== "-"
+                            ? doc.service
+                            : (doc.serviceCategory || (doc.items && doc.items.find((i: any) => i.desc && i.desc.trim())?.desc) || "General Service")}
+                        </span>
                       </div>
 
                       <div className="grid grid-cols-[140px_20px_1fr] items-center">
@@ -481,26 +502,36 @@ export function BillingPage() {
                 </div>
 
                 {/* Add Payment / Go to Out Pass Button (Footer) */}
-                <div className="flex justify-end gap-2 pt-4 border-t border-gray-50 mt-4">
-                  {(doc.status === "Paid" || doc.status === "Completed") && (
-                    <button
-                      onClick={() => handleGenerateOutPass(doc)}
-                      className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-bold rounded-xl transition-colors shadow-sm flex items-center gap-2"
-                    >
-                      <Ticket className="w-4 h-4" />
-                      Generate Out Pass
-                    </button>
+                <div className="flex justify-between items-center gap-2 pt-4 border-t border-gray-50 mt-4">
+                  {/* Estimate/Quotation: payment not allowed — show conversion hint */}
+                  {(doc.type === "Estimate" || doc.type === "Quotation") && doc.status !== "Converted" && doc.status !== "Cancelled" && (
+                    <div className="flex items-center gap-1.5 text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5">
+                      <CreditCard className="w-3.5 h-3.5 shrink-0" />
+                      <span>Convert to Invoice to accept payment</span>
+                    </div>
                   )}
-                  {doc.type === "Invoice" && doc.status !== "Paid" && doc.status !== "Cancelled" && (
-                    <button
-                      onClick={() => handleMarkAsPaid(doc.id)}
-                      className="px-4 py-2 bg-emerald-600 text-white text-sm font-bold rounded-xl hover:bg-emerald-700 transition-colors shadow-sm flex items-center gap-2"
-                    >
-                      <CreditCard className="w-4 h-4" />
-                      Add Payment
-                    </button>
-                  )}
+                  <div className="flex items-center gap-2 ml-auto">
+                    {(doc.status === "Paid" || doc.status === "Completed") && !hasOutPass(doc) && (
+                      <button
+                        onClick={() => handleGenerateOutPass(doc)}
+                        className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-bold rounded-xl transition-colors shadow-sm flex items-center gap-2"
+                      >
+                        <Ticket className="w-4 h-4" />
+                        Generate Out Pass
+                      </button>
+                    )}
+                    {doc.type === "Invoice" && doc.status !== "Paid" && doc.status !== "Cancelled" && (
+                      <button
+                        onClick={() => handleMarkAsPaid(doc.id)}
+                        className="px-4 py-2 bg-emerald-600 text-white text-sm font-bold rounded-xl hover:bg-emerald-700 transition-colors shadow-sm flex items-center gap-2"
+                      >
+                        <CreditCard className="w-4 h-4" />
+                        Add Payment
+                      </button>
+                    )}
+                  </div>
                 </div>
+
               </div>
             );
           })}

@@ -88,9 +88,8 @@ export default function DocumentPreviewDialog({
   };
 
   const handlePrint = () => {
-    const printWindow = window.open("", "", "height=900,width=900");
+    const printWindow = window.open("", "_blank", "height=900,width=900");
     if (printWindow) {
-      const docHtml = document.docNo.startsWith("INV") ? "invoice" : "document";
       printWindow.document.write(`
         <!DOCTYPE html>
         <html>
@@ -245,6 +244,10 @@ export default function DocumentPreviewDialog({
                 font-size: 12px;
                 color: #666;
               }
+              @media print {
+                body { padding: 0; }
+                .document { border: none; border-radius: 0; }
+              }
             </style>
           </head>
           <body>
@@ -307,11 +310,11 @@ export default function DocumentPreviewDialog({
                     </tr>
                     <tr class="gst-row">
                       <td colspan="8" style="text-align:right">CGST</td>
-                      <td class="amount">₹${(parseAmount(document.gst) / 2).toLocaleString("en-IN")}</td>
+                      <td class="amount">Rs.${(parseAmount(document.gst) / 2).toLocaleString("en-IN")}</td>
                     </tr>
                     <tr class="gst-row">
                       <td colspan="8" style="text-align:right">SGST</td>
-                      <td class="amount">₹${(parseAmount(document.gst) / 2).toLocaleString("en-IN")}</td>
+                      <td class="amount">Rs.${(parseAmount(document.gst) / 2).toLocaleString("en-IN")}</td>
                     </tr>
                     ${document.discount ? `<tr class="gst-row">
                       <td colspan="8" style="text-align:right">Discount</td>
@@ -352,9 +355,21 @@ export default function DocumentPreviewDialog({
         </html>
       `);
       printWindow.document.close();
-      printWindow.print();
+      // Wait for the popup to fully load before triggering print
+      printWindow.onload = () => {
+        printWindow.focus();
+        printWindow.print();
+      };
+      // Fallback for browsers that don't fire onload on document.write
+      setTimeout(() => {
+        if (!printWindow.closed) {
+          printWindow.focus();
+          printWindow.print();
+        }
+      }, 500);
     }
   };
+
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 sm:p-4">
@@ -365,6 +380,14 @@ export default function DocumentPreviewDialog({
             <p className="text-xs sm:text-sm text-gray-500 mt-1">Doc No: {document?.docNo}</p>
           </div>
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            <button
+              onClick={handlePrint}
+              className="flex items-center gap-1.5 px-3 py-2 bg-gray-900 hover:bg-gray-700 text-white text-xs font-bold rounded-lg transition-colors"
+              title="Print document"
+            >
+              <Printer className="w-3.5 h-3.5" />
+              Print
+            </button>
             <button
               onClick={onClose}
               className="p-1 hover:bg-gray-100 rounded-lg transition-colors"

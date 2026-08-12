@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { Search, X, FileText, CheckCircle2, AlertCircle, Printer, CreditCard, Ticket } from "lucide-react";
-import { getJobs, getInvoices, getPayments, createOutPass } from "@/lib/api";
+import { getJobs, getInvoices, getPayments, createOutPass, getOutPasses } from "@/lib/api";
 import { toast } from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import NewDocumentDialog from "./NewDocumentDialog";
@@ -12,6 +12,7 @@ export default function BillingJobCards() {
   const router = useRouter();
   const [jobs, setJobs] = useState<any[]>([]);
   const [invoices, setInvoices] = useState<any[]>([]);
+  const [outPasses, setOutPasses] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
@@ -22,10 +23,25 @@ export default function BillingJobCards() {
   
   const [selectedContext, setSelectedContext] = useState<any>(null);
 
+  const hasOutPass = (item: any): boolean => {
+    if (!item) return false;
+    const norm = (v?: string) => (v || "").replace(/[^A-Z0-9]/g, "").toUpperCase();
+    const itemVeh = norm(item.vehicle);
+    const invId = item.invoice?.id;
+
+    return outPasses.some((op) => {
+      if ((op.status || "").toLowerCase() === "rejected") return false;
+      if (invId && op.invoiceId === invId) return true;
+      if (op.jobCardId && item.id && op.jobCardId === item.id) return true;
+      if (itemVeh && op.vehicle && norm(op.vehicle) === itemVeh) return true;
+      return false;
+    });
+  };
+
   const handleGenerateOutPass = async (jobItem: any) => {
     try {
       const inv = jobItem.invoice;
-      await createOutPass({
+      const newOp = await createOutPass({
         vehicle: jobItem.vehicle,
         customer: jobItem.customer || "",
         phone: jobItem.phone || "",
@@ -35,6 +51,7 @@ export default function BillingJobCards() {
         customerConfirmation: true,
         outTime: new Date().toISOString()
       });
+      setOutPasses((prev) => [...prev, newOp || { invoiceId: inv?.id, jobCardId: jobItem.id, vehicle: jobItem.vehicle, status: "Pending" }]);
       toast.success(`Out pass generated for ${jobItem.vehicle}`);
       await loadData();
     } catch (err: any) {
@@ -45,14 +62,16 @@ export default function BillingJobCards() {
   const loadData = useCallback(async () => {
     try {
       setIsLoading(true);
-      const [jobsData, invoicesData] = await Promise.all([
+      const [jobsData, invoicesData, outPassData] = await Promise.all([
         getJobs(),
-        getInvoices()
+        getInvoices(),
+        getOutPasses().catch(() => [])
       ]);
       setJobs(jobsData || []);
       setInvoices(invoicesData || []);
+      setOutPasses(outPassData || []);
     } catch (err) {
-      console.error(err);
+      console.error("Failed to load billing jobs", err);
     } finally {
       setIsLoading(false);
     }
@@ -223,14 +242,22 @@ export default function BillingJobCards() {
                       </button>
                     );
                   } else if (j.billingStatus === "Fully Paid") {
-                    actionBtn = (
-                      <button 
-                        onClick={() => handleGenerateOutPass(j)}
-                        className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded shadow-sm flex items-center gap-1 transition-colors whitespace-nowrap"
-                      >
-                        <Ticket className="w-3.5 h-3.5" /> Generate Out Pass
-                      </button>
-                    );
+                    if (hasOutPass(j)) {
+                      actionBtn = (
+                        <span className="px-2.5 py-1 bg-purple-50 text-purple-700 text-xs font-bold rounded border border-purple-200">
+                          Outpass Generated
+                        </span>
+                      );
+                    } else {
+                      actionBtn = (
+                        <button 
+                          onClick={() => handleGenerateOutPass(j)}
+                          className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded shadow-sm flex items-center gap-1 transition-colors whitespace-nowrap"
+                        >
+                          <Ticket className="w-3.5 h-3.5" /> Generate Out Pass
+                        </button>
+                      );
+                    }
                   } else {
                     actionBtn = (
                       <button 
@@ -245,7 +272,7 @@ export default function BillingJobCards() {
                   return (
                     <tr key={j.id} className="hover:bg-gray-50/50">
                       <td className="px-4 py-4 font-mono text-xs font-bold whitespace-nowrap text-blue-600">{j.id}</td>
-                      <td className="px-4 py-4 font-bold text-gray-900 whitespace-nowrap">{j.vehicle}</td>
+                      <td className="px-4 py-4 font-bold text-gray-900 uppercase font-mono whitespace-nowrap">{j.vehicle}</td>
                       <td className="px-4 py-4 text-gray-600 whitespace-nowrap">{j.customer}</td>
                       <td className="px-4 py-4 text-gray-600">{j.service}</td>
                       <td className="px-4 py-4 font-bold text-gray-900 text-right whitespace-nowrap">

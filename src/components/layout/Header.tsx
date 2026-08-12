@@ -3,7 +3,7 @@
 import { useState, useEffect, useContext } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { Bell, Settings, User, LogOut, Clock, Menu, CheckCheck } from "lucide-react";
+import { Bell, Settings, User, LogOut, Clock, Menu, CheckCheck, Building2 } from "lucide-react";
 import { getSettings, getNotifications, markAllNotificationsRead } from "@/lib/api";
 import { SidebarContext } from "@/lib/context/SidebarContext";
 import {
@@ -80,6 +80,7 @@ export default function Header() {
   const [companyInitials, setCompanyInitials] = useState("AD");
   const [userName, setUserName] = useState<string>("");
   const [userRole, setUserRole] = useState<string>("");
+  const [franchiseName, setFranchiseName] = useState<string>("");
   const [notifications, setNotifications] = useState<any[]>([]);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
 
@@ -90,6 +91,19 @@ export default function Header() {
         const user = JSON.parse(userStr);
         setUserName(user.username);
         setUserRole(user.role);
+
+        let fname = user.franchiseName || user.branchName || user.branch;
+        if (!fname) {
+          if (user.franchiseId && user.franchiseId !== "HQ") {
+            fname = "Franchise Branch";
+          } else {
+            fname = "Headquarters (HQ)";
+          }
+        }
+        if (typeof fname === "object" && fname !== null) {
+          fname = (fname as any).name || (fname as any).label || "Headquarters (HQ)";
+        }
+        setFranchiseName(String(fname));
       } catch (e) {}
     }
 
@@ -152,6 +166,12 @@ export default function Header() {
           </button>
           <div>
             <h1 className="text-2xl font-bold text-gray-900">{pageTitle}</h1>
+            {franchiseName && (
+              <div className="flex items-center gap-1.5 text-xs font-semibold text-purple-700 bg-purple-50 border border-purple-200/80 px-2.5 py-0.5 rounded-md w-fit mt-1 shadow-2xs">
+                <Building2 className="w-3.5 h-3.5 text-purple-600 shrink-0" />
+                <span>Franchise: {franchiseName}</span>
+              </div>
+            )}
           </div>
         </div>
 

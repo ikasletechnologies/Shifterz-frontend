@@ -87,7 +87,7 @@ export const hqSidebarSections: NavSection[] = [
   {
     label: "WORKSHOP",
     items: [
-      { label: "Car In / Out", icon: Car, href: "/dashboard/carin", module: "carin" },
+      { label: "Car In", icon: Car, href: "/dashboard/carin", module: "carin" },
       { label: "Job Cards", icon: Briefcase, href: "/dashboard/jobs", module: "jobs" },
       { label: "Live Status", icon: ActivitySquare, href: "/dashboard/live-status", module: "jobs" },
       { label: "Out Pass", icon: Ticket, href: "/dashboard/outpass", module: "outpass" },
@@ -167,7 +167,7 @@ export const franchiseSidebarSections: NavSection[] = [
   {
     label: "WORKSHOP",
     items: [
-      { label: "Car In / Out", icon: Car, href: "/dashboard/carin", module: "carin" },
+      { label: "Car In", icon: Car, href: "/dashboard/carin", module: "carin" },
       { label: "Job Cards", icon: Briefcase, href: "/dashboard/jobs", module: "jobs" },
       { label: "Live Status", icon: ActivitySquare, href: "/dashboard/live-status", module: "jobs" },
       { label: "Out Pass", icon: Ticket, href: "/dashboard/outpass", module: "outpass" },
@@ -283,7 +283,7 @@ export const receptionistSidebarSections: NavSection[] = [
   {
     label: "FRONT DESK",
     items: [
-      { label: "Car In / Out", icon: Car, href: "/dashboard/carin", module: "carin" },
+      { label: "Car In", icon: Car, href: "/dashboard/carin", module: "carin" },
       { label: "Outpass", icon: Ticket, href: "/dashboard/outpass", module: "outpass" },
     ],
   },
@@ -502,13 +502,9 @@ export default function Sidebar() {
     .map((sec) => {
       const filteredItems = sec.items.filter((item) => {
         if (baseRole === "SUPER_ADMIN") return true;
+        if ((item.module === "outpass" || item.module === "attendance") && (baseRole === "SERVICE_ADVISOR" || baseRole.includes("SERVICE_ADVISOR"))) return true;
         if (!item.module || !allowedModules) return true;
         return allowedModules.includes(item.module);
-      }).map((item) => {
-        if (baseRole === "SUPER_ADMIN" && item.module === "carin" && item.label === "Car In / Out") {
-          return { ...item, label: "Car In" };
-        }
-        return item;
       });
       return {
         ...sec,

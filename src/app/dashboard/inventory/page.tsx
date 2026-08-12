@@ -82,7 +82,7 @@ export default function InventoryPage() {
   // Live Inventory Metrics & Calculations (derived directly from real inventory records)
   const lowStockItems = items.filter((item) => item.stock <= item.reorder);
   const totalSkus = items.length;
-  const totalValue = items.reduce((sum, item) => sum + (item.stock * item.cost), 0);
+  const totalValue = items.reduce((sum, item) => sum + (item.stock * Number(item.cost || 0)), 0);
   const totalSuppliers = new Set(items.map((item) => item.supplier).filter(Boolean)).size;
 
   // Filtered Items Logic
@@ -100,9 +100,20 @@ export default function InventoryPage() {
     return matchesSearch && matchesCatSelect;
   });
 
-  const handleAddItem = async (newItem: any) => {
+  const handleAddItem = async (formData: any) => {
     try {
-      const created = await createInventoryItem(newItem);
+      // Map dialog field names to backend field names
+      const payload = {
+        name: formData.name,
+        category: formData.category,
+        unit: formData.unit,
+        stock: formData.stock,
+        cost: formData.costPerUnit,       // dialog uses costPerUnit → backend expects cost
+        reorder: formData.reorderLevel,   // dialog uses reorderLevel → backend expects reorder
+        supplier: formData.supplier,
+        location: formData.location,
+      };
+      const created = await createInventoryItem(payload);
       setItems([...items, created]);
       setIsDialogOpen(false);
     } catch (err: any) {
@@ -189,8 +200,8 @@ export default function InventoryPage() {
         item.category,
         String(item.stock),
         item.unit,
-        `₹${item.cost.toLocaleString("en-IN")}`,
-        `₹${(item.stock * item.cost).toLocaleString("en-IN")}`,
+        `Rs. ${Number(item.cost || 0).toLocaleString("en-IN")}`,
+        `Rs. ${(item.stock * Number(item.cost || 0)).toLocaleString("en-IN")}`,
         String(item.reorder),
         item.supplier || "—",
         item.location || "—",
@@ -203,7 +214,11 @@ export default function InventoryPage() {
         body: tableBody,
         theme: "striped",
         headStyles: { fillColor: [30, 41, 59], textColor: 255, fontStyle: "bold", fontSize: 9 },
-        styles: { fontSize: 8, cellPadding: 2.5 },
+        styles: { fontSize: 8, cellPadding: 2.5, overflow: "linebreak" },
+        columnStyles: {
+          4: { fontSize: 9, fontStyle: "bold", minCellWidth: 24, cellWidth: "auto" },
+          5: { fontSize: 9, fontStyle: "bold", minCellWidth: 28, cellWidth: "auto" },
+        },
       });
 
       doc.save(`inventory_report_${new Date().toISOString().split("T")[0]}.pdf`);
@@ -581,12 +596,12 @@ export default function InventoryPage() {
 
                       {/* Cost / Unit */}
                       <td className="py-3.5 px-4 whitespace-nowrap text-slate-700 font-medium">
-                        ₹{item.cost.toLocaleString("en-IN")}
+                        ₹{Number(item.cost || 0).toLocaleString("en-IN")}
                       </td>
 
                       {/* Total Value */}
                       <td className="py-3.5 px-4 whitespace-nowrap font-bold text-slate-900">
-                        ₹{(item.stock * item.cost).toLocaleString("en-IN")}
+                        ₹{(item.stock * Number(item.cost || 0)).toLocaleString("en-IN")}
                       </td>
 
                       {/* Supplier */}

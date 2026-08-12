@@ -54,7 +54,7 @@ const ROLES = [
 // ── Module options for checkable list ──────────────────────────────────────────
 const MODULE_OPTIONS = [
   { value: "dashboard", label: "Dashboard", icon: Grid3x3 },
-  { value: "carin", label: "Car In / Out", icon: Car },
+  { value: "carin", label: "Car In", icon: Car },
   { value: "jobs", label: "Job Cards", icon: Briefcase },
   { value: "outpass", label: "Out Pass", icon: Ticket },
   { value: "leads", label: "Leads", icon: Users },
@@ -74,7 +74,7 @@ const DEFAULT_ROLE_MODULES: Record<string, string[]> = {
   FRANCHISE_ADMIN: ["dashboard", "carin", "jobs", "outpass", "leads", "customers", "billing", "payments", "inventory", "employees", "attendance"],
   BRANCH_MANAGER: ["dashboard", "carin", "jobs", "outpass", "customers", "billing", "payments", "inventory"],
   RECEPTION_EXECUTIVE: ["dashboard", "carin", "outpass", "customers", "leads"],
-  SERVICE_ADVISOR: ["dashboard", "carin", "jobs", "customers", "leads"],
+  SERVICE_ADVISOR: ["dashboard", "carin", "jobs", "outpass", "customers", "leads"],
   TECHNICIAN: ["dashboard", "jobs", "attendance"],
   QUALITY_INSPECTOR: ["dashboard", "jobs", "carin"],
   BILLING_EXECUTIVE: ["dashboard", "billing", "payments", "reports"],

@@ -43,47 +43,103 @@ export default function BillingDashboard() {
     loadData();
   }, []);
 
+  const isToday = (dateVal?: any) => {
+    if (!dateVal) return false;
+    try {
+      const d = new Date(dateVal);
+      if (isNaN(d.getTime())) {
+        const todayStr = new Date().toISOString().slice(0, 10);
+        return String(dateVal).includes(todayStr);
+      }
+      const now = new Date();
+      return (
+        d.getFullYear() === now.getFullYear() &&
+        d.getMonth() === now.getMonth() &&
+        d.getDate() === now.getDate()
+      );
+    } catch {
+      return false;
+    }
+  };
+
+  const parseDocTotal = (doc: any) => {
+    if (typeof doc.total === "number") return doc.total;
+    if (typeof doc.total === "string" && doc.total) {
+      const clean = Number(doc.total.replace(/[^0-9.-]/g, ""));
+      if (!isNaN(clean) && clean > 0) return clean;
+    }
+    const amt = Number(doc.amount || 0);
+    const gst = Number(doc.gst || 0);
+    const disc = Number(doc.discount || 0);
+    return amt + gst - disc;
+  };
+
   const todayStr = new Date().toISOString().slice(0, 10);
-  const todayInvoices = invoices.filter(i => i.date === todayStr);
-  const todayPayments = payments.filter(p => p.date === todayStr);
-  
+
+  // Invoices created today (excluding cancelled)
+  const todayInvoices = invoices.filter(i =>
+    i.status !== "Cancelled" &&
+    (isToday(i.date) || isToday(i.createdAt))
+  );
+
+  // Payments collected today
+  const todayPayments = payments.filter(p =>
+    isToday(p.date) || isToday(p.createdAt)
+  );
+
   // KPIs
   const invoicesCreatedToday = todayInvoices.length;
   const paymentsCollectedToday = todayPayments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
-  
-  const pendingInvoices = invoices.filter(i => i.status === "Pending" || i.status === "Partially Paid" || i.status === "Overdue");
+
+  // Pending Collections: only actual invoices with pending status / remaining balance
+  const pendingInvoices = invoices.filter(i => {
+    if (i.type && i.type !== "Invoice") return false;
+    if (["Paid", "Completed", "Cancelled", "Converted"].includes(i.status)) return false;
+
+    const total = parseDocTotal(i);
+    const paid = Number(i.paidAmount || 0);
+    const isPendingStatus = ["Pending", "Partially Paid", "Payment Pending", "Invoice Generated", "Overdue"].includes(i.status);
+    return isPendingStatus || (total - paid) > 0;
+  });
+
   const pendingCollectionsCount = pendingInvoices.length;
-  
+
   // Outstanding amount total
   const totalOutstanding = pendingInvoices.reduce((sum, doc) => {
-    const total = doc.total || (doc.amount + (doc.gst || 0) - (doc.discount || 0));
-    const paid = doc.paidAmount || 0;
-    return sum + (total - paid);
+    const total = parseDocTotal(doc);
+    const paid = Number(doc.paidAmount || 0);
+    return sum + Math.max(0, total - paid);
   }, 0);
 
   // ── Recent Payments ──
-  const recentPayments = [...payments].sort((a, b) => b.id.localeCompare(a.id)).slice(0, 5);
+  const recentPayments = [...payments].sort((a, b) => (b.id || "").localeCompare(a.id || "")).slice(0, 5);
 
   // ── Outstanding Invoices ──
   const outstandingList = pendingInvoices.map(inv => {
-    const total = inv.total || (inv.amount + (inv.gst || 0) - (inv.discount || 0));
-    const paid = inv.paidAmount || 0;
-    const outstanding = total - paid;
-    
+    const total = parseDocTotal(inv);
+    const paid = Number(inv.paidAmount || 0);
+    const outstanding = Math.max(0, total - paid);
+
     // Days pending
-    const invDate = new Date(inv.date);
-    const now = new Date();
-    const diffTime = Math.abs(now.getTime() - invDate.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    let diffDays = 0;
+    if (inv.date) {
+      const invDate = new Date(inv.date);
+      const now = new Date();
+      if (!isNaN(invDate.getTime())) {
+        const diffTime = Math.abs(now.getTime() - invDate.getTime());
+        diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      }
+    }
 
     return { ...inv, outstanding, diffDays };
   }).sort((a, b) => b.outstanding - a.outstanding).slice(0, 5);
 
   // ── Today's Activity Timeline ──
   const activities = [
-    ...todayInvoices.map(i => ({ type: 'Invoice Generated', time: i.createdAt || `${todayStr}T09:00:00Z`, ref: i.id, label: `Invoice ${i.id} generated` })),
-    ...todayPayments.map(p => ({ type: 'Payment Received', time: p.createdAt || `${todayStr}T10:00:00Z`, ref: p.id, label: `₹${Number(p.amount).toLocaleString("en-IN")} received via ${p.mode}` }))
+    ...todayInvoices.map(i => ({ type: 'Invoice Generated', time: i.createdAt || i.date || `${todayStr}T09:00:00Z`, ref: i.id, label: `Invoice ${i.id} generated` })),
+    ...todayPayments.map(p => ({ type: 'Payment Received', time: p.createdAt || p.date || `${todayStr}T10:00:00Z`, ref: p.id, label: `₹${Number(p.amount).toLocaleString("en-IN")} received via ${p.mode}` }))
   ].sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime()).slice(0, 8);
+
 
   if (isLoading) {
     return <div className="p-8 text-center text-gray-500 font-semibold">Loading Operational Dashboard...</div>;

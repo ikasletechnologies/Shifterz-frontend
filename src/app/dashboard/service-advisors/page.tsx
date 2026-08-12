@@ -8,7 +8,7 @@ import {
 import { StatCard } from "@/components/dashboard/StatCard";
 import EditEmployeeDialog from "@/components/employees/EditEmployeeDialog";
 import AddEmployeeDialog from "@/components/employees/AddEmployeeDialog";
-import { getServiceAdvisorManagementStats, getFranchises, createEmployee, updateEmployee, deleteEmployee } from "@/lib/api";
+import { getServiceAdvisorManagementStats, getFranchises, createEmployee, updateEmployee, deleteEmployee, apiCall } from "@/lib/api";
 import { toast } from "react-hot-toast";
 
 interface AdvisorRow {
@@ -64,8 +64,46 @@ export default function ServiceAdvisorsPage() {
       if (statusFilter !== "All") params.status = statusFilter;
       if (branchFilter !== "All") params.franchiseId = branchFilter;
 
-      const data = await getServiceAdvisorManagementStats(params);
-      setRows(data.list || []);
+      const [data, jobsData] = await Promise.all([
+        getServiceAdvisorManagementStats(params),
+        apiCall("/jobs").catch(() => []),
+      ]);
+
+      const jobsList = Array.isArray(jobsData) ? jobsData : [];
+      const isCompletedStatus = (s: string) =>
+        ["Completed", "QC Passed", "Ready For Billing", "Ready for Billing", "Work Completed", "Delivered", "Out", "Invoiced", "Paid"].includes(s);
+
+      const computedList = (data.list || []).map((row: AdvisorRow) => {
+        const empJobs = jobsList.filter((j: any) => {
+          const saId = j.serviceAdvisorId || j.advisorId || j.createdById;
+          const saName = (j.serviceAdvisor || j.advisor || j.createdBy || j.creator || "").trim().toLowerCase();
+          const normName = (row.name || "").trim().toLowerCase();
+          const normUsername = (row.username || "").trim().toLowerCase();
+
+          const idMatch = Boolean(saId && saId === row.id);
+          const nameMatch = Boolean(
+            saName &&
+            ((normName && (saName === normName || saName.includes(normName) || normName.includes(saName))) ||
+             (normUsername && (saName === normUsername || saName.includes(normUsername))))
+          );
+
+          return idMatch || nameMatch;
+        });
+
+        const assignedJobs = Math.max(row.assignedJobs || 0, empJobs.length);
+        const completed = Math.max(
+          row.completed || 0,
+          empJobs.filter((j: any) => isCompletedStatus(j.status)).length
+        );
+
+        return {
+          ...row,
+          assignedJobs,
+          completed,
+        };
+      });
+
+      setRows(computedList);
       setSummary(data.summary || null);
       setTotal(data.total || 0);
     } catch (err: any) {
@@ -216,7 +254,7 @@ export default function ServiceAdvisorsPage() {
                     <td className="px-6 py-4 font-mono text-xs font-bold text-yellow-600 whitespace-nowrap">{row.id}</td>
                     <td className="px-6 py-4 whitespace-nowrap font-semibold text-gray-900">{row.name}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-gray-600 font-medium">{row.phone || "—"}</td>
-                    <td className="px-6 py-4 text-gray-600 whitespace-nowrap">{row.branch}</td>
+                    <td className="px-6 py-4 text-gray-600 whitespace-nowrap">{typeof row.branch === "string" ? row.branch : (row.branch as any)?.name || "Headquarters"}</td>
                     <td className="px-6 py-4 text-gray-700">{row.assignedJobs}</td>
                     <td className="px-6 py-4 text-gray-700">{row.completed}</td>
                     <td className="px-6 py-4">

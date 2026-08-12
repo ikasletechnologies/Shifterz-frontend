@@ -123,7 +123,6 @@ export default function ProfilePage() {
               <Shield className="w-3 h-3" />
               {roleLabel(profile.role)}
             </span>
-            <p className="text-sm text-gray-400 mt-1">@{profile.username}</p>
           </div>
         </div>
 

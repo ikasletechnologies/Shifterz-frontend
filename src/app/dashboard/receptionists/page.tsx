@@ -8,7 +8,7 @@ import {
 import { StatCard } from "@/components/dashboard/StatCard";
 import EditEmployeeDialog from "@/components/employees/EditEmployeeDialog";
 import AddEmployeeDialog from "@/components/employees/AddEmployeeDialog";
-import { getReceptionistManagementStats, getFranchises, createEmployee, updateEmployee, deleteEmployee } from "@/lib/api";
+import { getReceptionistManagementStats, getFranchises, createEmployee, updateEmployee, deleteEmployee, getOutPasses, apiCall } from "@/lib/api";
 import { toast } from "react-hot-toast";
 
 interface ReceptionRow {
@@ -26,6 +26,8 @@ interface ReceptionRow {
   inProgress: number;
   completed: number;
   productivity: number;
+  carInCount?: number;
+  outpassCount?: number;
 }
 
 interface Summary {
@@ -64,8 +66,51 @@ export default function ReceptionistsPage() {
       if (statusFilter !== "All") params.status = statusFilter;
       if (branchFilter !== "All") params.franchiseId = branchFilter;
 
-      const data = await getReceptionistManagementStats(params);
-      setRows(data.list || []);
+      const [data, carinData, outpassData] = await Promise.all([
+        getReceptionistManagementStats(params),
+        apiCall("/carin").catch(() => []),
+        getOutPasses().catch(() => []),
+      ]);
+
+      const carinList = Array.isArray(carinData) ? carinData : [];
+      const outpassList = Array.isArray(outpassData) ? outpassData : [];
+
+      const computedRows = (data.list || []).map((row: ReceptionRow) => {
+        const normName = (row.name || "").trim().toLowerCase();
+        const normUsername = (row.username || "").trim().toLowerCase();
+
+        const empCarIns = carinList.filter((c: any) => {
+          const recId = c.receptionistId || c.createdById;
+          const recName = (c.receptionist || c.createdBy || "").trim().toLowerCase();
+          const idMatch = Boolean(recId && recId === row.id);
+          const nameMatch = Boolean(
+            recName &&
+            ((normName && (recName === normName || recName.includes(normName) || normName.includes(recName))) ||
+             (normUsername && (recName === normUsername || recName.includes(normUsername))))
+          );
+          return idMatch || nameMatch;
+        });
+
+        const empOutpasses = outpassList.filter((op: any) => {
+          const recId = op.receptionistId || op.createdById || op.issuedById;
+          const recName = (op.receptionist || op.createdBy || op.issuedBy || op.advisor || "").trim().toLowerCase();
+          const idMatch = Boolean(recId && recId === row.id);
+          const nameMatch = Boolean(
+            recName &&
+            ((normName && (recName === normName || recName.includes(normName) || normName.includes(recName))) ||
+             (normUsername && (recName === normUsername || recName.includes(normUsername))))
+          );
+          return idMatch || nameMatch;
+        });
+
+        return {
+          ...row,
+          carInCount: empCarIns.length,
+          outpassCount: empOutpasses.length,
+        };
+      });
+
+      setRows(computedRows);
       setSummary(data.summary || null);
       setTotal(data.total || 0);
     } catch (err: any) {
@@ -97,10 +142,7 @@ export default function ReceptionistsPage() {
       setStatusFilter("All");
       setCurrentPage(1);
 
-      const data = await getReceptionistManagementStats({ page: "1", pageSize: String(PAGE_SIZE) });
-      setRows(data.list || []);
-      setSummary(data.summary || null);
-      setTotal(data.total || 0);
+      fetchData();
     } catch (err: any) {
       toast.error("Failed to create receptionist: " + err.message);
     }
@@ -136,11 +178,10 @@ export default function ReceptionistsPage() {
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-6">
       {summary && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <StatCard title="Total Receptionists" value={summary.total} icon={Users} color="blue" />
           <StatCard title="Active" value={summary.active} icon={UserCheck2} color="green" />
           <StatCard title="Inactive" value={summary.inactive} icon={UserX2} color="gray" />
-          <StatCard title="Assigned Jobs" value={summary.assignedJobs} icon={Briefcase} color="purple" />
         </div>
       )}
 
@@ -198,8 +239,8 @@ export default function ReceptionistsPage() {
                 <th className="px-6 py-4">Name</th>
                 <th className="px-6 py-4">Phone Number</th>
                 <th className="px-6 py-4">Branch</th>
-                <th className="px-6 py-4">Assigned Jobs</th>
-                <th className="px-6 py-4">Completed</th>
+                <th className="px-6 py-4">Car In Count</th>
+                <th className="px-6 py-4">Outpass Count</th>
                 <th className="px-6 py-4">Status</th>
                 <th className="px-6 py-4">Action</th>
               </tr>
@@ -215,9 +256,9 @@ export default function ReceptionistsPage() {
                     <td className="px-6 py-4 font-mono text-xs font-bold text-yellow-600 whitespace-nowrap">{row.id}</td>
                     <td className="px-6 py-4 whitespace-nowrap font-semibold text-gray-900">{row.name}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-gray-600 font-medium">{row.phone || "—"}</td>
-                    <td className="px-6 py-4 text-gray-600 whitespace-nowrap">{row.branch}</td>
-                    <td className="px-6 py-4 text-gray-700">{row.assignedJobs}</td>
-                    <td className="px-6 py-4 text-gray-700">{row.completed}</td>
+                    <td className="px-6 py-4 text-gray-600 whitespace-nowrap">{typeof row.branch === "string" ? row.branch : (row.branch as any)?.name || "Headquarters"}</td>
+                    <td className="px-6 py-4 font-semibold text-gray-800">{row.carInCount ?? 0}</td>
+                    <td className="px-6 py-4 font-semibold text-gray-800">{row.outpassCount ?? 0}</td>
                     <td className="px-6 py-4">
                       <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${row.status === "Active" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
                         {row.status}

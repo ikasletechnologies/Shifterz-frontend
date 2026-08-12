@@ -52,11 +52,6 @@ export default function TechnicianDashboard() {
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Technician Dashboard</h1>
-        <p className="text-gray-500 text-sm mt-1">Overview of your daily metrics and jobs</p>
-      </div>
-
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
         {/* Left Column: Attendance & Performance */}
@@ -136,26 +131,22 @@ export default function TechnicianDashboard() {
               <h2 className="text-lg font-bold text-gray-900">My Jobs Summary</h2>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
               <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 flex flex-col items-center">
                 <span className="text-3xl font-black text-gray-900 mb-1">{jobsSummary.totalAssigned}</span>
-                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Total Assigned</span>
+                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide text-center">Total Assigned</span>
               </div>
               <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 flex flex-col items-center">
                 <span className="text-3xl font-black text-blue-700 mb-1">{jobsSummary.inProgress}</span>
-                <span className="text-xs font-semibold text-blue-600 uppercase tracking-wide">In Progress</span>
+                <span className="text-xs font-semibold text-blue-600 uppercase tracking-wide text-center">In Progress</span>
               </div>
               <div className="bg-green-50 p-4 rounded-xl border border-green-100 flex flex-col items-center">
                 <span className="text-3xl font-black text-green-700 mb-1">{jobsSummary.completedToday}</span>
-                <span className="text-xs font-semibold text-green-600 uppercase tracking-wide">Completed Today</span>
+                <span className="text-xs font-semibold text-green-600 uppercase tracking-wide text-center">Completed Today</span>
               </div>
               <div className="bg-yellow-50 p-4 rounded-xl border border-yellow-100 flex flex-col items-center">
                 <span className="text-3xl font-black text-yellow-700 mb-1">{jobsSummary.waitingMaterial}</span>
                 <span className="text-xs font-semibold text-yellow-600 uppercase tracking-wide text-center">Waiting Material</span>
-              </div>
-              <div className="bg-purple-50 p-4 rounded-xl border border-purple-100 flex flex-col items-center">
-                <span className="text-3xl font-black text-purple-700 mb-1">{jobsSummary.waitingCustomer}</span>
-                <span className="text-xs font-semibold text-purple-600 uppercase tracking-wide text-center">Waiting Approval</span>
               </div>
               <div className="bg-orange-50 p-4 rounded-xl border border-orange-100 flex flex-col items-center">
                 <span className="text-3xl font-black text-orange-700 mb-1">{jobsSummary.waitingQC}</span>

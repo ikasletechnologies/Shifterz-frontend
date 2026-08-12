@@ -8,6 +8,7 @@ interface WarrantyDetailsDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onUpdate: () => void;
+  mode?: "view" | "edit";
 }
 
 export default function WarrantyDetailsDialog({
@@ -15,23 +16,39 @@ export default function WarrantyDetailsDialog({
   isOpen,
   onClose,
   onUpdate,
+  mode = "view",
 }: WarrantyDetailsDialogProps) {
-  const [activeTab, setActiveTab] = useState<"details" | "claims">("details");
-  const [isEditing, setIsEditing] = useState(false);
+  const [activeTab, setActiveTab] = React.useState<"details" | "claims">("details");
+  const [isEditing, setIsEditing] = React.useState(mode === "edit");
 
   // Edit fields
-  const [itemName, setItemName] = useState("");
-  const [status, setStatus] = useState("");
-  const [notes, setNotes] = useState("");
+  const [itemName, setItemName] = React.useState("");
+  const [status, setStatus] = React.useState("");
+  const [notes, setNotes] = React.useState("");
 
   // Claim fields
-  const [claimDescription, setClaimDescription] = useState("");
-  const [claimResolution, setClaimResolution] = useState("");
-  const [claimStatus, setClaimStatus] = useState("Active");
+  const [claimDescription, setClaimDescription] = React.useState("");
+  const [claimResolution, setClaimResolution] = React.useState("");
+  const [claimStatus, setClaimStatus] = React.useState("Active");
 
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (isOpen && warranty) {
+      if (mode === "edit") {
+        setItemName(warranty.itemName || "");
+        setStatus(warranty.status || "Active");
+        setNotes(warranty.notes || "");
+        setIsEditing(true);
+      } else {
+        setIsEditing(false);
+      }
+      setError(null);
+      setSuccessMsg(null);
+    }
+  }, [isOpen, warranty, mode]);
 
   if (!isOpen || !warranty) return null;
 

@@ -9,6 +9,7 @@ import {
   checkOutVehicle,
   deleteVehicleCheckIn
 } from "../services/vehicle-checkin.service";
+import { getOutPasses } from "@/lib/api";
 import { toast } from "react-hot-toast";
 import { getScopedFranchiseId, scopeToFranchise } from "@/lib/franchise-scope";
 
@@ -20,8 +21,41 @@ export function useVehicleCheckin() {
     try {
       setIsLoading(true);
       const franchiseId = getScopedFranchiseId();
-      const data = await getVehicleCheckIns(franchiseId);
-      setCars(scopeToFranchise(data || []));
+      const [checkinData, outpassData] = await Promise.all([
+        getVehicleCheckIns(franchiseId),
+        getOutPasses(franchiseId).catch(() => []),
+      ]);
+
+      const activeOutpasses = (outpassData || []).filter(
+        (op: any) => (op.status || "").toLowerCase() !== "rejected"
+      );
+      const outVehiclesSet = new Set(
+        activeOutpasses
+          .map((op: any) => (op.vehicle || "").replace(/[^A-Z0-9]/g, "").toUpperCase())
+          .filter(Boolean)
+      );
+      const outJobIdsSet = new Set(
+        activeOutpasses.map((op: any) => op.jobCardId || op.id).filter(Boolean)
+      );
+
+      const activeCars = (checkinData || []).filter((car: any) => {
+        const statusLower = (car.status || "").toLowerCase();
+        if (statusLower === "out" || statusLower === "delivered" || statusLower === "issued") {
+          return false;
+        }
+
+        const normVeh = (car.vehicleNo || car.vehicle || car.vehicleNumber || "")
+          .replace(/[^A-Z0-9]/g, "")
+          .toUpperCase();
+
+        if (normVeh && outVehiclesSet.has(normVeh)) return false;
+        if (car.jobCardId && outJobIdsSet.has(car.jobCardId)) return false;
+        if (car.id && outJobIdsSet.has(car.id)) return false;
+
+        return true;
+      });
+
+      setCars(scopeToFranchise(activeCars));
     } catch (err) {
       console.error("Failed to fetch vehicle check-ins:", err);
     } finally {

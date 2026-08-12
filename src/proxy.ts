@@ -57,7 +57,15 @@ export function proxy(request: NextRequest) {
     ];
 
     if (protectedModules.includes(moduleName)) {
-      if (userRole && !userRole.startsWith("SUPER_ADMIN")) {
+      const isSuperAdmin = userRole.startsWith("SUPER_ADMIN");
+      const isServiceAdvisor = userRole.includes("SERVICE_ADVISOR");
+      const isReceptionist = userRole.includes("RECEPTION");
+
+      if (!isSuperAdmin) {
+        if ((moduleName === "outpass" || moduleName === "attendance") && (isServiceAdvisor || isReceptionist)) {
+          return NextResponse.next();
+        }
+
         if (userPermissions.length > 0 && !userPermissions.includes(moduleName)) {
           return NextResponse.redirect(new URL("/dashboard", request.url));
         }

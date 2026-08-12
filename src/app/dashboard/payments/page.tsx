@@ -8,7 +8,7 @@ import {
 import PaymentReceiptDialog from "@/modules/payment/components/PaymentReceiptDialog";
 import RecordPaymentDialog from "@/modules/payment/components/RecordPaymentDialog";
 import PaymentHistoryDialog from "@/modules/payment/components/PaymentHistoryDialog";
-import { getPayments, createPayment } from "@/lib/api";
+import { getPayments, createPayment, getInvoices } from "@/lib/api";
 
 interface Payment {
   id: string;
@@ -52,8 +52,22 @@ export default function PaymentsPage() {
     async function fetchPayments() {
       try {
         setIsLoading(true);
-        const data = await getPayments();
-        setPayments(data || []);
+        const [data, invoicesData] = await Promise.all([
+          getPayments(),
+          getInvoices().catch(() => [])
+        ]);
+        const invMap = new Map((invoicesData || []).map((i: any) => [i.id, i]));
+        const enriched = (data || []).map((p: any) => {
+          const inv: any = p.invoiceId ? invMap.get(p.invoiceId) : null;
+          const veh = p.vehicle && p.vehicle !== "-" ? p.vehicle : inv?.vehicle && inv.vehicle !== "-" ? inv.vehicle : "";
+          return {
+            ...p,
+            vehicle: veh,
+            client: p.client && p.client !== "Walk-in Customer" ? p.client : inv?.client || p.client || "—",
+            phone: p.phone || inv?.phone || "",
+          };
+        });
+        setPayments(enriched);
         setError("");
       } catch (err: any) {
         setError("Failed to load payments: " + err.message);
@@ -333,7 +347,13 @@ export default function PaymentsPage() {
 
                     {/* Vehicle */}
                     <td className="py-3.5 px-4 min-w-[150px]">
-                      <p className="font-bold text-gray-900 uppercase font-mono">{p.vehicle || "—"}</p>
+                      {p.vehicle && p.vehicle !== "—" ? (
+                        <span className="font-mono text-sm font-bold text-slate-900 tracking-wider uppercase">
+                          {p.vehicle}
+                        </span>
+                      ) : (
+                        <span className="font-bold text-gray-400 font-mono">—</span>
+                      )}
                       {p.model && <p className="text-[11px] text-gray-500 truncate mt-0.5">{p.model}</p>}
                     </td>
 
@@ -397,6 +417,7 @@ export default function PaymentsPage() {
                           onClick={() => {
                             if (p.invoiceId) {
                               setSelectedInvoiceId(p.invoiceId);
+                              setSelectedPayment(p);
                               setIsHistoryOpen(true);
                             }
                           }}
@@ -452,6 +473,11 @@ export default function PaymentsPage() {
           setSelectedInvoiceId("");
         }}
         invoiceId={selectedInvoiceId}
+        invoiceData={selectedPayment ? {
+          id: selectedPayment.invoiceId,
+          client: selectedPayment.client,
+          amount: selectedPayment.amount,
+        } : undefined}
       />
     </div>
   );

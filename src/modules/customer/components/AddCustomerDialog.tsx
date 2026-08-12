@@ -60,22 +60,30 @@ export default function AddCustomerDialog({
       return;
     }
 
-    // Validate vehicle number format if provided: TN 04 AB 1234
-    if (formData.vehicle.trim()) {
-      const vehicleRegex = /^[A-Z]{2}\s\d{2}\s[A-Z]{1,2}\s\d{1,4}$/;
-      if (!vehicleRegex.test(formData.vehicle)) {
-        toast.error("Vehicle number format: TN 04 AB 1234 (State Code, RTO, Series, Number)");
-        return;
-      }
+    if (!formData.vehicle.trim()) {
+      toast.error("Vehicle number is required");
+      return;
+    }
 
-      // Check for duplicate vehicle number
-      const isDuplicate = existingCustomers.some(
-        (customer) => customer.vehicle?.toUpperCase() === formData.vehicle.toUpperCase()
-      );
-      if (isDuplicate) {
-        toast.error("❌ This vehicle number already exists! Customer with this vehicle is already registered.");
-        return;
-      }
+    if (!formData.carModel.trim()) {
+      toast.error("Car model is required");
+      return;
+    }
+
+    // Validate vehicle number format if provided: TN 04 AB 1234
+    const vehicleRegex = /^[A-Z]{2}\s\d{2}\s[A-Z]{1,2}\s\d{1,4}$/;
+    if (!vehicleRegex.test(formData.vehicle)) {
+      toast.error("Vehicle number format: TN 04 AB 1234 (State Code, RTO, Series, Number)");
+      return;
+    }
+
+    // Check for duplicate vehicle number
+    const isDuplicate = existingCustomers.some(
+      (customer) => customer.vehicle?.toUpperCase() === formData.vehicle.toUpperCase()
+    );
+    if (isDuplicate) {
+      toast.error("❌ This vehicle number already exists! Customer with this vehicle is already registered.");
+      return;
     }
 
     if (onSubmit) {
@@ -160,7 +168,7 @@ export default function AddCustomerDialog({
             </div>
             <div>
               <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">
-                Vehicle No.
+                Vehicle No. <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
@@ -169,6 +177,7 @@ export default function AddCustomerDialog({
                 onChange={handleChange}
                 placeholder="TN 04 XX 0000"
                 className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent bg-gray-50 uppercase"
+                required
               />
             </div>
           </div>
@@ -176,7 +185,7 @@ export default function AddCustomerDialog({
           {/* Row 3: Car Model */}
           <div>
             <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">
-              Car Model
+              Car Model <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
@@ -185,6 +194,7 @@ export default function AddCustomerDialog({
               onChange={handleChange}
               placeholder="Toyota Fortuner"
               className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent bg-gray-50"
+              required
             />
           </div>
 

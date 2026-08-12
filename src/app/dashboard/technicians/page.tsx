@@ -2,13 +2,14 @@
 
 import { useState, useEffect, useCallback } from "react";
 import {
-  HardHat, Search, Filter, ChevronLeft, ChevronRight, Pencil, Trash2,
+  HardHat, Search, Filter, ChevronLeft, ChevronRight, Pencil, Trash2, Plus,
   Users, UserCheck2, UserX2, Briefcase, Loader2, PackageX, CheckCircle2, RefreshCw, TrendingUp, X,
   Download, ChevronDown, FileSpreadsheet, FileText, BarChart3, Wrench, Hourglass, ClipboardList,
 } from "lucide-react";
 import { StatCard } from "@/components/dashboard/StatCard";
 import EditEmployeeDialog from "@/components/employees/EditEmployeeDialog";
-import { getTechnicianManagementStats, getFranchises, updateEmployee, deleteEmployee } from "@/lib/api";
+import AddEmployeeDialog from "@/components/employees/AddEmployeeDialog";
+import { getTechnicianManagementStats, getFranchises, createEmployee, updateEmployee, deleteEmployee } from "@/lib/api";
 import { toast } from "react-hot-toast";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -78,6 +79,8 @@ export default function TechniciansPage() {
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+
+  const [isAddOpen, setIsAddOpen] = useState(false);
 
   const getTodayISO = () => {
     const d = new Date();
@@ -164,6 +167,26 @@ export default function TechniciansPage() {
   }, []);
 
   const totalPages = Math.ceil(total / PAGE_SIZE) || 1;
+
+  const handleAdd = async (employeeData: any) => {
+    try {
+      await createEmployee({
+        ...employeeData,
+        role: "TECHNICIAN",
+        franchiseId: (employeeData.franchiseId && employeeData.franchiseId !== "HQ") ? employeeData.franchiseId : null
+      });
+      toast.success("Technician created successfully");
+      setIsAddOpen(false);
+      setSearchTerm("");
+      setBranchFilter("All");
+      setStatusFilter("All");
+      setCurrentPage(1);
+
+      fetchData();
+    } catch (err: any) {
+      toast.error("Failed to create technician: " + err.message);
+    }
+  };
 
   const openEdit = (row: TechnicianRow) => {
     setEditing(row);
@@ -434,12 +457,12 @@ export default function TechniciansPage() {
 
       {activeTab === "info" ? (
         <>
-          <div className="flex flex-nowrap items-center gap-2.5 w-full">
-            <div className="relative min-w-[180px] max-w-sm flex-1">
+          <div className="flex flex-wrap lg:flex-nowrap items-center gap-2.5 w-full">
+            <div className="relative w-44 sm:w-52 shrink-0">
               <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
-                placeholder="Search Technician, Emp ID, Phone..."
+                placeholder="Search Technician..."
                 value={searchTerm}
                 onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
                 className="w-full pl-9 pr-8 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500/20 focus:border-yellow-500 transition-all"
@@ -502,7 +525,7 @@ export default function TechniciansPage() {
                 <X className="w-3.5 h-3.5" />
               </button>
             </div>
-            <div className="relative">
+            <div className="relative shrink-0">
               <Filter className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
               <ChevronDown className="w-3.5 h-3.5 absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
               <select
@@ -517,7 +540,7 @@ export default function TechniciansPage() {
                 ))}
               </select>
             </div>
-            <div className="relative">
+            <div className="relative shrink-0">
               <select
                 value={statusFilter}
                 onChange={(e) => {
@@ -618,6 +641,16 @@ export default function TechniciansPage() {
                 </>
               )}
             </div>
+
+            {/* Add Technician Button on right side of Download button */}
+            <button
+              type="button"
+              onClick={() => setIsAddOpen(true)}
+              className="bg-amber-400 hover:bg-amber-500 text-slate-900 font-bold px-4 py-2 rounded-xl flex items-center gap-1.5 transition-all shadow-2xs text-xs sm:text-sm shrink-0 whitespace-nowrap cursor-pointer"
+            >
+              <Plus className="w-4 h-4 stroke-3" />
+              <span>Add Technician</span>
+            </button>
           </div>
 
           {/* Main Content View (JobCardTable for Assigned Jobs, Technician Cards Grid for other KPIs) */}
@@ -785,16 +818,18 @@ export default function TechniciansPage() {
                         <span className="font-medium text-slate-700 truncate">{row.id.toLowerCase()}@shifterz.com</span>
                       </div>
 
-                      {/* Branch */}
+                      {/* Franchise Name */}
                       <div className="flex items-center py-2.5 border-b border-gray-100">
                         <div className="w-9 h-9 rounded-full bg-blue-50 flex items-center justify-center text-blue-500 shrink-0 mr-3">
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5m0 0h5m-5 0V9m0 4h.01M9 9h.01M9 13h.01M15 9h.01M15 13h.01" />
                           </svg>
                         </div>
-                        <span className="font-medium text-slate-600 min-w-[110px]">Branch</span>
+                        <span className="font-medium text-slate-600 min-w-[110px]">Franchise Name</span>
                         <span className="text-slate-400 mr-4 font-normal">:</span>
-                        <span className="font-semibold text-slate-900 truncate">{row.branch}</span>
+                        <span className="font-semibold text-slate-900 truncate">
+                          {franchises.find((f) => f.id === row.franchiseId)?.name || (row.branch && row.branch !== "HQ" && row.branch !== "N/A" ? row.branch : row.franchiseId ? "Assigned Branch" : "Headquarters")}
+                        </span>
                       </div>
 
                       {/* Status */}
@@ -921,7 +956,7 @@ export default function TechniciansPage() {
                         {selectedTech.status}
                       </span>
                     </h2>
-                    <p className="text-xs text-slate-500 font-mono">Employee ID: {selectedTech.id} • Branch: {selectedTech.branch || "Headquarters"}</p>
+                    <p className="text-xs text-slate-500 font-mono">Employee ID: {selectedTech.id} • Branch: {typeof selectedTech.branch === "string" ? selectedTech.branch : (selectedTech.branch as any)?.name || "Headquarters"}</p>
                   </div>
                 </div>
               </div>
@@ -934,7 +969,7 @@ export default function TechniciansPage() {
                 </div>
                 <div>
                   <p className="text-slate-400 font-semibold mb-0.5">Branch</p>
-                  <p className="font-bold text-slate-800">{selectedTech.branch || "Headquarters"}</p>
+                  <p className="font-bold text-slate-800">{typeof selectedTech.branch === "string" ? selectedTech.branch : (selectedTech.branch as any)?.name || "Headquarters"}</p>
                 </div>
                 <div>
                   <p className="text-slate-400 font-semibold mb-0.5">Productivity</p>
@@ -1040,6 +1075,16 @@ export default function TechniciansPage() {
             </div>
           );
         })()
+      )}
+
+      {isAddOpen && (
+        <AddEmployeeDialog
+          isOpen={isAddOpen}
+          onClose={() => setIsAddOpen(false)}
+          onAdd={handleAdd}
+          franchises={franchises}
+          defaultRole="TECHNICIAN"
+        />
       )}
 
       {isEditOpen && editing && (

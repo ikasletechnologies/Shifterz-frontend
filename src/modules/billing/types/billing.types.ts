@@ -21,6 +21,18 @@ export interface BillingDocument {
   phone: string;
   vehicle: string;
   service: string;
+  serviceCategory?: string;
+  customerComplaint?: string;
+  workDescription?: string;
+  advanceAmount?: string | number;
+  model?: string;
+  chassisNo?: string;
+  engineNo?: string;
+  mileage?: string;
+  fuelType?: string;
+  billingAddress?: string;
+  serviceAdvisor?: string;
+  technician?: string;
   amount: number;
   gst: number;
   discount: number;

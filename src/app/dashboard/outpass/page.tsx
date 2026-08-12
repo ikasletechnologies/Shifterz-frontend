@@ -66,7 +66,7 @@ export default function OutPassPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"All" | "Rejected" | "Approved" | "Delivered">("All");
+  const [statusFilter, setStatusFilter] = useState<"All" | "Pending" | "Rejected" | "Approved" | "Delivered">("All");
   const [viewMode, setViewMode] = useState<"cards" | "table">("cards");
   const [isDownloadOpen, setIsDownloadOpen] = useState(false);
   const [activeCardDownloadId, setActiveCardDownloadId] = useState<string | null>(null);
@@ -148,10 +148,11 @@ export default function OutPassPage() {
   };
 
   const allCount = outPasses.length;
+  const pendingCount = outPasses.filter((p) => (p.status || "").toLowerCase() === "pending" || !p.status).length;
   const rejectedCount = outPasses.filter((p) => (p.status || "").toLowerCase() === "rejected").length;
   const approvedCount = outPasses.filter((p) => (p.status || "").toLowerCase() === "approved").length;
   const deliveredCount = outPasses.filter(
-    (p) => (p.status || "").toLowerCase() === "delivered" || p.issued === true || (p.status || "").toLowerCase() === "issued"
+    (p) => (p.status || "").toLowerCase() === "delivered" || p.issued === true || (p.status || "").toLowerCase() === "issued" || (p.status || "").toLowerCase() === "out"
   ).length;
 
   const filteredOutPasses = outPasses.filter((pass) => {
@@ -179,12 +180,14 @@ export default function OutPassPage() {
 
     let statusMatch = true;
     const passStatus = (pass.status || "").toLowerCase();
-    if (statusFilter === "Rejected") {
+    if (statusFilter === "Pending") {
+      statusMatch = passStatus === "pending" || !passStatus;
+    } else if (statusFilter === "Rejected") {
       statusMatch = passStatus === "rejected";
     } else if (statusFilter === "Approved") {
       statusMatch = passStatus === "approved";
     } else if (statusFilter === "Delivered") {
-      statusMatch = passStatus === "delivered" || pass.issued === true || passStatus === "issued";
+      statusMatch = passStatus === "delivered" || pass.issued === true || passStatus === "issued" || passStatus === "out";
     }
 
     return searchMatch && dateMatch && statusMatch;
@@ -608,6 +611,53 @@ export default function OutPassPage() {
           )}
         </div>
 
+      </div>
+
+      {/* Filter Buttons Below Search Bar */}
+      <div className="flex items-center gap-2 mb-6 flex-wrap">
+        {[
+          { id: "All", label: "All", count: allCount },
+          { id: "Approved", label: "Approved", count: approvedCount },
+          { id: "Rejected", label: "Rejected", count: rejectedCount },
+          { id: "Delivered", label: "Delivered", count: deliveredCount },
+        ].map((tab) => {
+          const isActive = statusFilter === tab.id;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setStatusFilter(tab.id as any)}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer shadow-2xs ${
+                isActive
+                  ? tab.id === "Rejected"
+                    ? "bg-red-600 text-white shadow-xs ring-2 ring-red-600/20"
+                    : tab.id === "Delivered"
+                    ? "bg-blue-600 text-white shadow-xs ring-2 ring-blue-600/20"
+                    : tab.id === "Approved"
+                    ? "bg-emerald-600 text-white shadow-xs ring-2 ring-emerald-600/20"
+                    : "bg-slate-900 text-white shadow-xs ring-2 ring-slate-900/20"
+                  : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-200 hover:border-gray-300"
+              }`}
+            >
+              <span>{tab.label}</span>
+              <span
+                className={`px-1.5 py-0.5 rounded-full text-[10px] font-black ${
+                  isActive
+                    ? "bg-white/25 text-white"
+                    : tab.id === "Rejected"
+                    ? "bg-red-100 text-red-700"
+                    : tab.id === "Delivered"
+                    ? "bg-blue-100 text-blue-700"
+                    : tab.id === "Approved"
+                    ? "bg-emerald-100 text-emerald-700"
+                    : "bg-gray-100 text-gray-700"
+                }`}
+              >
+                {tab.count}
+              </span>
+            </button>
+          );
+        })}
       </div>
 
       {/* Main Display Area (Cards / Table) */}

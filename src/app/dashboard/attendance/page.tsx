@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { Clock, CheckCircle2, User, Building2, Search, Filter, Calendar, Users, CheckCircle, LogOut } from "lucide-react";
+import { Clock, CheckCircle2, User, Building2, Search, Filter, Calendar, Users, CheckCircle, LogOut, X } from "lucide-react";
 import { getAttendance, checkIn, checkOut, getFranchises } from "@/lib/api";
 import { toast } from "react-hot-toast";
 
@@ -27,7 +27,38 @@ export default function AttendancePage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedBranch, setSelectedBranch] = useState("ALL");
   const [selectedStatus, setSelectedStatus] = useState("ALL");
-  const [selectedDate, setSelectedDate] = useState("");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+
+  const getTodayISO = () => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = (d.getMonth() + 1).toString().padStart(2, "0");
+    const day = d.getDate().toString().padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
+  const handleFromDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selected = e.target.value;
+    const today = getTodayISO();
+    if (selected && selected > today) {
+      toast.error("Future dates are not allowed. Please select today or a past date.");
+      setFromDate(today);
+      return;
+    }
+    setFromDate(selected);
+  };
+
+  const handleToDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selected = e.target.value;
+    const today = getTodayISO();
+    if (selected && selected > today) {
+      toast.error("Future dates are not allowed. Please select today or a past date.");
+      setToDate(today);
+      return;
+    }
+    setToDate(selected);
+  };
 
   useEffect(() => {
     async function fetchData() {
@@ -138,14 +169,26 @@ export default function AttendancePage() {
         selectedStatus === "ALL" ||
         rec.status?.toLowerCase() === selectedStatus.toLowerCase();
 
-      // Date
-      const matchesDate =
-        !selectedDate ||
-        isSameDay(rec.date, selectedDate);
+      // Date Range (reused from Car In module)
+      let matchesDateRange = true;
+      const recDateRaw = rec.date || rec.clockIn;
+      if (recDateRaw) {
+        const recDate = new Date(recDateRaw);
+        if (!isNaN(recDate.getTime())) {
+          if (fromDate) {
+            const start = new Date(fromDate + "T00:00:00");
+            if (recDate < start) matchesDateRange = false;
+          }
+          if (toDate) {
+            const end = new Date(toDate + "T23:59:59.999");
+            if (recDate > end) matchesDateRange = false;
+          }
+        }
+      }
 
-      return matchesSearch && matchesBranch && matchesStatus && matchesDate;
+      return matchesSearch && matchesBranch && matchesStatus && matchesDateRange;
     });
-  }, [attendance, searchQuery, selectedBranch, selectedStatus, selectedDate]);
+  }, [attendance, searchQuery, selectedBranch, selectedStatus, fromDate, toDate]);
 
   // KPI Metrics
   const metrics = useMemo(() => {
@@ -308,23 +351,54 @@ export default function AttendancePage() {
             </select>
           </div>
 
-          {/* Date Filter */}
-          <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-1.5 text-sm">
-            <Calendar className="w-4 h-4 text-gray-400 shrink-0" />
+          {/* From Date Filter (reused from Car In module) */}
+          <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-xl px-3 py-1.5 text-sm shrink-0">
+            <span className="text-xs font-semibold text-gray-500 whitespace-nowrap">From:</span>
             <input
               type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="bg-transparent border-none text-sm text-gray-700 font-medium focus:outline-none cursor-pointer"
+              value={fromDate}
+              max={getTodayISO()}
+              onChange={handleFromDateChange}
+              className="bg-transparent border-none text-xs text-gray-700 font-medium focus:outline-none cursor-pointer p-0"
             />
-            {selectedDate && (
-              <button
-                onClick={() => setSelectedDate("")}
-                className="text-xs text-red-500 hover:text-red-700 font-semibold ml-1"
-              >
-                Clear
-              </button>
-            )}
+            <button
+              type="button"
+              disabled={!fromDate}
+              onClick={() => fromDate && setFromDate("")}
+              className={`p-0.5 rounded transition-colors flex items-center justify-center shrink-0 ${
+                fromDate
+                  ? "text-gray-600 hover:text-gray-900 hover:bg-gray-200 cursor-pointer"
+                  : "text-gray-300 cursor-not-allowed opacity-50"
+              }`}
+              title={fromDate ? "Clear From Date" : ""}
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          {/* To Date Filter (reused from Car In module) */}
+          <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-xl px-3 py-1.5 text-sm shrink-0">
+            <span className="text-xs font-semibold text-gray-500 whitespace-nowrap">To:</span>
+            <input
+              type="date"
+              value={toDate}
+              max={getTodayISO()}
+              onChange={handleToDateChange}
+              className="bg-transparent border-none text-xs text-gray-700 font-medium focus:outline-none cursor-pointer p-0"
+            />
+            <button
+              type="button"
+              disabled={!toDate}
+              onClick={() => toDate && setToDate("")}
+              className={`p-0.5 rounded transition-colors flex items-center justify-center shrink-0 ${
+                toDate
+                  ? "text-gray-600 hover:text-gray-900 hover:bg-gray-200 cursor-pointer"
+                  : "text-gray-300 cursor-not-allowed opacity-50"
+              }`}
+              title={toDate ? "Clear To Date" : ""}
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
           </div>
         </div>
       </div>

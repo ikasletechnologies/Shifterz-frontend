@@ -6,6 +6,7 @@ import {
   generateWarrantyFromInvoice,
   WarrantyRecord,
 } from "@/lib/api";
+import { toast } from "react-hot-toast";
 import CreateWarrantyDialog from "@/modules/warranty/components/CreateWarrantyDialog";
 import WarrantyDetailsDialog from "@/modules/warranty/components/WarrantyDetailsDialog";
 import {
@@ -29,6 +30,93 @@ export default function WarrantyManagementPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [selectedWarranty, setSelectedWarranty] = useState<WarrantyRecord | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [dialogMode, setDialogMode] = useState<"view" | "edit">("view");
+
+  const handlePrintWarranty = (w: WarrantyRecord) => {
+    const printWindow = window.open("", "_blank", "width=850,height=950");
+    if (!printWindow) return;
+
+    const wNo = w.warrantyNo || `WR-2026-${w.id?.slice(-4) || "0001"}`;
+    const custName = w.customer?.name || w.customerId || "Customer";
+    const vehNo = w.vehicleNo || "N/A";
+    const invNo = w.invoiceId ? (w.invoiceId.startsWith("INV") ? w.invoiceId : `INV-${w.invoiceId}`) : "N/A";
+    const item = w.itemName || "Service Coverage";
+    const days = w.durationDays ? `${w.durationDays} Days` : "365 Days";
+    const sDate = w.startDate ? new Date(w.startDate).toLocaleDateString("en-IN") : "N/A";
+    const eDate = w.expiryDate ? new Date(w.expiryDate).toLocaleDateString("en-IN") : "N/A";
+    const notes = w.notes || "Standard workshop warranty coverage applies.";
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Warranty Certificate - ${wNo}</title>
+          <style>
+            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 40px; color: #0f172a; background: #fff; }
+            .cert-card { border: 4px double #facc15; padding: 40px; border-radius: 16px; max-width: 750px; margin: 0 auto; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+            .header { text-align: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 20px; margin-bottom: 30px; }
+            .logo { font-size: 32px; font-weight: 900; letter-spacing: 2px; color: #0f172a; margin: 0; }
+            .subtitle { font-size: 14px; font-weight: 700; color: #d97706; text-transform: uppercase; letter-spacing: 3px; margin-top: 4px; }
+            .cert-title { font-size: 20px; font-weight: 800; text-align: center; color: #1e293b; margin-bottom: 24px; text-transform: uppercase; text-decoration: underline; }
+            .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+            .box { background: #f8fafc; padding: 12px 16px; border-radius: 8px; border: 1px solid #e2e8f0; }
+            .label { font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 4px; }
+            .value { font-size: 14px; font-weight: 700; color: #0f172a; }
+            .terms { background: #fffbeb; border: 1px solid #fef3c7; padding: 16px; border-radius: 8px; font-size: 12px; color: #92400e; line-height: 1.6; margin-top: 20px; }
+            .footer { margin-top: 40px; display: flex; justify-content: space-between; align-items: flex-end; padding-top: 20px; border-top: 1px solid #e2e8f0; }
+            .sign { text-align: center; }
+            .sign-line { border-top: 1px solid #94a3b8; width: 160px; margin-bottom: 4px; }
+            @media print {
+              body { padding: 0; }
+              .cert-card { border-color: #000; box-shadow: none; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="cert-card">
+            <div class="header">
+              <h1 class="logo">SHIFTERZ</h1>
+              <div class="subtitle">WARRANTY CERTIFICATE</div>
+            </div>
+            <div class="cert-title">${wNo}</div>
+
+            <div class="grid">
+              <div class="box"><div class="label">Customer Name</div><div class="value">${custName}</div></div>
+              <div class="box"><div class="label">Vehicle Number</div><div class="value">${vehNo}</div></div>
+              <div class="box"><div class="label">Invoice Reference</div><div class="value">${invNo}</div></div>
+              <div class="box"><div class="label">Covered Service / Item</div><div class="value">${item}</div></div>
+              <div class="box"><div class="label">Coverage Duration</div><div class="value">${days}</div></div>
+              <div class="box"><div class="label">Start Date</div><div class="value">${sDate}</div></div>
+              <div class="box"><div class="label">Expiry Date</div><div class="value">${eDate}</div></div>
+              <div class="box"><div class="label">Coverage Status</div><div class="value">${w.status || "Active"}</div></div>
+            </div>
+
+            <div class="terms">
+              <strong>Coverage Terms & Conditions:</strong><br/>
+              ${notes}
+            </div>
+
+            <div class="footer">
+              <div>
+                <p style="font-size: 11px; color: #64748b; margin: 0;">Issued by: Workshop Manager</p>
+                <p style="font-size: 11px; color: #64748b; margin: 4px 0 0 0;">Date: ${new Date().toLocaleDateString("en-IN")}</p>
+              </div>
+              <div class="sign">
+                <div class="sign-line"></div>
+                <span style="font-size: 11px; font-weight: 700; color: #475569;">Authorized Signatory</span>
+              </div>
+            </div>
+          </div>
+          <script>
+            window.onload = function() {
+              window.print();
+            };
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
 
   // Generate From Invoice Modal
   const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false);
@@ -58,7 +146,7 @@ export default function WarrantyManagementPage() {
   const handleGenerateFromInvoice = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!invoiceIdInput.trim()) {
-      setInvoiceGenError("Please enter an Invoice Number or ID.");
+      setInvoiceGenError("Please enter an Invoice Number or STZ Number.");
       return;
     }
     setIsGeneratingInvoice(true);
@@ -68,11 +156,12 @@ export default function WarrantyManagementPage() {
       setIsGeneratingInvoice(false);
       setInvoiceIdInput("");
       setIsGenerateModalOpen(false);
-      loadWarranties();
-      if (!created || created.length === 0) {
-        alert("No warranty items found on that Invoice.");
+      await loadWarranties();
+      if (!created || (Array.isArray(created) && created.length === 0)) {
+        toast.error("No invoice found or no warranty could be generated.");
       } else {
-        alert(`Successfully generated ${created.length} warranty record(s) from Invoice!`);
+        const count = Array.isArray(created) ? created.length : 1;
+        toast.success(`Successfully generated ${count} warranty record(s) for Document ${invoiceIdInput.trim()}!`);
       }
     } catch (err: any) {
       setInvoiceGenError(err.message || "Failed to generate warranty from invoice.");
@@ -582,29 +671,37 @@ export default function WarrantyManagementPage() {
                       {/* Actions */}
                       <td className="py-3.5 px-4 whitespace-nowrap">
                         <div className="flex items-center justify-center gap-1.5">
-                          {/* View Certificate / Details */}
+                          {/* View Certificate / Details (View Only) */}
                           <button
-                            onClick={() => { setSelectedWarranty(w); setIsDetailsOpen(true); }}
+                            onClick={() => {
+                              setSelectedWarranty(w);
+                              setDialogMode("view");
+                              setIsDetailsOpen(true);
+                            }}
                             className="p-1.5 rounded-lg text-slate-500 hover:text-slate-700 hover:bg-slate-100 border border-slate-200 transition-colors bg-white shadow-2xs"
-                            title="View Certificate"
+                            title="View Certificate (Read-Only)"
                           >
                             <Eye className="w-3.5 h-3.5" />
                           </button>
 
-                          {/* Print Certificate */}
+                          {/* Print Certificate (Direct Print) */}
                           <button
-                            onClick={() => { setSelectedWarranty(w); setIsDetailsOpen(true); }}
+                            onClick={() => handlePrintWarranty(w)}
                             className="p-1.5 rounded-lg text-slate-500 hover:text-slate-700 hover:bg-slate-100 border border-slate-200 transition-colors bg-white shadow-2xs"
-                            title="Print Certificate"
+                            title="Print Warranty Certificate"
                           >
                             <Printer className="w-3.5 h-3.5" />
                           </button>
 
-                          {/* Edit / Claim */}
+                          {/* Edit / Process Claim (Edit Access) */}
                           <button
-                            onClick={() => { setSelectedWarranty(w); setIsDetailsOpen(true); }}
+                            onClick={() => {
+                              setSelectedWarranty(w);
+                              setDialogMode("edit");
+                              setIsDetailsOpen(true);
+                            }}
                             className="p-1.5 rounded-lg text-purple-600 hover:bg-purple-50 border border-purple-100 transition-colors bg-purple-50/50 shadow-2xs"
-                            title="Edit / Process Claim"
+                            title="Edit Access / Process Claim"
                           >
                             <Pencil className="w-3.5 h-3.5" />
                           </button>
@@ -679,6 +776,7 @@ export default function WarrantyManagementPage() {
       <WarrantyDetailsDialog
         warranty={selectedWarranty}
         isOpen={isDetailsOpen}
+        mode={dialogMode}
         onClose={() => {
           setIsDetailsOpen(false);
           setSelectedWarranty(null);

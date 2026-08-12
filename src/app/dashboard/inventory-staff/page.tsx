@@ -3,12 +3,16 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   PackageSearch, Search, Filter, ChevronLeft, ChevronRight, Pencil, Trash2, Plus,
-  Users, UserCheck2, UserX2, Briefcase, Loader2, CheckCircle2, TrendingUp, X
+  Users, UserCheck2, UserX2, Briefcase, Loader2, CheckCircle2, TrendingUp, X,
+  AlertTriangle, Clock
 } from "lucide-react";
 import { StatCard } from "@/components/dashboard/StatCard";
 import EditEmployeeDialog from "@/components/employees/EditEmployeeDialog";
 import AddEmployeeDialog from "@/components/employees/AddEmployeeDialog";
-import { getInventoryExecutiveManagementStats, getFranchises, createEmployee, updateEmployee, deleteEmployee } from "@/lib/api";
+import {
+  getInventoryExecutiveManagementStats, getFranchises, createEmployee, updateEmployee,
+  deleteEmployee, getInventory, getInventoryRequests
+} from "@/lib/api";
 import { toast } from "react-hot-toast";
 
 interface InventoryStaffRow {
@@ -52,6 +56,9 @@ export default function InventoryStaffPage() {
   const [statusFilter, setStatusFilter] = useState("All");
   const [currentPage, setCurrentPage] = useState(1);
 
+  const [lowStockCount, setLowStockCount] = useState(0);
+  const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
+
   const [editing, setEditing] = useState<InventoryStaffRow | null>(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -64,10 +71,46 @@ export default function InventoryStaffPage() {
       if (statusFilter !== "All") params.status = statusFilter;
       if (branchFilter !== "All") params.franchiseId = branchFilter;
 
-      const data = await getInventoryExecutiveManagementStats(params);
+      const [data, invItems, invRequests] = await Promise.all([
+        getInventoryExecutiveManagementStats(params),
+        getInventory().catch(() => []),
+        getInventoryRequests().catch(() => []),
+      ]);
+
       setRows(data.list || []);
       setSummary(data.summary || null);
       setTotal(data.total || 0);
+
+      // Filter Low Stock Items for Selected Branch
+      const itemsList = Array.isArray(invItems) ? invItems : [];
+      const filteredItems = itemsList.filter((item: any) => {
+        if (branchFilter === "All") return true;
+        if (branchFilter === "HQ") return !item.franchiseId || (item.branch || "").toLowerCase().includes("hq");
+        return item.franchiseId === branchFilter;
+      });
+
+      const lowStockItems = filteredItems.filter((item: any) => {
+        const stock = Number(item.stock ?? item.quantity ?? 0);
+        const minVal = Number(item.minStock ?? item.minThreshold ?? item.reorderPoint ?? 5);
+        const isLow = stock <= minVal || (item.status || "").toLowerCase().includes("low");
+        return isLow;
+      });
+      setLowStockCount(lowStockItems.length);
+
+      // Filter Pending Inventory Requests for Selected Branch
+      const requestsList = Array.isArray(invRequests) ? invRequests : [];
+      const filteredRequests = requestsList.filter((req: any) => {
+        if (branchFilter === "All") return true;
+        if (branchFilter === "HQ") return !req.franchiseId || (req.branch || "").toLowerCase().includes("hq");
+        return req.franchiseId === branchFilter;
+      });
+
+      const pendingReqs = filteredRequests.filter((req: any) => {
+        const st = (req.status || "").toLowerCase();
+        return st === "pending" || st === "submitted" || st === "requested" || st === "awaiting approval";
+      });
+      setPendingRequestsCount(pendingReqs.length);
+
     } catch (err: any) {
       toast.error("Failed to load inventory staff: " + err.message);
     } finally {
@@ -136,11 +179,12 @@ export default function InventoryStaffPage() {
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-6">
       {summary && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           <StatCard title="Total Inventory Staff" value={summary.total} icon={Users} color="blue" />
           <StatCard title="Active" value={summary.active} icon={UserCheck2} color="green" />
           <StatCard title="Inactive" value={summary.inactive} icon={UserX2} color="gray" />
-          <StatCard title="Assigned Jobs" value={summary.assignedJobs} icon={Briefcase} color="purple" />
+          <StatCard title="Low Stock Count" value={lowStockCount} icon={AlertTriangle} color="purple" />
+          <StatCard title="Pending Requests Count" value={pendingRequestsCount} icon={Clock} color="purple" />
         </div>
       )}
 
@@ -198,26 +242,22 @@ export default function InventoryStaffPage() {
                 <th className="px-6 py-4">Name</th>
                 <th className="px-6 py-4">Phone Number</th>
                 <th className="px-6 py-4">Branch</th>
-                <th className="px-6 py-4">Assigned Jobs</th>
-                <th className="px-6 py-4">Completed</th>
                 <th className="px-6 py-4">Status</th>
                 <th className="px-6 py-4">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {isLoading ? (
-                <tr><td colSpan={8} className="px-6 py-10 text-center text-gray-400">Loading...</td></tr>
+                <tr><td colSpan={6} className="px-6 py-10 text-center text-gray-400">Loading...</td></tr>
               ) : rows.length === 0 ? (
-                <tr><td colSpan={8} className="px-6 py-10 text-center text-gray-400">No inventory staff found.</td></tr>
+                <tr><td colSpan={6} className="px-6 py-10 text-center text-gray-400">No inventory staff found.</td></tr>
               ) : (
                 rows.map((row) => (
                   <tr key={row.id} className="hover:bg-gray-50/50 transition-colors">
                     <td className="px-6 py-4 font-mono text-xs font-bold text-yellow-600 whitespace-nowrap">{row.id}</td>
                     <td className="px-6 py-4 whitespace-nowrap font-semibold text-gray-900">{row.name}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-gray-600 font-medium">{row.phone || "—"}</td>
-                    <td className="px-6 py-4 text-gray-600 whitespace-nowrap">{row.branch}</td>
-                    <td className="px-6 py-4 text-gray-700">{row.assignedJobs}</td>
-                    <td className="px-6 py-4 text-gray-700">{row.completed}</td>
+                    <td className="px-6 py-4 text-gray-600 whitespace-nowrap">{typeof row.branch === "string" ? row.branch : (row.branch as any)?.name || "Headquarters"}</td>
                     <td className="px-6 py-4">
                       <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${row.status === "Active" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
                         {row.status}

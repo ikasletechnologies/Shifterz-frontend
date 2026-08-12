@@ -4,18 +4,24 @@ import { useState, useEffect } from "react";
 import { BillingDocument } from "@/modules/billing/types/billing.types";
 import { getInvoices, createInvoice, updateInvoice, cancelInvoice, shareInvoice, convertInvoice } from "@/modules/billing/services/billing.service";
 import { createPayment } from "@/modules/payment/services/payment.service";
+import { getOutPasses } from "@/lib/api";
 import { toast } from "react-hot-toast";
 
 export function useBilling() {
   const [documents, setDocuments] = useState<BillingDocument[]>([]);
+  const [outPasses, setOutPasses] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
 
   const fetchInvoices = async () => {
     try {
       setIsLoading(true);
-      const data = await getInvoices();
-      setDocuments(data);
+      const [data, outPassData] = await Promise.all([
+        getInvoices(),
+        getOutPasses().catch(() => []),
+      ]);
+      setDocuments(data || []);
+      setOutPasses(outPassData || []);
       setError("");
     } catch (err: any) {
       setError("Failed to load invoices: " + err.message);
@@ -28,6 +34,21 @@ export function useBilling() {
   useEffect(() => {
     fetchInvoices();
   }, []);
+
+  const hasOutPass = (item: any): boolean => {
+    if (!item) return false;
+    const norm = (v?: string) => (v || "").replace(/[^A-Z0-9]/g, "").toUpperCase();
+    const itemVeh = norm(item.vehicle || item.vehicleNo || item.vehicleNumber);
+
+    return outPasses.some((op) => {
+      if ((op.status || "").toLowerCase() === "rejected") return false;
+      if (op.invoiceId && item.id && op.invoiceId === item.id) return true;
+      if (op.jobCardId && item.id && op.jobCardId === item.id) return true;
+      if (op.jobCardId && item.jobCardId && op.jobCardId === item.jobCardId) return true;
+      if (itemVeh && op.vehicle && norm(op.vehicle) === itemVeh) return true;
+      return false;
+    });
+  };
 
   const handleAddInvoice = async (newDoc: Partial<BillingDocument>) => {
     try {
@@ -144,7 +165,9 @@ export function useBilling() {
   const handleEditInvoice = async (id: string, updatedDoc: Partial<BillingDocument>) => {
     try {
       const updated = await updateInvoice(id, updatedDoc);
-      setDocuments((prev) => prev.map((doc) => (doc.id === id ? { ...doc, ...updated } : doc)));
+      setDocuments((prev) =>
+        prev.map((doc) => (doc.id === id ? { ...doc, ...updatedDoc, ...updated } : doc))
+      );
       toast.success("Document updated successfully");
       return true;
     } catch (err: any) {
@@ -155,6 +178,9 @@ export function useBilling() {
 
   return {
     documents,
+    outPasses,
+    setOutPasses,
+    hasOutPass,
     isLoading,
     error,
     fetchInvoices,

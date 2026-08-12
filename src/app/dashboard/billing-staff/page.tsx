@@ -136,11 +136,10 @@ export default function BillingStaffPage() {
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-6">
       {summary && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <StatCard title="Total Billing Staff" value={summary.total} icon={Users} color="blue" />
           <StatCard title="Active" value={summary.active} icon={UserCheck2} color="green" />
           <StatCard title="Inactive" value={summary.inactive} icon={UserX2} color="gray" />
-          <StatCard title="Assigned Jobs" value={summary.assignedJobs} icon={Briefcase} color="purple" />
         </div>
       )}
 
@@ -198,26 +197,22 @@ export default function BillingStaffPage() {
                 <th className="px-6 py-4">Name</th>
                 <th className="px-6 py-4">Phone Number</th>
                 <th className="px-6 py-4">Branch</th>
-                <th className="px-6 py-4">Assigned Jobs</th>
-                <th className="px-6 py-4">Completed</th>
                 <th className="px-6 py-4">Status</th>
                 <th className="px-6 py-4">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {isLoading ? (
-                <tr><td colSpan={8} className="px-6 py-10 text-center text-gray-400">Loading...</td></tr>
+                <tr><td colSpan={6} className="px-6 py-10 text-center text-gray-400">Loading...</td></tr>
               ) : rows.length === 0 ? (
-                <tr><td colSpan={8} className="px-6 py-10 text-center text-gray-400">No billing staff found.</td></tr>
+                <tr><td colSpan={6} className="px-6 py-10 text-center text-gray-400">No billing staff found.</td></tr>
               ) : (
                 rows.map((row) => (
                   <tr key={row.id} className="hover:bg-gray-50/50 transition-colors">
                     <td className="px-6 py-4 font-mono text-xs font-bold text-yellow-600 whitespace-nowrap">{row.id}</td>
                     <td className="px-6 py-4 whitespace-nowrap font-semibold text-gray-900">{row.name}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-gray-600 font-medium">{row.phone || "—"}</td>
-                    <td className="px-6 py-4 text-gray-600 whitespace-nowrap">{row.branch}</td>
-                    <td className="px-6 py-4 text-gray-700">{row.assignedJobs}</td>
-                    <td className="px-6 py-4 text-gray-700">{row.completed}</td>
+                    <td className="px-6 py-4 text-gray-600 whitespace-nowrap">{typeof row.branch === "string" ? row.branch : (row.branch as any)?.name || "Headquarters"}</td>
                     <td className="px-6 py-4">
                       <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${row.status === "Active" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
                         {row.status}

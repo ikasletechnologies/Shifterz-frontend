@@ -23,8 +23,11 @@ export default function CreateWarrantyDialog({
 }: CreateWarrantyDialogProps) {
   const [customers, setCustomers] = useState<CustomerOption[]>([]);
   const [selectedCustomerId, setSelectedCustomerId] = useState("");
+  const [customerName, setCustomerName] = useState("");
+  const [customerPhone, setCustomerPhone] = useState("");
   const [vehicleNo, setVehicleNo] = useState("");
   const [itemName, setItemName] = useState("");
+  const [invoiceId, setInvoiceId] = useState("");
   const [durationDays, setDurationDays] = useState(365);
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
@@ -42,7 +45,11 @@ export default function CreateWarrantyDialog({
       setCustomers(data || []);
       if (data && data.length > 0) {
         setSelectedCustomerId(data[0].id);
-        if (data[0].vehicleNo) setVehicleNo(data[0].vehicleNo);
+        setCustomerName(data[0].name || "");
+        setCustomerPhone(data[0].phone || "");
+        if (data[0].vehicleNo || (data[0] as any).vehicle) {
+          setVehicleNo(data[0].vehicleNo || (data[0] as any).vehicle);
+        }
       }
     } catch (err: any) {
       console.error("Failed to load customers:", err);
@@ -53,15 +60,21 @@ export default function CreateWarrantyDialog({
     const id = e.target.value;
     setSelectedCustomerId(id);
     const found = customers.find((c) => c.id === id);
-    if (found && found.vehicleNo) {
-      setVehicleNo(found.vehicleNo);
+    if (found) {
+      setCustomerName(found.name || "");
+      setCustomerPhone(found.phone || "");
+      setVehicleNo(found.vehicleNo || (found as any).vehicle || "");
+    } else {
+      setCustomerName("");
+      setCustomerPhone("");
+      setVehicleNo("");
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedCustomerId || !vehicleNo.trim() || !itemName.trim()) {
-      setError("Please fill out Customer, Vehicle Number, and Service/Item Name.");
+    if (!selectedCustomerId || !vehicleNo.trim() || !itemName.trim() || !invoiceId.trim()) {
+      setError("Please fill out Customer, Vehicle Number, Service/Item Name, and Invoice Number.");
       return;
     }
     setLoading(true);
@@ -72,6 +85,7 @@ export default function CreateWarrantyDialog({
         customerId: selectedCustomerId,
         vehicleNo: vehicleNo.trim().toUpperCase(),
         itemName: itemName.trim(),
+        invoiceId: invoiceId.trim().toUpperCase(),
         durationDays: Number(durationDays),
         status: "Active",
         notes: notes.trim() || undefined,
@@ -79,7 +93,11 @@ export default function CreateWarrantyDialog({
       onSuccess();
       onClose();
       // reset form
+      setCustomerName("");
+      setCustomerPhone("");
+      setVehicleNo("");
       setItemName("");
+      setInvoiceId("");
       setDurationDays(365);
       setNotes("");
     } catch (err: any) {
@@ -92,9 +110,9 @@ export default function CreateWarrantyDialog({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl">
-        <div className="px-6 py-5 border-b border-slate-800 flex items-center justify-between">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto">
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl flex flex-col max-h-[90vh] my-auto">
+        <div className="px-6 py-4 border-b border-slate-800 flex items-center justify-between shrink-0">
           <div>
             <h3 className="text-lg font-semibold text-white">Create New Warranty</h3>
             <p className="text-xs text-slate-400">
@@ -102,6 +120,7 @@ export default function CreateWarrantyDialog({
             </p>
           </div>
           <button
+            type="button"
             onClick={onClose}
             className="text-slate-400 hover:text-white transition-colors"
           >
@@ -109,7 +128,7 @@ export default function CreateWarrantyDialog({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto flex-1">
           {error && (
             <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm">
               {error}
@@ -129,10 +148,38 @@ export default function CreateWarrantyDialog({
               <option value="">-- Select Customer --</option>
               {customers.map((c) => (
                 <option key={c.id} value={c.id}>
-                  {c.name} ({c.phone})
+                  {c.name} ({c.phone}){c.vehicleNo ? ` - ${c.vehicleNo}` : ''}
                 </option>
               ))}
             </select>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-slate-300 mb-1">
+                Customer Name
+              </label>
+              <input
+                type="text"
+                value={customerName}
+                onChange={(e) => setCustomerName(e.target.value)}
+                placeholder="Customer full name"
+                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-slate-300 mb-1">
+                Mobile Number
+              </label>
+              <input
+                type="text"
+                value={customerPhone}
+                onChange={(e) => setCustomerPhone(e.target.value)}
+                placeholder="Phone number"
+                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500"
+              />
+            </div>
           </div>
 
           <div>
@@ -163,7 +210,21 @@ export default function CreateWarrantyDialog({
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs font-medium text-slate-300 mb-1">
+              Invoice Number *
+            </label>
+            <input
+              type="text"
+              value={invoiceId}
+              onChange={(e) => setInvoiceId(e.target.value)}
+              placeholder="e.g. STZ-2026-0001"
+              className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500 uppercase"
+              required
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-medium text-slate-300 mb-1">
                 Warranty Period *
@@ -209,7 +270,7 @@ export default function CreateWarrantyDialog({
             />
           </div>
 
-          <div className="pt-4 border-t border-slate-800 flex items-center justify-end gap-3">
+          <div className="pt-4 border-t border-slate-800 flex items-center justify-end gap-3 shrink-0">
             <button
               type="button"
               onClick={onClose}

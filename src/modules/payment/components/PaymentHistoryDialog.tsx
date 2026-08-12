@@ -2,18 +2,21 @@
 
 import { useState, useEffect } from "react";
 import { X, Printer, History } from "lucide-react";
-import { getPayments, getSettings } from "@/lib/api";
+import { getPayments, getSettings, getInvoices } from "@/lib/api";
 
 interface PaymentHistoryDialogProps {
   isOpen: boolean;
   onClose: () => void;
   invoiceId?: string;
   invoiceData?: {
-    id: string;
-    client: string;
-    amount: number;
-    gst: number;
-    discount: number;
+    id?: string;
+    client?: string;
+    amount?: number;
+    gst?: number;
+    discount?: number;
+    total?: number;
+    totalAmount?: number;
+    grandTotal?: number;
   };
 }
 
@@ -37,28 +40,36 @@ export default function PaymentHistoryDialog({
   invoiceData,
 }: PaymentHistoryDialogProps) {
   const [payments, setPayments] = useState<Payment[]>([]);
+  const [fetchedInvoice, setFetchedInvoice] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [companyInfo, setCompanyInfo] = useState<any>(null);
 
   useEffect(() => {
     if (isOpen) {
-      if (invoiceId) {
-        fetchPayments();
-      }
+      fetchPayments();
       getSettings().then(data => {
         if (data?.companyInfo) setCompanyInfo(data.companyInfo);
       }).catch(console.error);
     }
-  }, [isOpen, invoiceId]);
+  }, [isOpen, invoiceId, invoiceData]);
 
   const fetchPayments = async () => {
     try {
       setIsLoading(true);
-      const allPayments = await getPayments();
-      const invoicePayments = allPayments.filter(
-        (p: Payment) => p.invoiceId === invoiceId
-      );
+      const [allPayments, allInvoices] = await Promise.all([
+        getPayments(),
+        getInvoices().catch(() => []),
+      ]);
+      const targetId = invoiceId || invoiceData?.id;
+      const invoicePayments = allPayments.filter((p: Payment) => {
+        if (!targetId) return true;
+        return p.invoiceId === targetId || p.ref === targetId;
+      });
       setPayments(invoicePayments);
+
+      const matchedId = targetId || (invoicePayments[0] ? invoicePayments[0].invoiceId : "");
+      const match = (allInvoices || []).find((inv: any) => inv.id === matchedId);
+      setFetchedInvoice(match || null);
     } catch (err) {
       console.error("Failed to fetch payments:", err);
     } finally {
@@ -67,13 +78,24 @@ export default function PaymentHistoryDialog({
   };
 
 
+  const getCalculatedTotals = () => {
+    const inv = invoiceData || fetchedInvoice;
+    const invCalc =
+      inv?.total ||
+      inv?.totalAmount ||
+      inv?.grandTotal ||
+      ((inv?.amount || 0) + (inv?.gst || 0) - (inv?.discount || 0));
+
+    const totalPaid = payments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
+    const totalAmount = Math.max(invCalc, totalPaid);
+    const pendingAmount = Math.max(0, totalAmount - totalPaid);
+    return { totalAmount, totalPaid, pendingAmount };
+  };
+
   const handlePrintReceipt = (payment: Payment) => {
-    const totalAmount =
-      (invoiceData?.amount || 0) +
-      (invoiceData?.gst || 0) -
-      (invoiceData?.discount || 0);
-    const paidAmount = payments.reduce((sum, p) => sum + p.amount, 0);
-    const remainingAmount = Math.max(0, totalAmount - paidAmount);
+    const { totalAmount, totalPaid, pendingAmount } = getCalculatedTotals();
+    const paidAmount = totalPaid;
+    const remainingAmount = pendingAmount;
 
     const printWindow = window.open("", "", "height=600,width=800");
     if (printWindow) {
@@ -259,10 +281,7 @@ export default function PaymentHistoryDialog({
 
   if (!isOpen) return null;
 
-  const totalAmount =
-    (invoiceData?.amount || 0) + (invoiceData?.gst || 0) - (invoiceData?.discount || 0);
-  const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
-  const pendingAmount = Math.max(0, totalAmount - totalPaid);
+  const { totalAmount, totalPaid, pendingAmount } = getCalculatedTotals();
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 sm:p-4">
