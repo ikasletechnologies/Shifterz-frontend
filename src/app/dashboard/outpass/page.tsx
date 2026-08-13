@@ -429,8 +429,8 @@ export default function OutPassPage() {
 
   return (
     <div className="p-4 sm:p-6 md:p-8">
-      {/* 4 Status KPI Cards Row (Single Horizontal Row) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      {/* 5 Status KPI Cards Row (Single Horizontal Row) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
         {/* 1. All */}
         <div
           onClick={() => setStatusFilter("All")}
@@ -449,21 +449,21 @@ export default function OutPassPage() {
           </div>
         </div>
 
-        {/* 2. Rejected */}
+        {/* 2. Pending */}
         <div
-          onClick={() => setStatusFilter("Rejected")}
+          onClick={() => setStatusFilter("Pending")}
           className={`bg-white rounded-2xl border p-4 shadow-2xs flex items-center justify-between cursor-pointer select-none transition-all ${
-            statusFilter === "Rejected"
-              ? "border-red-500 ring-2 ring-red-500/20 bg-red-50/60 shadow-sm"
-              : "border-gray-200 hover:border-red-200"
+            statusFilter === "Pending"
+              ? "border-amber-500 ring-2 ring-amber-500/20 bg-amber-50/60 shadow-sm"
+              : "border-gray-200 hover:border-amber-200"
           }`}
         >
           <div>
-            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Rejected</p>
-            <p className="text-2xl font-bold text-gray-900">{rejectedCount}</p>
+            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Pending</p>
+            <p className="text-2xl font-bold text-gray-900">{pendingCount}</p>
           </div>
-          <div className="p-3 bg-red-100 text-red-600 rounded-2xl shrink-0">
-            <XCircle className="w-5 h-5" />
+          <div className="p-3 bg-amber-100 text-amber-600 rounded-2xl shrink-0">
+            <Clock className="w-5 h-5" />
           </div>
         </div>
 
@@ -485,7 +485,25 @@ export default function OutPassPage() {
           </div>
         </div>
 
-        {/* 4. Delivered */}
+        {/* 4. Rejected */}
+        <div
+          onClick={() => setStatusFilter("Rejected")}
+          className={`bg-white rounded-2xl border p-4 shadow-2xs flex items-center justify-between cursor-pointer select-none transition-all ${
+            statusFilter === "Rejected"
+              ? "border-red-500 ring-2 ring-red-500/20 bg-red-50/60 shadow-sm"
+              : "border-gray-200 hover:border-red-200"
+          }`}
+        >
+          <div>
+            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Rejected</p>
+            <p className="text-2xl font-bold text-gray-900">{rejectedCount}</p>
+          </div>
+          <div className="p-3 bg-red-100 text-red-600 rounded-2xl shrink-0">
+            <XCircle className="w-5 h-5" />
+          </div>
+        </div>
+
+        {/* 5. Delivered */}
         <div
           onClick={() => setStatusFilter("Delivered")}
           className={`bg-white rounded-2xl border p-4 shadow-2xs flex items-center justify-between cursor-pointer select-none transition-all ${
@@ -617,6 +635,7 @@ export default function OutPassPage() {
       <div className="flex items-center gap-2 mb-6 flex-wrap">
         {[
           { id: "All", label: "All", count: allCount },
+          { id: "Pending", label: "Pending", count: pendingCount },
           { id: "Approved", label: "Approved", count: approvedCount },
           { id: "Rejected", label: "Rejected", count: rejectedCount },
           { id: "Delivered", label: "Delivered", count: deliveredCount },
@@ -629,7 +648,9 @@ export default function OutPassPage() {
               onClick={() => setStatusFilter(tab.id as any)}
               className={`px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer shadow-2xs ${
                 isActive
-                  ? tab.id === "Rejected"
+                  ? tab.id === "Pending"
+                    ? "bg-amber-600 text-white shadow-xs ring-2 ring-amber-600/20"
+                    : tab.id === "Rejected"
                     ? "bg-red-600 text-white shadow-xs ring-2 ring-red-600/20"
                     : tab.id === "Delivered"
                     ? "bg-blue-600 text-white shadow-xs ring-2 ring-blue-600/20"
@@ -644,6 +665,8 @@ export default function OutPassPage() {
                 className={`px-1.5 py-0.5 rounded-full text-[10px] font-black ${
                   isActive
                     ? "bg-white/25 text-white"
+                    : tab.id === "Pending"
+                    ? "bg-amber-100 text-amber-800"
                     : tab.id === "Rejected"
                     ? "bg-red-100 text-red-700"
                     : tab.id === "Delivered"
@@ -672,26 +695,37 @@ export default function OutPassPage() {
                 {filteredOutPasses.map((pass) => {
                   const isApproved = pass.status === "Approved" || pass.status === "Delivered" || pass.issued === true;
                   const isRejected = pass.status === "Rejected";
+                  const isPending = !isApproved && !isRejected;
 
                   const cardBgClass = isApproved
                     ? "bg-emerald-50/20 border-emerald-200 hover:border-emerald-300"
-                    : "bg-red-50/20 border-red-200 hover:border-red-300";
+                    : isRejected
+                    ? "bg-red-50/20 border-red-200 hover:border-red-300"
+                    : "bg-amber-50/30 border-amber-200 hover:border-amber-300";
 
                   const iconBgClass = isApproved
                     ? "bg-emerald-100 text-emerald-600"
-                    : "bg-red-100 text-red-600";
+                    : isRejected
+                    ? "bg-red-100 text-red-600"
+                    : "bg-amber-100 text-amber-700";
 
                   const downloadBtnClass = isApproved
                     ? "bg-emerald-100/70 hover:bg-emerald-200/80 text-emerald-700"
-                    : "bg-red-100/70 hover:bg-red-200/80 text-red-700";
+                    : isRejected
+                    ? "bg-red-100/70 hover:bg-red-200/80 text-red-700"
+                    : "bg-amber-100/70 hover:bg-amber-200/80 text-amber-800";
 
                   const viewBtnClass = isApproved
                     ? "bg-emerald-600 hover:bg-emerald-700"
-                    : "bg-red-600 hover:bg-red-700";
+                    : isRejected
+                    ? "bg-red-600 hover:bg-red-700"
+                    : "bg-amber-600 hover:bg-amber-700";
 
                   const dividerClass = isApproved
                     ? "border-emerald-100/70"
-                    : "border-red-100/70";
+                    : isRejected
+                    ? "border-red-100/70"
+                    : "border-amber-100/70";
 
                   return (
                     <div
@@ -715,11 +749,25 @@ export default function OutPassPage() {
                             </div>
                           </div>
 
-                          {/* Top-Center Green Delivered Status for Approved / Delivered */}
+                          {/* Top-Center Status Badge */}
                           {isApproved && (
                             <div className="flex-1 flex justify-center items-center">
                               <span className="px-3 py-0.5 bg-emerald-100 text-emerald-700 rounded-full text-xs font-bold">
-                                Delivered
+                                {pass.status === "Delivered" ? "Delivered" : "Approved"}
+                              </span>
+                            </div>
+                          )}
+                          {isPending && (
+                            <div className="flex-1 flex justify-center items-center">
+                              <span className="px-3 py-0.5 bg-amber-100 text-amber-800 rounded-full text-xs font-bold animate-pulse">
+                                Pending Approval
+                              </span>
+                            </div>
+                          )}
+                          {isRejected && (
+                            <div className="flex-1 flex justify-center items-center">
+                              <span className="px-3 py-0.5 bg-red-100 text-red-700 rounded-full text-xs font-bold">
+                                Rejected
                               </span>
                             </div>
                           )}
@@ -765,6 +813,15 @@ export default function OutPassPage() {
                               </>
                             )}
                           </div>
+
+                          <button
+                            type="button"
+                            onClick={() => { setEditingPass(pass); setIsDialogOpen(true); }}
+                            className={`p-1.5 ${downloadBtnClass} rounded-full transition-colors cursor-pointer flex items-center justify-center`}
+                            title="Edit out pass"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
 
                           <button
                             type="button"
@@ -861,8 +918,8 @@ export default function OutPassPage() {
                           </div>
                         )}
 
-                        {/* Super Admin Actions */}
-                        {isSuperAdmin && (!pass.status || pass.status === "Pending") && (
+                        {/* Approval / Rejection Actions for Pending Outpasses */}
+                        {(!pass.status || pass.status === "Pending") && (
                           <div className={`mt-3 pt-3 border-t ${dividerClass} flex gap-2`}>
                             <button
                               onClick={() => handleApproveClick(pass)}
@@ -935,11 +992,16 @@ export default function OutPassPage() {
                         <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
                           pass.status === "Approved" ? "bg-emerald-100 text-emerald-700" :
                           pass.status === "Rejected" ? "bg-red-100 text-red-700" :
+                          pass.status === "Pending" ? "bg-amber-100 text-amber-800" :
                           "bg-gray-100 text-gray-600"
                         }`}>
                           {pass.status}
                         </span>
-                      ) : "—"}
+                      ) : (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">
+                          Pending
+                        </span>
+                      )}
                     </td>
                     <td className="px-3 py-3 text-xs font-medium text-gray-900">
                       {pass.outTime ? new Date(pass.outTime).toLocaleString("en-IN", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "—"}
@@ -959,7 +1021,7 @@ export default function OutPassPage() {
                         >
                           <Edit2 className="w-3.5 h-3.5 text-gray-600" />
                         </button>
-                        {isSuperAdmin && (!pass.status || pass.status === "Pending") && (
+                        {(!pass.status || pass.status === "Pending") && (
                           <>
                             <button
                               onClick={() => handleApproveClick(pass)}

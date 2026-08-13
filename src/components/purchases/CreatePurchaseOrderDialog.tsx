@@ -2,7 +2,7 @@
 /* eslint-disable react-hooks/exhaustive-deps, @typescript-eslint/no-explicit-any */
 
 import React, { useState, useEffect } from "react";
-import { createPurchase, getVendors } from "@/lib/api";
+import { createPurchase, updatePurchaseOrder, getVendors } from "@/lib/api";
 import {
   ShoppingCart,
   Plus,
@@ -16,6 +16,7 @@ interface CreatePurchaseOrderDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess: () => void;
+  initialData?: any;
 }
 
 interface OrderItem {
@@ -30,6 +31,7 @@ export function CreatePurchaseOrderDialog({
   open,
   onOpenChange,
   onSuccess,
+  initialData,
 }: CreatePurchaseOrderDialogProps) {
   const [vendors, setVendors] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -44,16 +46,37 @@ export function CreatePurchaseOrderDialog({
 
   useEffect(() => {
     if (open) {
-      setOrderNumber(`PO-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`);
-      setVendorId("");
-      setNotes("");
-      setItems([
-        { name: "Synthetic Oil 5W30 (210L Barrel)", sku: "OIL-5W30-210", qty: 2, unitPrice: 24500, total: 49000 },
-      ]);
+      if (initialData) {
+        setOrderNumber(initialData.orderNumber || "");
+        setVendorId(initialData.vendorId || "");
+        setNotes(initialData.notes || "");
+        let parsedItems = initialData.items;
+        if (typeof parsedItems === "string") {
+          try {
+            parsedItems = JSON.parse(parsedItems);
+          } catch {
+            parsedItems = [];
+          }
+        }
+        setItems(
+          Array.isArray(parsedItems) && parsedItems.length > 0
+            ? parsedItems
+            : [
+                { name: "Synthetic Oil 5W30 (210L Barrel)", sku: "OIL-5W30-210", qty: 2, unitPrice: 24500, total: 49000 },
+              ]
+        );
+      } else {
+        setOrderNumber(`PO-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`);
+        setVendorId("");
+        setNotes("");
+        setItems([
+          { name: "Synthetic Oil 5W30 (210L Barrel)", sku: "OIL-5W30-210", qty: 2, unitPrice: 24500, total: 49000 },
+        ]);
+      }
       setError(null);
       fetchVendors();
     }
-  }, [open]);
+  }, [open, initialData]);
 
   const fetchVendors = async () => {
     try {
@@ -113,18 +136,28 @@ export function CreatePurchaseOrderDialog({
     try {
       setLoading(true);
       setError(null);
-      await createPurchase({
-        orderNumber,
-        vendorId,
-        items,
-        totalAmount,
-        notes,
-        createdBy: "Headquarters Procurement",
-      });
+      if (initialData && initialData.id) {
+        await updatePurchaseOrder(initialData.id, {
+          orderNumber,
+          vendorId,
+          items,
+          totalAmount,
+          notes,
+        });
+      } else {
+        await createPurchase({
+          orderNumber,
+          vendorId,
+          items,
+          totalAmount,
+          notes,
+          createdBy: "Headquarters Procurement",
+        });
+      }
       onSuccess();
       onOpenChange(false);
     } catch (err: any) {
-      setError(err.message || "Failed to create Purchase Order.");
+      setError(err.message || (initialData ? "Failed to update Purchase Order." : "Failed to create Purchase Order."));
     } finally {
       setLoading(false);
     }
@@ -142,7 +175,7 @@ export function CreatePurchaseOrderDialog({
             </div>
             <div>
               <h3 className="text-base font-semibold text-white">
-                Create Headquarters Purchase Order
+                {initialData ? "Edit Headquarters Purchase Order" : "Create Headquarters Purchase Order"}
               </h3>
               <p className="text-xs text-slate-400">
                 PRD §10: Only Headquarters shall create & authorize Purchase Orders.
@@ -329,7 +362,7 @@ export function CreatePurchaseOrderDialog({
               disabled={loading}
               className="px-4 py-2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-500 rounded-lg shadow-lg shadow-emerald-600/20 transition-all disabled:opacity-50"
             >
-              {loading ? "Creating..." : "Create Purchase Order"}
+              {loading ? (initialData ? "Saving..." : "Creating...") : (initialData ? "✓ Save Changes" : "Create Purchase Order")}
             </button>
           </div>
         </form>

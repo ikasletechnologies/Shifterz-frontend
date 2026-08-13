@@ -44,9 +44,9 @@ export default function NewOutPassDialog({
         technician: initialData.technicianName || initialData.technician || "",
         outTime: initialData.outTime ? new Date(initialData.outTime).toISOString().slice(0,16) : "",
         security: initialData.securityName || initialData.security || "",
-        destination: "",
-        reason: initialData.remarks || "",
-        customerConfirmation: false,
+        destination: initialData.destination || "",
+        reason: initialData.remarks || initialData.reason || "",
+        customerConfirmation: true,
       });
     } else if (!isOpen) {
       setFormData({
@@ -146,7 +146,9 @@ export default function NewOutPassDialog({
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             <Ticket className="w-6 h-6 text-yellow-500" />
-            <h2 className="text-2xl font-bold text-gray-900">New Out Pass</h2>
+            <h2 className="text-2xl font-bold text-gray-900">
+              {initialData ? "Edit Out Pass" : "New Out Pass"}
+            </h2>
           </div>
           <button
             onClick={onClose}
@@ -350,7 +352,7 @@ export default function NewOutPassDialog({
             type="submit"
             className="w-full bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-bold py-3 rounded-lg transition-colors flex items-center justify-center gap-2"
           >
-            ✓ Generate Pass
+            {initialData ? "✓ Update Pass" : "✓ Generate Pass"}
           </button>
         </form>
       </div>

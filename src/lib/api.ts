@@ -784,6 +784,13 @@ export async function createPurchase(data: any) {
   });
 }
 
+export async function updatePurchaseOrder(id: string, data: any) {
+  return apiCall(`/hq/purchases/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(data)
+  });
+}
+
 export async function receivePurchaseGoods(id: string) {
   return apiCall(`/hq/purchases/${id}/receive`, {
     method: "POST"
@@ -792,7 +799,7 @@ export async function receivePurchaseGoods(id: string) {
 
 export async function invoicePurchaseOrder(id: string, invoiceNumber: string) {
   return apiCall(`/hq/purchases/${id}/invoice`, {
-    method: "POST",
+    method: "PUT",
     body: JSON.stringify({ invoiceNumber })
   });
 }
@@ -1074,6 +1081,24 @@ export async function receiveInventoryRequest(id: string) {
 export async function getInventoryMovements(itemId?: string) {
   const query = itemId ? `?itemId=${itemId}` : "";
   return apiCall(`/inventory/movements${query}`);
+}
+
+// --- EMPLOYEE REGISTRATION APPROVALS ---
+export async function getPendingEmployeeApprovals(statusFilter?: string) {
+  const query = statusFilter ? `?status=${encodeURIComponent(statusFilter)}` : "";
+  return apiCall(`/employees/pending-approvals${query}`);
+}
+
+export async function approveEmployeeRegistration(id: string) {
+  return apiCall(`/employees/${id}/approve-registration`, {
+    method: "POST",
+  });
+}
+
+export async function rejectEmployeeRegistration(id: string) {
+  return apiCall(`/employees/${id}/reject-registration`, {
+    method: "POST",
+  });
 }
 
 

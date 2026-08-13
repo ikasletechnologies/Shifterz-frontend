@@ -143,6 +143,7 @@ export function BillingPage() {
         phone: doc.phone || "",
         service: doc.service || "General Service",
         invoiceId: doc.id,
+        jobCardId: doc.jobId || doc.jobCardNo || undefined,
         customerConfirmation: true,
         outTime: new Date().toISOString()
       });

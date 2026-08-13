@@ -43,6 +43,12 @@ export default function PurchaseManagementPage() {
   const [vendorDialogOpen, setVendorDialogOpen] = useState(false);
   const [vendorToEdit, setVendorToEdit] = useState<any | null>(null);
   const [poDialogOpen, setPoDialogOpen] = useState(false);
+  const [editPoData, setEditPoData] = useState<any | null>(null);
+
+  const handleEditPo = (po: any) => {
+    setEditPoData(po);
+    setPoDialogOpen(true);
+  };
 
   // Invoice & Payment modal states
   const [invoiceModalPo, setInvoiceModalPo] = useState<any | null>(null);
@@ -232,44 +238,37 @@ export default function PurchaseManagementPage() {
       </div>
 
       {/* Workflow Reference Banner */}
-      <div className="grid grid-cols-2 md:grid-cols-6 gap-3 p-4 rounded-xl bg-slate-900/60 border border-slate-800 text-xs">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 p-4 rounded-xl bg-slate-900/60 border border-slate-800 text-xs">
         <div className="flex items-center gap-2 p-2 rounded-lg bg-slate-800/50">
-          <span className="w-6 h-6 rounded-full bg-slate-700 flex items-center justify-center font-bold">1</span>
-          <div>
-            <div className="font-semibold text-slate-200">Purchase Request</div>
-            <div className="text-[10px] text-slate-400">HQ Initiated</div>
-          </div>
-        </div>
-        <div className="flex items-center gap-2 p-2 rounded-lg bg-slate-800/50">
-          <span className="w-6 h-6 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold">2</span>
+          <span className="w-6 h-6 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold">1</span>
           <div>
             <div className="font-semibold text-slate-200">Purchase Order</div>
             <div className="text-[10px] text-slate-400">HQ Authorized</div>
           </div>
         </div>
         <div className="flex items-center gap-2 p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
-          <span className="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold">3</span>
+          <span className="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold">2</span>
           <div>
             <div className="font-semibold text-emerald-300">Goods Received</div>
             <div className="text-[10px] text-emerald-400 font-bold">Auto-adds Stock</div>
           </div>
         </div>
         <div className="flex items-center gap-2 p-2 rounded-lg bg-slate-800/50">
-          <span className="w-6 h-6 rounded-full bg-purple-500/20 text-purple-400 flex items-center justify-center font-bold">4</span>
+          <span className="w-6 h-6 rounded-full bg-purple-500/20 text-purple-400 flex items-center justify-center font-bold">3</span>
           <div>
             <div className="font-semibold text-slate-200">Purchase Invoice</div>
             <div className="text-[10px] text-slate-400">Bill Linked</div>
           </div>
         </div>
         <div className="flex items-center gap-2 p-2 rounded-lg bg-slate-800/50">
-          <span className="w-6 h-6 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold">5</span>
+          <span className="w-6 h-6 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold">4</span>
           <div>
             <div className="font-semibold text-slate-200">Stock Updated</div>
             <div className="text-[10px] text-slate-400">HQ Warehouse</div>
           </div>
         </div>
         <div className="flex items-center gap-2 p-2 rounded-lg bg-slate-800/50">
-          <span className="w-6 h-6 rounded-full bg-emerald-600/20 text-emerald-400 flex items-center justify-center font-bold">6</span>
+          <span className="w-6 h-6 rounded-full bg-emerald-600/20 text-emerald-400 flex items-center justify-center font-bold">5</span>
           <div>
             <div className="font-semibold text-slate-200">Supplier Payment</div>
             <div className="text-[10px] text-slate-400">Paid & Audited</div>
@@ -434,14 +433,21 @@ export default function PurchaseManagementPage() {
                             </button>
                             <button
                               onClick={() => handleOpenPaymentModal(po)}
-                              className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors"
+                              className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors cursor-pointer"
                               title="Record Supplier Payment"
                             >
                               <CreditCard className="w-4 h-4" />
                             </button>
                             <button
+                              onClick={() => handleEditPo(po)}
+                              className="p-1.5 rounded-lg bg-slate-800 hover:bg-amber-900/50 text-slate-300 hover:text-amber-400 transition-colors cursor-pointer"
+                              title="Edit Purchase Order"
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </button>
+                            <button
                               onClick={() => handleDeletePo(po)}
-                              className="p-1.5 rounded-lg bg-slate-800 hover:bg-rose-900/50 text-slate-500 hover:text-rose-400 transition-colors"
+                              className="p-1.5 rounded-lg bg-slate-800 hover:bg-rose-900/50 text-slate-500 hover:text-rose-400 transition-colors cursor-pointer"
                               title="Soft-delete Purchase Order"
                             >
                               <Trash2 className="w-4 h-4" />
@@ -551,12 +557,17 @@ export default function PurchaseManagementPage() {
         vendorToEdit={vendorToEdit}
       />
 
-      {/* Create Purchase Order Modal */}
+      {/* Create / Edit Purchase Order Modal */}
       <CreatePurchaseOrderDialog
         open={poDialogOpen}
-        onOpenChange={setPoDialogOpen}
+        onOpenChange={(open) => {
+          setPoDialogOpen(open);
+          if (!open) setEditPoData(null);
+        }}
+        initialData={editPoData}
         onSuccess={() => {
-          showToast("New Purchase Order created successfully!");
+          showToast(editPoData ? "Purchase Order updated successfully!" : "New Purchase Order created successfully!");
+          setEditPoData(null);
           loadData();
         }}
       />
