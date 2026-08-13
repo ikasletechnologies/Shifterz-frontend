@@ -66,7 +66,7 @@ export default function OutPassPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"All" | "Pending" | "Rejected" | "Approved" | "Delivered">("All");
+  const [statusFilter, setStatusFilter] = useState<"All" | "Pending" | "Rejected" | "Delivered">("All");
   const [viewMode, setViewMode] = useState<"cards" | "table">("cards");
   const [isDownloadOpen, setIsDownloadOpen] = useState(false);
   const [activeCardDownloadId, setActiveCardDownloadId] = useState<string | null>(null);
@@ -148,9 +148,11 @@ export default function OutPassPage() {
   };
 
   const allCount = outPasses.length;
-  const pendingCount = outPasses.filter((p) => (p.status || "").toLowerCase() === "pending" || !p.status).length;
+  const pendingCount = outPasses.filter((p) => {
+    const s = (p.status || "").toLowerCase();
+    return s === "pending" || s === "updated" || !p.status;
+  }).length;
   const rejectedCount = outPasses.filter((p) => (p.status || "").toLowerCase() === "rejected").length;
-  const approvedCount = outPasses.filter((p) => (p.status || "").toLowerCase() === "approved").length;
   const deliveredCount = outPasses.filter(
     (p) => (p.status || "").toLowerCase() === "delivered" || p.issued === true || (p.status || "").toLowerCase() === "issued" || (p.status || "").toLowerCase() === "out"
   ).length;
@@ -181,11 +183,9 @@ export default function OutPassPage() {
     let statusMatch = true;
     const passStatus = (pass.status || "").toLowerCase();
     if (statusFilter === "Pending") {
-      statusMatch = passStatus === "pending" || !passStatus;
+      statusMatch = passStatus === "pending" || passStatus === "updated" || !passStatus;
     } else if (statusFilter === "Rejected") {
       statusMatch = passStatus === "rejected";
-    } else if (statusFilter === "Approved") {
-      statusMatch = passStatus === "approved";
     } else if (statusFilter === "Delivered") {
       statusMatch = passStatus === "delivered" || pass.issued === true || passStatus === "issued" || passStatus === "out";
     }
@@ -429,8 +429,8 @@ export default function OutPassPage() {
 
   return (
     <div className="p-4 sm:p-6 md:p-8">
-      {/* 5 Status KPI Cards Row (Single Horizontal Row) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+      {/* 4 Status KPI Cards Row (Single Horizontal Row) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {/* 1. All */}
         <div
           onClick={() => setStatusFilter("All")}
@@ -464,24 +464,6 @@ export default function OutPassPage() {
           </div>
           <div className="p-3 bg-amber-100 text-amber-600 rounded-2xl shrink-0">
             <Clock className="w-5 h-5" />
-          </div>
-        </div>
-
-        {/* 3. Approved */}
-        <div
-          onClick={() => setStatusFilter("Approved")}
-          className={`bg-white rounded-2xl border p-4 shadow-2xs flex items-center justify-between cursor-pointer select-none transition-all ${
-            statusFilter === "Approved"
-              ? "border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-50/60 shadow-sm"
-              : "border-gray-200 hover:border-emerald-200"
-          }`}
-        >
-          <div>
-            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Approved</p>
-            <p className="text-2xl font-bold text-gray-900">{approvedCount}</p>
-          </div>
-          <div className="p-3 bg-emerald-100 text-emerald-600 rounded-2xl shrink-0">
-            <CheckCircle className="w-5 h-5" />
           </div>
         </div>
 
@@ -636,7 +618,6 @@ export default function OutPassPage() {
         {[
           { id: "All", label: "All", count: allCount },
           { id: "Pending", label: "Pending", count: pendingCount },
-          { id: "Approved", label: "Approved", count: approvedCount },
           { id: "Rejected", label: "Rejected", count: rejectedCount },
           { id: "Delivered", label: "Delivered", count: deliveredCount },
         ].map((tab) => {
@@ -814,14 +795,16 @@ export default function OutPassPage() {
                             )}
                           </div>
 
-                          <button
-                            type="button"
-                            onClick={() => { setEditingPass(pass); setIsDialogOpen(true); }}
-                            className={`p-1.5 ${downloadBtnClass} rounded-full transition-colors cursor-pointer flex items-center justify-center`}
-                            title="Edit out pass"
-                          >
-                            <Edit2 className="w-3.5 h-3.5" />
-                          </button>
+                          {isRejected && (
+                            <button
+                              type="button"
+                              onClick={() => { setEditingPass(pass); setIsDialogOpen(true); }}
+                              className={`p-1.5 ${downloadBtnClass} rounded-full transition-colors cursor-pointer flex items-center justify-center`}
+                              title="Edit out pass"
+                            >
+                              <Edit2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
 
                           <button
                             type="button"
@@ -900,6 +883,7 @@ export default function OutPassPage() {
                                 <p className="text-[10px] uppercase font-semibold text-gray-400">Pass Status</p>
                                 <span className={`inline-block mt-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold ${
                                   pass.status === "Rejected" ? "bg-red-100 text-red-700" :
+                                  pass.status === "Updated" ? "bg-amber-100 text-amber-800" :
                                   "bg-gray-100 text-gray-600"
                                 }`}>
                                   {pass.status}
@@ -919,7 +903,7 @@ export default function OutPassPage() {
                         )}
 
                         {/* Approval / Rejection Actions for Pending Outpasses */}
-                        {(!pass.status || pass.status === "Pending") && (
+                        {isPending && (
                           <div className={`mt-3 pt-3 border-t ${dividerClass} flex gap-2`}>
                             <button
                               onClick={() => handleApproveClick(pass)}
@@ -966,83 +950,85 @@ export default function OutPassPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {filteredOutPasses.map((pass) => (
-                  <tr key={pass.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-3 py-3 text-xs font-mono font-bold" style={{ color: "#F0B100" }}>{pass.passId || pass.id}</td>
-                    <td className="px-3 py-3 text-xs font-bold text-gray-900 whitespace-nowrap">{pass.vehicle}</td>
-                    <td className="px-3 py-3 text-xs">
-                      <div className="font-bold text-gray-900">{pass.customer}</div>
-                      <div className="text-[10px] font-medium text-gray-500">{pass.phone}</div>
-                    </td>
-                    <td className="px-3 py-3 text-xs font-mono text-gray-700">{pass.jobCardId || "—"}</td>
-                    <td className="px-3 py-3 text-xs font-mono text-gray-700">{pass.invoiceId || "—"}</td>
-                    <td className="px-3 py-3 text-xs">
-                      {pass.paymentStatus ? (
+                {filteredOutPasses.map((pass) => {
+                  const isApproved = pass.status === "Approved" || pass.status === "Delivered" || pass.issued === true;
+                  const isRejected = pass.status === "Rejected";
+                  const isPending = !isApproved && !isRejected;
+
+                  return (
+                    <tr key={pass.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-3 py-3 text-xs font-mono font-bold" style={{ color: "#F0B100" }}>{pass.passId || pass.id}</td>
+                      <td className="px-3 py-3 text-xs font-bold text-gray-900 whitespace-nowrap">{pass.vehicle}</td>
+                      <td className="px-3 py-3 text-xs">
+                        <div className="font-bold text-gray-900">{pass.customer}</div>
+                        <div className="text-[10px] font-medium text-gray-500">{pass.phone}</div>
+                      </td>
+                      <td className="px-3 py-3 text-xs font-mono text-gray-700">{pass.jobCardId || "—"}</td>
+                      <td className="px-3 py-3 text-xs font-mono text-gray-700">{pass.invoiceId || "—"}</td>
+                      <td className="px-3 py-3 text-xs">
+                        {pass.paymentStatus ? (
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                            pass.paymentStatus === "Paid" ? "bg-emerald-100 text-emerald-700" :
+                            pass.paymentStatus === "Approved Credit" ? "bg-blue-100 text-blue-700" :
+                            "bg-amber-100 text-amber-700"
+                          }`}>
+                            {pass.paymentStatus}
+                          </span>
+                        ) : "—"}
+                      </td>
+                      <td className="px-3 py-3 text-xs">
                         <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                          pass.paymentStatus === "Paid" ? "bg-emerald-100 text-emerald-700" :
-                          pass.paymentStatus === "Approved Credit" ? "bg-blue-100 text-blue-700" :
-                          "bg-amber-100 text-amber-700"
-                        }`}>
-                          {pass.paymentStatus}
-                        </span>
-                      ) : "—"}
-                    </td>
-                    <td className="px-3 py-3 text-xs">
-                      {pass.status ? (
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                          pass.status === "Approved" ? "bg-emerald-100 text-emerald-700" :
-                          pass.status === "Rejected" ? "bg-red-100 text-red-700" :
-                          pass.status === "Pending" ? "bg-amber-100 text-amber-800" :
+                          isApproved ? "bg-emerald-100 text-emerald-700" :
+                          isRejected ? "bg-red-100 text-red-700" :
+                          isPending ? "bg-amber-100 text-amber-800" :
                           "bg-gray-100 text-gray-600"
                         }`}>
-                          {pass.status}
+                          {pass.status || "Pending"}
                         </span>
-                      ) : (
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">
-                          Pending
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-3 py-3 text-xs font-medium text-gray-900">
-                      {pass.outTime ? new Date(pass.outTime).toLocaleString("en-IN", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "—"}
-                    </td>
-                    <td className="px-3 py-3 text-xs">
-                      <div className="flex items-center gap-1.5">
-                        <button
-                          onClick={() => handlePrintClick(pass)}
-                          className="bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-semibold px-2 py-1 rounded text-[10px] transition-colors flex items-center gap-1 cursor-pointer"
-                        >
-                          <Printer className="w-3 h-3" />
-                          Print
-                        </button>
-                        <button
-                          onClick={() => { setEditingPass(pass); setIsDialogOpen(true); }}
-                          className="p-1 hover:bg-gray-100 rounded transition-colors cursor-pointer"
-                        >
-                          <Edit2 className="w-3.5 h-3.5 text-gray-600" />
-                        </button>
-                        {(!pass.status || pass.status === "Pending") && (
-                          <>
+                      </td>
+                      <td className="px-3 py-3 text-xs font-medium text-gray-900">
+                        {pass.outTime ? new Date(pass.outTime).toLocaleString("en-IN", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "—"}
+                      </td>
+                      <td className="px-3 py-3 text-xs">
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            onClick={() => handlePrintClick(pass)}
+                            className="bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-semibold px-2 py-1 rounded text-[10px] transition-colors flex items-center gap-1 cursor-pointer"
+                          >
+                            <Printer className="w-3 h-3" />
+                            Print
+                          </button>
+                          {isRejected && (
                             <button
-                              onClick={() => handleApproveClick(pass)}
-                              className="p-1 text-emerald-600 hover:bg-emerald-50 rounded transition-colors cursor-pointer"
-                              title="Approve"
+                              onClick={() => { setEditingPass(pass); setIsDialogOpen(true); }}
+                              className="p-1 hover:bg-gray-100 rounded transition-colors cursor-pointer"
                             >
-                              <CheckCircle className="w-4 h-4" />
+                              <Edit2 className="w-3.5 h-3.5 text-gray-600" />
                             </button>
-                            <button
-                              onClick={() => handleRejectClick(pass)}
-                              className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors cursor-pointer"
-                              title="Reject"
-                            >
-                              <XCircle className="w-4 h-4" />
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                          )}
+                          {isPending && (
+                            <>
+                              <button
+                                onClick={() => handleApproveClick(pass)}
+                                className="p-1 text-emerald-600 hover:bg-emerald-50 rounded transition-colors cursor-pointer"
+                                title="Approve"
+                              >
+                                <CheckCircle className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => handleRejectClick(pass)}
+                                className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors cursor-pointer"
+                                title="Reject"
+                              >
+                                <XCircle className="w-4 h-4" />
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
