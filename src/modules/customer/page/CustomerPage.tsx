@@ -20,6 +20,36 @@ export function CustomerPage() {
   const [customFromDate, setCustomFromDate] = useState("");
   const [customToDate, setCustomToDate] = useState("");
 
+  const getTodayISO = () => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = (d.getMonth() + 1).toString().padStart(2, "0");
+    const day = d.getDate().toString().padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
+  const handleCustomFromDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selected = e.target.value;
+    const today = getTodayISO();
+    if (selected && selected > today) {
+      toast.error("Future dates are not allowed. Please select today or a past date.");
+      setCustomFromDate(today);
+      return;
+    }
+    setCustomFromDate(selected);
+  };
+
+  const handleCustomToDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selected = e.target.value;
+    const today = getTodayISO();
+    if (selected && selected > today) {
+      toast.error("Future dates are not allowed. Please select today or a past date.");
+      setCustomToDate(today);
+      return;
+    }
+    setCustomToDate(selected);
+  };
+
   const confirmDelete = (customer: Customer) => {
     setCustomerToDelete(customer);
   };
@@ -259,22 +289,52 @@ export function CustomerPage() {
                       <div className="absolute bottom-full right-0 mb-3 z-50 flex items-center gap-2 border border-gray-200 bg-white p-3 rounded-xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.15)] animate-in fade-in slide-in-from-bottom-2 duration-150 whitespace-nowrap min-w-[260px]">
                         <div className="flex flex-col gap-1.5 w-full">
                           <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider text-left">Date Range</span>
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="date"
-                              value={customFromDate}
-                              onChange={(e) => setCustomFromDate(e.target.value)}
-                              className="px-2 py-1 bg-gray-50 border border-gray-200 rounded-md text-xs text-gray-700 outline-none focus:border-yellow-400 w-[110px]"
-                              placeholder="From"
-                            />
-                            <span className="text-xs text-gray-400">to</span>
-                            <input
-                              type="date"
-                              value={customToDate}
-                              onChange={(e) => setCustomToDate(e.target.value)}
-                              className="px-2 py-1 bg-gray-50 border border-gray-200 rounded-md text-xs text-gray-700 outline-none focus:border-yellow-400 w-[110px]"
-                              placeholder="To"
-                            />
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <div className="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-md px-1.5 py-0.5">
+                              <input
+                                type="date"
+                                value={customFromDate}
+                                max={getTodayISO()}
+                                onChange={handleCustomFromDateChange}
+                                className="bg-transparent border-none text-[10px] text-gray-700 outline-none w-[90px]"
+                              />
+                              <button
+                                type="button"
+                                disabled={!customFromDate}
+                                onClick={() => setCustomFromDate("")}
+                                className={`p-0.5 rounded flex items-center justify-center shrink-0 ${
+                                  customFromDate
+                                    ? "text-gray-500 hover:text-gray-800 hover:bg-gray-100 cursor-pointer"
+                                    : "text-gray-200 cursor-not-allowed"
+                                }`}
+                                title="Clear From Date"
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            </div>
+                            <span className="text-[10px] text-gray-400">to</span>
+                            <div className="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-md px-1.5 py-0.5">
+                              <input
+                                type="date"
+                                value={customToDate}
+                                max={getTodayISO()}
+                                onChange={handleCustomToDateChange}
+                                className="bg-transparent border-none text-[10px] text-gray-700 outline-none w-[90px]"
+                              />
+                              <button
+                                type="button"
+                                disabled={!customToDate}
+                                onClick={() => setCustomToDate("")}
+                                className={`p-0.5 rounded flex items-center justify-center shrink-0 ${
+                                  customToDate
+                                    ? "text-gray-500 hover:text-gray-800 hover:bg-gray-100 cursor-pointer"
+                                    : "text-gray-200 cursor-not-allowed"
+                                }`}
+                                title="Clear To Date"
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            </div>
                           </div>
                         </div>
                         <div className="absolute top-full right-6 -mt-1 w-2.5 h-2.5 bg-white border-r border-b border-gray-200 rotate-45"></div>

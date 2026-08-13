@@ -15,7 +15,7 @@ export type LiveStage =
   | "Outpass Generated"
   | "Unmapped";
 
-export type LivePriority = "Normal" | "High" | "Urgent" | "VIP Customer" | string;
+export type LivePriority = "Normal" | "High" | "Low" | "Urgent" | "VIP Customer" | string;
 
 // The /outpass endpoint has no exported type elsewhere in the codebase (it's
 // declared inline in dashboard/outpass/page.tsx) — this is the minimal shape

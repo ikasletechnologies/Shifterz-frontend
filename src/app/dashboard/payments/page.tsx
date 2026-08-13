@@ -1,5 +1,6 @@
 "use client";
 
+import { toast } from "react-hot-toast";
 import { useState, useEffect } from "react";
 import {
   Plus, Eye, Printer, MessageCircle, RotateCcw, Search, X,
@@ -18,10 +19,11 @@ interface Payment {
   vehicle?: string;
   model?: string;
   service?: string;
-  amount: number;
-  mode: string;
   date: string;
   time?: string;
+  amount: number;
+  mode: string;
+  status: string;
   receivedBy?: string;
   ref?: string;
   notes?: string;
@@ -44,9 +46,42 @@ export default function PaymentsPage() {
   const [receivedByFilter, setReceivedByFilter] = useState("All");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 8;
+  const itemsPerPage = 7;
+
+  const getTodayISO = () => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = (d.getMonth() + 1).toString().padStart(2, "0");
+    const day = d.getDate().toString().padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
+  const handleStartDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selected = e.target.value;
+    const today = getTodayISO();
+    if (selected && selected > today) {
+      toast.error("Future dates are not allowed. Please select today or a past date.");
+      setStartDate(today);
+      setCurrentPage(1);
+      return;
+    }
+    setStartDate(selected);
+    setCurrentPage(1);
+  };
+
+  const handleEndDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selected = e.target.value;
+    const today = getTodayISO();
+    if (selected && selected > today) {
+      toast.error("Future dates are not allowed. Please select today or a past date.");
+      setEndDate(today);
+      setCurrentPage(1);
+      return;
+    }
+    setEndDate(selected);
+    setCurrentPage(1);
+  };
 
   useEffect(() => {
     async function fetchPayments() {
@@ -89,7 +124,23 @@ export default function PaymentsPage() {
 
     const matchesMode = modeFilter === "All" || p.mode?.toLowerCase() === modeFilter.toLowerCase();
     const matchesReceivedBy = receivedByFilter === "All" || p.receivedBy?.toLowerCase() === receivedByFilter.toLowerCase();
-    const matchesDate = (!startDate || p.date >= startDate) && (!endDate || p.date <= endDate);
+    const matchesDate = (() => {
+      let valid = true;
+      if (p.date) {
+        const pDate = new Date(p.date);
+        if (!isNaN(pDate.getTime())) {
+          if (startDate) {
+            const start = new Date(startDate + "T00:00:00");
+            if (pDate < start) valid = false;
+          }
+          if (endDate) {
+            const end = new Date(endDate + "T23:59:59.999");
+            if (pDate > end) valid = false;
+          }
+        }
+      }
+      return valid;
+    })();
 
     return matchesSearch && matchesMode && matchesReceivedBy && matchesDate;
   });
@@ -272,23 +323,51 @@ export default function PaymentsPage() {
 
         {/* Date Inputs */}
         <div className="flex items-center gap-3 shrink-0 flex-wrap">
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 bg-white border border-gray-200 rounded-xl px-2.5 py-1.5 shrink-0">
             <span className="text-xs font-semibold text-gray-500">From:</span>
             <input
               type="date"
               value={startDate}
-              onChange={(e) => { setStartDate(e.target.value); setCurrentPage(1); }}
-              className="px-2.5 py-1.5 text-xs border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700 font-medium"
+              max={getTodayISO()}
+              onChange={handleStartDateChange}
+              className="bg-transparent border-none text-xs text-gray-700 focus:outline-none cursor-pointer p-0 font-medium"
             />
+            <button
+              type="button"
+              disabled={!startDate}
+              onClick={() => { setStartDate(""); setCurrentPage(1); }}
+              className={`p-0.5 rounded transition-colors flex items-center justify-center shrink-0 ${
+                startDate
+                  ? "text-gray-600 hover:text-gray-900 hover:bg-gray-100 cursor-pointer"
+                  : "text-gray-300 cursor-not-allowed opacity-50"
+              }`}
+              title={startDate ? "Clear From Date" : ""}
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
           </div>
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 bg-white border border-gray-200 rounded-xl px-2.5 py-1.5 shrink-0">
             <span className="text-xs font-semibold text-gray-500">To:</span>
             <input
               type="date"
               value={endDate}
-              onChange={(e) => { setEndDate(e.target.value); setCurrentPage(1); }}
-              className="px-2.5 py-1.5 text-xs border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700 font-medium"
+              max={getTodayISO()}
+              onChange={handleEndDateChange}
+              className="bg-transparent border-none text-xs text-gray-700 focus:outline-none cursor-pointer p-0 font-medium"
             />
+            <button
+              type="button"
+              disabled={!endDate}
+              onClick={() => { setEndDate(""); setCurrentPage(1); }}
+              className={`p-0.5 rounded transition-colors flex items-center justify-center shrink-0 ${
+                endDate
+                  ? "text-gray-600 hover:text-gray-900 hover:bg-gray-100 cursor-pointer"
+                  : "text-gray-300 cursor-not-allowed opacity-50"
+              }`}
+              title={endDate ? "Clear To Date" : ""}
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
           </div>
 
           {/* Record Payment Primary Button */}

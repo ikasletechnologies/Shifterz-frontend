@@ -105,7 +105,6 @@ export function QCTable({
           className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow p-6 flex flex-col justify-between"
         >
           <div className="space-y-4">
-            {/* Header: Job ID + Eye button */}
             <div className="flex items-start justify-between">
               <div>
                 <h3 className="text-xl font-bold font-mono text-gray-900 tracking-tight">{job.id}</h3>
@@ -114,14 +113,6 @@ export function QCTable({
                   <PriorityBadge priority={job.priority} />
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={() => onOpenChecklist(job)}
-                className="p-2 rounded-xl bg-gray-50 border border-gray-100 text-gray-500 hover:bg-gray-100 transition-colors cursor-pointer"
-                title="View Checklist & Inspection"
-              >
-                <Eye className="w-4 h-4" />
-              </button>
             </div>
 
             {/* Vehicle Section */}

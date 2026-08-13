@@ -174,13 +174,59 @@ export function BillingPage() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
 
+  const getTodayISO = () => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = (d.getMonth() + 1).toString().padStart(2, "0");
+    const day = d.getDate().toString().padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
+  const handleStartDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selected = e.target.value;
+    const today = getTodayISO();
+    if (selected && selected > today) {
+      toast.error("Future dates are not allowed. Please select today or a past date.");
+      setStartDate(today);
+      return;
+    }
+    setStartDate(selected);
+  };
+
+  const handleEndDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selected = e.target.value;
+    const today = getTodayISO();
+    if (selected && selected > today) {
+      toast.error("Future dates are not allowed. Please select today or a past date.");
+      setEndDate(today);
+      return;
+    }
+    setEndDate(selected);
+  };
+
   const filteredDocs = documents.filter((doc) => {
     const matchesFilter = filter === "All" || doc.type === filter;
     const matchesSearch = doc.client?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       doc.vehicle?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       doc.id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       doc.phone?.includes(searchTerm);
-    const matchesDate = (!startDate || doc.date >= startDate) && (!endDate || doc.date <= endDate);
+    const matchesDate = (() => {
+      let valid = true;
+      if (doc.date) {
+        const dDate = new Date(doc.date);
+        if (!isNaN(dDate.getTime())) {
+          if (startDate) {
+            const start = new Date(startDate + "T00:00:00");
+            if (dDate < start) valid = false;
+          }
+          if (endDate) {
+            const end = new Date(endDate + "T23:59:59.999");
+            if (dDate > end) valid = false;
+          }
+        }
+      }
+      return valid;
+    })();
     return matchesFilter && matchesSearch && matchesDate;
   });
 
@@ -320,23 +366,51 @@ export function BillingPage() {
 
         {/* Date Inputs & New Document Action Button */}
         <div className="flex items-center gap-3 shrink-0 flex-wrap">
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 bg-white border border-gray-200 rounded-xl px-2.5 py-1.5 shrink-0">
             <span className="text-xs font-semibold text-gray-500">From:</span>
             <input
               type="date"
               value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="px-2.5 py-1.5 text-xs border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-400 text-gray-700 font-medium"
+              max={getTodayISO()}
+              onChange={handleStartDateChange}
+              className="bg-transparent border-none text-xs text-gray-700 focus:outline-none cursor-pointer p-0 font-medium"
             />
+            <button
+              type="button"
+              disabled={!startDate}
+              onClick={() => setStartDate("")}
+              className={`p-0.5 rounded transition-colors flex items-center justify-center shrink-0 ${
+                startDate
+                  ? "text-gray-600 hover:text-gray-900 hover:bg-gray-100 cursor-pointer"
+                  : "text-gray-300 cursor-not-allowed opacity-50"
+              }`}
+              title={startDate ? "Clear From Date" : ""}
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
           </div>
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 bg-white border border-gray-200 rounded-xl px-2.5 py-1.5 shrink-0">
             <span className="text-xs font-semibold text-gray-500">To:</span>
             <input
               type="date"
               value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="px-2.5 py-1.5 text-xs border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-400 text-gray-700 font-medium"
+              max={getTodayISO()}
+              onChange={handleEndDateChange}
+              className="bg-transparent border-none text-xs text-gray-700 focus:outline-none cursor-pointer p-0 font-medium"
             />
+            <button
+              type="button"
+              disabled={!endDate}
+              onClick={() => setEndDate("")}
+              className={`p-0.5 rounded transition-colors flex items-center justify-center shrink-0 ${
+                endDate
+                  ? "text-gray-600 hover:text-gray-900 hover:bg-gray-100 cursor-pointer"
+                  : "text-gray-300 cursor-not-allowed opacity-50"
+              }`}
+              title={endDate ? "Clear To Date" : ""}
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
           </div>
           <button
             onClick={() => {

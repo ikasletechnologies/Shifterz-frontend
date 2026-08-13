@@ -80,7 +80,7 @@ export function LiveStatusPage() {
       if (d && !isNaN(d.getTime()) && d < start) return false;
     }
     if (toDate) {
-      const end = new Date(toDate + "T23:59:59");
+      const end = new Date(toDate + "T23:59:59.999");
       const d = r.checkInTime ? new Date(r.checkInTime) : null;
       if (d && !isNaN(d.getTime()) && d > end) return false;
     }

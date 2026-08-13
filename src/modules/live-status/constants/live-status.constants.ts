@@ -54,7 +54,7 @@ export const DELAY_COLOR = "bg-red-100 text-red-700";
 // Superset of job-card's JOB_PRIORITIES (Normal/High/Low) with Urgent/VIP Customer
 // added per spec 11.6. Kept local to this module so the existing job-card create/edit
 // forms (which still only offer Normal/High/Low) are untouched.
-export const LIVE_PRIORITIES = ["Normal", "High", "Urgent", "VIP Customer"] as const;
+export const LIVE_PRIORITIES = ["Normal", "High", "Low", "Urgent", "VIP Customer"] as const;
 
 export const LIVE_PRIORITY_COLORS: Record<string, string> = {
   Normal: "bg-blue-100 text-blue-700",

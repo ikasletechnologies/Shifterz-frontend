@@ -146,6 +146,35 @@ export default function OutPassPage() {
       console.error(err);
     }
   };
+  const getTodayISO = () => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = (d.getMonth() + 1).toString().padStart(2, "0");
+    const day = d.getDate().toString().padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
+  const handleFromDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selected = e.target.value;
+    const today = getTodayISO();
+    if (selected && selected > today) {
+      toast.error("Future dates are not allowed. Please select today or a past date.");
+      setFromDate(today);
+      return;
+    }
+    setFromDate(selected);
+  };
+
+  const handleToDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selected = e.target.value;
+    const today = getTodayISO();
+    if (selected && selected > today) {
+      toast.error("Future dates are not allowed. Please select today or a past date.");
+      setToDate(today);
+      return;
+    }
+    setToDate(selected);
+  };
 
   const allCount = outPasses.length;
   const pendingCount = outPasses.filter((p) => {
@@ -529,7 +558,8 @@ export default function OutPassPage() {
           <input
             type="date"
             value={fromDate}
-            onChange={(e) => setFromDate(e.target.value)}
+            max={getTodayISO()}
+            onChange={handleFromDateChange}
             className="bg-transparent border-none text-xs text-gray-800 focus:outline-none cursor-pointer p-0"
           />
           <button
@@ -553,7 +583,8 @@ export default function OutPassPage() {
           <input
             type="date"
             value={toDate}
-            onChange={(e) => setToDate(e.target.value)}
+            max={getTodayISO()}
+            onChange={handleToDateChange}
             className="bg-transparent border-none text-xs text-gray-800 focus:outline-none cursor-pointer p-0"
           />
           <button

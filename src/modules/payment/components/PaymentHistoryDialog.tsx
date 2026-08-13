@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { X, Printer, History } from "lucide-react";
 import { getPayments, getSettings, getInvoices } from "@/lib/api";
+import { formatDate } from "@/lib/timeUtils";
 
 interface PaymentHistoryDialogProps {
   isOpen: boolean;
@@ -240,7 +241,7 @@ export default function PaymentHistoryDialog({
                 </div>
                 <div class="row">
                   <span class="label">Payment Date</span>
-                  <span class="value">${payment.date}</span>
+                  <span class="value">${formatDate(payment.date)}</span>
                 </div>
                 <div class="row">
                   <span class="label">Reference</span>
@@ -347,7 +348,7 @@ export default function PaymentHistoryDialog({
                     <p className="text-xs sm:text-sm font-bold text-gray-900 truncate">
                       Payment #{index + 1} - {payment.id}
                     </p>
-                    <p className="text-xs text-gray-500">{payment.date}</p>
+                    <p className="text-xs text-gray-500">{formatDate(payment.date)}</p>
                   </div>
                   <div className="flex items-center gap-1.5 shrink-0">
 

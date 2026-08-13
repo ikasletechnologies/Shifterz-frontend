@@ -205,7 +205,7 @@ export function JobCardPage() {
     }
 
     if (toDate) {
-      const end = new Date(toDate + "T23:59:59");
+      const end = new Date(toDate + "T23:59:59.999");
       const jobDate = j.startDate ? new Date(j.startDate) : null;
       if (jobDate && !isNaN(jobDate.getTime()) && jobDate > end) return false;
     }

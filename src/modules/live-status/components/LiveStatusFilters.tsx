@@ -1,5 +1,6 @@
 "use client";
 
+import { toast } from "react-hot-toast";
 import { Search, X } from "lucide-react";
 import { LiveStage } from "../types/live-status.types";
 import { LIVE_PRIORITIES, LIVE_STAGES } from "../constants/live-status.constants";
@@ -54,6 +55,34 @@ export function LiveStatusFilters({
   onFranchiseChange,
   showFranchiseFilter,
 }: LiveStatusFiltersProps) {
+  const getTodayISO = () => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = (d.getMonth() + 1).toString().padStart(2, "0");
+    const day = d.getDate().toString().padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
+  const handleFromChange = (val: string) => {
+    const today = getTodayISO();
+    if (val && val > today) {
+      toast.error("Future dates are not allowed. Please select today or a past date.");
+      onFromDateChange(today);
+      return;
+    }
+    onFromDateChange(val);
+  };
+
+  const handleToChange = (val: string) => {
+    const today = getTodayISO();
+    if (val && val > today) {
+      toast.error("Future dates are not allowed. Please select today or a past date.");
+      onToDateChange(today);
+      return;
+    }
+    onToDateChange(val);
+  };
+
   return (
     <div className="flex flex-wrap 2xl:flex-nowrap items-center justify-between gap-3 w-full bg-white p-3 rounded-2xl border border-slate-200/80 shadow-2xs">
       {/* Left: Search Bar */}
@@ -118,21 +147,53 @@ export function LiveStatusFilters({
 
         {/* Date Filter: From Date & To Date always together side-by-side */}
         <div className="flex items-center gap-1.5 shrink-0">
-          <input
-            type="date"
-            value={fromDate}
-            onChange={(e) => onFromDateChange(e.target.value)}
-            className={dateInputClass}
-            aria-label="From date"
-          />
-          <span className="text-slate-400 text-xs font-medium px-0.5">to</span>
-          <input
-            type="date"
-            value={toDate}
-            onChange={(e) => onToDateChange(e.target.value)}
-            className={dateInputClass}
-            aria-label="To date"
-          />
+          <div className="flex items-center gap-1">
+            <input
+              type="date"
+              value={fromDate}
+              max={getTodayISO()}
+              onChange={(e) => handleFromChange(e.target.value)}
+              className={dateInputClass}
+              aria-label="From date"
+            />
+            <button
+              type="button"
+              disabled={!fromDate}
+              onClick={() => onFromDateChange("")}
+              className={`p-1 rounded-full transition-all ${
+                fromDate
+                  ? "text-slate-500 hover:text-slate-800 hover:bg-slate-100 cursor-pointer"
+                  : "text-slate-200 cursor-not-allowed"
+              }`}
+              title="Clear From Date"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+          <span className="text-slate-400 text-xs font-medium">to</span>
+          <div className="flex items-center gap-1">
+            <input
+              type="date"
+              value={toDate}
+              max={getTodayISO()}
+              onChange={(e) => handleToChange(e.target.value)}
+              className={dateInputClass}
+              aria-label="To date"
+            />
+            <button
+              type="button"
+              disabled={!toDate}
+              onClick={() => onToDateChange("")}
+              className={`p-1 rounded-full transition-all ${
+                toDate
+                  ? "text-slate-500 hover:text-slate-800 hover:bg-slate-100 cursor-pointer"
+                  : "text-slate-200 cursor-not-allowed"
+              }`}
+              title="Clear To Date"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
       </div>
     </div>

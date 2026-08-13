@@ -79,10 +79,9 @@ export function FailDialog({ job, isOpen, onClose, onFail }: FailDialogProps) {
             <button
               type="submit"
               disabled={isFailing || !notes.trim()}
-              className="px-4 py-2 text-sm font-bold text-white bg-red-600 hover:bg-red-700 rounded-lg flex items-center gap-2 disabled:opacity-50"
+              className="px-4 py-2 text-sm font-bold text-white bg-red-600 hover:bg-red-700 rounded-lg flex items-center justify-center disabled:opacity-50"
             >
-              <XCircle className="w-4 h-4" />
-              {isFailing ? "Recording..." : "✗ Confirm QC Fail"}
+              {isFailing ? "Recording..." : "Confirm QC Fail"}
             </button>
           </div>
         </form>

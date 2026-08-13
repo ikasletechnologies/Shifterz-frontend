@@ -397,15 +397,11 @@ export default function WarrantyDetailsDialog({
           {activeTab === "claims" && (
             <div className="space-y-6">
               {/* Claims History */}
-              <div className="space-y-3">
-                <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                  Permanent Claim History (§Warranty PRD Rule 4)
-                </h4>
-                {(!warranty.claimsList || warranty.claimsList.length === 0) ? (
-                  <div className="text-center py-6 bg-slate-800/20 border border-slate-800/60 rounded-xl text-slate-400 text-sm">
-                    No warranty claims recorded for this item yet.
-                  </div>
-                ) : (
+              {warranty.claimsList && warranty.claimsList.length > 0 && (
+                <div className="space-y-3">
+                  <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                    Permanent Claim History (§Warranty PRD Rule 4)
+                  </h4>
                   <div className="space-y-3">
                     {warranty.claimsList.map((claim) => (
                       <div
@@ -439,8 +435,8 @@ export default function WarrantyDetailsDialog({
                       </div>
                     ))}
                   </div>
-                )}
-              </div>
+                </div>
+              )}
 
               {/* Record new claim form */}
               {!isExpired ? (

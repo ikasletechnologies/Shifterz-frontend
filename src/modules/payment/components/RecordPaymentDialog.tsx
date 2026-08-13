@@ -425,7 +425,7 @@ export default function RecordPaymentDialog({
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-extrabold text-slate-700 mb-1.5">
                   Received By <span className="text-red-500">*</span>
@@ -452,17 +452,6 @@ export default function RecordPaymentDialog({
                   rows={2}
                   className="w-full px-3.5 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none text-slate-900"
                 />
-              </div>
-
-              <div>
-                <label className="block text-xs font-extrabold text-slate-700 mb-1.5">Attachment (Optional)</label>
-                <div className="border border-slate-200 border-dashed rounded-xl p-3 text-center bg-slate-50/50 hover:bg-slate-50 transition-colors">
-                  <label className="cursor-pointer flex items-center justify-center gap-1.5 text-xs font-bold text-blue-600">
-                    <Upload className="w-3.5 h-3.5 text-blue-500" /> Upload Receipt
-                    <input type="file" className="hidden" accept=".jpg,.jpeg,.png,.pdf" />
-                  </label>
-                  <p className="text-[10px] text-slate-400 mt-1">JPG, PNG, PDF (Max 5MB)</p>
-                </div>
               </div>
             </div>
           </div>

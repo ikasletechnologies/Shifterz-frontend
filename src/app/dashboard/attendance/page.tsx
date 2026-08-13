@@ -27,8 +27,43 @@ export default function AttendancePage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedBranch, setSelectedBranch] = useState("ALL");
   const [selectedStatus, setSelectedStatus] = useState("ALL");
+  const [selectedRole, setSelectedRole] = useState("ALL");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
+
+  const roles = useMemo(() => {
+    const rawRoles = Array.from(new Set(attendance.map((a) => a.employee?.role).filter((role): role is string => !!role)));
+    const predefined = [
+      { value: "BILLING_EXECUTIVE", label: "Billing Executive" },
+      { value: "RECEPTION_EXECUTIVE", label: "Receptionist" },
+      { value: "SERVICE_ADVISOR", label: "Service Advisor" },
+      { value: "TECHNICIAN", label: "Technician" },
+      { value: "QUALITY_INSPECTOR", label: "Quality Inspector" },
+      { value: "INVENTORY_EXECUTIVE", label: "Inventory Executive" },
+      { value: "FRANCHISE_ADMIN", label: "Franchise Admin" },
+    ];
+    // Filter out active roles already covered by predefined list
+    const predefinedKeys = [
+      "BILLING_EXECUTIVE", "BILLING", "RECEPTION_EXECUTIVE", "RECEPTIONIST", 
+      "SERVICE_ADVISOR", "TECHNICIAN", "QUALITY_INSPECTOR", "QC", 
+      "INVENTORY_EXECUTIVE", "FRANCHISE_ADMIN"
+    ];
+    const otherRoles = rawRoles.filter(role => {
+      const norm = role.toUpperCase().replace(/[\s_]+/g, "");
+      return !predefinedKeys.some(key => key.toUpperCase().replace(/[\s_]+/g, "") === norm);
+    });
+    // Add other active roles in format
+    otherRoles.forEach(role => {
+      const label = role
+        .replace(/_/g, " ")
+        .toLowerCase()
+        .split(" ")
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(" ");
+      predefined.push({ value: role, label });
+    });
+    return predefined;
+  }, [attendance]);
 
   const getTodayISO = () => {
     const d = new Date();
@@ -169,6 +204,22 @@ export default function AttendancePage() {
         selectedStatus === "ALL" ||
         rec.status?.toLowerCase() === selectedStatus.toLowerCase();
 
+      // Role
+      let matchesRole = true;
+      if (selectedRole !== "ALL") {
+        const uRole = (rec.employee?.role || "").toUpperCase().replace(/[\s_]+/g, "");
+        const sRole = selectedRole.toUpperCase().replace(/[\s_]+/g, "");
+        if (sRole === "BILLINGEXECUTIVE") {
+          matchesRole = uRole === "BILLINGEXECUTIVE" || uRole === "BILLING";
+        } else if (sRole === "RECEPTIONEXECUTIVE") {
+          matchesRole = uRole === "RECEPTIONEXECUTIVE" || uRole === "RECEPTIONIST";
+        } else if (sRole === "QUALITYINSPECTOR") {
+          matchesRole = uRole === "QUALITYINSPECTOR" || uRole === "QC";
+        } else {
+          matchesRole = uRole === sRole;
+        }
+      }
+
       // Date Range (reused from Car In module)
       let matchesDateRange = true;
       const recDateRaw = rec.date || rec.clockIn;
@@ -186,9 +237,9 @@ export default function AttendancePage() {
         }
       }
 
-      return matchesSearch && matchesBranch && matchesStatus && matchesDateRange;
+      return matchesSearch && matchesBranch && matchesStatus && matchesRole && matchesDateRange;
     });
-  }, [attendance, searchQuery, selectedBranch, selectedStatus, fromDate, toDate]);
+  }, [attendance, searchQuery, selectedBranch, selectedStatus, selectedRole, fromDate, toDate]);
 
   // KPI Metrics
   const metrics = useMemo(() => {
@@ -304,8 +355,8 @@ export default function AttendancePage() {
       </div>
 
       {/* Filter Bar */}
-      <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col md:flex-row gap-4 items-center justify-between">
-        <div className="relative w-full md:w-72">
+      <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col lg:flex-row gap-4 items-center justify-between">
+        <div className="relative w-full lg:w-72 shrink-0">
           <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
@@ -316,10 +367,10 @@ export default function AttendancePage() {
           />
         </div>
 
-        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+        <div className="flex flex-row flex-nowrap items-center gap-3 w-full lg:w-auto overflow-x-auto scrollbar-hidden py-1">
           {/* Branch Filter */}
           {franchises.length > 0 && (
-            <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-1.5 text-sm">
+            <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-1.5 text-sm shrink-0">
               <Building2 className="w-4 h-4 text-gray-400 shrink-0" />
               <select
                 value={selectedBranch}
@@ -338,7 +389,7 @@ export default function AttendancePage() {
           )}
 
           {/* Status Filter */}
-          <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-1.5 text-sm">
+          <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-1.5 text-sm shrink-0">
             <Filter className="w-4 h-4 text-gray-400 shrink-0" />
             <select
               value={selectedStatus}
@@ -348,6 +399,23 @@ export default function AttendancePage() {
               <option value="ALL">All Statuses</option>
               <option value="Present">Present</option>
               <option value="Absent">Absent</option>
+            </select>
+          </div>
+
+          {/* Role Filter */}
+          <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-1.5 text-sm shrink-0">
+            <User className="w-4 h-4 text-gray-400 shrink-0" />
+            <select
+              value={selectedRole}
+              onChange={(e) => setSelectedRole(e.target.value)}
+              className="bg-transparent border-none text-sm text-gray-700 font-medium focus:outline-none cursor-pointer"
+            >
+              <option value="ALL">All Roles</option>
+              {roles.map((r) => (
+                <option key={r.value} value={r.value}>
+                  {r.label}
+                </option>
+              ))}
             </select>
           </div>
 

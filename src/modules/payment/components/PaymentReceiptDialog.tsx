@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Printer } from "lucide-react";
 import { getSettings } from "@/lib/api";
+import { formatDate } from "@/lib/timeUtils";
 
 interface PaymentReceiptDialogProps {
   isOpen: boolean;
@@ -198,7 +199,7 @@ export default function PaymentReceiptDialog({
               {/* Payment Date */}
               <div className="flex justify-between items-center py-2.5 border-b border-gray-200">
                 <span className="text-xs text-gray-600 uppercase tracking-wider font-bold">Payment Date</span>
-                <span className="font-semibold text-gray-900 text-xs">{payment.date}</span>
+                <span className="font-semibold text-gray-900 text-xs">{formatDate(payment.date)}</span>
               </div>
 
               {/* Reference */}

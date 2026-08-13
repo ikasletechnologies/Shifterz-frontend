@@ -26,6 +26,36 @@ export default function WarrantyManagementPage() {
   const [dateTo, setDateTo] = useState("");
   const [cardFilter, setCardFilter] = useState<CardFilterType>("ALL");
 
+  const getTodayISO = () => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = (d.getMonth() + 1).toString().padStart(2, "0");
+    const day = d.getDate().toString().padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
+  const handleDateFromChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selected = e.target.value;
+    const today = getTodayISO();
+    if (selected && selected > today) {
+      toast.error("Future dates are not allowed. Please select today or a past date.");
+      setDateFrom(today);
+      return;
+    }
+    setDateFrom(selected);
+  };
+
+  const handleDateToChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selected = e.target.value;
+    const today = getTodayISO();
+    if (selected && selected > today) {
+      toast.error("Future dates are not allowed. Please select today or a past date.");
+      setDateTo(today);
+      return;
+    }
+    setDateTo(selected);
+  };
+
   // Modals & Dialogs
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [selectedWarranty, setSelectedWarranty] = useState<WarrantyRecord | null>(null);
@@ -310,9 +340,23 @@ export default function WarrantyManagementPage() {
       (w.invoiceId || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
       (w.itemName || "").toLowerCase().includes(searchQuery.toLowerCase());
 
-    const matchesDate =
-      (!dateFrom || w.startDate >= dateFrom) &&
-      (!dateTo || w.expiryDate <= dateTo);
+    const matchesDate = (() => {
+      let valid = true;
+      if (w.startDate) {
+        const wDate = new Date(w.startDate);
+        if (!isNaN(wDate.getTime())) {
+          if (dateFrom) {
+            const start = new Date(dateFrom + "T00:00:00");
+            if (wDate < start) valid = false;
+          }
+          if (dateTo) {
+            const end = new Date(dateTo + "T23:59:59.999");
+            if (wDate > end) valid = false;
+          }
+        }
+      }
+      return valid;
+    })();
 
     let matchesCard = true;
     if (cardFilter === "ACTIVE") {
@@ -524,24 +568,52 @@ export default function WarrantyManagementPage() {
 
         {/* Center / Right: From Date & To Date filters */}
         <div className="flex items-center gap-3 shrink-0 flex-wrap">
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-xl px-2.5 py-1.5 shrink-0">
             <span className="text-xs font-bold text-slate-500">From:</span>
             <input
               type="date"
               value={dateFrom}
-              onChange={(e) => setDateFrom(e.target.value)}
-              className="px-2.5 py-1.5 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium"
+              max={getTodayISO()}
+              onChange={handleDateFromChange}
+              className="bg-transparent border-none text-xs text-slate-700 focus:outline-none cursor-pointer p-0 font-medium"
             />
+            <button
+              type="button"
+              disabled={!dateFrom}
+              onClick={() => dateFrom && setDateFrom("")}
+              className={`p-0.5 rounded transition-colors flex items-center justify-center shrink-0 ${
+                dateFrom
+                  ? "text-slate-600 hover:text-slate-900 hover:bg-slate-100 cursor-pointer"
+                  : "text-slate-300 cursor-not-allowed opacity-50"
+              }`}
+              title={dateFrom ? "Clear From Date" : ""}
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
           </div>
 
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-xl px-2.5 py-1.5 shrink-0">
             <span className="text-xs font-bold text-slate-500">To:</span>
             <input
               type="date"
               value={dateTo}
-              onChange={(e) => setDateTo(e.target.value)}
-              className="px-2.5 py-1.5 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium"
+              max={getTodayISO()}
+              onChange={handleDateToChange}
+              className="bg-transparent border-none text-xs text-slate-700 focus:outline-none cursor-pointer p-0 font-medium"
             />
+            <button
+              type="button"
+              disabled={!dateTo}
+              onClick={() => dateTo && setDateTo("")}
+              className={`p-0.5 rounded transition-colors flex items-center justify-center shrink-0 ${
+                dateTo
+                  ? "text-slate-600 hover:text-slate-900 hover:bg-slate-100 cursor-pointer"
+                  : "text-slate-300 cursor-not-allowed opacity-50"
+              }`}
+              title={dateTo ? "Clear To Date" : ""}
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
           </div>
 
           {/* Single Row of 3 Action Buttons */}
