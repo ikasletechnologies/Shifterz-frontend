@@ -26,7 +26,7 @@ export function useWorkshop() {
       const data = await getMyJobs();
       // Workshop only sees jobs relevant to work execution — filter out billing-only statuses
       const workshopJobs = (data || []).filter((j: WorkshopJob) =>
-        ["Assigned", "In Progress", "Paused", "Completed", "Waiting QC", "QC Failed", "Rework"].includes(j.status)
+        ["Assigned", "In Progress", "Paused", "Completed", "Waiting QC", "QC Failed", "Rework", "Rework Required"].includes(j.status)
       );
       setJobs(workshopJobs);
       setError(null);

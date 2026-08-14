@@ -17,6 +17,7 @@ export const WORKSHOP_STATUS_FLOW: Record<WorkshopJobStatus, WorkshopJobStatus |
   "QC Passed": null,
   "QC Failed": "In Progress",
   Rework: "In Progress",
+  "Rework Required": "In Progress",
 };
 
 export const WORKSHOP_STATUS_COLORS: Record<string, string> = {
@@ -28,6 +29,7 @@ export const WORKSHOP_STATUS_COLORS: Record<string, string> = {
   "QC Passed": "bg-teal-100 text-teal-700",
   "QC Failed": "bg-red-100 text-red-700",
   Rework: "bg-rose-100 text-rose-700",
+  "Rework Required": "bg-red-100 text-red-700",
 };
 
 export const MATERIAL_UNITS = ["ml", "L", "g", "kg", "pcs", "roll", "sheet", "m"];

@@ -19,6 +19,7 @@ import PaymentReceiptDialog from "@/modules/payment/components/PaymentReceiptDia
 import PaymentHistoryDialog from "@/modules/payment/components/PaymentHistoryDialog";
 import { useBilling } from "@/modules/billing/hooks/useBilling";
 import { BillingDocument } from "@/modules/billing/types/billing.types";
+import BillingJobCards from "../components/BillingJobCards";
 
 function CardMoreDropdown({
   doc,
@@ -154,6 +155,7 @@ export function BillingPage() {
     }
   };
 
+  const [activeSubTab, setActiveSubTab] = useState<"ready" | "documents">("ready");
   const [filter, setFilter] = useState("All");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingDocument, setEditingDocument] = useState<BillingDocument | null>(null);
@@ -269,7 +271,35 @@ export function BillingPage() {
 
   return (
     <div className="p-8 space-y-6">
-      {error && (
+      {/* View Selector Tabs */}
+      <div className="flex border-b border-gray-100 gap-6 mb-2">
+        <button
+          onClick={() => setActiveSubTab("ready")}
+          className={`pb-3 text-sm font-bold border-b-2 transition-all relative ${
+            activeSubTab === "ready"
+              ? "border-amber-500 text-amber-600"
+              : "border-transparent text-gray-400 hover:text-gray-600"
+          }`}
+        >
+          Ready for Billing
+        </button>
+        <button
+          onClick={() => setActiveSubTab("documents")}
+          className={`pb-3 text-sm font-bold border-b-2 transition-all relative ${
+            activeSubTab === "documents"
+              ? "border-amber-500 text-amber-600"
+              : "border-transparent text-gray-400 hover:text-gray-600"
+          }`}
+        >
+          Invoices & Documents
+        </button>
+      </div>
+
+      {activeSubTab === "ready" ? (
+        <BillingJobCards />
+      ) : (
+        <>
+          {error && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
           ⚠️ {error}
         </div>
@@ -611,6 +641,8 @@ export function BillingPage() {
             );
           })}
         </div>
+      )}
+        </>
       )}
 
       {/* Dialogs */}

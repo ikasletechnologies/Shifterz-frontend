@@ -7,7 +7,8 @@ export type QCStatus =
   | "QC Passed"
   | "QC Failed"
   | "Rework"
-  | "Ready For Billing";
+  | "Ready For Billing"
+  | "Rework Required";
 
 export interface QCJob {
   id: string;

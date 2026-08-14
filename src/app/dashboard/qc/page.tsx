@@ -244,7 +244,7 @@ export default function QCInspectionPage() {
 
   const failedCount = useMemo(() => {
     return jobs.filter((j) =>
-      ["QC Failed", "Rework"].includes(j.status)
+      ["QC Failed", "Rework", "Rework Required"].includes(j.status)
     ).length;
   }, [jobs]);
 
@@ -270,7 +270,7 @@ export default function QCInspectionPage() {
       } else if (activeTab === "Passed Jobs") {
         matchesTab = ["QC Passed", "Ready for Billing", "Ready For Billing"].includes(j.status);
       } else if (activeTab === "Failed / Rework") {
-        matchesTab = ["QC Failed", "Rework"].includes(j.status);
+        matchesTab = ["QC Failed", "Rework", "Rework Required"].includes(j.status);
       } else if (activeTab === "Inspecting") {
         matchesTab = ["Inspecting", "In Inspection"].includes(j.status);
       }

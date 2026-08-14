@@ -37,13 +37,6 @@ function formatTimeOnly(dateStr?: string) {
 }
 
 export function ViewJobCardDialog({ isOpen, onClose, job, onEdit, onDelete }: ViewJobCardDialogProps) {
-  if (!isOpen || !job) return null;
-
-  const isDelivered =
-    job.status === "Completed" ||
-    job.status === "Delivered" ||
-    job.status === "Out";
-
   const [history, setHistory] = useState<any[]>([]);
   const [activeSubTab, setActiveSubTab] = useState<'details' | 'timeline'>('details');
 
@@ -64,6 +57,13 @@ export function ViewJobCardDialog({ isOpen, onClose, job, onEdit, onDelete }: Vi
       .catch(console.error);
     }
   }, [isOpen, job?.id]);
+
+  if (!isOpen || !job) return null;
+
+  const isDelivered =
+    job.status === "Completed" ||
+    job.status === "Delivered" ||
+    job.status === "Out";
 
   const handlePrint = (copy: 'workshop' | 'customer') => {
     if (!job) return;

@@ -13,7 +13,8 @@ export const QC_STATUS_FLOW: Record<QCStatus, QCStatus[]> = {
   "Waiting QC": ["Inspecting"],
   Inspecting: ["QC Passed", "QC Failed"],
   "QC Passed": ["Ready For Billing"],
-  "QC Failed": ["Rework"],
+  "QC Failed": ["Rework", "Rework Required"],
+  "Rework Required": [],
   Rework: [],          // Rework is handled by Workshop; QC reads-only
   "Ready For Billing": [], // Terminal state for QC
 };
@@ -26,6 +27,7 @@ export const QC_STATUS_COLORS: Record<string, string> = {
   Inspecting: "bg-blue-100 text-blue-700",
   "QC Passed": "bg-green-100 text-green-700",
   "QC Failed": "bg-red-100 text-red-700",
+  "Rework Required": "bg-red-100 text-red-700",
   "Ready For Billing": "bg-teal-100 text-teal-700",
 };
 
