@@ -1,26 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Check, X, ShieldAlert, Calendar, RefreshCw, Layers } from "lucide-react";
-import { getFranchiseRequests, approveFranchiseRequest, rejectFranchiseRequest } from "@/lib/api";
+import { RefreshCw, Layers, Key, Calendar, Copy } from "lucide-react";
+import { getFranchiseRequests } from "@/lib/api";
 import { toast } from "react-hot-toast";
 
 export default function FranchiseActivationsPage() {
   const [requests, setRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [processingId, setProcessingId] = useState<string | null>(null);
-
-  const [confirmModal, setConfirmModal] = useState<{
-    isOpen: boolean;
-    type: "approve" | "reject" | null;
-    requestId: string | null;
-    franchiseName: string;
-  }>({
-    isOpen: false,
-    type: null,
-    requestId: null,
-    franchiseName: ""
-  });
 
   async function fetchRequests() {
     try {
@@ -38,45 +25,8 @@ export default function FranchiseActivationsPage() {
     fetchRequests();
   }, []);
 
-  const triggerApproveConfirm = (id: string, name: string) => {
-    setConfirmModal({
-      isOpen: true,
-      type: "approve",
-      requestId: id,
-      franchiseName: name
-    });
-  };
-
-  const triggerRejectConfirm = (id: string, name: string) => {
-    setConfirmModal({
-      isOpen: true,
-      type: "reject",
-      requestId: id,
-      franchiseName: name
-    });
-  };
-
-  const handleConfirmAction = async () => {
-    const { type, requestId } = confirmModal;
-    if (!requestId || !type) return;
-
-    setConfirmModal(prev => ({ ...prev, isOpen: false }));
-    setProcessingId(requestId);
-
-    try {
-      if (type === "approve") {
-        await approveFranchiseRequest(requestId);
-        toast.success("Franchise activated successfully!");
-      } else {
-        await rejectFranchiseRequest(requestId);
-        toast.success("Franchise request rejected.");
-      }
-      fetchRequests();
-    } catch (err: any) {
-      toast.error(`Failed to ${type} franchise request: ` + err.message);
-    } finally {
-      setProcessingId(null);
-    }
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text).then(() => toast.success("License key copied!"));
   };
 
   if (loading) {
@@ -100,7 +50,7 @@ export default function FranchiseActivationsPage() {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Franchise Activation Requests</h1>
-            <p className="text-sm text-gray-500">Ikasle Business Group authorization panel for branch onboarding.</p>
+            <p className="text-sm text-gray-500">Review pending franchise and license details.</p>
           </div>
         </div>
         <button
@@ -121,70 +71,151 @@ export default function FranchiseActivationsPage() {
           </span>
         </h2>
 
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-          {pendingRequests.length === 0 ? (
-            <div className="p-12 text-center text-gray-400 text-sm">No pending franchise onboarding requests found.</div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm text-left">
-                <thead>
-                  <tr className="border-b border-gray-100 bg-gray-50/50">
-                    <th className="px-4 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Date Requested</th>
-                    <th className="px-4 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Franchise Name</th>
-                    <th className="px-4 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Owner</th>
-                    <th className="px-4 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Contact Number</th>
-                    <th className="px-4 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Email Address</th>
-                    <th className="px-4 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Address</th>
-                    <th className="px-4 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">GST Number</th>
-                    <th className="px-4 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-50">
-                  {pendingRequests.map((r) => (
-                    <tr key={r.id} className="hover:bg-gray-50/50 transition-colors">
-                      <td className="px-4 py-4 font-mono text-xs text-gray-500">{new Date(r.createdAt).toLocaleDateString()}</td>
-                      <td className="px-4 py-4 font-bold text-gray-900">{r.payload?.name}</td>
-                      <td className="px-4 py-4 text-gray-700">{r.payload?.owner}</td>
-                      <td className="px-4 py-4 font-mono text-gray-600">{r.payload?.phone}</td>
-                      <td className="px-4 py-4 text-gray-600">{r.payload?.email || "-"}</td>
-                      <td className="px-4 py-4 text-gray-600 max-w-[200px] truncate" title={r.payload?.address}>
-                        {r.payload?.address || "-"}
-                      </td>
-                      <td className="px-4 py-4 font-mono text-gray-600">{r.payload?.gstNumber || "-"}</td>
-                      <td className="px-4 py-4 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <button
-                            onClick={() => triggerApproveConfirm(r.id, r.payload?.name)}
-                            disabled={processingId !== null}
-                            className="px-3 py-1.5 rounded-lg bg-green-600 hover:bg-green-700 text-white font-semibold text-xs transition-colors"
-                          >
-                            Approve
-                          </button>
-                          <button
-                            onClick={() => triggerRejectConfirm(r.id, r.payload?.name)}
-                            disabled={processingId !== null}
-                            className="px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white font-semibold text-xs transition-colors"
-                          >
-                            Reject
-                          </button>
+        {pendingRequests.length === 0 ? (
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-12 text-center text-gray-400 text-sm">
+            No pending franchise onboarding requests found.
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {pendingRequests.map((r) => {
+              const licenseKey = r.payload?.licenseKey;
+              const licenseExpiry = r.payload?.licenseExpiry;
+              const licenseFeatures: string[] = r.payload?.licenseFeatures || [];
+
+              return (
+                <div
+                  key={r.id}
+                  className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden"
+                >
+                  {/* Card Header */}
+                  <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gray-50/50">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-yellow-100 flex items-center justify-center">
+                        <Layers className="w-5 h-5 text-yellow-600" />
+                      </div>
+                      <div>
+                        <p className="font-bold text-gray-900 text-base">{r.payload?.name}</p>
+                        <p className="text-xs text-gray-500 font-medium">
+                          {r.payload?.city}{r.payload?.state ? `, ${r.payload.state}` : ""}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-gray-400 font-mono">
+                        {new Date(r.createdAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
+                      </span>
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-yellow-100 text-yellow-800">
+                        Pending
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Card Body */}
+                  <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Franchise Details */}
+                    <div className="space-y-3">
+                      <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Franchise Details</p>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-gray-500 font-medium">Owner</span>
+                          <span className="font-semibold text-gray-800">{r.payload?.owner || "—"}</span>
                         </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-500 font-medium">Phone</span>
+                          <span className="font-mono text-gray-700">{r.payload?.phone || "—"}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-500 font-medium">Email</span>
+                          <span className="text-gray-700">{r.payload?.email || "—"}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-500 font-medium">GST Number</span>
+                          <span className="font-mono text-gray-700">{r.payload?.gstNumber || "—"}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-500 font-medium">Business Name</span>
+                          <span className="text-gray-700">{r.payload?.businessName || "—"}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-500 font-medium">Address</span>
+                          <span className="text-gray-700 text-right max-w-[200px]">{r.payload?.address || "—"}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-500 font-medium">Royalty</span>
+                          <span className="font-semibold text-gray-800">{r.payload?.royaltyPct || 10}%</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* License Details */}
+                    <div className="space-y-3">
+                      <p className="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
+                        <Key className="w-3.5 h-3.5" /> Auto-Generated License
+                      </p>
+
+                      {licenseKey ? (
+                        <div className="space-y-3">
+                          {/* License Key Badge */}
+                          <div className="flex items-center gap-2 bg-slate-900 text-green-400 rounded-xl px-4 py-3 font-mono text-sm font-bold tracking-widest">
+                            <span className="flex-1">{licenseKey}</span>
+                            <button
+                              onClick={() => copyToClipboard(licenseKey)}
+                              className="text-gray-400 hover:text-white transition-colors"
+                              title="Copy License Key"
+                            >
+                              <Copy className="w-4 h-4" />
+                            </button>
+                          </div>
+
+                          <div className="space-y-2 text-sm">
+                            <div className="flex justify-between items-center">
+                              <span className="text-gray-500 font-medium flex items-center gap-1">
+                                <Calendar className="w-3.5 h-3.5" /> Expires
+                              </span>
+                              <span className="font-semibold text-gray-800">
+                                {licenseExpiry
+                                  ? new Date(licenseExpiry).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
+                                  : "365 days from approval"}
+                              </span>
+                            </div>
+                            <div className="flex justify-between items-start">
+                              <span className="text-gray-500 font-medium">Status</span>
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-yellow-100 text-yellow-700">
+                                Pending
+                              </span>
+                            </div>
+                          </div>
+
+                          {licenseFeatures.length > 0 && (
+                            <div>
+                              <p className="text-xs font-medium text-gray-400 mb-2">Included Features</p>
+                              <div className="flex flex-wrap gap-1.5">
+                                {licenseFeatures.map((f) => (
+                                  <span key={f} className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded-md text-[11px] font-semibold capitalize">
+                                    {f}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="text-sm text-gray-400 italic">License details not available for legacy requests.</div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
-      {/* Completed Requests History */}
-      <div className="space-y-4 pt-4">
-        <h2 className="text-lg font-bold text-gray-900">Historical Decisions</h2>
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-          {completedRequests.length === 0 ? (
-            <div className="p-8 text-center text-gray-400 text-sm">No historical activation logs found.</div>
-          ) : (
+      {/* Historical Decisions (read-only, Approval-table records only) */}
+      {completedRequests.length > 0 && (
+        <div className="space-y-4 pt-4">
+          <h2 className="text-lg font-bold text-gray-900">Historical Decisions</h2>
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-sm text-left">
                 <thead>
@@ -199,7 +230,7 @@ export default function FranchiseActivationsPage() {
                 <tbody className="divide-y divide-gray-50">
                   {completedRequests.map((r) => (
                     <tr key={r.id} className="hover:bg-gray-50/50 transition-colors">
-                      <td className="px-4 py-4 font-mono text-xs text-gray-500">{new Date(r.updatedAt).toLocaleDateString()}</td>
+                      <td className="px-4 py-4 font-mono text-xs text-gray-500">{new Date(r.updatedAt || r.createdAt).toLocaleDateString()}</td>
                       <td className="px-4 py-4 font-bold text-gray-900">{r.payload?.name}</td>
                       <td className="px-4 py-4 text-gray-700">{r.payload?.owner}</td>
                       <td className="px-4 py-4 text-gray-600">{r.approverName || "System"}</td>
@@ -214,45 +245,6 @@ export default function FranchiseActivationsPage() {
                   ))}
                 </tbody>
               </table>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Confirmation Modal */}
-      {confirmModal.isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-gray-100">
-            <div className="flex items-center gap-3 mb-4">
-              <div className={`p-3 rounded-full ${confirmModal.type === 'approve' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
-                <ShieldAlert className="w-6 h-6" />
-              </div>
-              <h3 className="text-lg font-bold text-gray-900 capitalize">
-                {confirmModal.type} Onboarding Request
-              </h3>
-            </div>
-            
-            <p className="text-sm text-gray-600 mb-6">
-              Are you sure you want to <span className="font-semibold text-gray-900">{confirmModal.type}</span> activation for <span className="font-semibold text-gray-900">{confirmModal.franchiseName}</span>?
-            </p>
-            
-            <div className="flex items-center justify-end gap-3">
-              <button
-                onClick={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
-                className="px-4 py-2 text-sm font-semibold text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleConfirmAction}
-                className={`px-4 py-2 text-sm font-semibold text-white rounded-lg shadow-sm transition-colors ${
-                  confirmModal.type === 'approve' 
-                    ? 'bg-green-600 hover:bg-green-700' 
-                    : 'bg-red-600 hover:bg-red-700'
-                }`}
-              >
-                Confirm
-              </button>
             </div>
           </div>
         </div>

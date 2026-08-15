@@ -142,6 +142,9 @@ export default function NewDocumentDialog({
             warranty: initialData.warranty || ""
           }]);
         }
+        if (initialData.jobCardNo) {
+          setJobId(initialData.jobCardNo);
+        }
       } else {
         setFormData({
           type: "Estimate",
@@ -180,6 +183,25 @@ export default function NewDocumentDialog({
       }
     }
   }, [isOpen, initialData]);
+
+  useEffect(() => {
+    if (isOpen && initialData && initialData.service && items.length === 1 && items[0].price === 0 && availableServices.length > 0) {
+      const jobServiceName = (initialData.service || "").trim();
+      const matched = availableServices.find(
+        (s) => s.name.toLowerCase() === jobServiceName.toLowerCase()
+      );
+      if (matched) {
+        const price = matched.price || 0;
+        const warranty = matched.warranty || "";
+        setItems([
+          { desc: jobServiceName, qty: 1, price, amount: price, discountPercent: 0, gstPercent: 18, warranty },
+        ]);
+        if (warranty) {
+          setFormData((prev) => ({ ...prev, warranty: prev.warranty || warranty }));
+        }
+      }
+    }
+  }, [availableServices, initialData, isOpen, items]);
 
   useEffect(() => {
     const updateClock = () => {

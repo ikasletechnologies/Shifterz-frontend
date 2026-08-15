@@ -324,6 +324,7 @@ export default function LicensesPage() {
                   <th className="p-4">License Key</th>
                   <th className="p-4">Owner Branch</th>
                   <th className="p-4">Limits (SA/HQ/FA/FU)</th>
+                  <th className="p-4">Active Date</th>
                   <th className="p-4">Expiry Date</th>
                   <th className="p-4">Status</th>
                 </tr>
@@ -337,6 +338,24 @@ export default function LicensesPage() {
                   .map(lic => {
                   const isExpired = new Date(lic.expiryDate).getTime() < Date.now();
                   const targetFranchise = franchises.find(f => f.id === lic.organizationId);
+
+                  let activeDateDisplay = "N/A";
+                  if (targetFranchise?.startDate) {
+                    activeDateDisplay = targetFranchise.startDate;
+                  } else if (lic.activatedAt) {
+                    try {
+                      activeDateDisplay = new Date(lic.activatedAt).toISOString().slice(0, 10);
+                    } catch (e) {
+                      activeDateDisplay = "Invalid Date";
+                    }
+                  }
+
+                  let expiryDateDisplay = "N/A";
+                  try {
+                    expiryDateDisplay = new Date(lic.expiryDate).toISOString().slice(0, 10);
+                  } catch (e) {
+                    expiryDateDisplay = "Invalid Date";
+                  }
 
                   return (
                     <tr key={lic.id} className="hover:bg-gray-50/50">
@@ -362,7 +381,13 @@ export default function LicensesPage() {
                       <td className="p-4">
                         <div className="flex items-center gap-1.5 text-gray-500">
                           <Calendar className="w-3.5 h-3.5 text-gray-400" />
-                          {new Date(lic.expiryDate).toISOString().slice(0, 10)}
+                          {activeDateDisplay}
+                        </div>
+                      </td>
+                      <td className="p-4">
+                        <div className="flex items-center gap-1.5 text-gray-500">
+                          <Calendar className="w-3.5 h-3.5 text-gray-400" />
+                          {expiryDateDisplay}
                         </div>
                       </td>
                       <td className="p-4">

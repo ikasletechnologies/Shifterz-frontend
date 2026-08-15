@@ -386,7 +386,15 @@ export async function getFinancialReport(type: string, from?: string, to?: strin
   const params = new URLSearchParams();
   if (from) params.append("from", from);
   if (to) params.append("to", to);
-  return apiCall(`/reports/financial/${type}?${params.toString()}`);
+  
+  let endpoint = `/reports/financial/${type}`;
+  if (type === "gst-report") {
+    endpoint = `/reports/billing/gst-summary`;
+  } else if (type === "pending-payments") {
+    endpoint = `/reports/financial/outstanding`;
+  }
+  
+  return apiCall(`${endpoint}?${params.toString()}`);
 }
 
 export async function getWorkshopReport(type: string, from?: string, to?: string) {
@@ -705,17 +713,6 @@ export async function getFranchiseRequests() {
   return apiCall("/hq/franchise-requests");
 }
 
-export async function approveFranchiseRequest(id: string) {
-  return apiCall(`/hq/franchise-requests/${id}/approve`, {
-    method: "POST"
-  });
-}
-
-export async function rejectFranchiseRequest(id: string) {
-  return apiCall(`/hq/franchise-requests/${id}/reject`, {
-    method: "POST"
-  });
-}
 
 export async function getNotifications() {
   return apiCall("/hq/notifications");

@@ -20,6 +20,7 @@ import PaymentHistoryDialog from "@/modules/payment/components/PaymentHistoryDia
 import { useBilling } from "@/modules/billing/hooks/useBilling";
 import { BillingDocument } from "@/modules/billing/types/billing.types";
 import BillingJobCards from "../components/BillingJobCards";
+import { getCurrentUser, isHQRole } from "@/lib/franchise-scope";
 
 function CardMoreDropdown({
   doc,
@@ -33,7 +34,7 @@ function CardMoreDropdown({
   doc: BillingDocument;
   onViewHistory: () => void;
   onViewReceipt: () => void;
-  onCancel: () => void;
+  onCancel?: () => void;
   onConvert?: () => void;
   onPrint?: () => void;
   onDownload?: () => void;
@@ -103,7 +104,7 @@ function CardMoreDropdown({
               <Receipt className="w-3.5 h-3.5" /> View Payment Details
             </button>
           )}
-          {doc.status !== "Cancelled" && doc.status !== "Paid" && doc.status !== "Partially Paid" && (
+          {onCancel && doc.status !== "Cancelled" && doc.status !== "Paid" && doc.status !== "Partially Paid" && (
             <button
               onClick={() => { setIsOpen(false); onCancel(); }}
               className="w-full text-left px-3 py-2 text-xs font-medium hover:bg-red-50 text-red-600 flex items-center gap-2 transition-colors"
@@ -155,8 +156,20 @@ export function BillingPage() {
     }
   };
 
+  const [isHQ, setIsHQ] = useState(false);
   const [activeSubTab, setActiveSubTab] = useState<"ready" | "documents">("ready");
   const [filter, setFilter] = useState("All");
+
+  useEffect(() => {
+    const user = getCurrentUser();
+    if (user) {
+      const hq = isHQRole(user.role);
+      setIsHQ(hq);
+      if (hq) {
+        setActiveSubTab("documents");
+      }
+    }
+  }, []);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingDocument, setEditingDocument] = useState<BillingDocument | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
@@ -272,31 +285,37 @@ export function BillingPage() {
   return (
     <div className="p-8 space-y-6">
       {/* View Selector Tabs */}
-      <div className="flex border-b border-gray-100 gap-6 mb-2">
-        <button
-          onClick={() => setActiveSubTab("ready")}
-          className={`pb-3 text-sm font-bold border-b-2 transition-all relative ${
-            activeSubTab === "ready"
-              ? "border-amber-500 text-amber-600"
-              : "border-transparent text-gray-400 hover:text-gray-600"
-          }`}
-        >
-          Ready for Billing
-        </button>
-        <button
-          onClick={() => setActiveSubTab("documents")}
-          className={`pb-3 text-sm font-bold border-b-2 transition-all relative ${
-            activeSubTab === "documents"
-              ? "border-amber-500 text-amber-600"
-              : "border-transparent text-gray-400 hover:text-gray-600"
-          }`}
-        >
-          Invoices & Documents
-        </button>
-      </div>
+      {isHQ ? (
+        <div className="flex items-center justify-between mb-2">
+          <h1 className="text-2xl font-bold text-gray-900">Invoices & Documents</h1>
+        </div>
+      ) : (
+        <div className="flex border-b border-gray-100 gap-6 mb-2">
+          <button
+            onClick={() => setActiveSubTab("ready")}
+            className={`pb-3 text-sm font-bold border-b-2 transition-all relative ${
+              activeSubTab === "ready"
+                ? "border-amber-500 text-amber-600"
+                : "border-transparent text-gray-400 hover:text-gray-600"
+            }`}
+          >
+            Ready for Billing
+          </button>
+          <button
+            onClick={() => setActiveSubTab("documents")}
+            className={`pb-3 text-sm font-bold border-b-2 transition-all relative ${
+              activeSubTab === "documents"
+                ? "border-amber-500 text-amber-600"
+                : "border-transparent text-gray-400 hover:text-gray-600"
+            }`}
+          >
+            Invoices & Documents
+          </button>
+        </div>
+      )}
 
       {activeSubTab === "ready" ? (
-        <BillingJobCards />
+        <BillingJobCards onInvoiceGenerated={() => setActiveSubTab("documents")} />
       ) : (
         <>
           {error && (
@@ -442,16 +461,18 @@ export function BillingPage() {
               <X className="w-3.5 h-3.5" />
             </button>
           </div>
-          <button
-            onClick={() => {
-              setEditingDocument(null);
-              setIsDialogOpen(true);
-            }}
-            className="bg-amber-400 hover:bg-amber-500 text-gray-900 font-bold px-4 py-2 rounded-xl flex items-center gap-1.5 transition-all shadow-xs text-xs shrink-0 whitespace-nowrap"
-          >
-            <Plus className="w-4 h-4 stroke-3" />
-            New Document
-          </button>
+          {!isHQ && (
+            <button
+              onClick={() => {
+                setEditingDocument(null);
+                setIsDialogOpen(true);
+              }}
+              className="bg-amber-400 hover:bg-amber-500 text-gray-900 font-bold px-4 py-2 rounded-xl flex items-center gap-1.5 transition-all shadow-xs text-xs shrink-0 whitespace-nowrap"
+            >
+              <Plus className="w-4 h-4 stroke-3" />
+              New Document
+            </button>
+          )}
         </div>
       </div>
 
@@ -515,7 +536,7 @@ export function BillingPage() {
                       >
                         <Eye className="w-4 h-4" />
                       </button>
-                      {doc.status !== "Converted" && doc.status !== "Cancelled" && (
+                      {!isHQ && doc.status !== "Converted" && doc.status !== "Cancelled" && (
                         <button
                           onClick={() => {
                             setEditingDocument(doc);
@@ -532,8 +553,8 @@ export function BillingPage() {
                         doc={doc}
                         onViewHistory={() => { setDocumentForPaymentHistory(doc); setIsPaymentHistoryOpen(true); }}
                         onViewReceipt={() => { setSelectedPaymentDocument(doc); setIsPaymentReceiptOpen(true); }}
-                        onCancel={() => { setDocumentToCancel(doc); setIsCancelOpen(true); }}
-                        onConvert={(doc.type === "Estimate" || doc.type === "Quotation") && doc.status !== "Paid" && doc.status !== "Converted" ? () => { setDocumentToConvert(doc); setIsConvertOpen(true); } : undefined}
+                        onCancel={!isHQ ? () => { setDocumentToCancel(doc); setIsCancelOpen(true); } : undefined}
+                        onConvert={!isHQ && (doc.type === "Estimate" || doc.type === "Quotation") && doc.status !== "Paid" && doc.status !== "Converted" ? () => { setDocumentToConvert(doc); setIsConvertOpen(true); } : undefined}
                         onPrint={() => { setSelectedDocument(doc); setIsPreviewOpen(true); }}
                         onDownload={() => downloadInvoicePdf(doc)}
                       />
@@ -607,35 +628,37 @@ export function BillingPage() {
                 </div>
 
                 {/* Add Payment / Go to Out Pass Button (Footer) */}
-                <div className="flex justify-between items-center gap-2 pt-4 border-t border-gray-50 mt-4">
-                  {/* Estimate/Quotation: payment not allowed — show conversion hint */}
-                  {(doc.type === "Estimate" || doc.type === "Quotation") && doc.status !== "Converted" && doc.status !== "Cancelled" && (
-                    <div className="flex items-center gap-1.5 text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5">
-                      <CreditCard className="w-3.5 h-3.5 shrink-0" />
-                      <span>Convert to Invoice to accept payment</span>
+                {!isHQ && (
+                  <div className="flex justify-between items-center gap-2 pt-4 border-t border-gray-50 mt-4">
+                    {/* Estimate/Quotation: payment not allowed — show conversion hint */}
+                    {(doc.type === "Estimate" || doc.type === "Quotation") && doc.status !== "Converted" && doc.status !== "Cancelled" && (
+                      <div className="flex items-center gap-1.5 text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5">
+                        <CreditCard className="w-3.5 h-3.5 shrink-0" />
+                        <span>Convert to Invoice to accept payment</span>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-2 ml-auto">
+                      {(doc.status === "Paid" || doc.status === "Completed") && !hasOutPass(doc) && (
+                        <button
+                          onClick={() => handleGenerateOutPass(doc)}
+                          className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-bold rounded-xl transition-colors shadow-sm flex items-center gap-2"
+                        >
+                          <Ticket className="w-4 h-4" />
+                          Generate Out Pass
+                        </button>
+                      )}
+                      {doc.type === "Invoice" && doc.status !== "Paid" && doc.status !== "Cancelled" && (
+                        <button
+                          onClick={() => handleMarkAsPaid(doc.id)}
+                          className="px-4 py-2 bg-emerald-600 text-white text-sm font-bold rounded-xl hover:bg-emerald-700 transition-colors shadow-sm flex items-center gap-2"
+                        >
+                          <CreditCard className="w-4 h-4" />
+                          Add Payment
+                        </button>
+                      )}
                     </div>
-                  )}
-                  <div className="flex items-center gap-2 ml-auto">
-                    {(doc.status === "Paid" || doc.status === "Completed") && !hasOutPass(doc) && (
-                      <button
-                        onClick={() => handleGenerateOutPass(doc)}
-                        className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-bold rounded-xl transition-colors shadow-sm flex items-center gap-2"
-                      >
-                        <Ticket className="w-4 h-4" />
-                        Generate Out Pass
-                      </button>
-                    )}
-                    {doc.type === "Invoice" && doc.status !== "Paid" && doc.status !== "Cancelled" && (
-                      <button
-                        onClick={() => handleMarkAsPaid(doc.id)}
-                        className="px-4 py-2 bg-emerald-600 text-white text-sm font-bold rounded-xl hover:bg-emerald-700 transition-colors shadow-sm flex items-center gap-2"
-                      >
-                        <CreditCard className="w-4 h-4" />
-                        Add Payment
-                      </button>
-                    )}
                   </div>
-                </div>
+                )}
 
               </div>
             );

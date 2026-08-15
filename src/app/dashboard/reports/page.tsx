@@ -19,6 +19,8 @@ type TabCategory = "executive" | "workshop" | "crm" | "customer" | "employee" | 
 export default function ReportsPage() {
   const [activeCategory, setActiveCategory] = useState<TabCategory>("executive");
   const [subReport, setSubReport] = useState<string>("business-summary");
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [isInitialized, setIsInitialized] = useState(false);
   
   // Global Filters & Search
   const [searchTerm, setSearchTerm] = useState<string>("");
@@ -31,6 +33,24 @@ export default function ReportsPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
+
+  const allTabs = useMemo(() => [
+    { id: "executive", label: "Executive Reports", icon: BarChart3 },
+    { id: "workshop", label: "Workshop & QC", icon: Wrench },
+    { id: "crm", label: "CRM & Leads", icon: TrendingUp },
+    { id: "customer", label: "Customer Analytics", icon: UserCheck },
+    { id: "employee", label: "Employee Reports", icon: Users },
+    { id: "financial", label: "Financial & Billing", icon: DollarSign },
+    { id: "inventory", label: "Inventory & Stock", icon: Package },
+  ], []);
+
+  const visibleTabs = useMemo(() => {
+    if (!isInitialized) return [];
+    if (userRole === "BILLING" || userRole === "BILLING_EXECUTIVE") {
+      return allTabs.filter(tab => tab.id === "financial");
+    }
+    return allTabs;
+  }, [userRole, isInitialized, allTabs]);
 
   const getTodayISO = () => {
     const d = new Date();
@@ -97,8 +117,27 @@ export default function ReportsPage() {
   };
 
   useEffect(() => {
-    fetchReportData();
-  }, [activeCategory, subReport, fromDate, toDate]);
+    const userStr = localStorage.getItem("user");
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        setUserRole(user.role);
+        if (user.role === "BILLING" || user.role === "BILLING_EXECUTIVE") {
+          setActiveCategory("financial");
+          setSubReport("invoices");
+        }
+      } catch (e) {
+        console.error("Failed to parse user from localStorage", e);
+      }
+    }
+    setIsInitialized(true);
+  }, []);
+
+  useEffect(() => {
+    if (isInitialized) {
+      fetchReportData();
+    }
+  }, [activeCategory, subReport, fromDate, toDate, isInitialized]);
 
   const fetchFranchisePerformanceData = async () => {
     const [franchises, jobs, invoices] = await Promise.all([
@@ -498,7 +537,7 @@ export default function ReportsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-            <FileSpreadsheet className="w-7 h-7 text-blue-600" />
+            <FileSpreadsheet className="w-7 h-7 text-yellow-600" />
             Reports & Analytics Center
           </h1>
           <p className="text-sm text-slate-500 mt-1">
@@ -509,7 +548,7 @@ export default function ReportsPage() {
         <button
           onClick={handleExportWord}
           disabled={isExporting || isLoading}
-          className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl shadow-sm transition disabled:opacity-50"
+          className="inline-flex items-center gap-2 px-5 py-2.5 bg-yellow-400 hover:bg-yellow-500 text-gray-900 text-sm font-semibold rounded-xl shadow-sm transition disabled:opacity-50"
         >
           <Download className="w-4 h-4" />
           {isExporting ? "Generating CSV..." : "Export CSV"}
@@ -526,7 +565,7 @@ export default function ReportsPage() {
             placeholder="Search report details..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-9 pr-8 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+            className="w-full pl-9 pr-8 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500/20 focus:border-yellow-500 transition-all"
           />
           {searchTerm && (
             <button
@@ -592,25 +631,17 @@ export default function ReportsPage() {
 
           <button
             onClick={fetchReportData}
-            className="p-2 text-slate-500 hover:text-blue-600 hover:bg-slate-100 rounded-lg transition"
+            className="p-2 text-slate-500 hover:text-yellow-600 hover:bg-slate-100 rounded-lg transition"
             title="Refresh Data"
           >
-            <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin text-blue-600" : ""}`} />
+            <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin text-yellow-600" : ""}`} />
           </button>
         </div>
       </div>
 
       {/* Main Categories Tab Bar (§16.5) */}
       <div className="flex flex-wrap border-b border-slate-200 gap-2">
-        {[
-          { id: "executive", label: "Executive Reports", icon: BarChart3 },
-          { id: "workshop", label: "Workshop & QC", icon: Wrench },
-          { id: "crm", label: "CRM & Leads", icon: TrendingUp },
-          { id: "customer", label: "Customer Analytics", icon: UserCheck },
-          { id: "employee", label: "Employee Reports", icon: Users },
-          { id: "financial", label: "Financial & Billing", icon: DollarSign },
-          { id: "inventory", label: "Inventory & Stock", icon: Package },
-        ].map(tab => {
+        {visibleTabs.map(tab => {
           const Icon = tab.icon;
           const isActive = activeCategory === tab.id;
           return (
@@ -619,7 +650,7 @@ export default function ReportsPage() {
               onClick={() => handleTabChange(tab.id as TabCategory)}
               className={`flex items-center gap-2 px-4 py-3 text-sm font-semibold border-b-2 transition ${
                 isActive
-                  ? "border-blue-600 text-blue-600"
+                  ? "border-yellow-500 text-yellow-600"
                   : "border-transparent text-slate-500 hover:text-slate-800"
               }`}
             >
@@ -640,7 +671,7 @@ export default function ReportsPage() {
               onClick={() => setSubReport(opt.id)}
               className={`px-4 py-2 text-xs font-semibold rounded-xl border transition ${
                 isSelected
-                  ? "bg-blue-600 text-white border-blue-600 shadow-sm"
+                  ? "bg-yellow-400 text-gray-900 border-yellow-400 shadow-sm"
                   : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
               }`}
             >
@@ -689,7 +720,7 @@ export default function ReportsPage() {
                 ) : (
                   filteredBillingRows.map((r: any, idx: number) => (
                     <tr key={idx} className="hover:bg-slate-50/50 transition">
-                      <td className="py-3 px-4 font-semibold text-blue-600">{String(r.invoiceNo || r.id || '')}</td>
+                      <td className="py-3 px-4 font-semibold text-yellow-600">{String(r.invoiceNo || r.id || '')}</td>
                       <td className="py-3 px-4 text-slate-600">{String(r.date || '')}</td>
                       <td className="py-3 px-4 font-medium text-slate-900">{String(r.customerName || r.client || '')}</td>
                       <td className="py-3 px-4 text-slate-600">{String(r.phone || '')}</td>

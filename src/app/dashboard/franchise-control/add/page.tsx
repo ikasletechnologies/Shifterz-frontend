@@ -71,7 +71,7 @@ export default function FranchiseManagementPage() {
         toast.success("Franchise updated successfully");
       } else {
         await createFranchise(data);
-        toast.success("Franchise created successfully");
+        toast.success("Franchise submitted for approval. A license has been auto-generated and is pending Super Admin review. 🔑");
       }
       await fetchFranchises();
     } catch (err: any) {

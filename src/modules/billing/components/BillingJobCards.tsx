@@ -7,8 +7,9 @@ import { toast } from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import NewDocumentDialog from "./NewDocumentDialog";
 import RecordPaymentDialog from "../../payment/components/RecordPaymentDialog";
+import { createInvoice } from "@/modules/billing/services/billing.service";
 
-export default function BillingJobCards() {
+export default function BillingJobCards({ onInvoiceGenerated }: { onInvoiceGenerated?: () => void }) {
   const router = useRouter();
   const [jobs, setJobs] = useState<any[]>([]);
   const [invoices, setInvoices] = useState<any[]>([]);
@@ -223,7 +224,21 @@ export default function BillingJobCards() {
                   if (!inv) {
                     actionBtn = (
                       <button 
-                        onClick={() => setIsNewDocOpen(true)}
+                        onClick={() => {
+                          const initialData = {
+                            type: "Invoice",
+                            status: "Pending",
+                            client: j.customer || "",
+                            phone: j.phone || j.customerPhone || "",
+                            vehicle: j.vehicle || "",
+                            jobCardNo: j.id || "",
+                            serviceAdvisor: j.serviceAdvisor || "",
+                            technician: j.technician || "",
+                            service: j.service || "",
+                          };
+                          setSelectedContext(initialData);
+                          setIsNewDocOpen(true);
+                        }}
                         className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded shadow-sm flex items-center gap-1 transition-colors whitespace-nowrap"
                       >
                         <FileText className="w-3.5 h-3.5" /> Generate Invoice
@@ -310,10 +325,24 @@ export default function BillingJobCards() {
       {/* Modals */}
       <NewDocumentDialog 
         isOpen={isNewDocOpen}
-        onClose={() => setIsNewDocOpen(false)}
-        onSubmit={async () => {
+        onClose={() => {
           setIsNewDocOpen(false);
-          await loadData();
+          setSelectedContext(null);
+        }}
+        initialData={selectedContext}
+        onSubmit={async (docData) => {
+          try {
+            await createInvoice(docData);
+            toast.success("Invoice generated successfully");
+            setIsNewDocOpen(false);
+            setSelectedContext(null);
+            await loadData();
+            if (onInvoiceGenerated) {
+              onInvoiceGenerated();
+            }
+          } catch (err: any) {
+            toast.error("Failed to generate invoice: " + err.message);
+          }
         }}
         existingDocuments={invoices}
       />

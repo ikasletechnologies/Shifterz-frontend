@@ -64,7 +64,7 @@ export default function QCInspectionPage() {
     addRemarks,
   } = useQC();
 
-  const [activeTab, setActiveTab] = useState<string>("Awaiting Review");
+  const [activeTab, setActiveTab] = useState<string>("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedJob, setSelectedJob] = useState<QCJob | null>(null);
   const [activeDialog, setActiveDialog] = useState<DialogType>(null);
@@ -258,16 +258,7 @@ export default function QCInspectionPage() {
     return jobs.filter((j) => {
       let matchesTab = true;
 
-      if (activeTab === "Awaiting Review") {
-        matchesTab = [
-          "Waiting QC",
-          "QC Pending",
-          "Completed",
-          "Work Completed",
-          "Inspecting",
-          "In Inspection",
-        ].includes(j.status);
-      } else if (activeTab === "Passed Jobs") {
+      if (activeTab === "Passed Jobs") {
         matchesTab = ["QC Passed", "Ready for Billing", "Ready For Billing"].includes(j.status);
       } else if (activeTab === "Failed / Rework") {
         matchesTab = ["QC Failed", "Rework", "Rework Required"].includes(j.status);
@@ -551,29 +542,26 @@ export default function QCInspectionPage() {
         {/* Controls Row */}
         <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between">
           {/* Section Filter Tabs */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0 scrollbar-none">
+          <div className="flex flex-wrap items-center gap-1.5">
             {[
               { id: "All", label: "All Jobs", count: jobs.length },
-              { id: "Awaiting Review", label: "Jobs Awaiting QC Review", count: awaitingCount },
+              { id: "Inspecting", label: "Inspecting", count: stats.inspecting },
               { id: "Passed Jobs", label: "QC Passed Jobs", count: passedCount },
               { id: "Failed / Rework", label: "QC Failed / Rework Required", count: failedCount },
-              { id: "Inspecting", label: "Inspecting", count: stats.inspecting },
             ].map((tab) => (
               <button
                 key={tab.id}
                 type="button"
                 onClick={() => setActiveTab(tab.id)}
-                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${
-                  activeTab === tab.id
+                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${activeTab === tab.id
                     ? "bg-purple-600 text-white shadow-md shadow-purple-600/20"
                     : "bg-gray-50 text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-                }`}
+                  }`}
               >
                 {tab.label}
                 <span
-                  className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
-                    activeTab === tab.id ? "bg-white/20 text-white" : "bg-gray-200 text-gray-700"
-                  }`}
+                  className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${activeTab === tab.id ? "bg-white/20 text-white" : "bg-gray-200 text-gray-700"
+                    }`}
                 >
                   {tab.count}
                 </span>
