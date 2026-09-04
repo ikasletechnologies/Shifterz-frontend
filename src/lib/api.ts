@@ -6,8 +6,6 @@ export async function apiCall(
   endpoint: string,
   options: RequestInit = {}
 ) {
-  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
-
   const isGet = !options.method || options.method.toUpperCase() === 'GET';
   const url = new URL(endpoint.startsWith('http') ? endpoint : `${API_URL}${endpoint}`);
   if (isGet) {
@@ -37,12 +35,14 @@ export async function apiCall(
     }
   }
 
+  // Phase 0.10 — auth now travels via httpOnly cookie, not a header built
+  // from localStorage; credentials:"include" is what attaches it cross-origin.
   const response = await fetch(url.toString(), {
     cache: "no-store",
+    credentials: "include",
     ...finalOptions,
     headers: {
       "Content-Type": "application/json",
-      ...(token && { Authorization: `Bearer ${token}` }),
       ...finalOptions.headers,
     },
   });
@@ -65,9 +65,7 @@ export async function apiCall(
     }
 
     if (response.status === 401 && typeof window !== "undefined") {
-      localStorage.removeItem("token");
       localStorage.removeItem("user");
-      document.cookie = "token=; path=/; max-age=0";
       if (!window.location.pathname.startsWith("/login")) {
         window.location.href = "/login";
       }
@@ -87,15 +85,24 @@ export async function login(username: string, password: string) {
     method: "POST",
     body: JSON.stringify({ username, password }),
   });
-  localStorage.setItem("token", data.token);
-  localStorage.setItem("user", JSON.stringify(data.user));
-  // Set cookie for middleware verification
-  document.cookie = `token=${data.token}; path=/; max-age=86400`;
+  // Phase 0.10 — the token itself is never persisted client-side anymore;
+  // the backend already set it as an httpOnly cookie on this response. Only
+  // non-sensitive display data (name/role/franchise) is kept for the UI.
+  if (typeof window !== "undefined") {
+    localStorage.setItem("user", JSON.stringify(data.user));
+  }
   return data;
 }
 
 export async function logout() {
-  localStorage.removeItem("token");
+  // Phase 0.5 — must revoke the session server-side, not just forget the
+  // token locally, otherwise a copy of it captured earlier keeps working.
+  try {
+    await apiCall("/auth/logout", { method: "POST" });
+  } catch {
+    // Even if the network call fails, still clear local state below so the
+    // user isn't stuck appearing logged in on this device.
+  }
   localStorage.removeItem("user");
   document.cookie = "token=; path=/; max-age=0";
 }
@@ -409,11 +416,8 @@ export async function downloadReportCsv(category: string, type: string, from?: s
   const params = new URLSearchParams({ type });
   if (from) params.append("from", from);
   if (to) params.append("to", to);
-  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
   const url = `${API_URL}/reports/${category}/export?${params.toString()}`;
-  const res = await fetch(url, {
-    headers: token ? { "Authorization": `Bearer ${token}` } : {}
-  });
+  const res = await fetch(url, { credentials: "include" });
   if (!res.ok) throw new Error("Failed to export CSV");
   const blob = await res.blob();
   const downloadUrl = window.URL.createObjectURL(blob);
@@ -641,14 +645,11 @@ export async function uploadFile(file: File) {
   const formData = new FormData();
   formData.append("file", file);
 
-  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
   const response = await fetch(`${API_URL}/upload`, {
     method: "POST",
-    headers: {
-      ...(token && { Authorization: `Bearer ${token}` }),
-    },
+    credentials: "include",
     body: formData,
   });
 

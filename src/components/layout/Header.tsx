@@ -4,7 +4,7 @@ import { useState, useEffect, useContext } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { Bell, Settings, User, LogOut, Clock, Menu, CheckCheck, Building2 } from "lucide-react";
-import { getSettings, getNotifications, markAllNotificationsRead } from "@/lib/api";
+import { getSettings, getNotifications, markAllNotificationsRead, logout } from "@/lib/api";
 import { SidebarContext } from "@/lib/context/SidebarContext";
 import {
   hqSidebarSections,
@@ -113,8 +113,11 @@ export default function Header() {
     }, 1000);
 
     async function loadCompany() {
-      const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
-      if (!token) return;
+      // Phase 0.10 — the token itself is no longer readable client-side
+      // (httpOnly cookie); "user" is still kept locally for display and
+      // doubles as the "am I logged in" signal here.
+      const hasUser = typeof window !== "undefined" ? localStorage.getItem("user") : null;
+      if (!hasUser) return;
 
       try {
         const data = await getSettings();
@@ -285,13 +288,13 @@ export default function Header() {
                   Profile
                 </Link>
                 <div className="h-px bg-gray-100 my-1"></div>
-                <button 
-                  onMouseDown={(e) => {
+                <button
+                  onMouseDown={async (e) => {
                     e.preventDefault(); // Prevents the button from losing focus immediately
-                    localStorage.removeItem("token");
-                    localStorage.removeItem("user");
+                    // Phase 0.5 — revoke the session server-side before navigating away,
+                    // not just forget the token locally.
+                    await logout().catch(() => null);
                     sessionStorage.clear();
-                    document.cookie = "token=; path=/; max-age=0";
                     window.location.href = '/login';
                   }}
                   className="flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 w-full text-left transition-colors font-medium"

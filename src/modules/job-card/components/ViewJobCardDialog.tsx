@@ -50,13 +50,10 @@ export function ViewJobCardDialog({ isOpen, onClose, job, onEdit, onDelete }: Vi
   // Load chronological timeline history from backend
   useEffect(() => {
     if (isOpen && job?.id) {
-      const token = localStorage.getItem("token");
       const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
-      fetch(`${apiBase}/jobs/${job.id}/history`, {
-        headers: {
-          "Authorization": `Bearer ${token || ""}`
-        }
-      })
+      // Phase 0.10 — auth travels via httpOnly cookie now; credentials:
+      // "include" is required for the browser to attach it cross-origin.
+      fetch(`${apiBase}/jobs/${job.id}/history`, { credentials: "include" })
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) setHistory(data);
@@ -67,9 +64,11 @@ export function ViewJobCardDialog({ isOpen, onClose, job, onEdit, onDelete }: Vi
 
   const handlePrint = (copy: 'workshop' | 'customer') => {
     if (!job) return;
-    const token = localStorage.getItem("token");
     const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
-    window.open(`${apiBase}/jobs/${job.id}/print?copy=${copy}&token=${token || ""}`, "_blank");
+    // Phase 0.10 — the token is no longer passed in the URL (it would leak
+    // into server access logs and browser history); the httpOnly cookie is
+    // sent automatically on this top-level navigation instead.
+    window.open(`${apiBase}/jobs/${job.id}/print?copy=${copy}`, "_blank");
   };
 
   const currentUser = (() => {

@@ -58,15 +58,14 @@ export async function completeWork(
 }
 
 export async function uploadPhotos(jobId: string, files: File[]): Promise<{ photos: string[] }> {
-  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
   const formData = new FormData();
   files.forEach((file) => formData.append("files", file));
 
+  // Phase 0.10 — auth travels via httpOnly cookie now; credentials:
+  // "include" is required for the browser to attach it cross-origin.
   const res = await fetch(`${API_URL}/jobs/${jobId}/photos`, {
     method: "POST",
-    headers: {
-      ...(token && { Authorization: `Bearer ${token}` }),
-    },
+    credentials: "include",
     body: formData,
   });
 

@@ -5,18 +5,24 @@ export async function login(username: string, password: string) {
     method: "POST",
     body: JSON.stringify({ username, password }),
   });
-  
-  if (response.token) {
+
+  // Phase 0.10 — the backend already set the auth token as an httpOnly
+  // cookie on this response; it is never written to localStorage or a
+  // JS-readable cookie here. Only non-sensitive display data is kept
+  // locally for the UI (name/role/franchise), not the credential itself.
+  if (typeof window !== "undefined" && response.user) {
+    localStorage.setItem("user", JSON.stringify(response.user));
+  }
+
+  return response;
+}
+
+export async function logout() {
+  try {
+    await apiCall("/auth/logout", { method: "POST" });
+  } finally {
     if (typeof window !== "undefined") {
-      localStorage.setItem("token", response.token);
-      // Also set the token in cookies so that Next.js middleware can read it
-      document.cookie = `token=${response.token}; path=/; max-age=86400; SameSite=Strict`;
-      
-      if (response.user) {
-        localStorage.setItem("user", JSON.stringify(response.user));
-      }
+      localStorage.removeItem("user");
     }
   }
-  
-  return response;
 }

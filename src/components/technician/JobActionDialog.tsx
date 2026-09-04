@@ -65,13 +65,12 @@ export default function JobActionDialog({ job, isOpen, onClose }: JobActionDialo
       const formData = new FormData();
       formData.append("file", file);
 
-      // Using raw fetch here since apiCall stringifies body by default
-      const token = localStorage.getItem("token");
+      // Using raw fetch here since apiCall stringifies body by default.
+      // Phase 0.10 — auth travels via httpOnly cookie now; credentials:
+      // "include" is required for the browser to attach it cross-origin.
       const res = await fetch("http://localhost:5000/api/upload", {
         method: "POST",
-        headers: {
-          ...(token && { Authorization: `Bearer ${token}` })
-        },
+        credentials: "include",
         body: formData,
       });
 

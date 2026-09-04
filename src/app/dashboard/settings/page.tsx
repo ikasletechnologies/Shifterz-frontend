@@ -79,9 +79,8 @@ export default function SettingsPage() {
         }
 
         // Fetch technicians directly
-        const token = localStorage.getItem("token");
         const techsRes = await fetch(process.env.NEXT_PUBLIC_API_URL + "/technicians" || "http://localhost:5000/api/technicians", {
-          headers: { ...(token && { Authorization: `Bearer ${token}` }) }
+          credentials: "include",
         });
         if (techsRes.ok) {
           const techsData = await techsRes.json();
@@ -151,12 +150,11 @@ export default function SettingsPage() {
     if (!technicianData.name) return;
 
     try {
-      const token = localStorage.getItem("token");
       const res = await fetch(process.env.NEXT_PUBLIC_API_URL + "/technicians" || "http://localhost:5000/api/technicians", {
         method: "POST",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
-          ...(token && { Authorization: `Bearer ${token}` })
         },
         body: JSON.stringify(technicianData)
       });
@@ -174,10 +172,9 @@ export default function SettingsPage() {
     if (window.confirm("Are you sure you want to remove this technician?")) {
       const techToRemove = technicians[index];
       try {
-        const token = localStorage.getItem("token");
         const res = await fetch((process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api") + `/technicians/${techToRemove.id}`, {
           method: "DELETE",
-          headers: { ...(token && { Authorization: `Bearer ${token}` }) }
+          credentials: "include",
         });
         if (!res.ok) throw new Error("Failed to delete technician");
 

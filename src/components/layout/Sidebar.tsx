@@ -53,6 +53,7 @@ import {
   Receipt,
 } from "lucide-react";
 import { SidebarContext } from "@/lib/context/SidebarContext";
+import { logout as backendLogout } from "@/lib/api";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface NavItem {
@@ -464,11 +465,11 @@ export default function Sidebar() {
     }
   }, []);
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
+  const handleLogout = async () => {
+    // Phase 0.5 — revoke the session server-side before navigating away,
+    // not just forget the token locally.
+    await backendLogout().catch(() => null);
     sessionStorage.clear();
-    document.cookie = "token=; path=/; max-age=0";
     window.location.href = "/login";
   };
 

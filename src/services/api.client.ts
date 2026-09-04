@@ -6,8 +6,6 @@ export async function apiCall(
   endpoint: string,
   options: RequestInit = {}
 ) {
-  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
-
   const isGet = !options.method || options.method.toUpperCase() === 'GET';
   const url = new URL(endpoint.startsWith('http') ? endpoint : `${API_URL}${endpoint}`);
   if (isGet) {
@@ -37,12 +35,16 @@ export async function apiCall(
     }
   }
 
+  // Phase 0.10 — the auth token now lives only in an httpOnly cookie set by
+  // the backend; `credentials: "include"` is what makes the browser attach
+  // it to a cross-origin request (frontend and backend are separate
+  // origins). Nothing here can read or needs to read the token itself.
   const response = await fetch(url.toString(), {
     cache: "no-store",
+    credentials: "include",
     ...finalOptions,
     headers: {
       "Content-Type": "application/json",
-      ...(token && { Authorization: `Bearer ${token}` }),
       ...finalOptions.headers,
     },
   });
@@ -52,9 +54,7 @@ export async function apiCall(
     const errorMessage = error.error || `API Error: ${response.statusText}`;
 
     if (response.status === 401 && typeof window !== "undefined") {
-      localStorage.removeItem("token");
       localStorage.removeItem("user");
-      document.cookie = "token=; path=/; max-age=0";
       if (!window.location.pathname.startsWith("/login")) {
         window.location.href = "/login";
       }
