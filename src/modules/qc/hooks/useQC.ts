@@ -22,6 +22,7 @@ const QC_RELEVANT_STATUSES = [
   "QC Passed",
   "QC Failed",
   "Ready For Billing",
+  "Rework Required",
 ];
 
 export function useQC() {
@@ -83,12 +84,12 @@ export function useQC() {
   const passQC = async (jobId: string, notes?: string) => {
     try {
       patchJob(jobId, {
-        status: "QC Passed",
+        status: "Ready For Billing",
         passedAt: new Date().toISOString(),
         qcNotes: notes,
       });
       await passQCSvc(jobId, notes);
-      toast.success("✅ QC Passed — job is ready for billing");
+      toast.success("✅ Ready for Billing — job moved to billing");
       return true;
     } catch (err: any) {
       toast.error("Failed to pass QC: " + err.message);
@@ -162,14 +163,14 @@ export function useQC() {
     ).length,
     inspecting: jobs.filter((j) => j.status === "Inspecting" || j.status === "In Inspection").length,
     readyForBilling: jobs.filter((j) => j.status === "Ready for Billing" || j.status === "Ready For Billing" || j.status === "QC Passed").length,
-    rework: jobs.filter((j) => j.status === "Rework" || j.status === "QC Failed").length,
+    rework: jobs.filter((j) => j.status === "Rework" || j.status === "QC Failed" || j.status === "Rework Required").length,
     passedToday: jobs.filter(
       (j) => j.status === "QC Passed" && (j.passedAt || "").startsWith(today)
     ).length,
     failedToday: jobs.filter(
-      (j) => j.status === "QC Failed" && (j.failedAt || "").startsWith(today)
+      (j) => (j.status === "QC Failed" || j.status === "Rework Required") && (j.failedAt || "").startsWith(today)
     ).length,
-    reworkPending: jobs.filter((j) => j.status === "Rework").length,
+    reworkPending: jobs.filter((j) => j.status === "Rework" || j.status === "Rework Required").length,
   };
 
   return {

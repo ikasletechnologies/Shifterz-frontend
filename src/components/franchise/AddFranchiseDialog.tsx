@@ -23,7 +23,6 @@ interface FranchiseData {
   address?: string;
   state?: string;
   pinCode?: string;
-  licenseStatus?: string;
 }
 
 interface AddFranchiseDialogProps {
@@ -52,7 +51,6 @@ export default function AddFranchiseDialog({ isOpen, onClose, franchiseData, onS
     address: "",
     state: "",
     pinCode: "",
-    licenseStatus: "Active",
   });
 
   useEffect(() => {
@@ -79,7 +77,6 @@ export default function AddFranchiseDialog({ isOpen, onClose, franchiseData, onS
         address: "",
         state: "",
         pinCode: "",
-        licenseStatus: "Active",
       });
     }
   }, [franchiseData, isOpen]);
@@ -220,31 +217,21 @@ export default function AddFranchiseDialog({ isOpen, onClose, franchiseData, onS
                   />
                 </div>
 
-                <div className="col-span-2 sm:col-span-1 space-y-1.5">
-                  <label className="text-[11px] font-bold text-[#64748b] uppercase tracking-wider">Status</label>
-                  <select 
-                    value={formData.status || "Active"}
-                    onChange={e => setFormData({...formData, status: e.target.value})}
-                    className="w-full px-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm text-[#334155] focus:outline-none focus:ring-2 focus:ring-[#f59e0b] focus:bg-white transition-colors"
-                  >
-                    <option value="Active">Active</option>
-                    <option value="Trial">Trial</option>
-                    <option value="Inactive">Inactive</option>
-                  </select>
-                </div>
-                
-                <div className="col-span-2 sm:col-span-1 space-y-1.5">
-                  <label className="text-[11px] font-bold text-[#64748b] uppercase tracking-wider">License Status</label>
-                  <select 
-                    value={formData.licenseStatus || "Active"}
-                    onChange={e => setFormData({...formData, licenseStatus: e.target.value})}
-                    className="w-full px-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm text-[#334155] focus:outline-none focus:ring-2 focus:ring-[#f59e0b] focus:bg-white transition-colors"
-                  >
-                    <option value="Active">Active</option>
-                    <option value="Suspended">Suspended</option>
-                    <option value="Revoked">Revoked</option>
-                  </select>
-                </div>
+                {/* Auto-License notice — replaces the old manual License Status dropdown */}
+                {!isEditing && (
+                  <div className="col-span-2">
+                    <div className="flex items-start gap-2.5 bg-blue-50 border border-blue-100 rounded-xl px-4 py-3">
+                      <span className="text-blue-500 mt-0.5 text-base">🔑</span>
+                      <div>
+                        <p className="text-xs font-bold text-blue-700">License auto-generated on submission</p>
+                        <p className="text-[11px] text-blue-600 mt-0.5 leading-relaxed">
+                          A unique License Key will be automatically generated and linked to this franchise.
+                          Both the franchise and license will become <strong>Active</strong> immediately upon creation.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 

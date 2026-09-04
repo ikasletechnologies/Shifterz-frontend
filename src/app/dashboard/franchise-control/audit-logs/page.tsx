@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ScrollText, Search, ShieldAlert, Calendar, Filter, Database, User, Terminal, HardDrive, RefreshCw, Download, Eye, X, ArrowRight, Code } from "lucide-react";
+import { ScrollText, Search, ShieldAlert, Calendar, Filter, Database, User, Terminal, HardDrive, RefreshCw, Download, X, ArrowRight } from "lucide-react";
 import { getAuditLogs, getFranchises } from "@/lib/api";
 import { toast } from "react-hot-toast";
 
@@ -31,8 +31,7 @@ export default function AuditLogsPage() {
   const [actionFilter, setActionFilter] = useState("");
   const [branchFilter, setBranchFilter] = useState("");
 
-  // Modal Inspector State
-  const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
+
 
   async function loadData() {
     setLoading(true);
@@ -238,14 +237,12 @@ export default function AuditLogsPage() {
                   <th className="p-4">Action</th>
                   <th className="p-4">Actor (User)</th>
                   <th className="p-4">Branch</th>
-                  <th className="p-4">Network Info</th>
-                  <th className="p-4 text-right">State Diff</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50 text-xs font-semibold text-gray-700">
                 {logs.map(log => {
                   const branchName = franchises.find(f => f.id === log.branchId)?.name || (log.branchId ? log.branchId : "HQ");
-                  const hasStateDiff = Boolean(log.oldValue || log.newValue);
+
 
                   return (
                     <tr key={log.id} className="hover:bg-gray-50/50">
@@ -277,27 +274,6 @@ export default function AuditLogsPage() {
                         </div>
                       </td>
                       <td className="p-4 text-gray-600">{branchName}</td>
-                      <td className="p-4">
-                        <div className="flex flex-col text-[10px] text-gray-400 font-mono">
-                          <span>IP: {log.ipAddress || '127.0.0.1'}</span>
-                          <span className="truncate max-w-[180px]" title={log.device || ''}>
-                            {log.device || 'System Agent'}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="p-4 text-right">
-                        {hasStateDiff ? (
-                          <button
-                            onClick={() => setSelectedLog(log)}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold text-yellow-700 bg-yellow-50 border border-yellow-200 rounded-lg hover:bg-yellow-100 transition-all"
-                          >
-                            <Eye className="w-3.5 h-3.5" />
-                            Inspect Diff
-                          </button>
-                        ) : (
-                          <span className="text-[10px] text-gray-400 italic">No Diff</span>
-                        )}
-                      </td>
                     </tr>
                   );
                 })}
@@ -307,70 +283,7 @@ export default function AuditLogsPage() {
         )}
       </div>
 
-      {/* State Inspector Modal */}
-      {selectedLog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-4xl max-h-[85vh] overflow-hidden flex flex-col">
-            {/* Modal Header */}
-            <div className="p-5 border-b border-gray-100 flex items-center justify-between bg-gray-50">
-              <div>
-                <div className="flex items-center gap-2">
-                  <Code className="w-5 h-5 text-yellow-500" />
-                  <h3 className="font-extrabold text-gray-900 text-lg">Audit Record State Inspector</h3>
-                  <span className="px-2 py-0.5 text-xs font-bold bg-yellow-100 text-yellow-800 rounded">
-                    {selectedLog.module} • {selectedLog.action}
-                  </span>
-                </div>
-                <p className="text-xs text-gray-500 mt-1 font-mono">
-                  Record ID: {selectedLog.recordId || selectedLog.id} | Timestamp: {new Date(selectedLog.createdAt).toLocaleString("en-IN")}
-                </p>
-              </div>
-              <button
-                onClick={() => setSelectedLog(null)}
-                className="p-1 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-200 transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
 
-            {/* Modal Body */}
-            <div className="p-6 overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-950 text-slate-100 font-mono text-xs">
-              {/* Old Value */}
-              <div className="flex flex-col space-y-2">
-                <div className="flex items-center justify-between pb-2 border-b border-slate-800 text-slate-400">
-                  <span className="font-bold text-red-400 uppercase tracking-wider text-[11px]">Old Value (Prior State)</span>
-                </div>
-                <pre className="p-4 bg-slate-900 rounded-xl overflow-x-auto text-slate-300 min-h-[220px] max-h-[350px] border border-slate-800/80">
-                  {selectedLog.oldValue ? JSON.stringify(selectedLog.oldValue, null, 2) : "// No prior state (CREATE or system action)"}
-                </pre>
-              </div>
-
-              {/* New Value */}
-              <div className="flex flex-col space-y-2">
-                <div className="flex items-center justify-between pb-2 border-b border-slate-800 text-slate-400">
-                  <span className="font-bold text-emerald-400 uppercase tracking-wider text-[11px]">New Value (Resulting State)</span>
-                </div>
-                <pre className="p-4 bg-slate-900 rounded-xl overflow-x-auto text-emerald-300/90 min-h-[220px] max-h-[350px] border border-slate-800/80">
-                  {selectedLog.newValue ? JSON.stringify(selectedLog.newValue, null, 2) : "// No new state (DELETE or query action)"}
-                </pre>
-              </div>
-            </div>
-
-            {/* Modal Footer */}
-            <div className="p-4 border-t border-gray-100 flex items-center justify-between bg-gray-50 text-xs text-gray-500">
-              <div>
-                User: <span className="font-bold text-gray-800">{selectedLog.userId}</span> | IP: <span className="font-mono text-gray-800">{selectedLog.ipAddress || '127.0.0.1'}</span>
-              </div>
-              <button
-                onClick={() => setSelectedLog(null)}
-                className="px-4 py-2 text-xs font-bold text-gray-700 bg-white border border-gray-300 rounded-xl hover:bg-gray-100"
-              >
-                Close Inspector
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

@@ -6,7 +6,8 @@ export type WorkshopJobStatus =
   | "Waiting QC"
   | "QC Passed"
   | "QC Failed"
-  | "Rework";
+  | "Rework"
+  | "Rework Required";
 
 export interface WorkshopJob {
   id: string;

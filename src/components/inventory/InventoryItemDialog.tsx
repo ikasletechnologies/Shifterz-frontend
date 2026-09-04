@@ -50,6 +50,14 @@ export default function InventoryItemDialog({
     >
   ) => {
     const { name, value } = e.target;
+    if (["stock", "costPerUnit", "reorderLevel"].includes(name)) {
+      if (value !== "") {
+        const num = Number(value);
+        if (num < 0 || value.includes("-")) {
+          return;
+        }
+      }
+    }
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
@@ -57,6 +65,15 @@ export default function InventoryItemDialog({
     e.preventDefault();
     if (!formData.name.trim() || !formData.stock || !formData.costPerUnit) {
       alert("Item name, stock, and cost are required");
+      return;
+    }
+
+    if (
+      Number(formData.stock) < 0 ||
+      Number(formData.costPerUnit) < 0 ||
+      (formData.reorderLevel !== "" && Number(formData.reorderLevel) < 0)
+    ) {
+      alert("Opening Stock, Cost Per Unit, and Reorder Level must be non-negative values.");
       return;
     }
 
@@ -163,6 +180,7 @@ export default function InventoryItemDialog({
               <input
                 type="number"
                 name="stock"
+                min="0"
                 value={formData.stock}
                 onChange={handleChange}
                 placeholder="0"
@@ -181,6 +199,7 @@ export default function InventoryItemDialog({
               <input
                 type="number"
                 name="costPerUnit"
+                min="0"
                 value={formData.costPerUnit}
                 onChange={handleChange}
                 placeholder="0"
@@ -195,6 +214,7 @@ export default function InventoryItemDialog({
               <input
                 type="number"
                 name="reorderLevel"
+                min="0"
                 value={formData.reorderLevel}
                 onChange={handleChange}
                 placeholder="5"

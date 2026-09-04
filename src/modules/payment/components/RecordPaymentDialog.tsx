@@ -31,6 +31,21 @@ const formatDate = (dateStr: string) => {
   return isNaN(d.getTime()) ? dateStr : d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
 };
 
+const getLoggedInUser = () => {
+  if (typeof window !== "undefined") {
+    try {
+      const u = localStorage.getItem("user");
+      if (u) {
+        const userObj = JSON.parse(u);
+        return userObj.name || userObj.username || "Arun Kumar";
+      }
+    } catch (e) {
+      // Ignore
+    }
+  }
+  return "Arun Kumar";
+};
+
 export default function RecordPaymentDialog({
   isOpen,
   onClose,
@@ -50,7 +65,7 @@ export default function RecordPaymentDialog({
     date: new Date().toISOString().split("T")[0],
     time: "11:23 AM",
     reference: "",
-    receivedBy: "Arun Kumar",
+    receivedBy: getLoggedInUser(),
     notes: "",
   });
 
@@ -94,7 +109,7 @@ export default function RecordPaymentDialog({
         date: invoiceData.date || new Date().toISOString().split("T")[0],
         time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }),
         reference: "",
-        receivedBy: "Arun Kumar",
+        receivedBy: getLoggedInUser(),
         notes: "",
       });
 
@@ -430,16 +445,13 @@ export default function RecordPaymentDialog({
                 <label className="block text-xs font-extrabold text-slate-700 mb-1.5">
                   Received By <span className="text-red-500">*</span>
                 </label>
-                <select
+                <input
+                  type="text"
                   name="receivedBy"
                   value={formData.receivedBy}
-                  onChange={handleChange}
-                  className="w-full px-3.5 py-2.5 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white font-semibold text-slate-800"
-                >
-                  <option value="Arun Kumar">Arun Kumar</option>
-                  <option value="Suresh">Suresh</option>
-                  <option value="Superadmin">Superadmin</option>
-                </select>
+                  readOnly
+                  className="w-full px-3.5 py-2.5 text-sm border border-slate-200 rounded-xl bg-slate-50 font-semibold text-slate-500 cursor-not-allowed outline-none"
+                />
               </div>
 
               <div>

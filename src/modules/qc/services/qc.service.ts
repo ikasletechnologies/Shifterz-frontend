@@ -39,12 +39,11 @@ export async function submitChecklist(
  * QC must never skip directly to Billing without this step.
  */
 export async function passQC(jobId: string, notes?: string): Promise<QCJob> {
-  return apiCall(`/jobs/${jobId}`, {
-    method: "PUT",
+  return apiCall(`/qc/${jobId}/decision`, {
+    method: "POST",
     body: JSON.stringify({
-      status: "QC Passed",
-      qcNotes: notes,
-      passedAt: new Date().toISOString(),
+      result: "Passed",
+      remarks: notes,
     }),
   });
 }
@@ -53,12 +52,12 @@ export async function passQC(jobId: string, notes?: string): Promise<QCJob> {
  * Mark QC as Failed — job moves to "QC Failed" state.
  */
 export async function failQC(jobId: string, notes: string): Promise<QCJob> {
-  return apiCall(`/jobs/${jobId}`, {
-    method: "PUT",
+  return apiCall(`/qc/${jobId}/decision`, {
+    method: "POST",
     body: JSON.stringify({
-      status: "QC Failed",
-      qcNotes: notes,
-      failedAt: new Date().toISOString(),
+      result: "Failed",
+      remarks: notes,
+      reworkRequired: true,
     }),
   });
 }

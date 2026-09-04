@@ -224,6 +224,7 @@ export default function UserManagementPage() {
   const [newPassword, setNewPassword] = useState("");
   const [resetting, setResetting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showFormPassword, setShowFormPassword] = useState(false);
 
   // ── Role guard + data load ──
   useEffect(() => {
@@ -300,6 +301,7 @@ export default function UserManagementPage() {
     });
     setSelected(null);
     setModalMode("create");
+    setShowFormPassword(false);
   };
 
   const openEdit = (u: User) => {
@@ -329,10 +331,11 @@ export default function UserManagementPage() {
       selectedModules,
     });
     setModalMode("edit");
+    setShowFormPassword(false);
   };
 
   const openView = (u: User) => { setSelected(u); setModalMode("view"); };
-  const closeModal = () => { setModalMode(null); setSelected(null); };
+  const closeModal = () => { setModalMode(null); setSelected(null); setShowFormPassword(false); };
 
   const handleSave = async () => {
     if (!form.name || !form.role) {
@@ -676,7 +679,20 @@ export default function UserManagementPage() {
                     </label>
                     <div className="relative">
                       <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                      <input type="password" value={form.password} onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))} placeholder="••••••••" className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400 bg-gray-50" />
+                      <input
+                        type={showFormPassword ? "text" : "password"}
+                        value={form.password}
+                        onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))}
+                        placeholder="••••••••"
+                        className="w-full pl-9 pr-10 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400 bg-gray-50"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowFormPassword(!showFormPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+                      >
+                        {showFormPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
                     </div>
                   </div>
 
