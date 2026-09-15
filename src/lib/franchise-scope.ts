@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 export interface ScopedUser {
+  id?: string;
   role?: string;
   franchiseId?: string;
 }

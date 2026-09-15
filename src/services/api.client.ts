@@ -60,7 +60,13 @@ export async function apiCall(
       }
     }
 
-    throw new Error(errorMessage);
+    // Phase 4B-2E — status was previously invisible to every caller (only
+    // `.message` existed), so nothing in this codebase could distinguish a
+    // 404 from a 409 from a 500 without string-matching the message. Purely
+    // additive: existing callers that only read `.message` are unaffected.
+    const apiError = new Error(errorMessage) as Error & { status?: number };
+    apiError.status = response.status;
+    throw apiError;
   }
 
   return response.json();

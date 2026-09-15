@@ -28,13 +28,12 @@ import { QCPhotosDialog } from "@/modules/qc/components/QCPhotosDialog";
 import { QCRemarksDialog } from "@/modules/qc/components/QCRemarksDialog";
 import { PassDialog } from "@/modules/qc/components/PassDialog";
 import { FailDialog } from "@/modules/qc/components/FailDialog";
-import { ReworkDialog } from "@/modules/qc/components/ReworkDialog";
 import AddEmployeeDialog from "@/components/employees/AddEmployeeDialog";
 import { QCJob } from "@/modules/qc/types/qc.types";
 import { getEmployees, getFranchises, createEmployee } from "@/lib/api";
 import { toast } from "react-hot-toast";
 
-type DialogType = "checklist" | "photos" | "remarks" | "pass" | "fail" | "rework" | null;
+type DialogType = "checklist" | "photos" | "remarks" | "pass" | "fail" | null;
 
 interface QCInspector {
   id: string;
@@ -55,11 +54,12 @@ export default function QCInspectionPage() {
     jobs,
     isLoading,
     stats,
+    getCurrentInspection,
+    hasOpenInspection,
     startInspection,
     submitChecklist,
     passQC,
     failQC,
-    sendRework,
     uploadPhotos,
     addRemarks,
   } = useQC();
@@ -231,21 +231,15 @@ export default function QCInspectionPage() {
 
   // Performance Summary calculations
   const awaitingCount = useMemo(() => {
-    return jobs.filter((j) =>
-      ["Waiting QC", "QC Pending", "Completed", "Work Completed", "Inspecting", "In Inspection"].includes(j.status)
-    ).length;
-  }, [jobs]);
+    return jobs.filter((j) => !hasOpenInspection(j.id) && j.status !== "Ready For Billing").length;
+  }, [jobs, hasOpenInspection]);
 
   const passedCount = useMemo(() => {
-    return jobs.filter((j) =>
-      ["QC Passed", "Ready for Billing", "Ready For Billing"].includes(j.status)
-    ).length;
+    return jobs.filter((j) => j.status === "Ready For Billing").length;
   }, [jobs]);
 
   const failedCount = useMemo(() => {
-    return jobs.filter((j) =>
-      ["QC Failed", "Rework", "Rework Required"].includes(j.status)
-    ).length;
+    return jobs.filter((j) => j.status === "Rework Required").length;
   }, [jobs]);
 
   const totalEvaluated = passedCount + failedCount;
@@ -259,11 +253,11 @@ export default function QCInspectionPage() {
       let matchesTab = true;
 
       if (activeTab === "Passed Jobs") {
-        matchesTab = ["QC Passed", "Ready for Billing", "Ready For Billing"].includes(j.status);
+        matchesTab = j.status === "Ready For Billing";
       } else if (activeTab === "Failed / Rework") {
-        matchesTab = ["QC Failed", "Rework", "Rework Required"].includes(j.status);
+        matchesTab = j.status === "Rework Required";
       } else if (activeTab === "Inspecting") {
-        matchesTab = ["Inspecting", "In Inspection"].includes(j.status);
+        matchesTab = hasOpenInspection(j.id);
       }
 
       const matchesSearch =
@@ -276,11 +270,26 @@ export default function QCInspectionPage() {
 
       return matchesTab && matchesSearch;
     });
-  }, [jobs, activeTab, searchQuery]);
+  }, [jobs, activeTab, searchQuery, hasOpenInspection]);
 
   const openDialog = (type: DialogType) => (job: QCJob) => {
     setSelectedJob(job);
     setActiveDialog(type);
+  };
+
+  // Phase 4B-2D-A — the checklist dialog renders exclusively from the
+  // active attempt's frozen checklist (QCInspection.checklist), never from a
+  // live template fetch. Opening it must therefore guarantee an attempt
+  // actually exists (and is therefore frozen) first: startInspection is
+  // idempotent (Phase 4A's getOrCreateOpenInspection returns the existing
+  // Pending attempt if one is already open, freezing nothing new), so this
+  // is safe to call every time, including when the inspection already
+  // exists in the backend but hasn't been fetched into this session yet.
+  const openChecklistDialog = async (job: QCJob) => {
+    const started = await startInspection(job.id, { silent: true });
+    if (!started) return;
+    setSelectedJob(job);
+    setActiveDialog("checklist");
   };
 
   const closeDialog = () => {
@@ -598,29 +607,33 @@ export default function QCInspectionPage() {
         ) : (
           <QCTable
             jobs={filteredJobs}
+            hasOpenInspection={hasOpenInspection}
+            getCurrentInspection={getCurrentInspection}
             onInspect={(job) => startInspection(job.id)}
-            onOpenChecklist={openDialog("checklist")}
+            onOpenChecklist={openChecklistDialog}
             onOpenPhotos={openDialog("photos")}
             onOpenRemarks={openDialog("remarks")}
             onPass={openDialog("pass")}
             onFail={openDialog("fail")}
-            onRework={openDialog("rework")}
           />
         )}
       </div>
 
-      {/* Action Dialogs */}
+      {/* Action Dialogs — all operate against the current QCInspection attempt
+          for the selected job, not the legacy Job.checklist/Job.qcPhotos fields */}
       <QCChecklistDialog
         job={selectedJob}
+        checklist={selectedJob ? getCurrentInspection(selectedJob.id)?.checklist : null}
         isOpen={activeDialog === "checklist"}
         onClose={closeDialog}
         onSubmit={(checklist) => submitChecklist(selectedJob!.id, checklist)}
       />
       <QCPhotosDialog
         job={selectedJob}
+        photos={(selectedJob ? getCurrentInspection(selectedJob.id)?.photos : []) || []}
         isOpen={activeDialog === "photos"}
         onClose={closeDialog}
-        onUpload={(files) => uploadPhotos(selectedJob!.id, files)}
+        onUpload={(files, category) => uploadPhotos(selectedJob!.id, category, files)}
       />
       <QCRemarksDialog
         job={selectedJob}
@@ -630,21 +643,17 @@ export default function QCInspectionPage() {
       />
       <PassDialog
         job={selectedJob}
+        checklist={selectedJob ? getCurrentInspection(selectedJob.id)?.checklist : null}
         isOpen={activeDialog === "pass"}
         onClose={closeDialog}
         onPass={(notes) => passQC(selectedJob!.id, notes)}
       />
       <FailDialog
         job={selectedJob}
+        checklist={selectedJob ? getCurrentInspection(selectedJob.id)?.checklist : null}
         isOpen={activeDialog === "fail"}
         onClose={closeDialog}
         onFail={(notes) => failQC(selectedJob!.id, notes)}
-      />
-      <ReworkDialog
-        job={selectedJob}
-        isOpen={activeDialog === "rework"}
-        onClose={closeDialog}
-        onRework={(reason, notes) => sendRework(selectedJob!.id, reason, notes)}
       />
 
       {isAddOpen && (

@@ -3,6 +3,7 @@ export type QCStatus =
   | "Work Completed"
   | "QC Pending"
   | "Waiting QC"
+  | "Waiting for Quality Check"
   | "Inspecting"
   | "QC Passed"
   | "QC Failed"
@@ -25,24 +26,66 @@ export interface QCJob {
   failedAt?: string;
   notes?: string;
   qcNotes?: string;
-  qcPhotos?: string[];
-  checklist?: ChecklistResult[];
   reworkCount?: number;
   estCompletion?: string;
 }
 
-export interface ChecklistItem {
+export interface ChecklistTemplateItem {
   id: string;
   category: string;
   label: string;
-  required: boolean;
+  order: number;
+  isDefault?: boolean;
+  franchiseId?: string | null;
+  mandatory: boolean;
 }
 
+// Phase 4B-2C — explicit three-state result. "Unanswered" replaces the old
+// implicit default (an item the inspector hasn't touched used to be silently
+// submitted as `passed: true`, which is indistinguishable from a real Pass).
+export type ChecklistItemResult = "Unanswered" | "Passed" | "Failed";
+
+// Phase 4B-2D-A — `order`/`mandatory` are the checklist definition fields
+// frozen onto QCInspection.checklist at Start (see the backend's
+// QcRepository.buildFrozenChecklist); every item returned as part of an
+// existing attempt carries them. They're optional here only because an
+// outgoing submitChecklist() payload doesn't need to set them — the backend
+// ignores anything but id/result/remark on submission and always keeps the
+// frozen definition it already has.
 export interface ChecklistResult {
   id: string;
-  label: string;
-  passed: boolean;
-  remark?: string;
+  label?: string;
+  category?: string;
+  order?: number;
+  mandatory?: boolean;
+  result: ChecklistItemResult;
+  remark?: string | null;
+}
+
+export interface QCPhoto {
+  id: string;
+  url: string;
+  category: string;
+  createdAt?: string;
+}
+
+// The canonical QC attempt record (Phase 4A/4B-1). One row per attempt on a
+// Job; the frontend tracks the current attempt by id, not by Job.status.
+export interface QCInspection {
+  id: string;
+  jobId: string;
+  attemptNumber: number;
+  inspectorId?: string | null;
+  inspectorName?: string | null;
+  result: "Pending" | "Passed" | "Failed";
+  reason?: string | null;
+  remarks?: string | null;
+  reworkRequired?: boolean;
+  checklist?: ChecklistResult[] | null;
+  photos?: QCPhoto[];
+  decidedAt?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface QCStats {
@@ -58,10 +101,4 @@ export interface QCStats {
 export interface QCRemarksPayload {
   jobId: string;
   notes: string;
-}
-
-export interface ReworkPayload {
-  jobId: string;
-  reason: string;
-  notes?: string;
 }

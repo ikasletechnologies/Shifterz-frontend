@@ -122,7 +122,16 @@ export const hqSidebarSections: NavSection[] = [
     items: [
       { label: "Employees", icon: UserCheck, href: "/dashboard/employees", module: "employees" },
       { label: "Technicians", icon: HardHat, href: "/dashboard/technicians", module: "employees" },
-      { label: "QC Inspection", icon: ShieldCheck, href: "/dashboard/qc", module: "jobs" },
+      {
+        label: "QC",
+        icon: ShieldCheck,
+        href: "/dashboard/qc",
+        module: "jobs",
+        children: [
+          { label: "Inspections", icon: ShieldCheck, href: "/dashboard/qc" },
+          { label: "Checklist Templates", icon: ClipboardCheck, href: "/dashboard/qc/templates" },
+        ],
+      },
       { label: "Service Advisors", icon: Headset, href: "/dashboard/service-advisors", module: "employees" },
       { label: "Billing Staff", icon: Receipt, href: "/dashboard/billing-staff", module: "employees" },
       { label: "Receptionists", icon: ConciergeBell, href: "/dashboard/receptionists", module: "employees" },
@@ -202,7 +211,16 @@ export const franchiseSidebarSections: NavSection[] = [
     items: [
       { label: "Employees", icon: UserCheck, href: "/dashboard/employees", module: "employees" },
       { label: "Technicians", icon: HardHat, href: "/dashboard/technicians", module: "employees" },
-      { label: "QC Inspection", icon: ShieldCheck, href: "/dashboard/qc", module: "jobs" },
+      {
+        label: "QC",
+        icon: ShieldCheck,
+        href: "/dashboard/qc",
+        module: "jobs",
+        children: [
+          { label: "Inspections", icon: ShieldCheck, href: "/dashboard/qc" },
+          { label: "Checklist Templates", icon: ClipboardCheck, href: "/dashboard/qc/templates" },
+        ],
+      },
       { label: "Service Advisors", icon: Headset, href: "/dashboard/service-advisors", module: "employees" },
       { label: "Billing Staff", icon: Receipt, href: "/dashboard/billing-staff", module: "employees" },
       { label: "Receptionists", icon: ConciergeBell, href: "/dashboard/receptionists", module: "employees" },
