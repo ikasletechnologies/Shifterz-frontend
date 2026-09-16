@@ -122,13 +122,6 @@ export default function NewJobCardDialog({ isOpen, onClose, onSave, initialData 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validate vehicle number format: TN 04 AB 1234
-    const vehicleRegex = /^[A-Z]{2}\s\d{2}\s[A-Z]{1,2}\s\d{1,4}$/;
-    if (!vehicleRegex.test(formData.vehicle)) {
-      toast.error("Vehicle number format: TN 04 AB 1234 (State Code, RTO, Series, Number)");
-      return;
-    }
-
     if (onSave) {
       const dataToSave = {
         ...formData,

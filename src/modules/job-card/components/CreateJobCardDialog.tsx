@@ -30,8 +30,6 @@ const DEFAULT_FORM: JobCardFormData = {
   internalRemarks: "",
 };
 
-const VEHICLE_REGEX = /^[A-Z]{2}\s\d{2}\s[A-Z]{1,2}\s\d{1,4}$/;
-
 function formatVehicleNumber(value: string): string {
   const cleaned = value.replace(/\s/g, "").toUpperCase();
   if (!cleaned.length) return "";
@@ -96,10 +94,6 @@ export function CreateJobCardDialog({ isOpen, onClose, onSave, initialData }: Cr
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!VEHICLE_REGEX.test(formData.vehicle)) {
-      toast.error("Vehicle number format: TN 04 AB 1234");
-      return;
-    }
     onSave({ ...formData, ...(isEditing && { id: formData.id }) });
     onClose();
   };
