@@ -69,6 +69,18 @@ export interface QCPhoto {
   createdAt?: string;
 }
 
+// Phase 4B-3-C-A — the frozen definition's mandatory flag isn't enriched
+// onto `checklist` items (only label/category are, see the backend's
+// submitChecklist), so this is the only place a submitted item's `result`
+// can be cross-referenced against whether it was actually mandatory. The
+// backend already returns this field on every QCInspection row; only
+// `id`/`mandatory` are typed here since that's all the frontend currently
+// needs it for (the Pass-dialog warning below).
+export interface FrozenChecklistDefinitionItem {
+  id: string;
+  mandatory: boolean;
+}
+
 // The canonical QC attempt record (Phase 4A/4B-1). One row per attempt on a
 // Job; the frontend tracks the current attempt by id, not by Job.status.
 export interface QCInspection {
@@ -82,6 +94,7 @@ export interface QCInspection {
   remarks?: string | null;
   reworkRequired?: boolean;
   checklist?: ChecklistResult[] | null;
+  checklistDefinition?: FrozenChecklistDefinitionItem[] | null;
   photos?: QCPhoto[];
   decidedAt?: string | null;
   createdAt?: string;

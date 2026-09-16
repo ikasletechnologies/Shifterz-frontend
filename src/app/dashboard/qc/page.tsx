@@ -644,6 +644,7 @@ export default function QCInspectionPage() {
       <PassDialog
         job={selectedJob}
         checklist={selectedJob ? getCurrentInspection(selectedJob.id)?.checklist : null}
+        checklistDefinition={selectedJob ? getCurrentInspection(selectedJob.id)?.checklistDefinition : null}
         isOpen={activeDialog === "pass"}
         onClose={closeDialog}
         onPass={(notes) => passQC(selectedJob!.id, notes)}

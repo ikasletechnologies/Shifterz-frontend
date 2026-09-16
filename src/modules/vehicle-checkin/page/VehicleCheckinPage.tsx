@@ -168,7 +168,7 @@ export function VehicleCheckinPage() {
   };
 
   const allCount = cars.length;
-  const inWorkshopCount = cars.filter((c) => c.status === "Ongoing" || c.status === "In Workshop").length;
+  const inWorkshopCount = cars.filter((c) => c.status !== "Out" && c.status !== "Delivered").length;
   const deliveredCount = cars.filter((c) => c.status === "Out" || c.status === "Delivered").length;
 
   const getStatusColor = (status: string) => {
@@ -419,7 +419,7 @@ export function VehicleCheckinPage() {
   const filteredCars = cars.filter((car) => {
     const statusMatch =
       statusFilter === "All" ||
-      (statusFilter === "In Workshop" && (car.status === "Ongoing" || car.status === "In Workshop")) ||
+      (statusFilter === "In Workshop" && (car.status !== "Out" && car.status !== "Delivered")) ||
       (statusFilter === "Delivered" && (car.status === "Out" || car.status === "Delivered"));
 
     const cleanQuery = searchQuery.trim().toLowerCase();
@@ -462,7 +462,7 @@ export function VehicleCheckinPage() {
   });
 
   const inWorkshopCars = filteredCars.filter(
-    (c) => c.status === "Ongoing" || c.status === "In Workshop"
+    (c) => c.status !== "Out" && c.status !== "Delivered"
   );
   const deliveredCars = filteredCars.filter(
     (c) => c.status === "Out" || c.status === "Delivered"

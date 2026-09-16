@@ -1,22 +1,32 @@
 "use client";
 
 import { useState } from "react";
-import { X, CheckCircle2 } from "lucide-react";
-import { QCJob, ChecklistResult } from "../types/qc.types";
+import { X, CheckCircle2, AlertTriangle } from "lucide-react";
+import { QCJob, ChecklistResult, FrozenChecklistDefinitionItem } from "../types/qc.types";
 
 interface PassDialogProps {
   job: QCJob | null;
   checklist?: ChecklistResult[] | null;
+  // Phase 4B-3-C-A — UX-only: lets this dialog warn when a mandatory item is
+  // Failed (the backend will reject the Pass either way — this is not a
+  // substitute for that, just a heads-up before the round-trip). Optional
+  // because not every caller may have it loaded; the warning simply doesn't
+  // render without it, matching the "don't rely on frontend validation"
+  // instruction.
+  checklistDefinition?: FrozenChecklistDefinitionItem[] | null;
   isOpen: boolean;
   onClose: () => void;
   onPass: (notes?: string) => Promise<boolean>;
 }
 
-export function PassDialog({ job, checklist, isOpen, onClose, onPass }: PassDialogProps) {
+export function PassDialog({ job, checklist, checklistDefinition, isOpen, onClose, onPass }: PassDialogProps) {
   const [notes, setNotes] = useState("");
   const [isPassing, setIsPassing] = useState(false);
 
   if (!isOpen || !job) return null;
+
+  const mandatoryIds = new Set((checklistDefinition || []).filter((i) => i.mandatory).map((i) => i.id));
+  const failedMandatoryCount = (checklist || []).filter((i) => mandatoryIds.has(i.id) && i.result === "Failed").length;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,6 +49,18 @@ export function PassDialog({ job, checklist, isOpen, onClose, onPass }: PassDial
         </div>
 
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
+          {failedMandatoryCount > 0 && (
+            <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3 flex items-start gap-2">
+              <AlertTriangle className="w-4 h-4 text-red-500 mt-0.5 shrink-0" />
+              <div>
+                <p className="text-sm font-semibold text-red-800">This Pass will be rejected</p>
+                <p className="text-xs text-red-600 mt-0.5">
+                  {failedMandatoryCount} mandatory checklist item{failedMandatoryCount !== 1 ? "s are" : " is"} marked Failed. Record a Fail instead, or fix the checklist first.
+                </p>
+              </div>
+            </div>
+          )}
+
           <div className="bg-green-50 border border-green-200 rounded-lg px-4 py-3">
             <p className="text-sm font-semibold text-green-800">Confirming QC Pass</p>
             <p className="text-xs text-green-600 mt-0.5">
