@@ -2,7 +2,7 @@
 
 import { QCJob, QCInspection } from "../types/qc.types";
 import { QC_STATUS_COLORS } from "../constants/qc.constants";
-import { getCurrentUser } from "@/lib/franchise-scope";
+import { getCurrentUser, isHQRole } from "@/lib/franchise-scope";
 import {
   ClipboardCheck,
   Camera,
@@ -110,7 +110,9 @@ export function QCTable({
   // just avoids presenting edit controls the backend would reject anyway,
   // using ownership info (QCInspection.inspectorId/inspectorName) already
   // present in every inspection payload.
-  const currentUserId = getCurrentUser()?.id;
+  const currentUser = getCurrentUser();
+  const currentUserId = currentUser?.id;
+  const isManagementOverride = isHQRole(currentUser?.role);
 
   if (jobs.length === 0) {
     return (
@@ -129,8 +131,9 @@ export function QCTable({
         const current = getCurrentInspection(job.id);
         const priorAttempts = current ? current.attemptNumber - 1 : 0;
         // A missing currentUserId (couldn't resolve the session) never locks
-        // the UI — the backend remains the real gate either way.
-        const isOwner = !current?.inspectorId || !currentUserId || current.inspectorId === currentUserId;
+        // the UI — the backend remains the real gate either way. Superadmin/HQ
+        // can take over any inspector's attempt (management override).
+        const isOwner = isManagementOverride || !current?.inspectorId || !currentUserId || current.inspectorId === currentUserId;
 
         return (
           <div

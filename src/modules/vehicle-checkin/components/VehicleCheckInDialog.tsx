@@ -119,17 +119,21 @@ export default function VehicleCheckInDialog({
       if (initialData) {
         setFormData({
           vehicleNumber: initialData.vehicleNo || initialData.vehicle || "",
-          carModel: initialData.model || "",
-          customerName: initialData.customer || "",
+          carModel: initialData.model || initialData.carModel || "",
+          customerName: initialData.customer || initialData.name || initialData.customerName || "",
           phone: initialData.phone || "",
           service: initialData.service || "PPF Full Body",
           odometer: initialData.odometer || "",
           inTime: initialData.inTime || "",
           notes: initialData.notes || "",
         });
-        const { dateStr, timeStr } = parseDateTimeStr(initialData.inTime);
-        setDisplayDate(dateStr || new Date().toLocaleDateString("en-US"));
-        setDisplayTime(timeStr || new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }));
+        if (initialData.inTime) {
+          const { dateStr, timeStr } = parseDateTimeStr(initialData.inTime);
+          setDisplayDate(dateStr || new Date().toLocaleDateString("en-US"));
+          setDisplayTime(timeStr || new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }));
+        } else {
+          updateCurrentTime();
+        }
       } else {
         setFormData({
           vehicleNumber: "",

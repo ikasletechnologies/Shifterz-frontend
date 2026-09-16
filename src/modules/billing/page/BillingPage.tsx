@@ -461,18 +461,16 @@ export function BillingPage() {
               <X className="w-3.5 h-3.5" />
             </button>
           </div>
-          {!isHQ && (
-            <button
-              onClick={() => {
-                setEditingDocument(null);
-                setIsDialogOpen(true);
-              }}
-              className="bg-amber-400 hover:bg-amber-500 text-gray-900 font-bold px-4 py-2 rounded-xl flex items-center gap-1.5 transition-all shadow-xs text-xs shrink-0 whitespace-nowrap"
-            >
-              <Plus className="w-4 h-4 stroke-3" />
-              New Document
-            </button>
-          )}
+          <button
+            onClick={() => {
+              setEditingDocument(null);
+              setIsDialogOpen(true);
+            }}
+            className="bg-amber-400 hover:bg-amber-500 text-gray-900 font-bold px-4 py-2 rounded-xl flex items-center gap-1.5 transition-all shadow-xs text-xs shrink-0 whitespace-nowrap"
+          >
+            <Plus className="w-4 h-4 stroke-3" />
+            New Document
+          </button>
         </div>
       </div>
 
@@ -536,7 +534,7 @@ export function BillingPage() {
                       >
                         <Eye className="w-4 h-4" />
                       </button>
-                      {!isHQ && doc.status !== "Converted" && doc.status !== "Cancelled" && (
+                      {doc.status !== "Converted" && doc.status !== "Cancelled" && (
                         <button
                           onClick={() => {
                             setEditingDocument(doc);
@@ -553,8 +551,8 @@ export function BillingPage() {
                         doc={doc}
                         onViewHistory={() => { setDocumentForPaymentHistory(doc); setIsPaymentHistoryOpen(true); }}
                         onViewReceipt={() => { setSelectedPaymentDocument(doc); setIsPaymentReceiptOpen(true); }}
-                        onCancel={!isHQ ? () => { setDocumentToCancel(doc); setIsCancelOpen(true); } : undefined}
-                        onConvert={!isHQ && (doc.type === "Estimate" || doc.type === "Quotation") && doc.status !== "Paid" && doc.status !== "Converted" ? () => { setDocumentToConvert(doc); setIsConvertOpen(true); } : undefined}
+                        onCancel={() => { setDocumentToCancel(doc); setIsCancelOpen(true); }}
+                        onConvert={(doc.type === "Estimate" || doc.type === "Quotation") && doc.status !== "Paid" && doc.status !== "Converted" ? () => { setDocumentToConvert(doc); setIsConvertOpen(true); } : undefined}
                         onPrint={() => { setSelectedDocument(doc); setIsPreviewOpen(true); }}
                         onDownload={() => downloadInvoicePdf(doc)}
                       />
@@ -628,37 +626,35 @@ export function BillingPage() {
                 </div>
 
                 {/* Add Payment / Go to Out Pass Button (Footer) */}
-                {!isHQ && (
-                  <div className="flex justify-between items-center gap-2 pt-4 border-t border-gray-50 mt-4">
-                    {/* Estimate/Quotation: payment not allowed — show conversion hint */}
-                    {(doc.type === "Estimate" || doc.type === "Quotation") && doc.status !== "Converted" && doc.status !== "Cancelled" && (
-                      <div className="flex items-center gap-1.5 text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5">
-                        <CreditCard className="w-3.5 h-3.5 shrink-0" />
-                        <span>Convert to Invoice to accept payment</span>
-                      </div>
-                    )}
-                    <div className="flex items-center gap-2 ml-auto">
-                      {(doc.status === "Paid" || doc.status === "Completed") && !hasOutPass(doc) && (
-                        <button
-                          onClick={() => handleGenerateOutPass(doc)}
-                          className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-bold rounded-xl transition-colors shadow-sm flex items-center gap-2"
-                        >
-                          <Ticket className="w-4 h-4" />
-                          Generate Out Pass
-                        </button>
-                      )}
-                      {doc.type === "Invoice" && doc.status !== "Paid" && doc.status !== "Cancelled" && (
-                        <button
-                          onClick={() => handleMarkAsPaid(doc.id)}
-                          className="px-4 py-2 bg-emerald-600 text-white text-sm font-bold rounded-xl hover:bg-emerald-700 transition-colors shadow-sm flex items-center gap-2"
-                        >
-                          <CreditCard className="w-4 h-4" />
-                          Add Payment
-                        </button>
-                      )}
+                <div className="flex justify-between items-center gap-2 pt-4 border-t border-gray-50 mt-4">
+                  {/* Estimate/Quotation: payment not allowed — show conversion hint */}
+                  {(doc.type === "Estimate" || doc.type === "Quotation") && doc.status !== "Converted" && doc.status !== "Cancelled" && (
+                    <div className="flex items-center gap-1.5 text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5">
+                      <CreditCard className="w-3.5 h-3.5 shrink-0" />
+                      <span>Convert to Invoice to accept payment</span>
                     </div>
+                  )}
+                  <div className="flex items-center gap-2 ml-auto">
+                    {(doc.status === "Paid" || doc.status === "Completed") && !hasOutPass(doc) && (
+                      <button
+                        onClick={() => handleGenerateOutPass(doc)}
+                        className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-bold rounded-xl transition-colors shadow-sm flex items-center gap-2"
+                      >
+                        <Ticket className="w-4 h-4" />
+                        Generate Out Pass
+                      </button>
+                    )}
+                    {doc.type === "Invoice" && doc.status !== "Paid" && doc.status !== "Cancelled" && (
+                      <button
+                        onClick={() => handleMarkAsPaid(doc.id)}
+                        className="px-4 py-2 bg-emerald-600 text-white text-sm font-bold rounded-xl hover:bg-emerald-700 transition-colors shadow-sm flex items-center gap-2"
+                      >
+                        <CreditCard className="w-4 h-4" />
+                        Add Payment
+                      </button>
+                    )}
                   </div>
-                )}
+                </div>
 
               </div>
             );

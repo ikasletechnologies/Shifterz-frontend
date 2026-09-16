@@ -1,6 +1,6 @@
 import { PhoneInput } from "@/components/common/PhoneInput";
 import { useState, useEffect } from "react";
-import { X } from "lucide-react";
+import { X, Eye, EyeOff } from "lucide-react";
 
 interface EditEmployeeDialogProps {
   isOpen: boolean;
@@ -13,16 +13,16 @@ interface EditEmployeeDialogProps {
 }
 
 const MODULE_OPTIONS = [
-  { value: "dashboard",  label: "Dashboard" },
-  { value: "carin",      label: "Car In" },
-  { value: "jobs",       label: "Job Cards" },
-  { value: "leads",      label: "Leads" },
-  { value: "customers",  label: "Customers" },
-  { value: "billing",    label: "Billing" },
-  { value: "payments",   label: "Payments" },
-  { value: "inventory",  label: "Inventory" },
-  { value: "reports",    label: "Reports" },
-  { value: "employees",  label: "Employees" },
+  { value: "dashboard", label: "Dashboard" },
+  { value: "carin", label: "Car In" },
+  { value: "jobs", label: "Job Cards" },
+  { value: "leads", label: "Leads" },
+  { value: "customers", label: "Customers" },
+  { value: "billing", label: "Billing" },
+  { value: "payments", label: "Payments" },
+  { value: "inventory", label: "Inventory" },
+  { value: "reports", label: "Reports" },
+  { value: "employees", label: "Employees" },
   { value: "attendance", label: "Attendance" },
 ];
 
@@ -48,6 +48,8 @@ export default function EditEmployeeDialog({ isOpen, onClose, onEdit, employee, 
     franchiseId: "",
     status: "Active"
   });
+
+  const [showPassword, setShowPassword] = useState(false);
 
   const [selectedModules, setSelectedModules] = useState<string[]>([]);
 
@@ -160,13 +162,22 @@ export default function EditEmployeeDialog({ isOpen, onClose, onEdit, employee, 
 
               <div className="space-y-1.5">
                 <label className="text-sm font-medium text-gray-700">New Password</label>
-                <input
-                  type="password"
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all outline-none"
-                  placeholder="Leave empty to keep current"
-                />
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    className="w-full px-4 py-2.5 pr-10 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all outline-none"
+                    placeholder="Leave empty to keep current"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+                  >
+                    {showPassword ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
 
               <div className="space-y-1.5">
@@ -223,11 +234,10 @@ export default function EditEmployeeDialog({ isOpen, onClose, onEdit, employee, 
                         type="button"
                         key={opt.value}
                         onClick={() => handleToggleModule(opt.value)}
-                        className={`flex items-center gap-2 p-2 rounded-xl border text-left transition-all ${
-                          isChecked
+                        className={`flex items-center gap-2 p-2 rounded-xl border text-left transition-all ${isChecked
                             ? "bg-blue-50/50 border-blue-300 text-blue-700 font-semibold"
                             : "bg-gray-50 border-gray-100 text-gray-400"
-                        }`}
+                          }`}
                       >
                         <input
                           type="checkbox"

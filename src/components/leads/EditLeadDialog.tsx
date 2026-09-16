@@ -5,6 +5,7 @@ import { PhoneInput } from "@/components/common/PhoneInput";
 import { useState, useEffect } from "react";
 import { X, User } from "lucide-react";
 import { toast } from "react-hot-toast";
+import { getEmployees } from "@/lib/api";
 
 interface EditLeadDialogProps {
   isOpen: boolean;
@@ -13,12 +14,17 @@ interface EditLeadDialogProps {
   lead: any;
 }
 
+// Roles that can be assigned leads (see DEFAULT_ROLE_MODULES in AddEmployeeDialog)
+const LEAD_ASSIGNEE_ROLES = ["RECEPTION_EXECUTIVE", "SERVICE_ADVISOR", "FRANCHISE_ADMIN", "BRANCH_MANAGER"];
+
 export default function EditLeadDialog({
   isOpen,
   onClose,
   onSubmit,
   lead,
 }: EditLeadDialogProps) {
+  const [assignees, setAssignees] = useState<{ id: string; name: string }[]>([]);
+
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -26,11 +32,27 @@ export default function EditLeadDialog({
     vehicle: "",
     source: "JustDial",
     service: "PPF Full Body",
-    assigned: "Arjun",
+    assigned: "",
     budget: "",
     notes: "",
     status: "New",
   });
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const loadAssignees = async () => {
+      try {
+        const emps = await getEmployees();
+        const list = emps
+          .filter((emp: any) => LEAD_ASSIGNEE_ROLES.includes(emp.role) && emp.status === "Active")
+          .map((emp: any) => ({ id: emp.id, name: emp.name }));
+        setAssignees(list);
+      } catch (err) {
+        console.error("Failed to load assignees:", err);
+      }
+    };
+    loadAssignees();
+  }, [isOpen]);
 
   useEffect(() => {
     if (lead) {
@@ -41,7 +63,7 @@ export default function EditLeadDialog({
         vehicle: lead.vehicle || "",
         source: lead.source || "JustDial",
         service: lead.service || "PPF Full Body",
-        assigned: lead.assignedTo || lead.assigned || "Arjun",
+        assigned: lead.assignedTo || lead.assigned || "",
         budget: lead.budget ? lead.budget.replace(/[^0-9]/g, "") : "",
         notes: lead.notes || "",
         status: lead.status || "New",
@@ -245,11 +267,13 @@ export default function EditLeadDialog({
                 onChange={handleChange}
                 className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent bg-gray-50 text-gray-900"
               >
-                <option>Arjun</option>
-                <option>Sathish</option>
-                <option>Kumar</option>
-                <option>Rajesh</option>
-                <option>Mani</option>
+                <option value="">Unassigned</option>
+                {assignees.map((a) => (
+                  <option key={a.id} value={a.name}>{a.name}</option>
+                ))}
+                {formData.assigned && !assignees.some((a) => a.name === formData.assigned) && (
+                  <option value={formData.assigned}>{formData.assigned}</option>
+                )}
               </select>
             </div>
             <div>

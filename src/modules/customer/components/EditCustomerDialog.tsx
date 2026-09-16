@@ -81,7 +81,17 @@ export default function EditCustomerDialog({
       toast.error("Vehicle number format: TN 04 AB 1234");
       return;
     }
-    onSubmit(formData);
+    
+    const payload: Record<string, any> = {
+      name: formData.name.trim(),
+      phone: formData.phone.trim(),
+      vehicle: formData.vehicle.trim(),
+      model: formData.carModel.trim(),
+    };
+    if (formData.email && formData.email.trim()) {
+      payload.email = formData.email.trim();
+    }
+    onSubmit(payload);
     onClose();
   };
 

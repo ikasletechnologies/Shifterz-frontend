@@ -1,6 +1,6 @@
 import { PhoneInput } from "@/components/common/PhoneInput";
 import { useState } from "react";
-import { X } from "lucide-react";
+import { X, Eye, EyeOff } from "lucide-react";
 
 interface AddEmployeeDialogProps {
   isOpen: boolean;
@@ -49,6 +49,8 @@ export default function AddEmployeeDialog({ isOpen, onClose, onAdd, franchises, 
     role: defaultRole,
     franchiseId: lockFranchiseId || "",
   });
+
+  const [showPassword, setShowPassword] = useState(false);
 
   const [selectedModules, setSelectedModules] = useState<string[]>(
     DEFAULT_ROLE_MODULES[defaultRole] || DEFAULT_ROLE_MODULES["TECHNICIAN"]
@@ -160,13 +162,22 @@ export default function AddEmployeeDialog({ isOpen, onClose, onAdd, franchises, 
 
               <div className="space-y-1.5">
                 <label className="text-sm font-medium text-gray-700">Password</label>
-                <input
-                  type="password"
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all outline-none"
-                  placeholder="Leave empty if no login required"
-                />
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    className="w-full px-4 py-2.5 pr-10 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all outline-none"
+                    placeholder="Leave empty if no login required"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
 
               <div className="space-y-1.5">

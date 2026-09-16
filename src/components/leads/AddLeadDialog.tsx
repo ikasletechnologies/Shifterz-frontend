@@ -2,10 +2,10 @@
 /* eslint-disable react-hooks/exhaustive-deps, @typescript-eslint/no-explicit-any */
 
 import { PhoneInput } from "@/components/common/PhoneInput";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { X, User } from "lucide-react";
 import { toast } from "react-hot-toast";
-import { fetchVehicleDetails } from "@/lib/api";
+import { fetchVehicleDetails, getEmployees } from "@/lib/api";
 
 interface AddLeadDialogProps {
   isOpen: boolean;
@@ -13,11 +13,16 @@ interface AddLeadDialogProps {
   onSubmit?: (lead: any) => void;
 }
 
+// Roles that can be assigned leads (see DEFAULT_ROLE_MODULES in AddEmployeeDialog)
+const LEAD_ASSIGNEE_ROLES = ["RECEPTION_EXECUTIVE", "SERVICE_ADVISOR", "FRANCHISE_ADMIN", "BRANCH_MANAGER"];
+
 export default function AddLeadDialog({
   isOpen,
   onClose,
   onSubmit,
 }: AddLeadDialogProps) {
+  const [assignees, setAssignees] = useState<{ id: string; name: string }[]>([]);
+
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -25,10 +30,27 @@ export default function AddLeadDialog({
     vehicle: "",
     source: "JustDial",
     service: "PPF Full Body",
-    assigned: "Arjun",
+    assigned: "",
     budget: "",
     notes: "",
   });
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const loadAssignees = async () => {
+      try {
+        const emps = await getEmployees();
+        const list = emps
+          .filter((emp: any) => LEAD_ASSIGNEE_ROLES.includes(emp.role) && emp.status === "Active")
+          .map((emp: any) => ({ id: emp.id, name: emp.name }));
+        setAssignees(list);
+        setFormData((prev) => ({ ...prev, assigned: prev.assigned || list[0]?.name || "" }));
+      } catch (err) {
+        console.error("Failed to load assignees:", err);
+      }
+    };
+    loadAssignees();
+  }, [isOpen]);
 
   const formatVehicleNumber = (value: string) => {
     const cleaned = value.replace(/\s/g, "").toUpperCase();
@@ -111,7 +133,7 @@ export default function AddLeadDialog({
       vehicle: "",
       source: "JustDial",
       service: "PPF Full Body",
-      assigned: "Arjun",
+      assigned: assignees[0]?.name || "",
       budget: "",
       notes: "",
     });
@@ -254,11 +276,10 @@ export default function AddLeadDialog({
                 onChange={handleChange}
                 className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent bg-gray-50 text-gray-900"
               >
-                <option>Arjun</option>
-                <option>Sathish</option>
-                <option>Kumar</option>
-                <option>Rajesh</option>
-                <option>Mani</option>
+                <option value="">Unassigned</option>
+                {assignees.map((a) => (
+                  <option key={a.id} value={a.name}>{a.name}</option>
+                ))}
               </select>
             </div>
             <div>

@@ -87,7 +87,11 @@ export default function AddCustomerDialog({
     }
 
     if (onSubmit) {
-      onSubmit(formData);
+      onSubmit({
+        ...formData,
+        model: formData.carModel,
+        carModel: formData.carModel,
+      });
     }
 
     setFormData({
