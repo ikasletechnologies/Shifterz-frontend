@@ -1,6 +1,11 @@
 import { useState, useRef, useEffect } from "react";
-import { apiCall } from "@/lib/api";
+import { apiCall, uploadFile } from "@/lib/api";
 import { X, Loader2, Upload, Save, FileText, Camera, Check } from "lucide-react";
+
+// Origin (protocol+host, no /api) the backend serves uploaded files from —
+// derived from the same NEXT_PUBLIC_API_URL every other API call already
+// uses, so this works in every environment without a separate env var.
+const UPLOAD_ORIGIN = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api").replace(/\/api\/?$/, "");
 
 interface JobActionDialogProps {
   job: any;
@@ -62,21 +67,7 @@ export default function JobActionDialog({ job, isOpen, onClose }: JobActionDialo
     
     setUploading(true);
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-
-      // Using raw fetch here since apiCall stringifies body by default.
-      // Phase 0.10 — auth travels via httpOnly cookie now; credentials:
-      // "include" is required for the browser to attach it cross-origin.
-      const res = await fetch("http://localhost:5000/api/upload", {
-        method: "POST",
-        credentials: "include",
-        body: formData,
-      });
-
-      if (!res.ok) throw new Error("Upload failed");
-      
-      const data = await res.json();
+      const data = await uploadFile(file);
       setPhotos([...photos, data.url]);
     } catch (err) {
       console.error(err);
@@ -175,8 +166,7 @@ export default function JobActionDialog({ job, isOpen, onClose }: JobActionDialo
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {photos.map((url, i) => (
                 <div key={i} className="relative aspect-square rounded-xl overflow-hidden border border-gray-200 group">
-                  {/* Assuming backend serves them at http://localhost:5000/uploads/... */}
-                  <img src={`http://localhost:5000${url}`} alt="Vehicle" className="w-full h-full object-cover" />
+                  <img src={url.startsWith("http") ? url : `${UPLOAD_ORIGIN}${url}`} alt="Vehicle" className="w-full h-full object-cover" />
                   <button 
                     onClick={() => setPhotos(photos.filter((_, idx) => idx !== i))}
                     className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity"
