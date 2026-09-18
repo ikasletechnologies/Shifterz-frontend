@@ -18,9 +18,12 @@ import {
   ShieldCheck,
   ClipboardCheck,
   X as XIcon,
+  Receipt,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
 import { JobCard } from "../types/job-card.types";
+import { READY_FOR_BILLING_STATUSES } from "../constants/job-card.constants";
 
 // Statuses from technician-marked-Completed through the QC queue, before a
 // Pass/Fail decision has been recorded — a Service Advisor should assign a
@@ -98,6 +101,7 @@ function formatDateTimeStr(input?: string): string {
 }
 
 export function JobCardTable({ jobCards, onView, onEdit, onDelete, isInspectionPending, onInspect, onAssignQC, onQuickPass, onQuickFail }: JobCardTableProps) {
+  const router = useRouter();
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string>("");
 
@@ -146,6 +150,7 @@ export function JobCardTable({ jobCards, onView, onEdit, onDelete, isInspectionP
           isAssigned && !hasQCInspector && QC_ASSIGNABLE_STATUSES.has(j.status) && Boolean(onAssignQC);
         const canQuickDecideQC =
           isSuperAdmin && Boolean(onQuickPass) && Boolean(onQuickFail) && QC_QUICK_DECIDE_STATUSES.has(j.status);
+        const needsBilling = READY_FOR_BILLING_STATUSES.has(j.status);
 
         return (
           <div
@@ -386,6 +391,19 @@ export function JobCardTable({ jobCards, onView, onEdit, onDelete, isInspectionP
                   Fail QC
                 </button>
               </div>
+            )}
+
+            {/* Surfaced directly on the card (not just inside View Details) so a
+                QC-passed job's next step is visible without opening the dialog. */}
+            {needsBilling && (
+              <button
+                type="button"
+                onClick={() => router.push("/dashboard/billing")}
+                className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 text-xs transition-colors shadow-xs cursor-pointer mt-2"
+              >
+                <Receipt className="w-3.5 h-3.5" />
+                <span>Go to Billing</span>
+              </button>
             )}
             </>
           </div>

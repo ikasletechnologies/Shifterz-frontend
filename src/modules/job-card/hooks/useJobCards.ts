@@ -33,7 +33,18 @@ export function useJobCards() {
   const handleSaveJobCard = async (data: JobCardFormData) => {
     try {
       if (data.id) {
-        await updateJobCard(data.id, data);
+        // The backend rejects a whole update if `status` is resubmitted as one
+        // of its QC-controlled values ("QC Passed", "Ready For Billing") — those
+        // can only be set via the QC decision endpoint. The edit dialog always
+        // includes the job's current status in its payload even when the user
+        // only changed something else (e.g. adding a billing service to an
+        // already-QC-passed job), so drop it here unless it actually changed.
+        const current = jobCards.find((j) => j.id === data.id);
+        const payload: Partial<JobCardFormData> = { ...data };
+        if (current && payload.status === current.status) {
+          delete payload.status;
+        }
+        await updateJobCard(data.id, payload);
         toast.success("Job card updated successfully");
       } else {
         await createJobCard(data);

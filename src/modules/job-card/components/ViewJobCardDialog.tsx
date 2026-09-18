@@ -15,6 +15,7 @@ import { sendToQC } from "@/modules/workshop/services/workshop.service";
 import { getInvoices } from "@/modules/billing/services/billing.service";
 import { BillingDocument } from "@/modules/billing/types/billing.types";
 import { toast } from "react-hot-toast";
+import { READY_FOR_BILLING_STATUSES } from "../constants/job-card.constants";
 
 interface ViewJobCardDialogProps {
   isOpen: boolean;
@@ -48,14 +49,6 @@ const QC_QUICK_DECIDE_STATUSES = new Set([
   ...QC_NOT_YET_SENT_STATUSES,
   "Waiting for Quality Check",
   "Rework Required",
-]);
-
-// Statuses reached once QC has passed the job — it's sitting in the Billing
-// module's queue (src/modules/billing/components/BillingJobCards.tsx) waiting
-// for an invoice, whether or not one has been generated yet.
-const READY_FOR_BILLING_STATUSES = new Set([
-  "Ready For Billing",
-  "QC Passed",
 ]);
 
 const INSPECTION_PHOTO_SLOTS: { key: keyof CarEntry; label: string }[] = [

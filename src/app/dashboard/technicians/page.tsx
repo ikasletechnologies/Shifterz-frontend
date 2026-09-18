@@ -33,6 +33,7 @@ interface TechnicianRow {
   id: string;
   name: string;
   phone: string;
+  email?: string;
   status: string;
   branch: string;
   franchiseId: string | null;
@@ -847,7 +848,7 @@ function TechniciansPageContent() {
                         </div>
                         <span className="font-medium text-slate-600 min-w-[110px]">Email</span>
                         <span className="text-slate-400 mr-4 font-normal">:</span>
-                        <span className="font-medium text-slate-700 truncate">{row.id.toLowerCase()}@shifterz.com</span>
+                        <span className="font-medium text-slate-700 truncate">{row.email || "N/A"}</span>
                       </div>
 
                       {/* Franchise Name */}

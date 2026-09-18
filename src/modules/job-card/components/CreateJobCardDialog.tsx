@@ -165,6 +165,18 @@ export function CreateJobCardDialog({ isOpen, onClose, onSave, initialData }: Cr
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    // Picking a service from the dropdown doesn't add it by itself — the "+"
+    // button does. Saving with nothing added is a common silent no-op (looks
+    // like it worked, but Billing still has nothing to invoice), so flag it
+    // instead of letting it pass quietly.
+    if ((formData.services || []).length === 0) {
+      toast(
+        selectedCatalogId
+          ? "Click the + button to add the selected service before saving — it wasn't added yet."
+          : "Saved without any priced services — Billing won't be able to generate an invoice until you add at least one.",
+        { icon: "⚠️" }
+      );
+    }
     onSave({ ...formData, ...(isEditing && { id: formData.id }) });
     onClose();
   };
@@ -252,6 +264,10 @@ export function CreateJobCardDialog({ isOpen, onClose, onSave, initialData }: Cr
 
               {serviceCatalog.length === 0 && (
                 <p className="text-xs text-gray-400">No active services in the catalog — add one under Dashboard → Services.</p>
+              )}
+
+              {serviceCatalog.length > 0 && (formData.services || []).length === 0 && (
+                <p className="text-xs text-amber-600">Select a service, then click + to add it — an invoice can&apos;t be generated until at least one is added here.</p>
               )}
 
               {(formData.services || []).length > 0 && (
