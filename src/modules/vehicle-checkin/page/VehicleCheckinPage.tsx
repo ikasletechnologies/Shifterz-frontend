@@ -26,6 +26,8 @@ import {
   ChevronDown,
   FileSpreadsheet,
   FileText,
+  ShieldCheck,
+  ShieldAlert,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import jsPDF from "jspdf";
@@ -34,8 +36,9 @@ import * as XLSX from "xlsx";
 import VehicleCheckInDialog from "../components/VehicleCheckInDialog";
 import VehicleDeliveryDialog from "../components/VehicleDeliveryDialog";
 import VehicleDetailsDialog from "../components/VehicleDetailsDialog";
+import VehicleInspectionDialog from "../components/VehicleInspectionDialog";
 import { useVehicleCheckin } from "../hooks/useVehicleCheckin";
-import { CarEntry } from "../types/vehicle-checkin.types";
+import { CarEntry, hasCompletedInspection } from "../types/vehicle-checkin.types";
 import { calculateDuration, formatTime, formatDate, formatDateTime } from "@/lib/timeUtils";
 
 export function VehicleCheckinPage() {
@@ -82,6 +85,7 @@ export function VehicleCheckinPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDeliveryDialogOpen, setIsDeliveryDialogOpen] = useState(false);
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
+  const [isInspectionDialogOpen, setIsInspectionDialogOpen] = useState(false);
   const [selectedCar, setSelectedCar] = useState<CarEntry | null>(null);
   const [successCar, setSuccessCar] = useState<CarEntry | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -119,6 +123,11 @@ export function VehicleCheckinPage() {
   const handleViewDetailsClick = (car: CarEntry) => {
     setSelectedCar(car);
     setIsDetailsDialogOpen(true);
+  };
+
+  const handleInspectionClick = (car: CarEntry) => {
+    setSelectedCar(car);
+    setIsInspectionDialogOpen(true);
   };
 
   const handleDeliverySubmit = async (outData: any) => {
@@ -471,8 +480,8 @@ export function VehicleCheckinPage() {
           type="button"
           onClick={() => setStatusFilter("All")}
           className={`p-4 rounded-xl border text-left flex items-center justify-between transition-all cursor-pointer ${statusFilter === "All"
-              ? "bg-amber-50/70 border-amber-400 ring-2 ring-amber-400/20 shadow-sm"
-              : "bg-white border-gray-200 hover:border-amber-300 hover:bg-gray-50/60"
+            ? "bg-amber-50/70 border-amber-400 ring-2 ring-amber-400/20 shadow-sm"
+            : "bg-white border-gray-200 hover:border-amber-300 hover:bg-gray-50/60"
             }`}
         >
           <div>
@@ -489,8 +498,8 @@ export function VehicleCheckinPage() {
           type="button"
           onClick={() => setStatusFilter("In Workshop")}
           className={`p-4 rounded-xl border text-left flex items-center justify-between transition-all cursor-pointer ${statusFilter === "In Workshop"
-              ? "bg-emerald-50/70 border-emerald-500 ring-2 ring-emerald-500/20 shadow-sm"
-              : "bg-white border-gray-200 hover:border-emerald-300 hover:bg-gray-50/60"
+            ? "bg-emerald-50/70 border-emerald-500 ring-2 ring-emerald-500/20 shadow-sm"
+            : "bg-white border-gray-200 hover:border-emerald-300 hover:bg-gray-50/60"
             }`}
         >
           <div>
@@ -530,11 +539,10 @@ export function VehicleCheckinPage() {
               <div key={period} className="relative">
                 <button
                   onClick={() => setPeriodFilter(period)}
-                  className={`text-sm px-3 py-1 rounded-md font-medium transition-all whitespace-nowrap ${
-                    periodFilter === period
+                  className={`text-sm px-3 py-1 rounded-md font-medium transition-all whitespace-nowrap ${periodFilter === period
                       ? "bg-white text-gray-900 font-semibold shadow-sm"
                       : "text-gray-500 hover:text-gray-800"
-                  }`}
+                    }`}
                 >
                   {period}
                 </button>
@@ -596,6 +604,27 @@ export function VehicleCheckinPage() {
                 </div>
               </>
             )}
+          </div>
+
+          {/* View toggle — Table view is the only place with a checkout ("→ Out")
+              action; without this the checkout flow had no way to be reached. */}
+          <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1 shrink-0">
+            <button
+              type="button"
+              onClick={() => setViewMode("cards")}
+              title="Card view"
+              className={`p-1.5 rounded-md transition-colors cursor-pointer ${viewMode === "cards" ? "bg-white text-gray-900 shadow-xs" : "text-gray-500 hover:text-gray-700"}`}
+            >
+              <LayoutGrid className="w-4 h-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode("table")}
+              title="Table view"
+              className={`p-1.5 rounded-md transition-colors cursor-pointer ${viewMode === "table" ? "bg-white text-gray-900 shadow-xs" : "text-gray-500 hover:text-gray-700"}`}
+            >
+              <List className="w-4 h-4" />
+            </button>
           </div>
 
           {/* Vehicle Check-In */}
@@ -728,6 +757,29 @@ export function VehicleCheckinPage() {
                         </p>
                       </div>
                     </div>
+
+                    <div className="border-t border-gray-100 my-3" />
+
+                    {/* Mandatory Inspection status
+                    <button
+                      type="button"
+                      onClick={() => handleInspectionClick(entry)}
+                      className={`w-full flex items-center justify-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl transition-colors cursor-pointer ${
+                        hasCompletedInspection(entry)
+                          ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                          : "bg-amber-50 text-amber-700 hover:bg-amber-100"
+                      }`}
+                    >
+                      {hasCompletedInspection(entry) ? (
+                        <>
+                          <ShieldCheck className="w-3.5 h-3.5" /> Inspection Complete
+                        </>
+                      ) : (
+                        <>
+                          <ShieldAlert className="w-3.5 h-3.5" /> Complete Inspection (required for QC)
+                        </>
+                      )}
+                    </button> */}
                   </div>
                 </div>
               ))}
@@ -941,6 +993,16 @@ export function VehicleCheckinPage() {
                     </td>
                     <td className="px-6 py-4 text-sm">
                       <div className="flex items-center gap-2">
+                        {(entry.status === "Ongoing" || entry.status === "In Workshop") && (
+                          <button
+                            onClick={() => handleInspectionClick(entry)}
+                            className={`p-1.5 rounded transition-colors ${hasCompletedInspection(entry) ? "text-emerald-600 hover:bg-emerald-50" : "text-amber-600 hover:bg-amber-50"
+                              }`}
+                            title={hasCompletedInspection(entry) ? "Inspection Complete" : "Complete Inspection (required for QC)"}
+                          >
+                            {hasCompletedInspection(entry) ? <ShieldCheck className="w-4 h-4" /> : <ShieldAlert className="w-4 h-4" />}
+                          </button>
+                        )}
                         {(entry.status === "Ongoing" || entry.status === "In Workshop") ? (
                           <button
                             onClick={() => handleDeliveryClick(entry)}
@@ -1012,6 +1074,12 @@ export function VehicleCheckinPage() {
         cars={cars}
         onSubmit={handleDeliverySubmit}
       />
+      <VehicleInspectionDialog
+        isOpen={isInspectionDialogOpen}
+        onClose={() => { setIsInspectionDialogOpen(false); setSelectedCar(null); }}
+        car={selectedCar}
+        onSubmit={handleUpdateVehicleCheckIn}
+      />
       <VehicleDetailsDialog
         isOpen={isDetailsDialogOpen}
         onClose={() => setIsDetailsDialogOpen(false)}
@@ -1045,7 +1113,11 @@ export function VehicleCheckinPage() {
             <div className="space-y-3">
               <button
                 onClick={() => {
-                  router.push(`/dashboard/jobs`);
+                  // Carries the check-in's own data through instead of
+                  // dropping it — Job Cards reads this via ?fromCarIn=<id>
+                  // and pre-fills a new job card with it, including the
+                  // real carInId link (not just a vehicle-number text match).
+                  router.push(`/dashboard/jobs?fromCarIn=${encodeURIComponent(successCar.id)}`);
                   setSuccessCar(null);
                 }}
                 className="w-full bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-bold py-3 rounded-lg flex items-center justify-center gap-2 transition-colors shadow-sm"

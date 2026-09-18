@@ -10,8 +10,16 @@ import { toast } from "react-hot-toast";
 import { fetchVehicleDetails, getServices } from "@/lib/api";
 import { getJobCards } from "@/modules/job-card/services/job-card.service";
 import { JobCard } from "@/modules/job-card/types/job-card.types";
+import { getVehicleType, formatVehicleNumber } from "@/utils/vehicleNumber";
 
 const BILLING_ELIGIBLE_JOB_STATUSES = ["Ready For Billing", "QC Passed", "Delivered", "Out"];
+
+// Fallback options for the Service Category dropdown when the catalog hasn't
+// loaded any categories yet. Real category values are free text set per
+// tenant (Settings → Categories / AddServiceDialog's `category` field — e.g.
+// its own default is "PPF"), so these are never assumed to be the only valid
+// values — see serviceCategoryOptions below, which is catalog-driven.
+const SERVICE_CATEGORY_OPTIONS = ["General Service", "Bodywork & Paint", "PPF & Coating", "Electrical & Diagnostics", "AC Repair"];
 
 interface NewDocumentDialogProps {
   isOpen: boolean;
@@ -95,6 +103,31 @@ export default function NewDocumentDialog({
   const [isLoadingJobs, setIsLoadingJobs] = useState(false);
   const [jobId, setJobId] = useState<string>("");
 
+  // GET /vehicle/:vehicleNo also returns `model` (from the matched Customer's
+  // saved vehicle, or the latest Car-In record) — it was being fetched and
+  // then silently dropped in the old handleVehicleBlur, which is why Model
+  // never auto-filled. Declared before the effects/handlers below that call it.
+  const applyVehicleLookup = async (vNo: string) => {
+    if (!vNo) return;
+    setIsFetchingVehicle(true);
+    try {
+      const data = await fetchVehicleDetails(vNo);
+      if (data && (data.name || data.model)) {
+        setFormData((prev) => ({
+          ...prev,
+          client: prev.client || data.name || prev.client,
+          phone: prev.phone || data.phone || prev.phone,
+          model: prev.model || data.model || prev.model,
+        }));
+      }
+      return data;
+    } catch {
+      return null;
+    } finally {
+      setIsFetchingVehicle(false);
+    }
+  };
+
   useEffect(() => {
     if (isOpen) {
       if (initialData) {
@@ -131,6 +164,23 @@ export default function NewDocumentDialog({
         });
         if (Array.isArray(initialData.items) && initialData.items.length > 0) {
           setItems(initialData.items);
+        } else if (Array.isArray(initialData.services) && initialData.services.length > 0) {
+          // Seed directly from the Job Card's own priced line items (job.services —
+          // the Billing Services section on the Job Card, and the same data
+          // GST/invoice generation is authoritatively computed from server-side),
+          // instead of re-deriving a single guessed item from the free-text
+          // `service` label, which is what produced ₹0.00 rate/amount rows.
+          setItems(
+            initialData.services.map((s: { name: string; price: number; qty: number }) => ({
+              desc: s.name,
+              qty: s.qty || 1,
+              price: s.price || 0,
+              amount: (s.qty || 1) * (s.price || 0),
+              discountPercent: 0,
+              gstPercent: 18,
+              warranty: "",
+            }))
+          );
         } else if (initialData.service || initialData.amount) {
           setItems([{
             desc: initialData.service || "Service Charge",
@@ -142,8 +192,16 @@ export default function NewDocumentDialog({
             warranty: initialData.warranty || ""
           }]);
         }
-        if (initialData.jobCardNo) {
+        if (initialData.jobId) {
+          setJobId(initialData.jobId);
+        } else if (initialData.jobCardNo) {
           setJobId(initialData.jobCardNo);
+        }
+        // "Generate Invoice" from the Billing queue only ever passes the raw
+        // Job Card fields, never a resolved Model — fetch it the same way
+        // picking a job in-dialog does.
+        if (!initialData.model && initialData.vehicle) {
+          applyVehicleLookup(String(initialData.vehicle).trim().toUpperCase());
         }
       } else {
         setFormData({
@@ -203,6 +261,28 @@ export default function NewDocumentDialog({
     }
   }, [availableServices, initialData, isOpen, items]);
 
+  // Derive Service Category from the matched catalog entries once the catalog
+  // has loaded — "Generate Invoice" fires before getServices() necessarily
+  // resolves, so this can't be done inline in the initialData hydration above.
+  useEffect(() => {
+    if (
+      isOpen &&
+      initialData &&
+      Array.isArray(initialData.services) &&
+      initialData.services.length > 0 &&
+      availableServices.length > 0 &&
+      !initialData.serviceCategory
+    ) {
+      const matchedCatalog = initialData.services
+        .map((s: { name: string }) => availableServices.find((c) => c.name?.toLowerCase() === s.name.toLowerCase()))
+        .find((c: any) => c?.category);
+      const category = matchedCatalog?.category?.trim();
+      if (category) {
+        setFormData((prev) => (prev.serviceCategory === "General Service" ? { ...prev, serviceCategory: category } : prev));
+      }
+    }
+  }, [availableServices, initialData, isOpen]);
+
   useEffect(() => {
     const updateClock = () => {
       setCurrentTime(new Date().toLocaleTimeString('en-US', { hour12: true }));
@@ -243,23 +323,9 @@ export default function NewDocumentDialog({
 
   const handleVehicleBlur = async () => {
     const vNo = formData.vehicle.trim().toUpperCase();
-    if (!vNo) return;
-    
-    setIsFetchingVehicle(true);
-    try {
-      const data = await fetchVehicleDetails(vNo);
-      if (data && data.name) {
-        setFormData((prev) => ({
-          ...prev,
-          client: prev.client || data.name,
-          phone: prev.phone || data.phone,
-        }));
-        toast.success("Vehicle details auto-filled!");
-      }
-    } catch {
-      // Ignore
-    } finally {
-      setIsFetchingVehicle(false);
+    const data = await applyVehicleLookup(vNo);
+    if (data && data.name) {
+      toast.success("Vehicle details auto-filled!");
     }
   };
 
@@ -328,6 +394,39 @@ export default function NewDocumentDialog({
         jobCardNo: job.id,
         serviceAdvisor: (job as any).serviceAdvisor || prev.serviceAdvisor,
       }));
+
+      // formData.vehicle is set programmatically above, so the input's onBlur
+      // (which normally drives this lookup) never fires — Model would
+      // otherwise stay empty for every job-linked invoice.
+      if (job.vehicle) {
+        applyVehicleLookup(job.vehicle.trim().toUpperCase());
+      }
+
+      const jobServices = (job as any).services as { name: string; price: number; qty: number }[] | undefined;
+      if (Array.isArray(jobServices) && jobServices.length > 0) {
+        // Same priced line items the Job Card's Billing Services section records
+        // and the backend's GST resolver reads — authoritative, no re-guessing.
+        setItems(
+          jobServices.map((s) => ({
+            desc: s.name,
+            qty: s.qty || 1,
+            price: s.price || 0,
+            amount: (s.qty || 1) * (s.price || 0),
+            discountPercent: 0,
+            gstPercent: 18,
+            warranty: "",
+          }))
+        );
+
+        const matchedCatalog = jobServices
+          .map((s) => availableServices.find((c) => c.name?.toLowerCase() === s.name.toLowerCase()))
+          .find((c) => c?.category);
+        const category = matchedCatalog?.category?.trim();
+        if (category) {
+          setFormData((prev) => ({ ...prev, serviceCategory: category }));
+        }
+        return;
+      }
 
       const jobServiceName = (job.service || "").trim();
       if (jobServiceName && availableServices.length > 0) {
@@ -402,19 +501,6 @@ export default function NewDocumentDialog({
     }
   };
 
-  const formatVehicleNumber = (value: string) => {
-    const cleaned = value.replace(/\s/g, "").toUpperCase();
-    if (cleaned.length === 0) return "";
-
-    let formatted = "";
-    formatted += cleaned.substring(0, 2);
-    if (cleaned.length > 2) formatted += " " + cleaned.substring(2, 4);
-    if (cleaned.length > 4) formatted += " " + cleaned.substring(4, 6);
-    if (cleaned.length > 6) formatted += " " + cleaned.substring(6, 10);
-
-    return formatted;
-  };
-
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
@@ -433,15 +519,27 @@ export default function NewDocumentDialog({
     }
   };
 
+  // Real category values are whatever the tenant has set up in Settings →
+  // Categories (see AddServiceDialog) — free text, not the fixed
+  // SERVICE_CATEGORY_OPTIONS list. Options here are derived from the actual
+  // Service catalog so an auto-filled value like "PPF" renders correctly
+  // instead of silently mismatching every hardcoded <option>.
+  const serviceCategoryOptions = useMemo(() => {
+    const fromCatalog = Array.from(
+      new Set(availableServices.map((s) => (s.category || "").trim()).filter(Boolean))
+    );
+    const base = fromCatalog.length > 0 ? fromCatalog : SERVICE_CATEGORY_OPTIONS;
+    return formData.serviceCategory && !base.includes(formData.serviceCategory)
+      ? [...base, formData.serviceCategory]
+      : base;
+  }, [availableServices, formData.serviceCategory]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (formData.vehicle.trim()) {
-      const vehicleRegex = /^[A-Z]{2}\s\d{2}\s[A-Z]{1,2}\s\d{1,4}$/;
-      if (!vehicleRegex.test(formData.vehicle)) {
-        toast.error("Vehicle number format: TN 04 AB 1234 (State Code, RTO, Series, Number)");
-        return;
-      }
+    if (formData.vehicle.trim() && getVehicleType(formData.vehicle) === "INVALID") {
+      toast.error("Vehicle number format: TN 04 AB 1234 (State Code, RTO, Series, Number)");
+      return;
     }
 
     if (onSubmit) {
@@ -802,11 +900,9 @@ export default function NewDocumentDialog({
                         onChange={handleChange}
                         className="w-full px-2.5 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                       >
-                        <option>General Service</option>
-                        <option>Bodywork & Paint</option>
-                        <option>PPF & Coating</option>
-                        <option>Electrical & Diagnostics</option>
-                        <option>AC Repair</option>
+                        {serviceCategoryOptions.map((c) => (
+                          <option key={c} value={c}>{c}</option>
+                        ))}
                       </select>
                     </div>
                   </div>

@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { Suspense, useState, useEffect, useCallback } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   HardHat, Search, Filter, ChevronLeft, ChevronRight, Pencil, Trash2, Plus,
   Users, UserCheck2, UserX2, Briefcase, Loader2, PackageX, CheckCircle2, RefreshCw, TrendingUp, X,
-  Download, ChevronDown, FileSpreadsheet, FileText, BarChart3, Wrench, Hourglass, ClipboardList,
+  Download, ChevronDown, FileSpreadsheet, FileText, BarChart3, Wrench, Hourglass, ClipboardList, ArrowLeft,
 } from "lucide-react";
 import { StatCard } from "@/components/dashboard/StatCard";
 import EditEmployeeDialog from "@/components/employees/EditEmployeeDialog";
@@ -63,7 +64,21 @@ interface Summary {
 
 const PAGE_SIZE = 8;
 
+// Deep-linked from CreateJobCardDialog's "+ Add Technician" via ?returnTo=
+// <path> — useSearchParams() requires a Suspense boundary around whatever
+// calls it or the production build fails.
 export default function TechniciansPage() {
+  return (
+    <Suspense fallback={null}>
+      <TechniciansPageContent />
+    </Suspense>
+  );
+}
+
+function TechniciansPageContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const returnTo = searchParams.get("returnTo");
   const [rows, setRows] = useState<TechnicianRow[]>([]);
   const [summary, setSummary] = useState<Summary | null>(null);
   const [total, setTotal] = useState(0);
@@ -164,6 +179,13 @@ export default function TechniciansPage() {
 
   useEffect(() => {
     getFranchises().then(setFranchises).catch(() => setFranchises([]));
+  }, []);
+
+  // Arrived via a "+ Add Technician" deep link — open the form immediately
+  // instead of making them find the Add button themselves.
+  useEffect(() => {
+    if (returnTo) setIsAddOpen(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const totalPages = Math.ceil(total / PAGE_SIZE) || 1;
@@ -338,6 +360,16 @@ export default function TechniciansPage() {
 
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-6">
+
+      {returnTo && (
+        <button
+          type="button"
+          onClick={() => router.push(returnTo)}
+          className="flex items-center gap-1.5 text-sm font-bold text-blue-600 hover:text-blue-700 transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" /> Back
+        </button>
+      )}
 
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
         <StatCard
@@ -865,8 +897,8 @@ export default function TechniciansPage() {
                                   if (activeKPI === "Assigned Jobs") return j.status !== "Cancelled" && j.status !== "Canceled";
                                   if (activeKPI === "Waiting for Parts") return j.status === "Waiting for Parts" || j.status === "Waiting Material" || j.status === "Waiting Parts";
                                   if (activeKPI === "In Progress") return j.status === "In Progress" || j.status === "Assigned";
-                                  if (activeKPI === "QC Pending Jobs") return j.status === "QC Pending" || j.status === "Waiting QC" || j.status === "Review for QC";
-                                  if (activeKPI === "Rework Jobs") return j.status === "Rework" || j.status === "QC Failed";
+                                  if (activeKPI === "QC Pending Jobs") return j.status === "QC Pending" || j.status === "Waiting QC" || j.status === "Waiting for Quality Check" || j.status === "Review for QC";
+                                  if (activeKPI === "Rework Jobs") return j.status === "Rework" || j.status === "QC Failed" || j.status === "Rework Required";
                                   if (activeKPI === "Completed Today") return j.status === "Completed" || j.status === "Ready For Billing";
                                   return true;
                                 }).length
@@ -879,8 +911,8 @@ export default function TechniciansPage() {
                                 if (activeKPI === "Assigned Jobs") return j.status !== "Cancelled" && j.status !== "Canceled";
                                 if (activeKPI === "Waiting for Parts") return j.status === "Waiting for Parts" || j.status === "Waiting Material" || j.status === "Waiting Parts";
                                 if (activeKPI === "In Progress") return j.status === "In Progress" || j.status === "Assigned";
-                                if (activeKPI === "QC Pending Jobs") return j.status === "QC Pending" || j.status === "Waiting QC" || j.status === "Review for QC";
-                                if (activeKPI === "Rework Jobs") return j.status === "Rework" || j.status === "QC Failed";
+                                if (activeKPI === "QC Pending Jobs") return j.status === "QC Pending" || j.status === "Waiting QC" || j.status === "Waiting for Quality Check" || j.status === "Review for QC";
+                                if (activeKPI === "Rework Jobs") return j.status === "Rework" || j.status === "QC Failed" || j.status === "Rework Required";
                                 if (activeKPI === "Completed Today") return j.status === "Completed" || j.status === "Ready For Billing";
                                 return true;
                               })

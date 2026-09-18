@@ -53,12 +53,17 @@ export default function JobActionDialog({ job, isOpen, onClose }: JobActionDialo
 
   if (!isOpen || !job) return null;
 
+  // "Rework"/"Ready For Billing" are QC-decision outputs — they may only be
+  // recorded via the real QC Inspection module's Pass/Fail flow (qc.service.ts
+  // decide()), never as a plain status edit here, for any role including
+  // Quality Inspector. Quality Inspectors are routed to /dashboard/qc instead
+  // of this dialog; this branch stays only as a defensive fallback.
   let statusOptions = ["Pending", "Assigned", "In Progress", "Waiting for Parts", "Completed"];
 
   if (isQualityInspector) {
-    statusOptions = ["Pending", "In Progress", "Completed", "Rework", "Ready For Billing"];
+    statusOptions = ["Pending", "In Progress", "Completed"];
   } else if (isBillingExecutive) {
-    statusOptions = ["Ready For Billing", "Completed", "Delivered"];
+    statusOptions = ["Completed", "Delivered"];
   }
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {

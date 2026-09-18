@@ -112,9 +112,9 @@ export default function OutPassPage() {
       await fetchOutPasses();
       setIsDialogOpen(false);
       setEditingPass(null);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to save out pass:", err);
-      alert("Failed to save out pass.");
+      toast.error("Failed to save out pass: " + (err.message || "Unknown error"));
     }
   };
 
@@ -130,7 +130,7 @@ export default function OutPassPage() {
       toast.success("Out pass approved successfully");
       fetchOutPasses();
     } catch (err: any) {
-      toast.error("Failed to approve out pass");
+      toast.error("Failed to approve out pass: " + (err.message || "Unknown error"));
       console.error(err);
     }
   };
@@ -142,7 +142,7 @@ export default function OutPassPage() {
       toast.success("Out pass rejected successfully");
       fetchOutPasses();
     } catch (err: any) {
-      toast.error("Failed to reject out pass");
+      toast.error("Failed to reject out pass: " + (err.message || "Unknown error"));
       console.error(err);
     }
   };

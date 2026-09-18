@@ -5,12 +5,20 @@ import { PhoneInput } from "@/components/common/PhoneInput";
 import { useState, useEffect } from "react";
 import { X, Pencil } from "lucide-react";
 import { toast } from "react-hot-toast";
+import { getVehicleType, formatVehicleNumber } from "@/utils/vehicleNumber";
 
 interface EditCustomerDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (customer: any) => void;
   customer: any | null;
+  existingCustomers?: any[];
+}
+
+// Matches the backend's normalizeVehicleNo (strips all non-alphanumerics,
+// uppercases) — see the same helper in AddCustomerDialog.tsx.
+function normalizeVehicle(v?: string | null): string {
+  return (v || "").replace(/[^A-Z0-9]/gi, "").toUpperCase();
 }
 
 export default function EditCustomerDialog({
@@ -18,6 +26,7 @@ export default function EditCustomerDialog({
   onClose,
   onSubmit,
   customer,
+  existingCustomers = [],
 }: EditCustomerDialogProps) {
   const [formData, setFormData] = useState({
     name: "",
@@ -39,15 +48,6 @@ export default function EditCustomerDialog({
     }
   }, [customer, isOpen]);
 
-  const formatVehicleNumber = (value: string) => {
-    const cleaned = value.replace(/\s/g, "").toUpperCase();
-    if (cleaned.length === 0) return "";
-    let formatted = cleaned.substring(0, 2);
-    if (cleaned.length > 2) formatted += " " + cleaned.substring(2, 4);
-    if (cleaned.length > 4) formatted += " " + cleaned.substring(4, 6);
-    if (cleaned.length > 6) formatted += " " + cleaned.substring(6, 10);
-    return formatted;
-  };
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -68,6 +68,13 @@ export default function EditCustomerDialog({
       toast.error("Customer name is required");
       return;
     }
+    if (!formData.phone.trim()) {
+      // phone is the join key check-in/history matching uses throughout the
+      // backend (findFirst({ where: { phone } })) — clearing it here would
+      // silently orphan this customer from future visit auto-matching.
+      toast.error("Phone number is required");
+      return;
+    }
     if (!formData.vehicle.trim()) {
       toast.error("Vehicle number is required");
       return;
@@ -76,12 +83,19 @@ export default function EditCustomerDialog({
       toast.error("Car model is required");
       return;
     }
-    const vehicleRegex = /^[A-Z]{2}\s\d{2}\s[A-Z]{1,2}\s\d{1,4}$/;
-    if (!vehicleRegex.test(formData.vehicle)) {
+    if (getVehicleType(formData.vehicle) === "INVALID") {
       toast.error("Vehicle number format: TN 04 AB 1234");
       return;
     }
-    
+
+    const isDuplicate = existingCustomers.some(
+      (c) => c.id !== customer?.id && normalizeVehicle(c.vehicle) === normalizeVehicle(formData.vehicle)
+    );
+    if (isDuplicate) {
+      toast.error("❌ This vehicle number already exists! Customer with this vehicle is already registered.");
+      return;
+    }
+
     const payload: Record<string, any> = {
       name: formData.name.trim(),
       phone: formData.phone.trim(),
@@ -131,8 +145,10 @@ export default function EditCustomerDialog({
               />
             </div>
             <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Phone</label>
-              <PhoneInput name="phone" value={formData.phone} onChange={handleChange} placeholder="XXXXX XXXXX" />
+              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">
+                Phone <span className="text-red-500">*</span>
+              </label>
+              <PhoneInput name="phone" value={formData.phone} onChange={handleChange} placeholder="XXXXX XXXXX" required />
             </div>
           </div>
 

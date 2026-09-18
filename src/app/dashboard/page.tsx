@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { FranchiseDashboard } from "@/components/dashboard/FranchiseDashboard";
 import { HQDashboard } from "@/components/dashboard/HQDashboard";
 import EmployeeDashboard from "@/components/technician/EmployeeDashboard";
@@ -8,6 +9,7 @@ import BillingDashboard from "@/components/dashboard/BillingDashboard";
 import { ServiceAdvisorDashboard } from "@/components/dashboard/ServiceAdvisorDashboard";
 
 export default function DashboardPage() {
+  const router = useRouter();
   const [userRole, setUserRole] = useState<string | null>(null);
   const [userPermissions, setUserPermissions] = useState<string[] | null>(null);
 
@@ -24,12 +26,8 @@ export default function DashboardPage() {
     }
   }, []);
 
-  if (!userRole) {
-    return <div className="p-8 text-center text-gray-500">Loading dashboard layout...</div>;
-  }
-
   // Parse custom role serialization
-  let baseRole = userRole;
+  let baseRole = userRole || "";
   let allowedModules: string[] | null = userPermissions;
 
   // Fallback for legacy database rows without permissions column:
@@ -43,14 +41,28 @@ export default function DashboardPage() {
   const isBilling = baseRole === "BILLING" || baseRole === "BILLING_EXECUTIVE";
   const isServiceAdvisor = baseRole === "SERVICE_ADVISOR";
   const isFranchiseAdmin = baseRole === "FRANCHISE_ADMIN" || baseRole === "BRANCH_MANAGER";
+  // Quality Inspectors don't get a jobs-status dashboard — their work happens
+  // in the real QC Inspection module (checklist + Pass/Fail), not through a
+  // plain status dropdown. Send them straight there instead of EmployeeDashboard.
+  const isQualityInspector =
+    baseRole === "QUALITY_INSPECTOR" ||
+    baseRole === "QUALITY_INSPECTION" ||
+    baseRole === "QC_INSPECTOR" ||
+    baseRole === "QC" ||
+    baseRole === "QUALITY_ASSURANCE";
+
+  useEffect(() => {
+    if (isQualityInspector) {
+      router.replace("/dashboard/qc");
+    }
+  }, [isQualityInspector, router]);
 
   // Decide if they should see the detailed Technician Dashboard (assigned jobs list)
-  // If the user's base role is TECHNICIAN or QUALITY_INSPECTOR, OR if their allowedModules
-  // only includes "jobs" (and "dashboard"/"attendance" but no other business modules),
-  // we show the jobs-focused EmployeeDashboard.
+  // If the user's base role is TECHNICIAN, OR if their allowedModules only
+  // includes "jobs" (and "dashboard"/"attendance" but no other business
+  // modules), we show the jobs-focused EmployeeDashboard.
   const onlyJobsDashboard =
     baseRole === "TECHNICIAN" ||
-    baseRole === "QUALITY_INSPECTOR" ||
     (allowedModules &&
       allowedModules.includes("jobs") &&
       !allowedModules.includes("carin") &&
@@ -58,6 +70,10 @@ export default function DashboardPage() {
       !allowedModules.includes("customers") &&
       !allowedModules.includes("billing") &&
       !allowedModules.includes("inventory"));
+
+  if (!userRole || isQualityInspector) {
+    return <div className="p-8 text-center text-gray-500">Loading dashboard layout...</div>;
+  }
 
   return (
     <div className="p-8 max-w-7xl mx-auto">

@@ -49,7 +49,9 @@ export default function PaymentHistoryDialog({
     if (isOpen) {
       fetchPayments();
       getSettings().then(data => {
-        if (data?.companyInfo) setCompanyInfo(data.companyInfo);
+        // Setting model stores these fields flat (companyName, address, phone,
+        // ...) — there is no nested "companyInfo" object on the wire.
+        if (data) setCompanyInfo({ ...data, name: data.companyName });
       }).catch(console.error);
     }
   }, [isOpen, invoiceId, invoiceData]);
@@ -263,7 +265,7 @@ export default function PaymentHistoryDialog({
                 </div>
                 <div class="footer">
                   <p>Thank you for your payment!</p>
-                  <p>For queries: 0422-123 4567</p>
+                  ${companyInfo?.phone ? `<p>For queries: ${companyInfo.phone}</p>` : ""}
                 </div>
               </div>
             </div>

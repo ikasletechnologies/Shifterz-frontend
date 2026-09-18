@@ -45,7 +45,9 @@ export default function DocumentPreviewDialog({
   useEffect(() => {
     if (isOpen) {
       getSettings().then(data => {
-        if (data?.companyInfo) setCompanyInfo(data.companyInfo);
+        // Setting model stores these fields flat (companyName, address, gstin,
+        // phone, ...) — there is no nested "companyInfo" object on the wire.
+        if (data) setCompanyInfo({ ...data, name: data.companyName });
       }).catch(console.error);
     }
   }, [isOpen]);
@@ -255,7 +257,7 @@ export default function DocumentPreviewDialog({
               <div class="header">
                 <div class="header-left">
                   <h1>${companyInfo?.name || 'SHIFTERZ'}</h1>
-                  <p>${companyInfo?.address || '42, Race Course Rd, Coimbatore - 641018'}</p>
+                  ${companyInfo?.address ? `<p>${companyInfo.address}</p>` : ''}
                 </div>
                 <div class="header-right">
                   <h2>${document.type}</h2>
@@ -284,7 +286,7 @@ export default function DocumentPreviewDialog({
                     <p><strong>Date:</strong> ${document.date}</p>
                     <p><strong>Due:</strong> ${document.due}</p>
                     ${document.gstNumber ? `<p><strong>Client GSTIN:</strong> ${document.gstNumber}</p>` : ''}
-                    <p><strong>Our GSTIN:</strong> ${companyInfo?.gstin || '33AAAAAO000A1Z5'}</p>
+                    ${companyInfo?.gstin ? `<p><strong>Our GSTIN:</strong> ${companyInfo.gstin}</p>` : ''}
                   </div>
                 </div>
 
@@ -347,7 +349,7 @@ export default function DocumentPreviewDialog({
 
                 <div class="footer">
                 <p>Thank you for choosing Shifterz!</p>
-                <p>${companyInfo?.phone || '0422-123 4567'}</p>
+                ${companyInfo?.phone ? `<p>${companyInfo.phone}</p>` : ''}
               </div>
               </div>
             </div>
@@ -424,7 +426,7 @@ export default function DocumentPreviewDialog({
             <div className="bg-yellow-400 text-gray-900 px-4 sm:px-6 md:px-8 py-4 sm:py-6 flex justify-between items-start rounded-t-lg gap-4">
               <div>
                 <h1 className="text-3xl font-bold mb-1 tracking-tight">{companyInfo?.name || 'SHIFTERZ'}</h1>
-                <p className="text-sm font-medium">{companyInfo?.address || '42, Race Course Rd, Coimbatore - 641018'}</p>
+                {companyInfo?.address && <p className="text-sm font-medium">{companyInfo.address}</p>}
               </div>
               <div className="text-right">
                 <h2 className="text-3xl font-bold mb-1 uppercase tracking-tight">{document.type}</h2>
@@ -478,10 +480,12 @@ export default function DocumentPreviewDialog({
                           <td className="text-gray-900 font-semibold pb-1">{document.gstNumber}</td>
                         </tr>
                       )}
-                      <tr>
-                        <td className="pr-4 text-gray-500 font-medium">Our GSTIN:</td>
-                        <td className="text-gray-900 font-semibold">{companyInfo?.gstin || '33AAAAAO000A1Z5'}</td>
-                      </tr>
+                      {companyInfo?.gstin && (
+                        <tr>
+                          <td className="pr-4 text-gray-500 font-medium">Our GSTIN:</td>
+                          <td className="text-gray-900 font-semibold">{companyInfo.gstin}</td>
+                        </tr>
+                      )}
                     </tbody>
                   </table>
                 </div>
@@ -636,7 +640,7 @@ export default function DocumentPreviewDialog({
               {/* Footer */}
               <div className="mt-8 pt-6 border-t border-gray-200 text-center">
                 <p className="text-sm text-gray-600 font-medium">Thank you for choosing Shifterz!</p>
-                <p className="text-sm text-gray-500">{companyInfo?.phone || '0422-123 4567'}</p>
+                {companyInfo?.phone && <p className="text-sm text-gray-500">{companyInfo.phone}</p>}
               </div>
             </div>
           </div>

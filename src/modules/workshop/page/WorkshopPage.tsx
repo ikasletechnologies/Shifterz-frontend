@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useWorkshop } from "../hooks/useWorkshop";
+import { getCurrentUser } from "@/lib/franchise-scope";
 import { WorkshopJob } from "../types/workshop.types";
 import { MyJobsCard } from "../components/MyJobsCard";
 import { WorkshopFilters } from "../components/WorkshopFilters";
@@ -30,6 +31,12 @@ export function WorkshopPage() {
 
   const [statusFilter, setStatusFilter] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
+  const [isTechnician, setIsTechnician] = useState(true);
+
+  useEffect(() => {
+    const role = (getCurrentUser()?.role || "").split("|")[0].toUpperCase().replace(/[\s_]+/g, "_");
+    setIsTechnician(role === "TECHNICIAN" || role === "EMPLOYEE");
+  }, []);
 
   // Dialog state — one selected job for each dialog type
   const [activeJob, setActiveJob] = useState<WorkshopJob | null>(null);
@@ -66,11 +73,11 @@ export function WorkshopPage() {
     <div className="p-6 md:p-8 space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900">Workshop</h1>
-        <p className="text-sm text-gray-500">Technician Workspace</p>
+        <p className="text-sm text-gray-500">{isTechnician ? "Technician Workspace" : "Workshop Queue"}</p>
       </div>
 
       {/* KPI Stats */}
-      <MyJobsCard stats={stats} />
+      <MyJobsCard stats={stats} scopedToSelf={isTechnician} />
 
       {/* Filters */}
       <WorkshopFilters

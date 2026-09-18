@@ -1,6 +1,6 @@
 "use client";
 
-import { X, Car, User, Phone, Wrench, Clock, FileText, Gauge, CalendarCheck2, Calendar } from "lucide-react";
+import { X, Car, User, Phone, Wrench, Clock, FileText, Gauge, CalendarCheck2, Calendar, LogOut, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 
 interface CarData {
@@ -194,6 +194,34 @@ export default function CarDetailsDialog({ isOpen, onClose, carData, onDeliver, 
             </div>
           </div>
         </div>
+
+        {/* Actions — onDeliver/onDelete were accepted as props but never
+            actually rendered anywhere in this dialog, so there was no way to
+            deliver or delete a vehicle from here despite the page wiring
+            real logic to both. */}
+        {(onDeliver || onDelete) && (
+          <div className="px-6 pb-6 flex items-center gap-3">
+            {onDeliver && carData.status !== "Delivered" && carData.status !== "Out" && (
+              <button
+                type="button"
+                onClick={() => onDeliver(carData)}
+                className="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-colors cursor-pointer"
+              >
+                <LogOut className="w-4 h-4" /> Deliver / Check Out
+              </button>
+            )}
+            {onDelete && (
+              <button
+                type="button"
+                onClick={() => onDelete(carData)}
+                className="px-4 py-3 border border-red-200 text-red-600 hover:bg-red-50 rounded-xl font-bold transition-colors flex items-center justify-center cursor-pointer"
+                title="Delete Entry"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

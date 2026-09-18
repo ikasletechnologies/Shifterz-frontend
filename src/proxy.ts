@@ -48,7 +48,17 @@ export function proxy(request: NextRequest) {
   // Enforce module-level permission guards
   if (pathname.startsWith("/dashboard/") && userRole) {
     const parts = pathname.split("/");
-    const moduleName = parts[2];
+    const urlModule = parts[2];
+
+    // URL slugs that don't map 1:1 onto a permission key — they piggyback on
+    // an existing module's permission (matches how their Sidebar nav items
+    // are tagged, e.g. Workshop/QC use module: "jobs").
+    const moduleAliasMap: Record<string, string> = {
+      workshop: "jobs",
+      qc: "jobs",
+      "vehicle-inspection": "carin",
+    };
+    const moduleName = moduleAliasMap[urlModule] || urlModule;
 
     const protectedModules = [
       "carin", "jobs", "outpass", "leads", "customers",

@@ -8,8 +8,14 @@ import {
 } from "../types/live-status.types";
 import { STATUS_TO_STAGE_MAP, TERMINAL_STATUSES } from "../constants/live-status.constants";
 
+// Strips all non-alphanumerics (not just trim+uppercase) to match the
+// convention the backend (normalizeVehicleNo) and the Outpass module both use
+// consistently — a plain trim+uppercase here let a spaced vehicle number
+// ("TN 04 AB 1234") fail to match an unspaced one ("TN04AB1234") in the
+// outPassVehicles Set below, so a vehicle with a valid outpass could still
+// show a stale "Ready for Delivery" stage instead of "Outpass Generated".
 function normalizeVehicle(v?: string | null): string {
-  return (v || "").trim().toUpperCase();
+  return (v || "").replace(/[^A-Z0-9]/gi, "").toUpperCase();
 }
 
 // None of JobCard/CarEntry's TS types declare a franchise field, but the backend

@@ -72,9 +72,9 @@ export function useVehicleCheckin() {
       const newCar = await createVehicleCheckIn(carData);
       setCars((prev) => [...prev, newCar]);
       return newCar;
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to create vehicle check-in:", err);
-      toast.error("Failed to save vehicle check-in. Please try again.");
+      toast.error(err.message || "Failed to save vehicle check-in. Please try again.");
       return null;
     }
   };
@@ -84,9 +84,9 @@ export function useVehicleCheckin() {
       await updateVehicleCheckIn(id, carData);
       await fetchCars();
       return true;
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to update vehicle check-in:", err);
-      toast.error("Failed to update vehicle check-in. Please try again.");
+      toast.error(err.message || "Failed to update vehicle check-in. Please try again.");
       return false;
     }
   };
@@ -97,9 +97,9 @@ export function useVehicleCheckin() {
       setCars((prev) => prev.filter(c => c.id !== car.id));
       toast.success(`Vehicle ${car.entryId || car.id} deleted successfully`);
       return true;
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to delete vehicle check-in:", err);
-      toast.error("Failed to delete vehicle check-in. Please try again.");
+      toast.error(err.message || "Failed to delete vehicle check-in. Please try again.");
       return false;
     }
   };
@@ -115,15 +115,24 @@ export function useVehicleCheckin() {
         )
       );
 
+      // The backend's checkoutSchema only accepts securityName/deliveredById/
+      // deliveredByName/customerAcknowledgement (no `status`/`outTime`, and
+      // it uses its own server timestamp regardless) — this was previously
+      // sending only status/outTime, so the security guard's name and the
+      // customer's delivery acknowledgement were silently dropped before
+      // ever reaching the network. `security` is also the key name the
+      // checkout form actually uses, not `securityName`.
       await checkOutVehicle(selectedCar.id, {
         status: "Out",
         outTime: outData.outTime,
+        securityName: outData.securityName || outData.security,
+        customerAcknowledgement: outData.customerAcknowledgement,
       });
 
       return true;
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to check out vehicle:", err);
-      toast.error("Failed to check out vehicle. Please try again.");
+      toast.error(err.message || "Failed to check out vehicle. Please try again.");
       fetchCars(); // Revert optimistic update
       return false;
     }

@@ -20,7 +20,6 @@ import PaymentHistoryDialog from "@/modules/payment/components/PaymentHistoryDia
 import { useBilling } from "@/modules/billing/hooks/useBilling";
 import { BillingDocument } from "@/modules/billing/types/billing.types";
 import BillingJobCards from "../components/BillingJobCards";
-import { getCurrentUser, isHQRole } from "@/lib/franchise-scope";
 
 function CardMoreDropdown({
   doc,
@@ -156,20 +155,8 @@ export function BillingPage() {
     }
   };
 
-  const [isHQ, setIsHQ] = useState(false);
   const [activeSubTab, setActiveSubTab] = useState<"ready" | "documents">("ready");
   const [filter, setFilter] = useState("All");
-
-  useEffect(() => {
-    const user = getCurrentUser();
-    if (user) {
-      const hq = isHQRole(user.role);
-      setIsHQ(hq);
-      if (hq) {
-        setActiveSubTab("documents");
-      }
-    }
-  }, []);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingDocument, setEditingDocument] = useState<BillingDocument | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
@@ -285,34 +272,28 @@ export function BillingPage() {
   return (
     <div className="p-8 space-y-6">
       {/* View Selector Tabs */}
-      {isHQ ? (
-        <div className="flex items-center justify-between mb-2">
-          <h1 className="text-2xl font-bold text-gray-900">Invoices & Documents</h1>
-        </div>
-      ) : (
-        <div className="flex border-b border-gray-100 gap-6 mb-2">
-          <button
-            onClick={() => setActiveSubTab("ready")}
-            className={`pb-3 text-sm font-bold border-b-2 transition-all relative ${
-              activeSubTab === "ready"
-                ? "border-amber-500 text-amber-600"
-                : "border-transparent text-gray-400 hover:text-gray-600"
-            }`}
-          >
-            Ready for Billing
-          </button>
-          <button
-            onClick={() => setActiveSubTab("documents")}
-            className={`pb-3 text-sm font-bold border-b-2 transition-all relative ${
-              activeSubTab === "documents"
-                ? "border-amber-500 text-amber-600"
-                : "border-transparent text-gray-400 hover:text-gray-600"
-            }`}
-          >
-            Invoices & Documents
-          </button>
-        </div>
-      )}
+      <div className="flex border-b border-gray-100 gap-6 mb-2">
+        <button
+          onClick={() => setActiveSubTab("ready")}
+          className={`pb-3 text-sm font-bold border-b-2 transition-all relative ${
+            activeSubTab === "ready"
+              ? "border-amber-500 text-amber-600"
+              : "border-transparent text-gray-400 hover:text-gray-600"
+          }`}
+        >
+          Ready for Billing
+        </button>
+        <button
+          onClick={() => setActiveSubTab("documents")}
+          className={`pb-3 text-sm font-bold border-b-2 transition-all relative ${
+            activeSubTab === "documents"
+              ? "border-amber-500 text-amber-600"
+              : "border-transparent text-gray-400 hover:text-gray-600"
+          }`}
+        >
+          Invoices & Documents
+        </button>
+      </div>
 
       {activeSubTab === "ready" ? (
         <BillingJobCards onInvoiceGenerated={() => setActiveSubTab("documents")} />

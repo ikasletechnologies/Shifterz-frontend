@@ -181,6 +181,15 @@ export function CustomerPage() {
   });
 
   const downloadPDF = async () => {
+    try {
+      await downloadPDFInner();
+    } catch (err: any) {
+      console.error("Failed to generate customer report PDF:", err);
+      toast.error("Failed to generate PDF: " + (err.message || "Unknown error"));
+    }
+  };
+
+  const downloadPDFInner = async () => {
     const { default: jsPDF } = await import("jspdf");
     const { default: autoTable } = await import("jspdf-autotable");
 
@@ -501,6 +510,7 @@ export function CustomerPage() {
         onClose={() => { setIsEditOpen(false); setCustomerToEdit(null); }}
         onSubmit={handleUpdateCustomer}
         customer={customerToEdit}
+        existingCustomers={customers}
       />
 
       <VehicleCheckInDialog
@@ -511,6 +521,7 @@ export function CustomerPage() {
         }}
         onSubmit={handleCheckInSubmit}
         initialData={customerToCheckIn}
+        isPrefillOnly
       />
 
       {customerToDelete && (

@@ -24,8 +24,15 @@ export function useWorkshop() {
     try {
       setIsLoading(true);
       const data = await getMyJobs();
+      // Workshop's own status vocabulary only knows "Waiting QC" — normalize
+      // the real backend value ("Waiting for Quality Check", set by
+      // sendToQC/completion-request) to it so filters/colors/flow-map here
+      // keep working after a refetch.
+      const normalized = (data || []).map((j: WorkshopJob) =>
+        (j.status as string) === "Waiting for Quality Check" ? { ...j, status: "Waiting QC" as const } : j
+      );
       // Workshop only sees jobs relevant to work execution — filter out billing-only statuses
-      const workshopJobs = (data || []).filter((j: WorkshopJob) =>
+      const workshopJobs = normalized.filter((j: WorkshopJob) =>
         ["Assigned", "In Progress", "Paused", "Completed", "Waiting QC", "QC Failed", "Rework", "Rework Required"].includes(j.status)
       );
       setJobs(workshopJobs);

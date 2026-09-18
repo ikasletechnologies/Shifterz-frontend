@@ -24,27 +24,52 @@ export function getVehicleType(value: string): string {
   return "INVALID";
 }
 
+// Formats progressively as the user types, not just once the full plate is
+// complete — the previous version only matched against the FULL fixed
+// regexes, so anything not yet complete (or, previously, a duplicated ad-hoc
+// copy of this function in various dialogs) fell back to raw/unformatted
+// text, and every such duplicate always split the series as exactly 2
+// letters at a fixed position. Real Indian plates have a 1-OR-2-letter
+// series (e.g. "TN 00 A 0007" vs "TN 04 AB 1234"), so a fixed-position split
+// corrupts any single-letter-series plate — "TN 00 A 0007" would come out as
+// "TN 00 A0 007", silently eating a digit from the plate number and making
+// it look like the number is short by one digit.
 export function formatVehicleNumber(value: string): string {
   const v = normalizeVehicleNumber(value);
+  if (!v) return "";
 
-  if (/^BH\d{2}[A-Z]{2}\d{4}$/.test(v)) {
-    return `${v.slice(0, 2)} ${v.slice(2, 4)} ${v.slice(4, 6)} ${v.slice(6)}`;
+  // BH series (BH 12 AB 1234) — always a fixed-width 2+2+2+4, no ambiguity.
+  if (v.startsWith("BH")) {
+    let out = v.slice(0, 2);
+    if (v.length > 2) out += " " + v.slice(2, 4);
+    if (v.length > 4) out += " " + v.slice(4, 6);
+    if (v.length > 6) out += " " + v.slice(6, 10);
+    return out;
   }
 
-  if (/^[A-Z]{2}\d{2}[A-Z]{1,2}\d{4}$/.test(v)) {
-    const state = v.slice(0, 2);
-    const rto = v.slice(2, 4);
-    const rest = v.slice(4);
-
-    const match = rest.match(/^([A-Z]{1,2})(\d{4})$/);
-    if (match) {
-      return `${state} ${rto} ${match[1]} ${match[2]}`;
-    }
+  // Vintage-style (MAA1025) — 3 letters then up to 4 digits, no RTO segment.
+  // Only taken once a 3rd letter actually follows the first two; a normal
+  // plate's 3rd character is always the start of the RTO digits.
+  if (/^[A-Z]{3}/.test(v) && !/^[A-Z]{2}\d/.test(v)) {
+    return v.length > 3 ? `${v.slice(0, 3)} ${v.slice(3, 7)}` : v;
   }
 
-  if (/^[A-Z]{3}\d{1,4}$/.test(v)) {
-    return `${v.slice(0, 3)} ${v.slice(3)}`;
-  }
+  // Normal Indian plate: state(2 letters) + RTO(2 digits) + series(1-2
+  // letters) + number(up to 4 digits). Rather than assume the series is
+  // always 2 letters, split the remainder after the RTO code into its actual
+  // leading-letters run (the series) and trailing-digits run (the number) —
+  // this self-corrects live as the user types, the moment a digit follows
+  // the series letters.
+  let out = v.slice(0, 2);
+  if (v.length <= 2) return out;
+  out += " " + v.slice(2, 4);
+  if (v.length <= 4) return out;
 
-  return value;
+  const rest = v.slice(4);
+  const series = rest.match(/^[A-Z]{0,2}/)?.[0] || "";
+  const number = rest.slice(series.length, series.length + 4);
+
+  if (series) out += " " + series;
+  if (number) out += " " + number;
+  return out;
 }

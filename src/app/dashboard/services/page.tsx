@@ -1,12 +1,28 @@
 "use client";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { useState, useEffect, useCallback } from "react";
-import { Plus, Edit2, Trash2, Search, ShieldCheck, X } from "lucide-react";
+import { Suspense, useState, useEffect, useCallback } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Plus, Edit2, Trash2, Search, ShieldCheck, X, ArrowLeft } from "lucide-react";
 import AddServiceDialog from "@/components/services/AddServiceDialog";
 import { getServices, createService, updateService, deleteService } from "@/lib/api";
 
+// Deep-linked from AddLeadDialog/EditLeadDialog's "+ Add Service" (and
+// anywhere else that needs a service added before it can proceed) via
+// ?returnTo=<path> — useSearchParams() requires a Suspense boundary around
+// whatever calls it or the production build fails.
 export default function ServicesPage() {
+  return (
+    <Suspense fallback={null}>
+      <ServicesPageContent />
+    </Suspense>
+  );
+}
+
+function ServicesPageContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const returnTo = searchParams.get("returnTo");
   const [services, setServices] = useState<any[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingService, setEditingService] = useState<any>(null);
@@ -40,6 +56,14 @@ export default function ServicesPage() {
         setIsHQ(false);
       }
     }
+    // Arrived via a "+ Add Service" deep link — that's clearly what they're
+    // here to do, so open the form immediately instead of making them find
+    // the Add button themselves.
+    if (returnTo) {
+      setEditingService(null);
+      setIsDialogOpen(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetchServices]);
 
   const handleAdd = () => {
@@ -109,6 +133,16 @@ export default function ServicesPage() {
 
   return (
     <div className="p-8 space-y-6">
+      {returnTo && (
+        <button
+          type="button"
+          onClick={() => router.push(returnTo)}
+          className="flex items-center gap-1.5 text-sm font-bold text-blue-600 hover:text-blue-700 transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" /> Back
+        </button>
+      )}
+
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">

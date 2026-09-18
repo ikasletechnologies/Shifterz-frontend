@@ -3,9 +3,11 @@
 
 import { PhoneInput } from "@/components/common/PhoneInput";
 import { useState, useEffect } from "react";
-import { X, User } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { X, User, Plus } from "lucide-react";
 import { toast } from "react-hot-toast";
-import { getEmployees } from "@/lib/api";
+import { getEmployees, getServices, getSettings } from "@/lib/api";
+import { getVehicleType, formatVehicleNumber } from "@/utils/vehicleNumber";
 
 interface EditLeadDialogProps {
   isOpen: boolean;
@@ -23,19 +25,25 @@ export default function EditLeadDialog({
   onSubmit,
   lead,
 }: EditLeadDialogProps) {
+  const router = useRouter();
   const [assignees, setAssignees] = useState<{ id: string; name: string }[]>([]);
+  // Real data instead of hardcoded lists — see AddLeadDialog.tsx for the
+  // same fix and rationale (Service catalog / Setting.leadSources).
+  const [serviceCatalog, setServiceCatalog] = useState<{ id: string; name: string }[]>([]);
+  const [leadSources, setLeadSources] = useState<string[]>([]);
 
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     phone: "",
     vehicle: "",
-    source: "JustDial",
-    service: "PPF Full Body",
+    source: "",
+    service: "",
     assigned: "",
     budget: "",
     notes: "",
     status: "New",
+    lostReason: "",
   });
 
   useEffect(() => {
@@ -49,9 +57,28 @@ export default function EditLeadDialog({
         setAssignees(list);
       } catch (err) {
         console.error("Failed to load assignees:", err);
+        toast.error("Failed to load assignee list");
+      }
+    };
+    const loadServices = async () => {
+      try {
+        const list = await getServices();
+        setServiceCatalog((list || []).filter((s: any) => (s.status || "Active") === "Active"));
+      } catch (err) {
+        console.error("Failed to load service catalog:", err);
+      }
+    };
+    const loadLeadSources = async () => {
+      try {
+        const settings = await getSettings();
+        setLeadSources(settings?.leadSources || []);
+      } catch (err) {
+        console.error("Failed to load lead sources:", err);
       }
     };
     loadAssignees();
+    loadServices();
+    loadLeadSources();
   }, [isOpen]);
 
   useEffect(() => {
@@ -61,12 +88,13 @@ export default function EditLeadDialog({
         email: lead.email || "",
         phone: lead.phone || "",
         vehicle: lead.vehicle || "",
-        source: lead.source || "JustDial",
-        service: lead.service || "PPF Full Body",
+        source: lead.source || "",
+        service: lead.service || "",
         assigned: lead.assignedTo || lead.assigned || "",
         budget: lead.budget ? lead.budget.replace(/[^0-9]/g, "") : "",
         notes: lead.notes || "",
         status: lead.status || "New",
+        lostReason: lead.lostReason || "",
       });
     }
   }, [lead]);
@@ -87,32 +115,26 @@ export default function EditLeadDialog({
     }
   };
 
-  const formatVehicleNumber = (value: string) => {
-    const cleaned = value.replace(/\s/g, "").toUpperCase();
-    if (cleaned.length === 0) return "";
-
-    let formatted = "";
-    formatted += cleaned.substring(0, 2);
-    if (cleaned.length > 2) formatted += " " + cleaned.substring(2, 4);
-    if (cleaned.length > 4) formatted += " " + cleaned.substring(4, 6);
-    if (cleaned.length > 6) formatted += " " + cleaned.substring(6, 10);
-
-    return formatted;
-  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
     // Validate vehicle number format if provided: TN 04 AB 1234
-    if (formData.vehicle.trim()) {
-      const vehicleRegex = /^[A-Z]{2}\s\d{2}\s[A-Z]{1,2}\s\d{1,4}$/;
-      if (!vehicleRegex.test(formData.vehicle)) {
-        toast.error("Vehicle number format: TN 04 AB 1234 (State Code, RTO, Series, Number)");
-        return;
-      }
+    if (formData.vehicle.trim() && getVehicleType(formData.vehicle) === "INVALID") {
+      toast.error("Vehicle number format: TN 04 AB 1234 (State Code, RTO, Series, Number)");
+      return;
+    }
+
+    // Backend rejects any update where status is "Lost" without a lostReason —
+    // this dialog offers "Lost" as a status option but had no field to supply
+    // it, so saving always failed with no way to fix it from here.
+    if (formData.status === "Lost" && !formData.lostReason.trim()) {
+      toast.error("A reason is required to mark this lead as Lost.");
+      return;
     }
 
     if (onSubmit && lead) {
+      const selectedAssignee = assignees.find((a) => a.name === formData.assigned);
       const updatedLead = {
         ...lead,
         name: formData.name,
@@ -122,10 +144,14 @@ export default function EditLeadDialog({
         source: formData.source,
         service: formData.service,
         assignedTo: formData.assigned,
-        assigned: formData.assigned,
-        budget: `₹${formData.budget}`,
+        assignedToId: selectedAssignee?.id || null,
+        // Raw numeric value — the backend's high-value-lead alert does
+        // parseFloat(budget), which a baked-in "₹" breaks (parseFloat("₹50000")
+        // is NaN, so the alert can never fire).
+        budget: formData.budget,
         status: formData.status,
         notes: formData.notes,
+        ...(formData.status === "Lost" ? { lostReason: formData.lostReason } : {}),
       };
       onSubmit(lead.id, updatedLead);
     }
@@ -224,33 +250,41 @@ export default function EditLeadDialog({
                 className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent bg-gray-50 text-gray-900"
                 required
               >
-                <option>JustDial</option>
-                <option>Instagram</option>
-                <option>Referral</option>
-                <option>Facebook</option>
-                <option>Walk-in</option>
+                <option value="">Select source</option>
+                {leadSources.map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+                {formData.source && !leadSources.includes(formData.source) && (
+                  <option value={formData.source}>{formData.source}</option>
+                )}
               </select>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">
-                Service Interested
-              </label>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                  Service Interested
+                </label>
+                <button
+                  type="button"
+                  onClick={() => router.push(`/dashboard/services?returnTo=${encodeURIComponent("/dashboard/leads")}`)}
+                  className="text-[11px] font-bold text-blue-600 hover:text-blue-700 flex items-center gap-0.5"
+                >
+                  <Plus className="w-3 h-3" /> Add Service
+                </button>
+              </div>
               <select
                 name="service"
                 value={formData.service}
                 onChange={handleChange}
                 className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent bg-gray-50 text-gray-900"
               >
-                <option>PPF Full Body</option>
-                <option>PPF Bonnet + Roof</option>
-                <option>PPF Partial (Hood)</option>
-                <option>C3 Pro Coating</option>
-                <option>Ceramic Coating</option>
-                <option>Graphene Coating</option>
-                <option>Interior Detailing</option>
-                <option>Paint Correction (1-step)</option>
-                <option>Full Paint Correction</option>
-                <option>Window Tinting</option>
+                <option value="">Select service</option>
+                {serviceCatalog.map((s) => (
+                  <option key={s.id} value={s.name}>{s.name}</option>
+                ))}
+                {formData.service && !serviceCatalog.some((s) => s.name === formData.service) && (
+                  <option value={formData.service}>{formData.service}</option>
+                )}
               </select>
             </div>
           </div>
@@ -293,6 +327,24 @@ export default function EditLeadDialog({
               </select>
             </div>
           </div>
+
+          {/* Lost Reason — required by the backend whenever status is "Lost" */}
+          {formData.status === "Lost" && (
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">
+                Reason for Losing Lead <span className="text-red-500">*</span>
+              </label>
+              <textarea
+                name="lostReason"
+                value={formData.lostReason}
+                onChange={handleChange}
+                placeholder="Why was this lead lost?"
+                rows={2}
+                required
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-transparent bg-red-50/50 resize-none text-gray-900"
+              />
+            </div>
+          )}
 
           {/* Budget */}
           <div>

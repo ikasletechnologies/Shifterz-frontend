@@ -51,6 +51,8 @@ import {
   Headset,
   Key,
   Receipt,
+  Hammer,
+  Camera,
 } from "lucide-react";
 import { SidebarContext } from "@/lib/context/SidebarContext";
 import { logout as backendLogout } from "@/lib/api";
@@ -95,6 +97,23 @@ export const hqSidebarSections: NavSection[] = [
     ],
   },
   {
+    label: "WORKFLOW",
+    items: [
+      { label: "Vehicle Inspection", icon: Camera, href: "/dashboard/vehicle-inspection", module: "carin" },
+      { label: "Workshop", icon: Hammer, href: "/dashboard/workshop", module: "jobs" },
+      {
+        label: "QC",
+        icon: ShieldCheck,
+        href: "/dashboard/qc",
+        module: "jobs",
+        children: [
+          { label: "Inspections", icon: ShieldCheck, href: "/dashboard/qc" },
+          { label: "Checklist Templates", icon: ClipboardCheck, href: "/dashboard/qc/templates" },
+        ],
+      },
+    ],
+  },
+  {
     label: "CRM",
     items: [
       { label: "Leads", icon: Users, href: "/dashboard/leads", module: "leads" },
@@ -122,16 +141,6 @@ export const hqSidebarSections: NavSection[] = [
     items: [
       { label: "Employees", icon: UserCheck, href: "/dashboard/employees", module: "employees" },
       { label: "Technicians", icon: HardHat, href: "/dashboard/technicians", module: "employees" },
-      {
-        label: "QC",
-        icon: ShieldCheck,
-        href: "/dashboard/qc",
-        module: "jobs",
-        children: [
-          { label: "Inspections", icon: ShieldCheck, href: "/dashboard/qc" },
-          { label: "Checklist Templates", icon: ClipboardCheck, href: "/dashboard/qc/templates" },
-        ],
-      },
       { label: "Service Advisors", icon: Headset, href: "/dashboard/service-advisors", module: "employees" },
       { label: "Billing Staff", icon: Receipt, href: "/dashboard/billing-staff", module: "employees" },
       { label: "Receptionists", icon: ConciergeBell, href: "/dashboard/receptionists", module: "employees" },

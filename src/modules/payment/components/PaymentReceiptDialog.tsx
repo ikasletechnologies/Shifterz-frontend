@@ -38,7 +38,9 @@ export default function PaymentReceiptDialog({
   useEffect(() => {
     if (isOpen) {
       getSettings().then(data => {
-        if (data?.companyInfo) setCompanyInfo(data.companyInfo);
+        // Setting model stores these fields flat (companyName, address, phone,
+        // ...) — there is no nested "companyInfo" object on the wire.
+        if (data) setCompanyInfo({ ...data, name: data.companyName });
       }).catch(console.error);
     }
   }, [isOpen]);
@@ -223,7 +225,7 @@ export default function PaymentReceiptDialog({
                 {payment.collectedBy && (
                   <p className="text-[10px] text-gray-500 mb-1">Collected by: {payment.collectedBy}</p>
                 )}
-                <p className="text-xs text-gray-600">For queries: {companyInfo?.phone || '0422-123 4567'}</p>
+                {companyInfo?.phone && <p className="text-xs text-gray-600">For queries: {companyInfo.phone}</p>}
               </div>
             </div>
           </div>
