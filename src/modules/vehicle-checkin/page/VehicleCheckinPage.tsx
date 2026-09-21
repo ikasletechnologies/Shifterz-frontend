@@ -26,6 +26,8 @@ import {
   ChevronDown,
   FileSpreadsheet,
   FileText,
+  ShieldCheck,
+  ShieldAlert,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import jsPDF from "jspdf";
@@ -34,8 +36,9 @@ import * as XLSX from "xlsx";
 import VehicleCheckInDialog from "../components/VehicleCheckInDialog";
 import VehicleDeliveryDialog from "../components/VehicleDeliveryDialog";
 import VehicleDetailsDialog from "../components/VehicleDetailsDialog";
+import VehicleInspectionDialog from "../components/VehicleInspectionDialog";
 import { useVehicleCheckin } from "../hooks/useVehicleCheckin";
-import { CarEntry } from "../types/vehicle-checkin.types";
+import { CarEntry, hasCompletedInspection } from "../types/vehicle-checkin.types";
 import { calculateDuration, formatTime, formatDate, formatDateTime } from "@/lib/timeUtils";
 
 export function VehicleCheckinPage() {
@@ -49,8 +52,9 @@ export function VehicleCheckinPage() {
     handleVehicleCheckOut,
   } = useVehicleCheckin();
 
-  const [fromDate, setFromDate] = useState("");
-  const [toDate, setToDate] = useState("");
+  const [periodFilter, setPeriodFilter] = useState("All");
+  const [customFromDate, setCustomFromDate] = useState("");
+  const [customToDate, setCustomToDate] = useState("");
 
   const getTodayISO = () => {
     const d = new Date();
@@ -60,30 +64,50 @@ export function VehicleCheckinPage() {
     return `${year}-${month}-${day}`;
   };
 
-  const handleFromDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleCustomFromDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.value;
     const today = getTodayISO();
     if (selected && selected > today) {
       toast.error("Future dates are not allowed. Please select today or a past date.");
-      setFromDate(today);
+      setCustomFromDate(today);
       return;
     }
-    setFromDate(selected);
+    setCustomFromDate(selected);
   };
 
-  const handleToDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleCustomToDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.value;
     const today = getTodayISO();
     if (selected && selected > today) {
       toast.error("Future dates are not allowed. Please select today or a past date.");
-      setToDate(today);
+      setCustomToDate(today);
       return;
     }
-    setToDate(selected);
+    setCustomToDate(selected);
+  };
+
+  const getDateRange = () => {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    if (periodFilter === "Today") {
+      return { from: today, to: new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999) };
+    }
+    if (periodFilter === "Yesterday") {
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+      return { from: yesterday, to: new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 23, 59, 59, 999) };
+    }
+    if (periodFilter === "Custom") {
+      const from = customFromDate ? new Date(customFromDate + "T00:00:00") : null;
+      const to = customToDate ? new Date(customToDate + "T23:59:59.999") : null;
+      return { from, to };
+    }
+    return { from: null, to: null };
   };
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDeliveryDialogOpen, setIsDeliveryDialogOpen] = useState(false);
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
+  const [isInspectionDialogOpen, setIsInspectionDialogOpen] = useState(false);
   const [selectedCar, setSelectedCar] = useState<CarEntry | null>(null);
   const [successCar, setSuccessCar] = useState<CarEntry | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -121,6 +145,11 @@ export function VehicleCheckinPage() {
   const handleViewDetailsClick = (car: CarEntry) => {
     setSelectedCar(car);
     setIsDetailsDialogOpen(true);
+  };
+
+  const handleInspectionClick = (car: CarEntry) => {
+    setSelectedCar(car);
+    setIsInspectionDialogOpen(true);
   };
 
   const handleDeliverySubmit = async (outData: any) => {
@@ -168,7 +197,7 @@ export function VehicleCheckinPage() {
   };
 
   const allCount = cars.length;
-  const inWorkshopCount = cars.filter((c) => c.status === "Ongoing" || c.status === "In Workshop").length;
+  const inWorkshopCount = cars.filter((c) => c.status !== "Out" && c.status !== "Delivered").length;
   const deliveredCount = cars.filter((c) => c.status === "Out" || c.status === "Delivered").length;
 
   const getStatusColor = (status: string) => {
@@ -419,7 +448,7 @@ export function VehicleCheckinPage() {
   const filteredCars = cars.filter((car) => {
     const statusMatch =
       statusFilter === "All" ||
-      (statusFilter === "In Workshop" && (car.status === "Ongoing" || car.status === "In Workshop")) ||
+      (statusFilter === "In Workshop" && (car.status !== "Out" && car.status !== "Delivered")) ||
       (statusFilter === "Delivered" && (car.status === "Out" || car.status === "Delivered"));
 
     const cleanQuery = searchQuery.trim().toLowerCase();
@@ -447,14 +476,9 @@ export function VehicleCheckinPage() {
     if (car.inTime) {
       const carDate = new Date(car.inTime);
       if (!isNaN(carDate.getTime())) {
-        if (fromDate) {
-          const start = new Date(fromDate + "T00:00:00");
-          if (carDate < start) dateMatch = false;
-        }
-        if (toDate) {
-          const end = new Date(toDate + "T23:59:59.999");
-          if (carDate > end) dateMatch = false;
-        }
+        const { from, to } = getDateRange();
+        if (from && carDate < from) dateMatch = false;
+        if (to && carDate > to) dateMatch = false;
       }
     }
 
@@ -462,7 +486,7 @@ export function VehicleCheckinPage() {
   });
 
   const inWorkshopCars = filteredCars.filter(
-    (c) => c.status === "Ongoing" || c.status === "In Workshop"
+    (c) => c.status !== "Out" && c.status !== "Delivered"
   );
   const deliveredCars = filteredCars.filter(
     (c) => c.status === "Out" || c.status === "Delivered"
@@ -478,8 +502,8 @@ export function VehicleCheckinPage() {
           type="button"
           onClick={() => setStatusFilter("All")}
           className={`p-4 rounded-xl border text-left flex items-center justify-between transition-all cursor-pointer ${statusFilter === "All"
-              ? "bg-amber-50/70 border-amber-400 ring-2 ring-amber-400/20 shadow-sm"
-              : "bg-white border-gray-200 hover:border-amber-300 hover:bg-gray-50/60"
+            ? "bg-amber-50/70 border-amber-400 ring-2 ring-amber-400/20 shadow-sm"
+            : "bg-white border-gray-200 hover:border-amber-300 hover:bg-gray-50/60"
             }`}
         >
           <div>
@@ -496,8 +520,8 @@ export function VehicleCheckinPage() {
           type="button"
           onClick={() => setStatusFilter("In Workshop")}
           className={`p-4 rounded-xl border text-left flex items-center justify-between transition-all cursor-pointer ${statusFilter === "In Workshop"
-              ? "bg-emerald-50/70 border-emerald-500 ring-2 ring-emerald-500/20 shadow-sm"
-              : "bg-white border-gray-200 hover:border-emerald-300 hover:bg-gray-50/60"
+            ? "bg-emerald-50/70 border-emerald-500 ring-2 ring-emerald-500/20 shadow-sm"
+            : "bg-white border-gray-200 hover:border-emerald-300 hover:bg-gray-50/60"
             }`}
         >
           <div>
@@ -511,126 +535,129 @@ export function VehicleCheckinPage() {
         </button>
       </div>
 
-      {/* Toolbar: Search -> From Date -> To Date -> Download -> Vehicle Check-In -> Vehicle Check-Out -> View Switcher */}
-      <div className="mb-6 flex flex-nowrap items-center gap-2.5 border-b border-gray-200 pb-4 w-full">
-        {/* 1. Search Bar */}
-        <div className="relative flex-1 min-w-[140px]">
+      {/* Toolbar */}
+      <div className="mb-6 bg-white px-4 py-3 rounded-xl border border-gray-100 shadow-sm flex flex-col sm:flex-row items-center gap-3">
+        {/* Search */}
+        <div className="relative flex-1 w-full min-w-[140px]">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
             placeholder="Search by vehicle, customer, or phone..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-8 py-2 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400 text-sm"
+            className="w-full pl-9 pr-8 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400 text-sm"
           />
           {searchQuery && (
             <button onClick={() => setSearchQuery("")} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors">
-              <X className="w-4 h-4" />
+              <X className="w-3.5 h-3.5" />
             </button>
           )}
         </div>
 
-
-
-        {/* 2. From Date Filter */}
-        <div className="flex items-center gap-1.5 bg-white border border-gray-300 rounded-lg px-2.5 py-2 shrink-0">
-          <span className="text-xs font-semibold text-gray-500 whitespace-nowrap">From:</span>
-          <input
-            type="date"
-            value={fromDate}
-            max={getTodayISO()}
-            onChange={handleFromDateChange}
-            className="bg-transparent border-none text-xs text-gray-800 focus:outline-none cursor-pointer p-0"
-          />
-          <button
-            type="button"
-            disabled={!fromDate}
-            onClick={() => fromDate && setFromDate("")}
-            className={`p-0.5 rounded transition-colors flex items-center justify-center shrink-0 ${
-              fromDate
-                ? "text-gray-600 hover:text-gray-900 hover:bg-gray-100 cursor-pointer"
-                : "text-gray-300 cursor-not-allowed opacity-50"
-            }`}
-            title={fromDate ? "Clear From Date" : ""}
-          >
-            <X className="w-3.5 h-3.5" />
-          </button>
-        </div>
-
-        {/* 3. To Date Filter */}
-        <div className="flex items-center gap-1.5 bg-white border border-gray-300 rounded-lg px-2.5 py-2 shrink-0">
-          <span className="text-xs font-semibold text-gray-500 whitespace-nowrap">To:</span>
-          <input
-            type="date"
-            value={toDate}
-            max={getTodayISO()}
-            onChange={handleToDateChange}
-            className="bg-transparent border-none text-xs text-gray-800 focus:outline-none cursor-pointer p-0"
-          />
-          <button
-            type="button"
-            disabled={!toDate}
-            onClick={() => toDate && setToDate("")}
-            className={`p-0.5 rounded transition-colors flex items-center justify-center shrink-0 ${
-              toDate
-                ? "text-gray-600 hover:text-gray-900 hover:bg-gray-100 cursor-pointer"
-                : "text-gray-300 cursor-not-allowed opacity-50"
-            }`}
-            title={toDate ? "Clear To Date" : ""}
-          >
-            <X className="w-3.5 h-3.5" />
-          </button>
-        </div>
-
-        {/* 4. Download Dropdown Button */}
-        <div className="relative shrink-0">
-          <button
-            type="button"
-            onClick={() => setIsDownloadOpen((prev) => !prev)}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-3.5 py-2 rounded-lg flex items-center justify-center gap-1.5 transition-colors text-sm whitespace-nowrap cursor-pointer"
-          >
-            <Download className="w-4 h-4" />
-            <span>Download</span>
-            <ChevronDown className="w-3.5 h-3.5 opacity-80" />
-          </button>
-
-          {isDownloadOpen && (
-            <>
-              <div className="fixed inset-0 z-40" onClick={() => setIsDownloadOpen(false)} />
-              <div className="absolute right-0 mt-1.5 w-44 bg-white rounded-xl shadow-xl border border-gray-200 py-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
+        <div className="flex items-center gap-2 shrink-0">
+          {/* Period pill tabs */}
+          <div className="flex items-center gap-0.5 bg-gray-100 rounded-lg p-1">
+            {["All", "Today", "Yesterday", "Custom"].map((period) => (
+              <div key={period} className="relative">
                 <button
-                  type="button"
-                  onClick={downloadExcel}
-                  className="w-full px-4 py-2.5 text-left text-xs font-bold text-gray-700 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2.5 transition-colors cursor-pointer"
+                  onClick={() => setPeriodFilter(period)}
+                  className={`text-sm px-3 py-1 rounded-md font-medium transition-all whitespace-nowrap ${periodFilter === period
+                      ? "bg-white text-gray-900 font-semibold shadow-sm"
+                      : "text-gray-500 hover:text-gray-800"
+                    }`}
                 >
-                  <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
-                  Download as CSV
+                  {period}
                 </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    downloadReport();
-                    setIsDownloadOpen(false);
-                  }}
-                  className="w-full px-4 py-2.5 text-left text-xs font-bold text-gray-700 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2.5 transition-colors cursor-pointer"
-                >
-                  <FileText className="w-4 h-4 text-red-500" />
-                  Download as PDF
-                </button>
+
+                {/* Custom date dropdown */}
+                {period === "Custom" && periodFilter === "Custom" && (
+                  <div className="absolute top-full right-0 mt-2 z-50 bg-white border border-gray-200 p-4 rounded-xl shadow-xl animate-in fade-in slide-in-from-top-2 duration-150 min-w-[280px]">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-xs font-bold text-gray-800">Custom Date Range</span>
+                      {(customFromDate || customToDate) && (
+                        <button type="button" onClick={() => { setCustomFromDate(""); setCustomToDate(""); }} className="text-[11px] font-semibold text-yellow-600 hover:underline">Clear All</button>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">From</label>
+                        <div className="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-lg px-2 py-1.5">
+                          <input type="date" value={customFromDate} max={getTodayISO()} onChange={handleCustomFromDateChange} className="bg-transparent border-none text-xs text-gray-800 outline-none w-full" />
+                          {customFromDate && <button type="button" onClick={() => setCustomFromDate("")} className="text-gray-400 hover:text-gray-600 shrink-0"><X className="w-3 h-3" /></button>}
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">To</label>
+                        <div className="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-lg px-2 py-1.5">
+                          <input type="date" value={customToDate} max={getTodayISO()} onChange={handleCustomToDateChange} className="bg-transparent border-none text-xs text-gray-800 outline-none w-full" />
+                          {customToDate && <button type="button" onClick={() => setCustomToDate("")} className="text-gray-400 hover:text-gray-600 shrink-0"><X className="w-3 h-3" /></button>}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
-            </>
-          )}
+            ))}
+          </div>
+
+          {/* Download dropdown */}
+          <div className="relative shrink-0">
+            <button
+              type="button"
+              onClick={() => setIsDownloadOpen((prev) => !prev)}
+              className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-3.5 py-2 rounded-lg flex items-center gap-1.5 transition-colors text-sm whitespace-nowrap cursor-pointer"
+            >
+              <Download className="w-4 h-4" />
+              <span>Download</span>
+              <ChevronDown className="w-3.5 h-3.5 opacity-80" />
+            </button>
+            {isDownloadOpen && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setIsDownloadOpen(false)} />
+                <div className="absolute right-0 mt-1.5 w-44 bg-white rounded-xl shadow-xl border border-gray-200 py-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
+                  <button type="button" onClick={downloadExcel} className="w-full px-4 py-2.5 text-left text-xs font-bold text-gray-700 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2.5 transition-colors cursor-pointer">
+                    <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+                    Download as CSV
+                  </button>
+                  <button type="button" onClick={() => { downloadReport(); setIsDownloadOpen(false); }} className="w-full px-4 py-2.5 text-left text-xs font-bold text-gray-700 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2.5 transition-colors cursor-pointer">
+                    <FileText className="w-4 h-4 text-red-500" />
+                    Download as PDF
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* View toggle — Table view is the only place with a checkout ("→ Out")
+              action; without this the checkout flow had no way to be reached. */}
+          <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1 shrink-0">
+            <button
+              type="button"
+              onClick={() => setViewMode("cards")}
+              title="Card view"
+              className={`p-1.5 rounded-md transition-colors cursor-pointer ${viewMode === "cards" ? "bg-white text-gray-900 shadow-xs" : "text-gray-500 hover:text-gray-700"}`}
+            >
+              <LayoutGrid className="w-4 h-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode("table")}
+              title="Table view"
+              className={`p-1.5 rounded-md transition-colors cursor-pointer ${viewMode === "table" ? "bg-white text-gray-900 shadow-xs" : "text-gray-500 hover:text-gray-700"}`}
+            >
+              <List className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Vehicle Check-In */}
+          <button
+            onClick={() => { setSelectedCar(null); setIsDialogOpen(true); }}
+            className="bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-semibold px-3.5 py-2 rounded-lg flex items-center gap-1.5 transition-colors text-sm shrink-0 whitespace-nowrap"
+          >
+            <Plus className="w-4 h-4" />
+            Vehicle Check-In
+          </button>
         </div>
-
-        {/* 5. Vehicle Check-In Button */}
-        <button
-          onClick={() => { setSelectedCar(null); setIsDialogOpen(true); }}
-          className="bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-semibold px-3.5 py-2 rounded-lg flex items-center justify-center gap-1.5 transition-colors text-sm shrink-0 whitespace-nowrap"
-        >
-          <Plus className="w-4 h-4" />
-          Vehicle Check-In
-        </button>
-
       </div>
 
       {/* Main Display Area (Cards / Table) */}
@@ -752,6 +779,29 @@ export function VehicleCheckinPage() {
                         </p>
                       </div>
                     </div>
+
+                    <div className="border-t border-gray-100 my-3" />
+
+                    {/* Mandatory Inspection status */}
+                    <button
+                      type="button"
+                      onClick={() => handleInspectionClick(entry)}
+                      className={`w-full flex items-center justify-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl transition-colors cursor-pointer ${
+                        hasCompletedInspection(entry)
+                          ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                          : "bg-amber-50 text-amber-700 hover:bg-amber-100"
+                      }`}
+                    >
+                      {hasCompletedInspection(entry) ? (
+                        <>
+                          <ShieldCheck className="w-3.5 h-3.5" /> Inspection Complete
+                        </>
+                      ) : (
+                        <>
+                          <ShieldAlert className="w-3.5 h-3.5" /> Complete Inspection (required for QC)
+                        </>
+                      )}
+                    </button>
                   </div>
                 </div>
               ))}
@@ -965,6 +1015,16 @@ export function VehicleCheckinPage() {
                     </td>
                     <td className="px-6 py-4 text-sm">
                       <div className="flex items-center gap-2">
+                        {(entry.status === "Ongoing" || entry.status === "In Workshop") && (
+                          <button
+                            onClick={() => handleInspectionClick(entry)}
+                            className={`p-1.5 rounded transition-colors ${hasCompletedInspection(entry) ? "text-emerald-600 hover:bg-emerald-50" : "text-amber-600 hover:bg-amber-50"
+                              }`}
+                            title={hasCompletedInspection(entry) ? "Inspection Complete" : "Complete Inspection (required for QC)"}
+                          >
+                            {hasCompletedInspection(entry) ? <ShieldCheck className="w-4 h-4" /> : <ShieldAlert className="w-4 h-4" />}
+                          </button>
+                        )}
                         {(entry.status === "Ongoing" || entry.status === "In Workshop") ? (
                           <button
                             onClick={() => handleDeliveryClick(entry)}
@@ -1036,6 +1096,12 @@ export function VehicleCheckinPage() {
         cars={cars}
         onSubmit={handleDeliverySubmit}
       />
+      <VehicleInspectionDialog
+        isOpen={isInspectionDialogOpen}
+        onClose={() => { setIsInspectionDialogOpen(false); setSelectedCar(null); }}
+        car={selectedCar}
+        onSubmit={handleUpdateVehicleCheckIn}
+      />
       <VehicleDetailsDialog
         isOpen={isDetailsDialogOpen}
         onClose={() => setIsDetailsDialogOpen(false)}
@@ -1069,7 +1135,11 @@ export function VehicleCheckinPage() {
             <div className="space-y-3">
               <button
                 onClick={() => {
-                  router.push(`/dashboard/jobs`);
+                  // Carries the check-in's own data through instead of
+                  // dropping it — Job Cards reads this via ?fromCarIn=<id>
+                  // and pre-fills a new job card with it, including the
+                  // real carInId link (not just a vehicle-number text match).
+                  router.push(`/dashboard/jobs?fromCarIn=${encodeURIComponent(successCar.id)}`);
                   setSuccessCar(null);
                 }}
                 className="w-full bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-bold py-3 rounded-lg flex items-center justify-center gap-2 transition-colors shadow-sm"

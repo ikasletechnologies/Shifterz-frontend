@@ -1,11 +1,21 @@
 "use client";
 
-import { X, Check, ClipboardList } from "lucide-react";
+import { X, Check, ClipboardList, Plus, Trash2, Receipt } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
 import { apiCall } from "@/services/api.client";
-import { JobCardFormData } from "../types/job-card.types";
-import { JOB_PRIORITIES, JOB_STATUSES, JOB_SERVICES } from "../constants/job-card.constants";
+import { getServices } from "@/lib/api";
+import { formatVehicleNumber } from "@/utils/vehicleNumber";
+import { JobCardFormData, JobServiceLineItem } from "../types/job-card.types";
+import { JOB_PRIORITIES, JOB_STATUSES } from "../constants/job-card.constants";
+
+interface CatalogService {
+  id: string;
+  name: string;
+  price: number;
+  status?: string;
+}
 
 interface CreateJobCardDialogProps {
   isOpen: boolean;
@@ -14,10 +24,25 @@ interface CreateJobCardDialogProps {
   initialData?: JobCardFormData | null;
 }
 
+// JobCardPage reads this on mount to restore the in-progress form after the
+// "+ Add Technician" round trip to /dashboard/technicians and back.
+export const JOB_CARD_DRAFT_STORAGE_KEY = "shifterz:jobCardDraft";
+
+// Mirrors NewDocumentDialog.tsx's own computedService pattern — a short,
+// human-readable label derived from the actual priced services, instead of
+// a separately-picked free-text value that could say something unrelated to
+// what's actually being billed.
+function computeServiceLabel(services: JobServiceLineItem[]): string {
+  if (services.length === 0) return "";
+  if (services.length === 1) return services[0].name;
+  return `${services[0].name} (+${services.length - 1} more)`;
+}
+
 const DEFAULT_FORM: JobCardFormData = {
   vehicle: "",
   customer: "",
-  service: "PPF Full Body",
+  service: "",
+  services: [],
   technician: "",
   technicianId: "",
   priority: "",
@@ -30,22 +55,14 @@ const DEFAULT_FORM: JobCardFormData = {
   internalRemarks: "",
 };
 
-const VEHICLE_REGEX = /^[A-Z]{2}\s\d{2}\s[A-Z]{1,2}\s\d{1,4}$/;
-
-function formatVehicleNumber(value: string): string {
-  const cleaned = value.replace(/\s/g, "").toUpperCase();
-  if (!cleaned.length) return "";
-  let formatted = cleaned.substring(0, 2);
-  if (cleaned.length > 2) formatted += " " + cleaned.substring(2, 4);
-  if (cleaned.length > 4) formatted += " " + cleaned.substring(4, 6);
-  if (cleaned.length > 6) formatted += " " + cleaned.substring(6, 10);
-  return formatted;
-}
-
 export function CreateJobCardDialog({ isOpen, onClose, onSave, initialData }: CreateJobCardDialogProps) {
+  const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [technicians, setTechnicians] = useState<{ id: string; name: string }[]>([]);
   const [formData, setFormData] = useState<JobCardFormData>(DEFAULT_FORM);
+  const [serviceCatalog, setServiceCatalog] = useState<CatalogService[]>([]);
+  const [selectedCatalogId, setSelectedCatalogId] = useState("");
+  const [catalogQty, setCatalogQty] = useState(1);
 
   const isEditing = !!initialData?.id;
 
@@ -68,6 +85,22 @@ export function CreateJobCardDialog({ isOpen, onClose, onSave, initialData }: Cr
       }
     };
     if (isOpen) loadTechnicians();
+  }, [isOpen]);
+
+  // Billing's GST calculation reads this job's `services` line items and
+  // matches each `name` against the Service catalog by exact string (see
+  // gstInvoiceResolver.service.ts) — the catalog is the only safe source of
+  // names to offer here.
+  useEffect(() => {
+    const loadCatalog = async () => {
+      try {
+        const list = await getServices();
+        setServiceCatalog((list || []).filter((s: CatalogService) => (s.status || "Active") === "Active"));
+      } catch (err) {
+        console.error("Failed to load service catalog:", err);
+      }
+    };
+    if (isOpen) loadCatalog();
   }, [isOpen]);
 
   const [userRole, setUserRole] = useState<string>("");
@@ -94,11 +127,55 @@ export function CreateJobCardDialog({ isOpen, onClose, onSave, initialData }: Cr
     }
   }, [isOpen, initialData]);
 
+  const handleAddService = () => {
+    if (!selectedCatalogId) {
+      toast.error("Select a service first");
+      return;
+    }
+    const catalogItem = serviceCatalog.find((s) => s.id === selectedCatalogId);
+    if (!catalogItem || catalogQty < 1) return;
+
+    const existing = formData.services || [];
+    const idx = existing.findIndex((s) => s.name === catalogItem.name);
+    const next: JobServiceLineItem[] =
+      idx >= 0
+        ? existing.map((s, i) => (i === idx ? { ...s, qty: s.qty + catalogQty } : s))
+        : [...existing, { name: catalogItem.name, price: catalogItem.price, qty: catalogQty }];
+
+    setFormData({ ...formData, services: next, service: computeServiceLabel(next) });
+    setSelectedCatalogId("");
+    setCatalogQty(1);
+  };
+
+  const handleRemoveService = (index: number) => {
+    const next = (formData.services || []).filter((_, i) => i !== index);
+    setFormData({ ...formData, services: next, service: computeServiceLabel(next) });
+  };
+
+  const serviceLineTotal = (formData.services || []).reduce((sum, s) => sum + s.price * s.qty, 0);
+
+  const handleAddTechnicianClick = () => {
+    try {
+      sessionStorage.setItem(JOB_CARD_DRAFT_STORAGE_KEY, JSON.stringify(formData));
+    } catch {
+      // Ignore — worst case the draft just isn't restored on return.
+    }
+    router.push(`/dashboard/technicians?returnTo=${encodeURIComponent("/dashboard/jobs")}`);
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!VEHICLE_REGEX.test(formData.vehicle)) {
-      toast.error("Vehicle number format: TN 04 AB 1234");
-      return;
+    // Picking a service from the dropdown doesn't add it by itself — the "+"
+    // button does. Saving with nothing added is a common silent no-op (looks
+    // like it worked, but Billing still has nothing to invoice), so flag it
+    // instead of letting it pass quietly.
+    if ((formData.services || []).length === 0) {
+      toast(
+        selectedCatalogId
+          ? "Click the + button to add the selected service before saving — it wasn't added yet."
+          : "Saved without any priced services — Billing won't be able to generate an invoice until you add at least one.",
+        { icon: "⚠️" }
+      );
     }
     onSave({ ...formData, ...(isEditing && { id: formData.id }) });
     onClose();
@@ -147,23 +224,84 @@ export function CreateJobCardDialog({ isOpen, onClose, onSave, initialData }: Cr
               />
             </div>
 
-            {/* Service */}
-            <div className="col-span-2 sm:col-span-1 space-y-1.5">
-              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Service</label>
-              <select
-                value={formData.service}
-                onChange={(e) => setFormData({ ...formData, service: e.target.value })}
-                className="w-full px-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:bg-white"
-              >
-                {JOB_SERVICES.map((s) => (
-                  <option key={s} value={s}>{s}</option>
-                ))}
-              </select>
+            {/* Service(s) — single source of truth. This used to be two
+                unrelated pickers: a free-text "Service" dropdown (a hardcoded
+                label list, display-only) plus this catalog-driven "Billing
+                Services" picker (what GST/invoice generation actually reads
+                from job.services). Now there's just this one — the display
+                label above is derived automatically from what's added here. */}
+            <div className="col-span-2 space-y-1.5">
+              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                <Receipt className="w-3.5 h-3.5" /> Service(s)
+              </label>
+              <div className="flex items-center gap-2">
+                <select
+                  value={selectedCatalogId}
+                  onChange={(e) => setSelectedCatalogId(e.target.value)}
+                  className="flex-1 px-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:bg-white"
+                >
+                  <option value="">Select a service...</option>
+                  {serviceCatalog.map((s) => (
+                    <option key={s.id} value={s.id}>{s.name} — ₹{s.price.toLocaleString("en-IN")}</option>
+                  ))}
+                </select>
+                <input
+                  type="number"
+                  min={1}
+                  value={catalogQty}
+                  onChange={(e) => setCatalogQty(Math.max(1, Number(e.target.value) || 1))}
+                  className="w-16 px-2 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm text-center focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:bg-white"
+                />
+                <button
+                  type="button"
+                  onClick={handleAddService}
+                  className="px-3 py-2.5 bg-yellow-400 hover:bg-yellow-500 text-gray-900 rounded-lg shrink-0 cursor-pointer"
+                  title="Add service"
+                >
+                  <Plus className="w-4 h-4" />
+                </button>
+              </div>
+
+              {serviceCatalog.length === 0 && (
+                <p className="text-xs text-gray-400">No active services in the catalog — add one under Dashboard → Services.</p>
+              )}
+
+              {serviceCatalog.length > 0 && (formData.services || []).length === 0 && (
+                <p className="text-xs text-amber-600">Select a service, then click + to add it — an invoice can&apos;t be generated until at least one is added here.</p>
+              )}
+
+              {(formData.services || []).length > 0 && (
+                <div className="space-y-1.5 pt-1">
+                  {(formData.services || []).map((s, i) => (
+                    <div key={s.name} className="flex items-center justify-between gap-2 bg-gray-50 rounded-lg px-3 py-2 border border-gray-200">
+                      <span className="text-sm text-gray-800 truncate">{s.name} × {s.qty}</span>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="text-sm font-bold text-gray-900">₹{(s.price * s.qty).toLocaleString("en-IN")}</span>
+                        <button type="button" onClick={() => handleRemoveService(i)} className="p-1 text-red-500 hover:bg-red-50 rounded">
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                  <div className="flex justify-end text-sm font-bold text-gray-900 pt-1">
+                    Total: ₹{serviceLineTotal.toLocaleString("en-IN")}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Technician */}
             <div className="col-span-2 sm:col-span-1 space-y-1.5">
-              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Technician</label>
+              <div className="flex items-center justify-between">
+                <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Technician</label>
+                <button
+                  type="button"
+                  onClick={handleAddTechnicianClick}
+                  className="text-[11px] font-bold text-blue-600 hover:text-blue-700 flex items-center gap-0.5"
+                >
+                  <Plus className="w-3 h-3" /> Add Technician
+                </button>
+              </div>
               <select
                 value={formData.technician}
                 onChange={(e) => {
@@ -212,7 +350,10 @@ export function CreateJobCardDialog({ isOpen, onClose, onSave, initialData }: Cr
                 onChange={(e) => setFormData({ ...formData, status: e.target.value })}
                 className="w-full px-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:bg-white"
               >
-                {JOB_STATUSES.map((s) => (
+                {/* "QC Passed"/"Ready For Billing" are QC-decision outputs — the backend
+                    rejects an update that resubmits either as a plain status edit, so they
+                    may only be recorded via the QC Inspection module's Pass/Fail flow. */}
+                {JOB_STATUSES.filter((s) => s !== "QC Passed" && s !== "Ready For Billing").map((s) => (
                   <option key={s} value={s}>{s}</option>
                 ))}
               </select>

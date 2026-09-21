@@ -5,12 +5,20 @@ import { PhoneInput } from "@/components/common/PhoneInput";
 import { useState, useEffect } from "react";
 import { X, Ticket } from "lucide-react";
 import { toast } from "react-hot-toast";
+import { getVehicleType, formatVehicleNumber } from "@/utils/vehicleNumber";
+import { getServices, getEmployees, getSettings } from "@/lib/api";
 
 interface NewOutPassDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit?: (data: any) => void;
   initialData?: any;
+  // True when `initialData` only prefills a brand-new pass (e.g. from a Job
+  // Card) rather than editing an existing rejected pass — without this, any
+  // truthy `initialData` was treated as "editing" (wrong header/button label,
+  // and customerConfirmation defaulted to true without the user actually
+  // checking the box).
+  isPrefillOnly?: boolean;
 }
 
 export default function NewOutPassDialog({
@@ -18,7 +26,9 @@ export default function NewOutPassDialog({
   onClose,
   onSubmit,
   initialData,
+  isPrefillOnly = false,
 }: NewOutPassDialogProps) {
+  const isEditingExisting = Boolean(initialData) && !isPrefillOnly;
   const [formData, setFormData] = useState({
     vehicleNumber: "",
     carModel: "",
@@ -33,6 +43,31 @@ export default function NewOutPassDialog({
     customerConfirmation: false,
   });
 
+  // Real data instead of hardcoded fake names — technicians/services mirror
+  // the exact fetch pattern CreateJobCardDialog.tsx already uses; security
+  // guards come from the same backend-managed list Settings → Security
+  // Guards manages (getSettings().securityGuards), not an invented list.
+  const [serviceCatalog, setServiceCatalog] = useState<{ id: string; name: string }[]>([]);
+  const [technicians, setTechnicians] = useState<{ id: string; name: string }[]>([]);
+  const [securityGuards, setSecurityGuards] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    getServices()
+      .then((list) => setServiceCatalog((list || []).filter((s: any) => (s.status || "Active") === "Active")))
+      .catch((err) => console.error("Failed to load service catalog:", err));
+    getEmployees()
+      .then((emps) => setTechnicians(
+        (emps || [])
+          .filter((emp: any) => emp.role === "TECHNICIAN" && emp.status === "Active")
+          .map((emp: any) => ({ id: emp.id, name: emp.name }))
+      ))
+      .catch((err) => console.error("Failed to load technicians:", err));
+    getSettings()
+      .then((data) => setSecurityGuards(data?.securityGuards || []))
+      .catch((err) => console.error("Failed to load security guards:", err));
+  }, [isOpen]);
+
   useEffect(() => {
     if (initialData && isOpen) {
       setFormData({
@@ -46,7 +81,7 @@ export default function NewOutPassDialog({
         security: initialData.securityName || initialData.security || "",
         destination: initialData.destination || "",
         reason: initialData.remarks || initialData.reason || "",
-        customerConfirmation: true,
+        customerConfirmation: !isPrefillOnly,
       });
     } else if (!isOpen) {
       setFormData({
@@ -63,20 +98,8 @@ export default function NewOutPassDialog({
         customerConfirmation: false,
       });
     }
-  }, [initialData, isOpen]);
+  }, [initialData, isOpen, isPrefillOnly]);
 
-  const formatVehicleNumber = (value: string) => {
-    const cleaned = value.replace(/\s/g, "").toUpperCase();
-    if (cleaned.length === 0) return "";
-
-    let formatted = "";
-    formatted += cleaned.substring(0, 2);
-    if (cleaned.length > 2) formatted += " " + cleaned.substring(2, 4);
-    if (cleaned.length > 4) formatted += " " + cleaned.substring(4, 6);
-    if (cleaned.length > 6) formatted += " " + cleaned.substring(6, 10);
-
-    return formatted;
-  };
 
   const handleChange = (
     e: React.ChangeEvent<
@@ -97,8 +120,7 @@ export default function NewOutPassDialog({
     e.preventDefault();
 
     // Validate vehicle number format: TN 04 AB 1234
-    const vehicleRegex = /^[A-Z]{2}\s\d{2}\s[A-Z]{1,2}\s\d{1,4}$/;
-    if (!vehicleRegex.test(formData.vehicleNumber)) {
+    if (getVehicleType(formData.vehicleNumber) === "INVALID") {
       toast.error("Vehicle number format: TN 04 AB 1234 (State Code, RTO, Series, Number)");
       return;
     }
@@ -109,6 +131,15 @@ export default function NewOutPassDialog({
     }
 
     if (onSubmit) {
+      // Neither the backend's outpass schema nor its Prisma model has a
+      // `destination` column — it was required in this form but silently
+      // discarded on submit. Folding it into `remarks` (a real, persisted
+      // field) instead of just deleting the input keeps that data from being
+      // lost outright.
+      const remarks = [
+        formData.destination.trim() && `Destination: ${formData.destination.trim()}`,
+        formData.reason.trim(),
+      ].filter(Boolean).join(" — ");
       onSubmit({
         vehicle: formData.vehicleNumber,
         model: formData.carModel,
@@ -118,7 +149,7 @@ export default function NewOutPassDialog({
         outTime: formData.outTime || new Date().toISOString(),
         securityName: formData.security,
         technicianName: formData.technician,
-        remarks: formData.reason,
+        remarks,
         customerConfirmation: true,
       });
     }
@@ -147,7 +178,7 @@ export default function NewOutPassDialog({
           <div className="flex items-center gap-3">
             <Ticket className="w-6 h-6 text-yellow-500" />
             <h2 className="text-2xl font-bold text-gray-900">
-              {initialData ? "Edit Out Pass" : "New Out Pass"}
+              {isEditingExisting ? "Edit Out Pass" : "New Out Pass"}
             </h2>
           </div>
           <button
@@ -234,12 +265,13 @@ export default function NewOutPassDialog({
                 required
               >
                 <option value="">Select service</option>
-                <option>PPF Full Body</option>
-                <option>PPF Bonnet</option>
-                <option>C3 Coating</option>
-                <option>Graphene Coating</option>
-                <option>Interior Detailing</option>
+                {serviceCatalog.map((s) => (
+                  <option key={s.id} value={s.name}>{s.name}</option>
+                ))}
               </select>
+              {serviceCatalog.length === 0 && (
+                <p className="text-xs text-gray-400 mt-1">No active services in the catalog — add one under Dashboard → Services.</p>
+              )}
             </div>
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -253,11 +285,13 @@ export default function NewOutPassDialog({
                 required
               >
                 <option value="">Select technician</option>
-                <option>Arjun</option>
-                <option>Sathish</option>
-                <option>Kumar</option>
-                <option>Rajesh</option>
+                {technicians.map((t) => (
+                  <option key={t.id} value={t.name}>{t.name}</option>
+                ))}
               </select>
+              {technicians.length === 0 && (
+                <p className="text-xs text-gray-400 mt-1">No active technicians found — add one under Dashboard → Technicians.</p>
+              )}
             </div>
           </div>
 
@@ -288,12 +322,13 @@ export default function NewOutPassDialog({
                 required
               >
                 <option value="">Select security guard</option>
-                <option>Prakash</option>
-                <option>Suresh</option>
-                <option>Ramesh</option>
-                <option>Venkat</option>
-                <option>Gopal</option>
+                {securityGuards.map((name) => (
+                  <option key={name} value={name}>{name}</option>
+                ))}
               </select>
+              {securityGuards.length === 0 && (
+                <p className="text-xs text-gray-400 mt-1">No security guards configured — add one under Settings → Security Guards.</p>
+              )}
             </div>
           </div>
 
@@ -352,7 +387,7 @@ export default function NewOutPassDialog({
             type="submit"
             className="w-full bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-bold py-3 rounded-lg transition-colors flex items-center justify-center gap-2"
           >
-            {initialData ? "✓ Update Pass" : "✓ Generate Pass"}
+            {isEditingExisting ? "✓ Update Pass" : "✓ Generate Pass"}
           </button>
         </form>
       </div>

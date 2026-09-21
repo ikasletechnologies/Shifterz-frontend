@@ -16,6 +16,13 @@ interface VehicleCheckInDialogProps {
   onViewExistingRecord?: (car: any) => void;
   initialData?: any;
   cars?: any[];
+  // True when `initialData` is only being used to prefill a brand-new
+  // check-in (e.g. from a Customer record) rather than editing an existing
+  // CarIn record — without this, the dialog treated any truthy `initialData`
+  // as "editing", which mislabeled the header/button ("Update" instead of
+  // "Check-In Car") and skipped the duplicate-active-checkin warning even
+  // though `onSubmit` always creates a new record in this mode.
+  isPrefillOnly?: boolean;
 }
 
 export default function VehicleCheckInDialog({
@@ -27,6 +34,7 @@ export default function VehicleCheckInDialog({
   onViewExistingRecord,
   initialData,
   cars,
+  isPrefillOnly = false,
 }: VehicleCheckInDialogProps) {
   const [formData, setFormData] = useState({
     vehicleNumber: "",
@@ -119,17 +127,21 @@ export default function VehicleCheckInDialog({
       if (initialData) {
         setFormData({
           vehicleNumber: initialData.vehicleNo || initialData.vehicle || "",
-          carModel: initialData.model || "",
-          customerName: initialData.customer || "",
+          carModel: initialData.model || initialData.carModel || "",
+          customerName: initialData.customer || initialData.name || initialData.customerName || "",
           phone: initialData.phone || "",
           service: initialData.service || "PPF Full Body",
           odometer: initialData.odometer || "",
           inTime: initialData.inTime || "",
           notes: initialData.notes || "",
         });
-        const { dateStr, timeStr } = parseDateTimeStr(initialData.inTime);
-        setDisplayDate(dateStr || new Date().toLocaleDateString("en-US"));
-        setDisplayTime(timeStr || new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }));
+        if (initialData.inTime) {
+          const { dateStr, timeStr } = parseDateTimeStr(initialData.inTime);
+          setDisplayDate(dateStr || new Date().toLocaleDateString("en-US"));
+          setDisplayTime(timeStr || new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }));
+        } else {
+          updateCurrentTime();
+        }
       } else {
         setFormData({
           vehicleNumber: "",
@@ -186,7 +198,7 @@ export default function VehicleCheckInDialog({
     const normalized = normalizeVehicleNumber(formData.vehicleNumber);
     if (normalized.length >= 4) {
       // 1. Check if vehicle is currently active in workshop (Duplicate Check-In)
-      if (!initialData) {
+      if (!initialData || isPrefillOnly) {
         try {
           let allCars: any[] = cars || [];
           if (!allCars || allCars.length === 0) {
@@ -236,7 +248,7 @@ export default function VehicleCheckInDialog({
     e.preventDefault();
 
     // Duplicate Check-In Validation FIRST (before required field checks or toasts)
-    if (!initialData && formData.vehicleNumber) {
+    if ((!initialData || isPrefillOnly) && formData.vehicleNumber) {
       try {
         let allCars: any[] = cars || [];
         if (!allCars || allCars.length === 0) {
@@ -320,7 +332,8 @@ export default function VehicleCheckInDialog({
     onClose();
   };
 
-  const isDelivered = initialData?.status === "Delivered" || initialData?.status === "Out";
+  const isDelivered = !isPrefillOnly && (initialData?.status === "Delivered" || initialData?.status === "Out");
+  const isEditingExisting = Boolean(initialData) && !isPrefillOnly;
   const isInWorkshop = initialData && !isDelivered;
 
   if (!isOpen) return null;
@@ -332,12 +345,12 @@ export default function VehicleCheckInDialog({
           <div className="flex items-center gap-3 shrink-0">
             <Car className="w-6 h-6 text-yellow-500 shrink-0" />
             <h2 className="text-xl sm:text-xl font-bold text-gray-900 whitespace-nowrap">
-              {isDelivered ? "Car Delivered Details" : initialData ? "Vehicle Details & Update" : "Car Check-In"}
+              {isDelivered ? "Car Delivered Details" : isEditingExisting ? "Vehicle Details & Update" : "Car Check-In"}
             </h2>
           </div>
 
           <div className="flex items-center gap-2">
-            {initialData && onDelete && (
+            {isEditingExisting && onDelete && (
               <button
                 type="button"
                 onClick={() => {
@@ -477,7 +490,7 @@ export default function VehicleCheckInDialog({
           </div>
 
           {/* Check-In Date & Check-In Time Section */}
-          {initialData && (
+          {isEditingExisting && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 p-4 rounded-xl border border-gray-200 text-xs">
               <div>
                 <p className="font-bold text-gray-500 uppercase tracking-wider mb-1">Check-In Date</p>
@@ -522,7 +535,7 @@ export default function VehicleCheckInDialog({
             >
               Close (Read Only)
             </button>
-          ) : initialData ? (
+          ) : isEditingExisting ? (
             <button
               type="submit"
               className="w-full bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-bold py-3.5 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-md text-base cursor-pointer"

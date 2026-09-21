@@ -28,6 +28,11 @@ export const PRIORITY_COLORS: Record<string, string> = {
   Low: "bg-green-100 text-green-700",
 };
 
+// Statuses reached once QC has passed the job — it's sitting in the Billing
+// module's queue (src/modules/billing/components/BillingJobCards.tsx) waiting
+// for an invoice, whether or not one has been generated yet.
+export const READY_FOR_BILLING_STATUSES = new Set(["Ready For Billing", "QC Passed"]);
+
 export const STATUS_COLORS: Record<string, string> = {
   Pending: "bg-gray-100 text-gray-600",
   Assigned: "bg-indigo-100 text-indigo-600",

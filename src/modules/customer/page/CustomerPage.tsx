@@ -1,8 +1,10 @@
 "use client";
 import { useState } from "react";
-import { Plus, Trash2, Search, Download, X, Pencil, Car, User, Phone, Mail, Wrench, History, IndianRupee, Calendar } from "lucide-react";
+import { Plus, Trash2, Search, Download, X, Pencil, Car, User, Phone, Mail, Wrench } from "lucide-react";
 import AddCustomerDialog from "../components/AddCustomerDialog";
 import EditCustomerDialog from "../components/EditCustomerDialog";
+import VehicleCheckInDialog from "@/modules/vehicle-checkin/components/VehicleCheckInDialog";
+import { createVehicleCheckIn } from "@/modules/vehicle-checkin/services/vehicle-checkin.service";
 import { useCustomer } from "@/modules/customer/hooks/useCustomer";
 import { Customer } from "@/modules/customer/types/customer.types";
 import { updateCustomer } from "@/lib/api";
@@ -19,6 +21,25 @@ export function CustomerPage() {
   const [periodFilter, setPeriodFilter] = useState("All");
   const [customFromDate, setCustomFromDate] = useState("");
   const [customToDate, setCustomToDate] = useState("");
+
+  const [isCheckInOpen, setIsCheckInOpen] = useState(false);
+  const [customerToCheckIn, setCustomerToCheckIn] = useState<Customer | null>(null);
+
+  const handleOpenCheckIn = (customer: Customer) => {
+    setCustomerToCheckIn(customer);
+    setIsCheckInOpen(true);
+  };
+
+  const handleCheckInSubmit = async (carData: any) => {
+    try {
+      await createVehicleCheckIn(carData);
+      toast.success("Car checked in successfully!");
+      setIsCheckInOpen(false);
+      setCustomerToCheckIn(null);
+    } catch (err: any) {
+      toast.error("Failed to check in car: " + (err.message || "Unknown error"));
+    }
+  };
 
   const getTodayISO = () => {
     const d = new Date();
@@ -70,7 +91,16 @@ export function CustomerPage() {
   const handleUpdateCustomer = async (data: any) => {
     if (!customerToEdit) return;
     try {
-      await updateCustomer(customerToEdit.id, data);
+      const payload: Record<string, any> = {
+        name: data.name,
+        phone: data.phone,
+        vehicle: data.vehicle,
+        model: data.model || data.carModel,
+      };
+      if (data.email) {
+        payload.email = data.email;
+      }
+      await updateCustomer(customerToEdit.id, payload);
       toast.success("Customer updated successfully");
       fetchCustomers();
       setIsEditOpen(false);
@@ -151,6 +181,15 @@ export function CustomerPage() {
   });
 
   const downloadPDF = async () => {
+    try {
+      await downloadPDFInner();
+    } catch (err: any) {
+      console.error("Failed to generate customer report PDF:", err);
+      toast.error("Failed to generate PDF: " + (err.message || "Unknown error"));
+    }
+  };
+
+  const downloadPDFInner = async () => {
     const { default: jsPDF } = await import("jspdf");
     const { default: autoTable } = await import("jspdf-autotable");
 
@@ -202,7 +241,7 @@ export function CustomerPage() {
         c.phone,
         c.email || "—",
         c.vehicle || "—",
-        c.model || "—",
+        c.model || c.carModel || "—",
         c.visits ?? 0,
         `₹${(c.totalSpend || 0).toLocaleString("en-IN")}`,
         c.lastVisit || "—",
@@ -249,119 +288,118 @@ export function CustomerPage() {
       )}
 
       {/* Action Bar */}
-      <div className="flex flex-col gap-4 bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div className="relative w-full max-w-md">
-            <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search customers by name, phone, or vehicle..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-9 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent transition-all text-sm"
-            />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            )}
-          </div>
-          <div className="flex items-center gap-3 w-full sm:w-auto">
-            {/* Period Filter Buttons */}
-            <div className="rounded-lg px-2 py-1.5 flex items-center gap-1 w-fit" style={{ backgroundColor: "#ebebebff" }}>
-              {["All", "Today", "Yesterday", "Custom"].map((period) => {
-                const isCustom = period === "Custom";
-                return (
-                  <div key={period} className="relative">
-                    <button
-                      onClick={() => setPeriodFilter(period)}
-                      className={`text-sm px-3 py-1 rounded-md transition-colors ${periodFilter === period
-                        ? 'bg-white text-gray-900 font-bold shadow-sm'
-                        : 'text-gray-600 hover:text-gray-900 font-medium'
-                        }`}
-                    >
-                      {period}
-                    </button>
-                    {isCustom && periodFilter === "Custom" && (
-                      <div className="absolute bottom-full right-0 mb-3 z-50 flex items-center gap-2 border border-gray-200 bg-white p-3 rounded-xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.15)] animate-in fade-in slide-in-from-bottom-2 duration-150 whitespace-nowrap min-w-[260px]">
-                        <div className="flex flex-col gap-1.5 w-full">
-                          <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider text-left">Date Range</span>
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <div className="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-md px-1.5 py-0.5">
-                              <input
-                                type="date"
-                                value={customFromDate}
-                                max={getTodayISO()}
-                                onChange={handleCustomFromDateChange}
-                                className="bg-transparent border-none text-[10px] text-gray-700 outline-none w-[90px]"
-                              />
-                              <button
-                                type="button"
-                                disabled={!customFromDate}
-                                onClick={() => setCustomFromDate("")}
-                                className={`p-0.5 rounded flex items-center justify-center shrink-0 ${
-                                  customFromDate
-                                    ? "text-gray-500 hover:text-gray-800 hover:bg-gray-100 cursor-pointer"
-                                    : "text-gray-200 cursor-not-allowed"
-                                }`}
-                                title="Clear From Date"
-                              >
-                                <X className="w-3 h-3" />
-                              </button>
-                            </div>
-                            <span className="text-[10px] text-gray-400">to</span>
-                            <div className="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-md px-1.5 py-0.5">
-                              <input
-                                type="date"
-                                value={customToDate}
-                                max={getTodayISO()}
-                                onChange={handleCustomToDateChange}
-                                className="bg-transparent border-none text-[10px] text-gray-700 outline-none w-[90px]"
-                              />
-                              <button
-                                type="button"
-                                disabled={!customToDate}
-                                onClick={() => setCustomToDate("")}
-                                className={`p-0.5 rounded flex items-center justify-center shrink-0 ${
-                                  customToDate
-                                    ? "text-gray-500 hover:text-gray-800 hover:bg-gray-100 cursor-pointer"
-                                    : "text-gray-200 cursor-not-allowed"
-                                }`}
-                                title="Clear To Date"
-                              >
-                                <X className="w-3 h-3" />
-                              </button>
-                            </div>
-                          </div>
+      <div className="bg-white px-4 py-3 rounded-xl border border-gray-100 shadow-sm flex flex-col sm:flex-row items-center gap-3">
+        {/* Search */}
+        <div className="relative flex-1 w-full">
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search by name, phone, or vehicle..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-9 pr-9 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent transition-all text-sm"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+
+        {/* Filter Pills + Download + Add */}
+        <div className="flex items-center gap-2 shrink-0">
+          {/* Pill tabs */}
+          <div className="flex items-center gap-0.5 bg-gray-100 rounded-lg p-1">
+            {["All", "Today", "Yesterday", "Custom"].map((period) => (
+              <div key={period} className="relative">
+                <button
+                  onClick={() => setPeriodFilter(period)}
+                  className={`text-sm px-3 py-1 rounded-md font-medium transition-all whitespace-nowrap ${
+                    periodFilter === period
+                      ? "bg-white text-gray-900 font-semibold shadow-sm"
+                      : "text-gray-500 hover:text-gray-800"
+                  }`}
+                >
+                  {period}
+                </button>
+
+                {/* Custom date dropdown */}
+                {period === "Custom" && periodFilter === "Custom" && (
+                  <div className="absolute top-full right-0 mt-2 z-50 bg-white border border-gray-200 p-4 rounded-xl shadow-xl animate-in fade-in slide-in-from-top-2 duration-150 min-w-[280px]">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-xs font-bold text-gray-800">Custom Date Range</span>
+                      {(customFromDate || customToDate) && (
+                        <button
+                          type="button"
+                          onClick={() => { setCustomFromDate(""); setCustomToDate(""); }}
+                          className="text-[11px] font-semibold text-yellow-600 hover:text-yellow-700 hover:underline"
+                        >
+                          Clear All
+                        </button>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">From</label>
+                        <div className="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-lg px-2 py-1.5 focus-within:ring-2 focus-within:ring-yellow-400">
+                          <input
+                            type="date"
+                            value={customFromDate}
+                            max={getTodayISO()}
+                            onChange={handleCustomFromDateChange}
+                            className="bg-transparent border-none text-xs text-gray-800 outline-none w-full"
+                          />
+                          {customFromDate && (
+                            <button type="button" onClick={() => setCustomFromDate("")} className="text-gray-400 hover:text-gray-600 shrink-0">
+                              <X className="w-3 h-3" />
+                            </button>
+                          )}
                         </div>
-                        <div className="absolute top-full right-6 -mt-1 w-2.5 h-2.5 bg-white border-r border-b border-gray-200 rotate-45"></div>
                       </div>
-                    )}
+                      <div>
+                        <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">To</label>
+                        <div className="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-lg px-2 py-1.5 focus-within:ring-2 focus-within:ring-yellow-400">
+                          <input
+                            type="date"
+                            value={customToDate}
+                            max={getTodayISO()}
+                            onChange={handleCustomToDateChange}
+                            className="bg-transparent border-none text-xs text-gray-800 outline-none w-full"
+                          />
+                          {customToDate && (
+                            <button type="button" onClick={() => setCustomToDate("")} className="text-gray-400 hover:text-gray-600 shrink-0">
+                              <X className="w-3 h-3" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                );
-              })}
-            </div>
-
-            {/* Download Button */}
-            <button
-              onClick={downloadPDF}
-              className="p-2.5 hover:bg-gray-100 text-gray-900 rounded-lg border border-gray-200 transition-colors shadow-sm bg-gray-50"
-              title="Download PDF Report"
-            >
-              <Download className="w-4 h-4 text-black" />
-            </button>
-
-            <button
-              onClick={() => setIsDialogOpen(true)}
-              className="w-full sm:w-auto bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-bold px-4 py-2.5 rounded-lg flex items-center justify-center gap-2 transition-colors shadow-sm whitespace-nowrap"
-            >
-              <Plus className="w-4 h-4 stroke-3" />
-              Add Customer
-            </button>
+                )}
+              </div>
+            ))}
           </div>
+
+          {/* Download icon */}
+          <button
+            onClick={downloadPDF}
+            className="p-2 hover:bg-gray-100 rounded-lg border border-gray-200 bg-white transition-colors shadow-sm"
+            title="Download PDF"
+          >
+            <Download className="w-4 h-4 text-gray-700" />
+          </button>
+
+          {/* Add Customer */}
+          <button
+            onClick={() => setIsDialogOpen(true)}
+            className="bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-bold px-4 py-2 rounded-lg flex items-center gap-1.5 transition-colors shadow-sm whitespace-nowrap text-sm"
+          >
+            <Plus className="w-4 h-4" />
+            Add Customer
+          </button>
         </div>
       </div>
 
@@ -375,145 +413,79 @@ export function CustomerPage() {
           <p className="text-gray-500">Try adjusting your search or date filters, or create a new customer.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {filteredCustomers.map((customer) => (
             <div
               key={customer.id}
-              className="bg-white rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-md transition-all p-5 flex flex-col justify-between space-y-4"
+              className="bg-white rounded-xl border border-slate-200/80 shadow-xs hover:shadow-md hover:border-yellow-400 transition-all p-4 flex flex-col justify-between"
             >
               <div>
-                {/* Header: Customer ID (Left) & Plain Edit/Delete Icons (Right) */}
-                <div className="flex items-center justify-between gap-3 mb-4 border-b border-slate-100 pb-3">
-                  <h3 className="text-base font-black text-slate-900 tracking-tight font-mono truncate" style={{ color: "#F0B100" }}>
+                {/* Header: Customer ID & Actions */}
+                <div className="flex items-center justify-between gap-2 pb-2 mb-3 border-b border-slate-100">
+                  <span className="text-xs font-bold font-mono px-2 py-0.5 rounded bg-yellow-50 text-yellow-700 border border-yellow-200/80">
                     {customer.id}
-                  </h3>
-                  <div className="flex items-center gap-1.5 shrink-0">
+                  </span>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button
+                      onClick={() => handleOpenCheckIn(customer)}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-semibold text-slate-700 bg-white border border-slate-300 hover:border-slate-400 hover:bg-slate-50 rounded-md transition-all cursor-pointer shadow-sm mr-1"
+                      title="Convert to Car Check-In"
+                    >
+                      <Car className="w-3 h-3 text-slate-500" />
+                      <span>Convert to Check-In</span>
+                    </button>
                     <button
                       onClick={() => handleEditCustomer(customer)}
-                      className="p-1 text-slate-400 hover:text-blue-600 transition-colors"
+                      className="p-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
                       title="Edit Customer"
                     >
-                      <Pencil className="w-4 h-4" />
+                      <Pencil className="w-3.5 h-3.5" />
                     </button>
                     <button
                       onClick={() => confirmDelete(customer)}
-                      className="p-1 text-slate-400 hover:text-red-600 transition-colors"
+                      className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
                       title="Delete Customer"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 </div>
 
-                {/* Details Grid: Clean Two-Column Layout */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-xs">
-                  {/* Left Column */}
-                  <div className="space-y-2.5">
-                    {/* Vehicle */}
-                    <div className="flex items-center text-xs min-h-[24px]">
-                      <div className="flex items-center gap-1.5 text-slate-500 font-medium w-[95px] shrink-0">
-                        <Car className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                        <span>Vehicle</span>
-                        <span className="ml-auto text-slate-400 font-normal">:</span>
-                      </div>
-                      <p className="font-bold text-slate-900 uppercase font-mono tracking-wider truncate ml-2">
-                        {customer.vehicle || "—"}
-                      </p>
+                {/* Customer Info */}
+                <div className="space-y-2.5">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-full bg-yellow-100 text-yellow-800 font-bold text-xs flex items-center justify-center shrink-0">
+                      {customer.name?.slice(0, 2).toUpperCase() || "CU"}
                     </div>
-
-                    {/* Name */}
-                    <div className="flex items-center text-xs min-h-[24px]">
-                      <div className="flex items-center gap-1.5 text-slate-500 font-medium w-[95px] shrink-0">
-                        <User className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                        <span>Name</span>
-                        <span className="ml-auto text-slate-400 font-normal">:</span>
-                      </div>
-                      <p className="font-bold text-slate-900 truncate ml-2">
+                    <div className="min-w-0">
+                      <h4 className="text-sm font-bold text-slate-900 truncate">
                         {customer.name || "—"}
-                      </p>
-                    </div>
-
-                    {/* Phone */}
-                    <div className="flex items-center text-xs min-h-[24px]">
-                      <div className="flex items-center gap-1.5 text-slate-500 font-medium w-[95px] shrink-0">
-                        <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                        <span>Phone</span>
-                        <span className="ml-auto text-slate-400 font-normal">:</span>
-                      </div>
-                      <p className="font-bold text-blue-600 font-mono tracking-wider truncate ml-2">
-                        {customer.phone || "—"}
-                      </p>
-                    </div>
-
-                    {/* Email */}
-                    <div className="flex items-center text-xs min-h-[24px]">
-                      <div className="flex items-center gap-1.5 text-slate-500 font-medium w-[95px] shrink-0">
-                        <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                        <span>Email</span>
-                        <span className="ml-auto text-slate-400 font-normal">:</span>
-                      </div>
-                      <p className="font-medium text-slate-700 truncate ml-2">
-                        {customer.email || "—"}
+                      </h4>
+                      <p className="text-xs text-slate-500 truncate flex items-center gap-1">
+                        <Wrench className="w-3 h-3 text-slate-400 shrink-0" />
+                        <span>{customer.model || customer.carModel || "—"}</span>
                       </p>
                     </div>
                   </div>
 
-                  {/* Right Column */}
-                  <div className="space-y-2.5">
-                    {/* Car Model */}
-                    <div className="flex items-center text-xs min-h-[24px]">
-                      <div className="flex items-center gap-1.5 text-slate-500 font-medium w-[95px] shrink-0">
-                        <Wrench className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                        <span>Car Model</span>
-                        <span className="ml-auto text-slate-400 font-normal">:</span>
-                      </div>
-                      <p className="font-bold text-slate-900 truncate ml-2">
-                        {customer.model || "—"}
-                      </p>
+                  {/* Vehicle & Contact details */}
+                  <div className="pt-2 border-t border-slate-100 space-y-1.5 text-xs">
+                    <div className="flex items-center gap-2">
+                      <Car className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                      <span className="font-mono font-bold text-slate-900 bg-slate-100 px-1.5 py-0.5 rounded text-[11px] uppercase tracking-wider">
+                        {customer.vehicle || "—"}
+                      </span>
                     </div>
-
-                    {/* Visits */}
-                    <div className="flex items-center text-xs min-h-[24px]">
-                      <div className="flex items-center gap-1.5 text-slate-500 font-medium w-[95px] shrink-0">
-                        <History className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                        <span>Visits</span>
-                        <span className="ml-auto text-slate-400 font-normal">:</span>
-                      </div>
-                      <div className="ml-2">
-                        <span className="px-2 py-0.5 bg-gray-100 text-gray-700 text-[10px] font-bold rounded">
-                          {customer.visits ?? 0}
-                        </span>
-                      </div>
+                    <div className="flex items-center gap-2 text-slate-600">
+                      <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                      <span className="font-mono font-semibold text-slate-800">{customer.phone || "—"}</span>
                     </div>
-
-                    {/* Total Spend */}
-                    <div className="flex items-center text-xs min-h-[24px]">
-                      <div className="flex items-center gap-1.5 text-slate-500 font-medium w-[95px] shrink-0">
-                        <IndianRupee className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                        <span>Total Spend</span>
-                        <span className="ml-auto text-slate-400 font-normal">:</span>
+                    {customer.email && (
+                      <div className="flex items-center gap-2 text-slate-600 truncate">
+                        <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                        <span className="truncate">{customer.email}</span>
                       </div>
-                      <p className="font-bold text-yellow-600 ml-2">
-                        ₹{customer.totalSpend?.toLocaleString("en-IN") || 0}
-                      </p>
-                    </div>
-
-                    {/* Last Visit */}
-                    <div className="flex items-center text-xs min-h-[24px]">
-                      <div className="flex items-center gap-1.5 text-slate-500 font-medium w-[95px] shrink-0">
-                        <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                        <span>Last Visit</span>
-                        <span className="ml-auto text-slate-400 font-normal">:</span>
-                      </div>
-                      <p className="font-bold text-slate-900 ml-2">
-                        {customer.lastVisit
-                          ? (() => {
-                              const d = new Date(customer.lastVisit);
-                              return isNaN(d.getTime()) ? customer.lastVisit : d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
-                            })()
-                          : "—"}
-                      </p>
-                    </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -538,6 +510,18 @@ export function CustomerPage() {
         onClose={() => { setIsEditOpen(false); setCustomerToEdit(null); }}
         onSubmit={handleUpdateCustomer}
         customer={customerToEdit}
+        existingCustomers={customers}
+      />
+
+      <VehicleCheckInDialog
+        isOpen={isCheckInOpen}
+        onClose={() => {
+          setIsCheckInOpen(false);
+          setCustomerToCheckIn(null);
+        }}
+        onSubmit={handleCheckInSubmit}
+        initialData={customerToCheckIn}
+        isPrefillOnly
       />
 
       {customerToDelete && (

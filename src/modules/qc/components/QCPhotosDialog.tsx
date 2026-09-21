@@ -2,17 +2,20 @@
 
 import { useState, useRef } from "react";
 import { X, Camera, Upload, Loader2 } from "lucide-react";
-import { QCJob } from "../types/qc.types";
+import { QCJob, QCPhoto } from "../types/qc.types";
+import { QC_PHOTO_CATEGORIES, QC_PHOTO_CATEGORY_LABELS } from "../constants/qc.constants";
 
 interface QCPhotosDialogProps {
   job: QCJob | null;
+  photos: QCPhoto[];
   isOpen: boolean;
   onClose: () => void;
-  onUpload: (files: File[]) => Promise<boolean>;
+  onUpload: (files: File[], category: string) => Promise<boolean>;
 }
 
-export function QCPhotosDialog({ job, isOpen, onClose, onUpload }: QCPhotosDialogProps) {
+export function QCPhotosDialog({ job, photos, isOpen, onClose, onUpload }: QCPhotosDialogProps) {
   const [previews, setPreviews] = useState<{ file: File; url: string }[]>([]);
+  const [category, setCategory] = useState<string>(QC_PHOTO_CATEGORIES[0]);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -38,7 +41,7 @@ export function QCPhotosDialog({ job, isOpen, onClose, onUpload }: QCPhotosDialo
   const handleSubmit = async () => {
     if (!previews.length) return;
     setIsUploading(true);
-    const success = await onUpload(previews.map((p) => p.file));
+    const success = await onUpload(previews.map((p) => p.file), category);
     setIsUploading(false);
     if (success) {
       previews.forEach((p) => URL.revokeObjectURL(p.url));
@@ -60,20 +63,23 @@ export function QCPhotosDialog({ job, isOpen, onClose, onUpload }: QCPhotosDialo
         </div>
 
         <div className="p-5 space-y-4">
-          {/* Existing QC photos */}
-          {job.qcPhotos && job.qcPhotos.length > 0 && (
+          {/* Existing QC photos for the current attempt */}
+          {photos.length > 0 && (
             <div>
               <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
-                Existing QC Photos ({job.qcPhotos.length})
+                Existing QC Photos ({photos.length})
               </p>
               <div className="grid grid-cols-4 gap-2 mb-3">
-                {job.qcPhotos.map((url, i) => (
-                  <div key={i} className="aspect-square rounded-lg overflow-hidden border border-gray-200">
+                {photos.map((p) => (
+                  <div key={p.id} className="aspect-square rounded-lg overflow-hidden border border-gray-200 relative group">
                     <img
-                      src={url.startsWith("http") ? url : `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}${url}`}
-                      alt={`QC Photo ${i + 1}`}
+                      src={p.url.startsWith("http") ? p.url : `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}${p.url}`}
+                      alt={p.category}
                       className="w-full h-full object-cover"
                     />
+                    <span className="absolute bottom-0 inset-x-0 bg-black/50 text-white text-[9px] font-semibold text-center py-0.5 truncate px-1">
+                      {QC_PHOTO_CATEGORY_LABELS[p.category] || p.category}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -85,6 +91,24 @@ export function QCPhotosDialog({ job, isOpen, onClose, onUpload }: QCPhotosDialo
             <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
               Add New Photos
             </p>
+
+            <div className="mb-3">
+              <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider block mb-1">
+                Category
+              </label>
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
+              >
+                {QC_PHOTO_CATEGORIES.map((c) => (
+                  <option key={c} value={c}>
+                    {QC_PHOTO_CATEGORY_LABELS[c] || c}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             <div className="grid grid-cols-3 gap-3">
               {previews.map((p, i) => (
                 <div key={i} className="relative aspect-square rounded-lg overflow-hidden border border-gray-200 group">

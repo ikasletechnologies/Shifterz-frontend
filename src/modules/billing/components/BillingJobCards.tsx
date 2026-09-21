@@ -6,6 +6,7 @@ import { getJobs, getInvoices, getPayments, createOutPass, getOutPasses } from "
 import { toast } from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import NewDocumentDialog from "./NewDocumentDialog";
+import NewOutPassDialog from "@/components/outpass/NewOutPassDialog";
 import RecordPaymentDialog from "../../payment/components/RecordPaymentDialog";
 import { createInvoice } from "@/modules/billing/services/billing.service";
 
@@ -21,8 +22,29 @@ export default function BillingJobCards({ onInvoiceGenerated }: { onInvoiceGener
   // Dialogs
   const [isNewDocOpen, setIsNewDocOpen] = useState(false);
   const [isRecordPaymentOpen, setIsRecordPaymentOpen] = useState(false);
-  
+  const [isNewOutPassOpen, setIsNewOutPassOpen] = useState(false);
+  const [outPassContext, setOutPassContext] = useState<any>(null);
+
   const [selectedContext, setSelectedContext] = useState<any>(null);
+
+  // A job-linked invoice's GST is computed entirely from Job.services on the
+  // backend (gstInvoiceResolver.service.ts) — without at least one priced
+  // line item there, "Generate Invoice" is rejected outright. Catching this
+  // here (and routing straight to fixing it) avoids the user repeatedly
+  // hitting that same backend error with no way to tell what's missing.
+  const hasBillingServices = (item: any): boolean => {
+    const services = item?.services;
+    if (Array.isArray(services)) return services.length > 0;
+    if (typeof services === "string") {
+      try {
+        const parsed = JSON.parse(services);
+        return Array.isArray(parsed) && parsed.length > 0;
+      } catch {
+        return false;
+      }
+    }
+    return false;
+  };
 
   const hasOutPass = (item: any): boolean => {
     if (!item) return false;
@@ -39,21 +61,28 @@ export default function BillingJobCards({ onInvoiceGenerated }: { onInvoiceGener
     });
   };
 
-  const handleGenerateOutPass = async (jobItem: any) => {
+  // Opens the real Out Pass form instead of calling the API directly — the
+  // previous version hardcoded customerConfirmation:true with no actual user
+  // confirmation, and never collected technician/security guard/remarks at
+  // all, so every printed pass showed those fields permanently blank.
+  const handleGenerateOutPass = (jobItem: any) => {
+    setOutPassContext(jobItem);
+    setIsNewOutPassOpen(true);
+  };
+
+  const handleOutPassSubmit = async (formData: any) => {
+    if (!outPassContext) return;
     try {
-      const inv = jobItem.invoice;
+      const inv = outPassContext.invoice;
       const newOp = await createOutPass({
-        vehicle: jobItem.vehicle,
-        customer: jobItem.customer || "",
-        phone: jobItem.phone || "",
-        service: jobItem.service || "",
-        jobCardId: jobItem.id,
+        ...formData,
+        jobCardId: outPassContext.id,
         invoiceId: inv?.id,
-        customerConfirmation: true,
-        outTime: new Date().toISOString()
       });
-      setOutPasses((prev) => [...prev, newOp || { invoiceId: inv?.id, jobCardId: jobItem.id, vehicle: jobItem.vehicle, status: "Pending" }]);
-      toast.success(`Out pass generated for ${jobItem.vehicle}`);
+      setOutPasses((prev) => [...prev, newOp || { invoiceId: inv?.id, jobCardId: outPassContext.id, vehicle: outPassContext.vehicle, status: "Pending" }]);
+      toast.success(`Out pass generated for ${outPassContext.vehicle}`);
+      setIsNewOutPassOpen(false);
+      setOutPassContext(null);
       await loadData();
     } catch (err: any) {
       toast.error("Failed to generate out pass: " + (err.message || "Error"));
@@ -90,9 +119,9 @@ export default function BillingJobCards({ onInvoiceGenerated }: { onInvoiceGener
       const invs = invoices
         .filter(i => i.vehicle === job.vehicle && i.status !== "Cancelled")
         .sort((a, b) => new Date(b.createdAt || b.date).getTime() - new Date(a.createdAt || a.date).getTime());
-      
+
       const inv = invs.length > 0 ? invs[0] : null;
-      
+
       let billingStatus = "Waiting Billing";
       if (inv) {
         if (inv.status === "Paid") billingStatus = "Fully Paid";
@@ -107,12 +136,12 @@ export default function BillingJobCards({ onInvoiceGenerated }: { onInvoiceGener
   const displayJobs = mappedJobs.filter(j => {
     const matchStatus = statusFilter === "All" || j.billingStatus === statusFilter;
     const searchLower = searchQuery.toLowerCase();
-    const matchSearch = !searchQuery || 
+    const matchSearch = !searchQuery ||
       j.id.toLowerCase().includes(searchLower) ||
       j.vehicle.toLowerCase().includes(searchLower) ||
       j.customer.toLowerCase().includes(searchLower) ||
       (j.invoice?.id && j.invoice.id.toLowerCase().includes(searchLower));
-    
+
     return matchStatus && matchSearch;
   });
 
@@ -196,7 +225,7 @@ export default function BillingJobCards({ onInvoiceGenerated }: { onInvoiceGener
           <div className="w-16 h-16 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center mb-4">
             <CheckCircle2 className="w-8 h-8" />
           </div>
-          <h3 className="text-xl font-bold text-gray-900 mb-2">🎉 No vehicles are currently waiting for billing.</h3>
+          <h3 className="text-xl font-bold text-gray-900 mb-2"> No vehicles are currently waiting for billing.</h3>
           <p className="text-gray-500">All completed jobs have been billed. Check back later when technicians finish more jobs.</p>
         </div>
       ) : (
@@ -218,12 +247,22 @@ export default function BillingJobCards({ onInvoiceGenerated }: { onInvoiceGener
               <tbody className="divide-y divide-gray-50">
                 {displayJobs.map(j => {
                   const inv = j.invoice;
-                  
+
                   // Compute Action Button
                   let actionBtn = null;
-                  if (!inv) {
+                  if (!inv && !hasBillingServices(j)) {
                     actionBtn = (
-                      <button 
+                      <button
+                        onClick={() => router.push(`/dashboard/jobs?edit=${encodeURIComponent(j.id)}`)}
+                        title="This job has no priced services recorded — add at least one under Billing Services before an invoice can be generated"
+                        className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded shadow-sm flex items-center gap-1 transition-colors whitespace-nowrap"
+                      >
+                        <AlertCircle className="w-3.5 h-3.5" /> Add Billing Services
+                      </button>
+                    );
+                  } else if (!inv) {
+                    actionBtn = (
+                      <button
                         onClick={() => {
                           const initialData = {
                             type: "Invoice",
@@ -231,10 +270,16 @@ export default function BillingJobCards({ onInvoiceGenerated }: { onInvoiceGener
                             client: j.customer || "",
                             phone: j.phone || j.customerPhone || "",
                             vehicle: j.vehicle || "",
+                            jobId: j.id || "",
                             jobCardNo: j.id || "",
                             serviceAdvisor: j.serviceAdvisor || "",
                             technician: j.technician || "",
                             service: j.service || "",
+                            // The job's own priced line items (recorded on the Job Card's
+                            // Billing Services section) — lets the invoice dialog seed real
+                            // rates directly instead of re-guessing one item from the
+                            // free-text `service` label, which is what produced ₹0.00 rows.
+                            services: j.services || [],
                           };
                           setSelectedContext(initialData);
                           setIsNewDocOpen(true);
@@ -246,7 +291,7 @@ export default function BillingJobCards({ onInvoiceGenerated }: { onInvoiceGener
                     );
                   } else if (j.billingStatus === "Payment Pending") {
                     actionBtn = (
-                      <button 
+                      <button
                         onClick={() => {
                           setSelectedContext(inv);
                           setIsRecordPaymentOpen(true);
@@ -265,7 +310,7 @@ export default function BillingJobCards({ onInvoiceGenerated }: { onInvoiceGener
                       );
                     } else {
                       actionBtn = (
-                        <button 
+                        <button
                           onClick={() => handleGenerateOutPass(j)}
                           className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded shadow-sm flex items-center gap-1 transition-colors whitespace-nowrap"
                         >
@@ -275,7 +320,7 @@ export default function BillingJobCards({ onInvoiceGenerated }: { onInvoiceGener
                     }
                   } else {
                     actionBtn = (
-                      <button 
+                      <button
                         onClick={() => router.push('/dashboard/billing')}
                         className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-200 text-xs font-bold rounded shadow-sm flex items-center gap-1 transition-colors whitespace-nowrap"
                       >
@@ -301,12 +346,11 @@ export default function BillingJobCards({ onInvoiceGenerated }: { onInvoiceGener
                         )}
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap">
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                          j.billingStatus === 'Fully Paid' ? 'bg-green-100 text-green-700' :
-                          j.billingStatus === 'Payment Pending' ? 'bg-amber-100 text-amber-700' :
-                          j.billingStatus === 'Invoice Created' ? 'bg-blue-100 text-blue-700' :
-                          'bg-gray-100 text-gray-500'
-                        }`}>
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${j.billingStatus === 'Fully Paid' ? 'bg-green-100 text-green-700' :
+                            j.billingStatus === 'Payment Pending' ? 'bg-amber-100 text-amber-700' :
+                              j.billingStatus === 'Invoice Created' ? 'bg-blue-100 text-blue-700' :
+                                'bg-gray-100 text-gray-500'
+                          }`}>
                           {inv ? inv.status : "Pending"}
                         </span>
                       </td>
@@ -323,7 +367,7 @@ export default function BillingJobCards({ onInvoiceGenerated }: { onInvoiceGener
       )}
 
       {/* Modals */}
-      <NewDocumentDialog 
+      <NewDocumentDialog
         isOpen={isNewDocOpen}
         onClose={() => {
           setIsNewDocOpen(false);
@@ -358,6 +402,28 @@ export default function BillingJobCards({ onInvoiceGenerated }: { onInvoiceGener
           await loadData();
         }}
         invoiceData={selectedContext || undefined}
+      />
+
+      <NewOutPassDialog
+        isOpen={isNewOutPassOpen}
+        onClose={() => {
+          setIsNewOutPassOpen(false);
+          setOutPassContext(null);
+        }}
+        onSubmit={handleOutPassSubmit}
+        initialData={
+          outPassContext
+            ? {
+                vehicle: outPassContext.vehicle || "",
+                model: outPassContext.model || "",
+                customer: outPassContext.customer || "",
+                phone: outPassContext.phone || "",
+                service: outPassContext.service || "",
+                technician: outPassContext.technician || "",
+              }
+            : null
+        }
+        isPrefillOnly
       />
     </div>
   );

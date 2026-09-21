@@ -33,7 +33,18 @@ export function useJobCards() {
   const handleSaveJobCard = async (data: JobCardFormData) => {
     try {
       if (data.id) {
-        await updateJobCard(data.id, data);
+        // The backend rejects a whole update if `status` is resubmitted as one
+        // of its QC-controlled values ("QC Passed", "Ready For Billing") — those
+        // can only be set via the QC decision endpoint. The edit dialog always
+        // includes the job's current status in its payload even when the user
+        // only changed something else (e.g. adding a billing service to an
+        // already-QC-passed job), so drop it here unless it actually changed.
+        const current = jobCards.find((j) => j.id === data.id);
+        const payload: Partial<JobCardFormData> = { ...data };
+        if (current && payload.status === current.status) {
+          delete payload.status;
+        }
+        await updateJobCard(data.id, payload);
         toast.success("Job card updated successfully");
       } else {
         await createJobCard(data);
@@ -44,6 +55,18 @@ export function useJobCards() {
     } catch (err: any) {
       toast.error("Failed to save job card: " + err.message);
       console.error(err);
+      return false;
+    }
+  };
+
+  const handleAssignQC = async (id: string, inspector: { id: string; name: string }) => {
+    try {
+      await updateJobCard(id, { qcInspectorId: inspector.id, qcInspector: inspector.name });
+      toast.success(`QC Inspector ${inspector.name} assigned`);
+      await fetchJobCards();
+      return true;
+    } catch (err: any) {
+      toast.error("Failed to assign QC inspector: " + err.message);
       return false;
     }
   };
@@ -91,7 +114,7 @@ export function useJobCards() {
     }).length,
     reviewForQC: jobCards.filter((j) => {
       const s = j.status as string;
-      return s === "Review for QC" || s === "Waiting QC" || s === "Inspecting" || s === "In QC";
+      return s === "Review for QC" || s === "Waiting QC" || s === "Waiting for Quality Check" || s === "Inspecting" || s === "In QC";
     }).length,
     completed: jobCards.filter((j) => {
       const s = j.status as string;
@@ -122,6 +145,7 @@ export function useJobCards() {
     stats,
     fetchJobCards,
     handleSaveJobCard,
+    handleAssignQC,
     handleDeleteJobCard,
   };
 }

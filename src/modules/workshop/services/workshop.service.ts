@@ -91,7 +91,7 @@ export async function sendToQC(jobId: string, notes?: string): Promise<WorkshopJ
   return apiCall(`/jobs/${jobId}`, {
     method: "PUT",
     body: JSON.stringify({
-      status: "Waiting QC",
+      status: "Waiting for Quality Check",
       notes,
     }),
   });

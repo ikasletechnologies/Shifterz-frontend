@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { X, Car, Calendar, User, CheckCircle2 } from "lucide-react";
 import { formatVehicleNumber } from "@/utils/vehicleNumber";
+import { getServices } from "@/lib/api";
 
 interface VehicleDeliveryDialogProps {
   isOpen: boolean;
@@ -45,6 +46,17 @@ export default function VehicleDeliveryDialog({
     customerAcknowledgement: false,
     customerAcknowledgementName: "",
   });
+
+  // Real service catalog instead of a hardcoded 5-item list that never
+  // matched the actual services the app has anywhere else.
+  const [serviceCatalog, setServiceCatalog] = useState<{ id: string; name: string }[]>([]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    getServices()
+      .then((list) => setServiceCatalog((list || []).filter((s: any) => (s.status || "Active") === "Active")))
+      .catch((err) => console.error("Failed to load service catalog:", err));
+  }, [isOpen]);
 
   useEffect(() => {
     if (isOpen) {
@@ -257,11 +269,15 @@ export default function VehicleDeliveryDialog({
                 className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-400 text-sm text-gray-900 bg-white cursor-pointer"
                 required
               >
-                <option value="PPF Full Body">PPF Full Body</option>
-                <option value="PPF Bonnet">PPF Bonnet</option>
-                <option value="C3 Coating">C3 Coating</option>
-                <option value="Graphene Coating">Graphene Coating</option>
-                <option value="Interior Detailing">Interior Detailing</option>
+                {serviceCatalog.length === 0 && formData.service && (
+                  <option value={formData.service}>{formData.service}</option>
+                )}
+                {serviceCatalog.map((s) => (
+                  <option key={s.id} value={s.name}>{s.name}</option>
+                ))}
+                {serviceCatalog.length > 0 && !serviceCatalog.some((s) => s.name === formData.service) && formData.service && (
+                  <option value={formData.service}>{formData.service}</option>
+                )}
               </select>
             </div>
             <div>

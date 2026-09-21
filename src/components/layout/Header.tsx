@@ -121,7 +121,7 @@ export default function Header() {
 
       try {
         const data = await getSettings();
-        const companyName = data?.companyInfo?.name || data?.companyName;
+        const companyName = data?.companyName;
         if (companyName) {
           const words = companyName.trim().split(/\s+/);
           if (words.length > 1) {

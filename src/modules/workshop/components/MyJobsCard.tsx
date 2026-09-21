@@ -4,11 +4,16 @@ import { WorkshopStats } from "../types/workshop.types";
 
 interface MyJobsCardProps {
   stats: WorkshopStats;
+  // Technicians see only their own assigned jobs here ("My Jobs"); every
+  // other role that can reach this page (Super Admin, HQ, Franchise Admin,
+  // Service Advisor, ...) sees every job in the workshop queue, so the
+  // first card is relabeled to avoid implying it's scoped to them.
+  scopedToSelf?: boolean;
 }
 
-export function MyJobsCard({ stats }: MyJobsCardProps) {
+export function MyJobsCard({ stats, scopedToSelf = true }: MyJobsCardProps) {
   const cards = [
-    { label: "My Jobs", value: stats.myJobs, color: "bg-gray-50 border-gray-200", textColor: "text-gray-900" },
+    { label: scopedToSelf ? "My Jobs" : "Total Jobs", value: stats.myJobs, color: "bg-gray-50 border-gray-200", textColor: "text-gray-900" },
     { label: "Pending", value: stats.pending, color: "bg-yellow-50 border-yellow-100", textColor: "text-yellow-700" },
     { label: "In Progress", value: stats.inProgress, color: "bg-blue-50 border-blue-100", textColor: "text-blue-700" },
     { label: "Completed Today", value: stats.completedToday, color: "bg-green-50 border-green-100", textColor: "text-green-700" },

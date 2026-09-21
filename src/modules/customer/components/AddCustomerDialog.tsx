@@ -5,12 +5,21 @@ import { PhoneInput } from "@/components/common/PhoneInput";
 import { useState } from "react";
 import { X, Users } from "lucide-react";
 import { toast } from "react-hot-toast";
+import { getVehicleType, formatVehicleNumber } from "@/utils/vehicleNumber";
 
 interface AddCustomerDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit?: (customer: any) => void;
   existingCustomers?: any[];
+}
+
+// Matches the backend's normalizeVehicleNo (strips all non-alphanumerics,
+// uppercases) — a plain .toUpperCase() comparison here missed real duplicates
+// whenever the stored value came from Car-In (unspaced, e.g. "TN04AB1234")
+// but this dialog's own formatter always inserts spaces ("TN 04 AB 1234").
+function normalizeVehicle(v?: string | null): string {
+  return (v || "").replace(/[^A-Z0-9]/gi, "").toUpperCase();
 }
 
 export default function AddCustomerDialog({
@@ -26,19 +35,6 @@ export default function AddCustomerDialog({
     vehicle: "",
     carModel: "",
   });
-
-  const formatVehicleNumber = (value: string) => {
-    const cleaned = value.replace(/\s/g, "").toUpperCase();
-    if (cleaned.length === 0) return "";
-
-    let formatted = "";
-    formatted += cleaned.substring(0, 2);
-    if (cleaned.length > 2) formatted += " " + cleaned.substring(2, 4);
-    if (cleaned.length > 4) formatted += " " + cleaned.substring(4, 6);
-    if (cleaned.length > 6) formatted += " " + cleaned.substring(6, 10);
-
-    return formatted;
-  };
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -71,15 +67,14 @@ export default function AddCustomerDialog({
     }
 
     // Validate vehicle number format if provided: TN 04 AB 1234
-    const vehicleRegex = /^[A-Z]{2}\s\d{2}\s[A-Z]{1,2}\s\d{1,4}$/;
-    if (!vehicleRegex.test(formData.vehicle)) {
+    if (getVehicleType(formData.vehicle) === "INVALID") {
       toast.error("Vehicle number format: TN 04 AB 1234 (State Code, RTO, Series, Number)");
       return;
     }
 
     // Check for duplicate vehicle number
     const isDuplicate = existingCustomers.some(
-      (customer) => customer.vehicle?.toUpperCase() === formData.vehicle.toUpperCase()
+      (customer) => normalizeVehicle(customer.vehicle) === normalizeVehicle(formData.vehicle)
     );
     if (isDuplicate) {
       toast.error("❌ This vehicle number already exists! Customer with this vehicle is already registered.");
@@ -87,7 +82,11 @@ export default function AddCustomerDialog({
     }
 
     if (onSubmit) {
-      onSubmit(formData);
+      onSubmit({
+        ...formData,
+        model: formData.carModel,
+        carModel: formData.carModel,
+      });
     }
 
     setFormData({

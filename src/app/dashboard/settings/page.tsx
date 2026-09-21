@@ -1,13 +1,18 @@
 "use client";
 
 import { PhoneInput } from "@/components/common/PhoneInput";
-import { useState, useEffect } from "react";
-import { Building2, Database, Download, Headset, Lock, Plus, Trash2, Users, Tag } from "lucide-react";
-import { getSettings, updateSettings } from "@/lib/api";
+import { useRef, useState, useEffect } from "react";
+import { Building2, Database, Download, Headset, Lock, Plus, Trash2, Users, Tag, Upload, Loader2, Image as ImageIcon } from "lucide-react";
+import { getSettings, updateSettings, uploadFile } from "@/lib/api";
 import AddTechnicianDialog from "@/modules/vehicle-checkin/components/AddTechnicianDialog";
 import AddSalesAgentDialog from "@/components/settings/AddSalesAgentDialog";
 import AddSecurityGuardDialog from "@/components/settings/AddSecurityGuardDialog";
 import { toast } from "react-hot-toast";
+
+function resolveUploadUrl(url: string): string {
+  const uploadOrigin = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api").replace(/\/api\/?$/, "");
+  return url.startsWith("http") ? url : `${uploadOrigin}${url}`;
+}
 
 export default function SettingsPage() {
   const [companyInfo, setCompanyInfo] = useState({
@@ -40,6 +45,24 @@ export default function SettingsPage() {
   const [securityGuards, setSecurityGuards] = useState<string[]>([]);
   const [isAddSecurityOpen, setIsAddSecurityOpen] = useState(false);
 
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const logoInputRef = useRef<HTMLInputElement | null>(null);
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingLogo(true);
+    try {
+      const data = await uploadFile(file);
+      setCompanyInfo((prev) => ({ ...prev, companyLogo: data.url }));
+    } catch {
+      toast.error("Failed to upload logo");
+    } finally {
+      setUploadingLogo(false);
+      if (logoInputRef.current) logoInputRef.current.value = "";
+    }
+  };
+
   const tabs = [
     { id: "company", label: "Company Info", icon: Building2 },
     { id: "sales", label: "Sales Agents", icon: Headset },
@@ -54,26 +77,30 @@ export default function SettingsPage() {
         setIsLoading(true);
         const data = await getSettings();
         if (data) {
-          // Normalize API response to frontend state keys
+          // The backend's Setting model stores these fields flat (see
+          // shifterz_backend settings.repository.ts / settings.validation.ts) —
+          // there is no nested "companyInfo" object on the wire in either
+          // direction. Reading from data.companyInfo?.X here always produced ""
+          // regardless of what had been saved.
           const normInfo = {
-            name: data.companyInfo?.companyName || data.companyInfo?.name || "",
-            companyLogo: data.companyInfo?.companyLogo || "",
-            gstin: data.companyInfo?.gstin || "",
-            panNumber: data.companyInfo?.panNumber || "",
-            registeredAddress: data.companyInfo?.registeredAddress || "",
-            branchAddress: data.companyInfo?.branchAddress || "",
-            city: data.companyInfo?.city || "",
-            state: data.companyInfo?.state || "",
-            country: data.companyInfo?.country || "",
-            pinCode: data.companyInfo?.pinCode || "",
-            address: data.companyInfo?.address || "",
-            phone: data.companyInfo?.phone || "",
-            email: data.companyInfo?.email || "",
-            website: data.companyInfo?.website || "",
-            gstPercent: String(data.companyInfo?.gstPct || "18")
+            name: data.companyName || "",
+            companyLogo: data.companyLogo || "",
+            gstin: data.gstin || "",
+            panNumber: data.panNumber || "",
+            registeredAddress: data.registeredAddress || "",
+            branchAddress: data.branchAddress || "",
+            city: data.city || "",
+            state: data.state || "",
+            country: data.country || "",
+            pinCode: data.pinCode || "",
+            address: data.address || "",
+            phone: data.phone || "",
+            email: data.email || "",
+            website: data.website || "",
+            gstPercent: String(data.gstPct || "18")
           };
           setCompanyInfo(normInfo);
-          setSalesAgents(data.salesAgents || []);
+          setSalesAgents(data.agents || []);
           setSecurityGuards(data.securityGuards || []);
           setCategories(data.categories || []);
         }
@@ -110,7 +137,11 @@ export default function SettingsPage() {
 
   const handleSaveSettings = async () => {
     try {
-      // Map back to backend structure (Setting model keys)
+      // Backend's updateSettingSchema (Zod) validates these fields at the top
+      // level of the request body and silently drops anything it doesn't
+      // recognize — nesting them under "companyInfo" (as this used to) meant
+      // every one of these fields was stripped before it ever reached the DB.
+      // "agents" is also the schema's actual key name, not "salesAgents".
       const mappedInfo = {
         companyName: companyInfo.name,
         companyLogo: companyInfo.companyLogo,
@@ -128,7 +159,7 @@ export default function SettingsPage() {
         website: companyInfo.website,
         gstPct: Number(companyInfo.gstPercent)
       };
-      await updateSettings({ companyInfo: mappedInfo, salesAgents, securityGuards, categories });
+      await updateSettings({ ...mappedInfo, agents: salesAgents, securityGuards, categories });
       toast.success("Settings saved successfully!");
     } catch (err: any) {
       console.error("Failed to save settings:", err);
@@ -330,8 +361,50 @@ export default function SettingsPage() {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Company Logo (URL)</label>
-                <input type="text" name="companyLogo" value={companyInfo.companyLogo} onChange={handleCompanyInfoChange} className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-800 focus:outline-none" />
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Company Logo</label>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => logoInputRef.current?.click()}
+                    className="w-16 h-16 rounded-lg border-2 border-dashed border-gray-300 hover:border-yellow-400 flex items-center justify-center overflow-hidden bg-gray-50 shrink-0 transition-colors"
+                  >
+                    {uploadingLogo ? (
+                      <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+                    ) : companyInfo.companyLogo ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={resolveUploadUrl(companyInfo.companyLogo)} alt="Company logo" className="w-full h-full object-cover" />
+                    ) : (
+                      <ImageIcon className="w-5 h-5 text-gray-300" />
+                    )}
+                  </button>
+                  <div className="flex flex-col gap-1">
+                    <button
+                      type="button"
+                      onClick={() => logoInputRef.current?.click()}
+                      disabled={uploadingLogo}
+                      className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold rounded-lg flex items-center gap-1.5 disabled:opacity-50 transition-colors"
+                    >
+                      <Upload className="w-3.5 h-3.5" />
+                      {uploadingLogo ? "Uploading..." : companyInfo.companyLogo ? "Replace Logo" : "Upload Logo"}
+                    </button>
+                    {companyInfo.companyLogo && (
+                      <button
+                        type="button"
+                        onClick={() => setCompanyInfo((prev) => ({ ...prev, companyLogo: "" }))}
+                        className="text-[11px] text-red-500 hover:text-red-600 font-semibold text-left"
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </div>
+                  <input
+                    ref={logoInputRef}
+                    type="file"
+                    accept="image/png"
+                    className="hidden"
+                    onChange={handleLogoUpload}
+                  />
+                </div>
               </div>
 
               <div className="space-y-1.5">

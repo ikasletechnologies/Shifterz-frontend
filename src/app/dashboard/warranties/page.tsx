@@ -253,13 +253,13 @@ export default function WarrantyManagementPage() {
         const daysLeft = calculateDaysLeft(w.expiryDate);
         const isExpired = w.status === "Expired" || daysLeft < 0;
         return [
-          w.warrantyNo || `WR-000${idx + 1}`,
-          w.customer?.name || w.customerId || "Hari",
-          w.vehicleNo || "TN38AB1234",
-          w.invoiceId ? (w.invoiceId.startsWith("INV") ? w.invoiceId : `INV-${w.invoiceId}`) : `INV-102${idx + 1}`,
-          `${w.itemName || "Ceramic Coating"} (${w.durationDays ? `${w.durationDays} Days` : "3 Years"})`,
-          formatDate(w.startDate || "2026-08-01"),
-          formatDate(w.expiryDate || "2029-08-01"),
+          w.warrantyNo || "—",
+          w.customer?.name || w.customerId || "—",
+          w.vehicleNo || "—",
+          w.invoiceId ? (w.invoiceId.startsWith("INV") ? w.invoiceId : `INV-${w.invoiceId}`) : "—",
+          `${w.itemName || "—"}${w.durationDays ? ` (${w.durationDays} Days)` : ""}`,
+          w.startDate ? formatDate(w.startDate) : "—",
+          w.expiryDate ? formatDate(w.expiryDate) : "—",
           isExpired ? "Expired" : String(daysLeft),
           isExpired ? "Expired" : w.status || "Active",
         ];
@@ -689,39 +689,41 @@ export default function WarrantyManagementPage() {
                     <tr key={w.id || idx} className="hover:bg-slate-50/60 transition-colors">
                       {/* Warranty No */}
                       <td className="py-3.5 px-4 font-mono font-bold text-slate-900 whitespace-nowrap">
-                        {w.warrantyNo || `WR-000${idx + 1}`}
+                        {w.warrantyNo || "—"}
                       </td>
 
                       {/* Customer */}
                       <td className="py-3.5 px-4 font-bold text-slate-900 whitespace-nowrap">
-                        {w.customer?.name || w.customerId || "Hari"}
+                        {w.customer?.name || w.customerId || "—"}
                       </td>
 
-                      {/* Vehicle */}
+                      {/* Vehicle — no vehicle-model field exists on WarrantyRecord,
+                          so only the real vehicle number is shown here. */}
                       <td className="py-3.5 px-4 min-w-[140px]">
-                        <p className="font-bold text-slate-900 font-mono uppercase">{w.vehicleNo || "TN38AB1234"}</p>
-                        <p className="text-[11px] text-slate-400 mt-0.5 truncate">Hyundai Creta</p>
+                        <p className="font-bold text-slate-900 font-mono uppercase">{w.vehicleNo || "—"}</p>
                       </td>
 
                       {/* Invoice No */}
                       <td className="py-3.5 px-4 font-mono font-bold text-slate-800 whitespace-nowrap">
-                        {w.invoiceId ? (w.invoiceId.startsWith("INV") ? w.invoiceId : `INV-${w.invoiceId}`) : `INV-102${idx + 1}`}
+                        {w.invoiceId ? (w.invoiceId.startsWith("INV") ? w.invoiceId : `INV-${w.invoiceId}`) : "—"}
                       </td>
 
                       {/* Covered Item */}
                       <td className="py-3.5 px-4 min-w-[150px]">
-                        <p className="font-bold text-slate-900">{w.itemName || "Ceramic Coating"}</p>
-                        <p className="text-[11px] text-slate-400 mt-0.5">{w.durationDays ? `${w.durationDays} Days` : "3 Years"}</p>
+                        <p className="font-bold text-slate-900">{w.itemName || "—"}</p>
+                        {w.durationDays ? (
+                          <p className="text-[11px] text-slate-400 mt-0.5">{w.durationDays} Days</p>
+                        ) : null}
                       </td>
 
                       {/* Start Date */}
                       <td className="py-3.5 px-4 whitespace-nowrap text-slate-700">
-                        {formatDate(w.startDate || "2026-08-01")}
+                        {w.startDate ? formatDate(w.startDate) : "—"}
                       </td>
 
                       {/* Expiry Date */}
                       <td className="py-3.5 px-4 whitespace-nowrap text-slate-700">
-                        {formatDate(w.expiryDate || "2029-08-01")}
+                        {w.expiryDate ? formatDate(w.expiryDate) : "—"}
                       </td>
 
                       {/* Days Left */}

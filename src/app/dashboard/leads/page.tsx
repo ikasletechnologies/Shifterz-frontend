@@ -3,9 +3,9 @@
 
 import { useState, useEffect, useRef } from "react";
 import { Plus, ChevronDown, Trash2, Pencil, Search, X, Car, User, Phone, Wrench, Tag, Calendar, UserCheck, Mail } from "lucide-react";
-import AddLeadDialog from "@/components/leads/AddLeadDialog";
+import AddLeadDialog, { LEAD_DRAFT_STORAGE_KEY } from "@/components/leads/AddLeadDialog";
 import EditLeadDialog from "@/components/leads/EditLeadDialog";
-import { getLeads, createLead, deleteLead, updateLead, createCustomer } from "@/lib/api";
+import { getLeads, createLead, deleteLead, updateLead } from "@/lib/api";
 import { toast } from "react-hot-toast";
 
 interface Lead {
@@ -126,6 +126,7 @@ export default function LeadsPage() {
   const [showLostModal, setShowLostModal] = useState(false);
   const [lostReason, setLostReason] = useState("");
   const [pendingStatusChange, setPendingStatusChange] = useState<{ id: string, newStatus: string, lead: Lead } | null>(null);
+  const [leadDraft, setLeadDraft] = useState<Record<string, any> | null>(null);
 
   // Load leads from backend
   useEffect(() => {
@@ -144,12 +145,29 @@ export default function LeadsPage() {
     fetchLeads();
   }, []);
 
+  // Resume a New Lead draft after the "+ Add Service" round trip to
+  // /dashboard/services and back — without this, that trip would silently
+  // discard whatever the user had already typed into the New Lead form.
+  useEffect(() => {
+    try {
+      const draftStr = sessionStorage.getItem(LEAD_DRAFT_STORAGE_KEY);
+      if (draftStr) {
+        setLeadDraft(JSON.parse(draftStr));
+        setIsDialogOpen(true);
+        sessionStorage.removeItem(LEAD_DRAFT_STORAGE_KEY);
+      }
+    } catch {
+      // Ignore — worst case they just start the lead over.
+    }
+  }, []);
+
   // Add new lead
   const handleAddLead = async (newLead: any) => {
     try {
       const created = await createLead(newLead);
       setLeads([...leads, created]);
       setIsDialogOpen(false);
+      setLeadDraft(null);
     } catch (err: any) {
       alert("Failed to create lead: " + err.message);
       console.error(err);
@@ -175,21 +193,14 @@ export default function LeadsPage() {
       const updated = await updateLead(id, updatedLead);
       setLeads(leads.map(lead => lead.id === id ? updated : lead));
 
+      // The backend's updateLead already creates/links the Customer record
+      // atomically whenever status transitions to "Converted" (with richer
+      // data than we could send here) — calling createCustomer again here was
+      // redundant, and if that redundant call failed it showed a misleading
+      // "failed to create customer" toast even though conversion had already
+      // succeeded server-side.
       if (currentLead && currentLead.status !== "Converted" && updatedLead.status === "Converted") {
-        try {
-          await createCustomer({
-            name: updatedLead.name,
-            phone: updatedLead.phone,
-            email: updatedLead.email || "",
-            address: "",
-            type: "Retail",
-            source: updatedLead.source,
-            status: "Active"
-          });
-          toast.success("Lead converted! Customer profile created successfully.");
-        } catch (err: any) {
-          toast.error("Lead converted, but failed to create customer: " + err.message);
-        }
+        toast.success("Lead converted! Customer profile created.");
       }
     } catch (err: any) {
       alert("Failed to update lead: " + err.message);
@@ -218,21 +229,10 @@ export default function LeadsPage() {
       setLeads((prevLeads) => prevLeads.map(lead => lead.id === id ? { ...lead, ...updated, status: newStatus } : lead));
       toast.success(`Lead status updated to ${newStatus}`);
 
+      // See handleEditLead above — updateLead already creates/links the
+      // Customer record server-side on conversion; no separate call needed.
       if (newStatus === "Converted" && currentLead.status !== "Converted") {
-        try {
-          await createCustomer({
-            name: currentLead.name,
-            phone: currentLead.phone,
-            email: currentLead.email || "",
-            address: "",
-            type: "Retail",
-            source: currentLead.source,
-            status: "Active"
-          });
-          toast.success("Lead converted! Customer profile created successfully.");
-        } catch (err: any) {
-          toast.error("Lead converted, but failed to create customer: " + err.message);
-        }
+        toast.success("Lead converted! Customer profile created.");
       }
     } catch (err: any) {
       toast.error("Failed to update status: " + err.message);
@@ -378,7 +378,7 @@ export default function LeadsPage() {
           </div>
 
           <button
-            onClick={() => setIsDialogOpen(true)}
+            onClick={() => { setLeadDraft(null); setIsDialogOpen(true); }}
             className="bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-semibold px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
           >
             <Plus className="w-5 h-5" />
@@ -525,8 +525,9 @@ export default function LeadsPage() {
       {/* Dialog */}
       <AddLeadDialog
         isOpen={isDialogOpen}
-        onClose={() => setIsDialogOpen(false)}
+        onClose={() => { setIsDialogOpen(false); setLeadDraft(null); }}
         onSubmit={handleAddLead}
+        initialDraft={leadDraft}
       />
       <EditLeadDialog
         isOpen={isEditDialogOpen}

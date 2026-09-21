@@ -26,7 +26,11 @@ export async function downloadInvoicePdf(doc: BillingDocument) {
       import("jspdf-autotable"),
       getSettings().catch(() => null),
     ]);
-    const companyInfo = (settingsData as any)?.companyInfo || null;
+    // Setting model stores these fields flat (companyName, address, gstin,
+    // phone, ...) — there is no nested "companyInfo" object on the wire.
+    const companyInfo = settingsData
+      ? { ...(settingsData as any), name: (settingsData as any).companyName }
+      : null;
     const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
     const pageWidth = pdf.internal.pageSize.getWidth();
     const margin = 14;
@@ -41,7 +45,7 @@ export async function downloadInvoicePdf(doc: BillingDocument) {
     pdf.text(companyInfo?.name || "SHIFTERZ", margin, 12);
     pdf.setFontSize(8);
     pdf.setFont("helvetica", "normal");
-    pdf.text(companyInfo?.address || "42, Race Course Rd, Coimbatore - 641018", margin, 18);
+    if (companyInfo?.address) pdf.text(companyInfo.address, margin, 18);
     if (companyInfo?.phone) pdf.text(companyInfo.phone, margin, 23);
     pdf.setFontSize(16);
     pdf.setFont("helvetica", "bold");
@@ -84,7 +88,7 @@ export async function downloadInvoicePdf(doc: BillingDocument) {
       ["Due", formatDate(doc.dueDate)],
     ];
     if (doc.gstNumber) detailRows.push(["Client GSTIN", doc.gstNumber]);
-    detailRows.push(["Our GSTIN", companyInfo?.gstin || "33AAAAAO000A1Z5"]);
+    if (companyInfo?.gstin) detailRows.push(["Our GSTIN", companyInfo.gstin]);
     pdf.setFontSize(8);
     for (const [label, value] of detailRows) {
       pdf.setFont("helvetica", "bold"); pdf.setTextColor(80, 80, 80);
@@ -190,7 +194,8 @@ export async function downloadInvoicePdf(doc: BillingDocument) {
     pdf.setDrawColor(200, 200, 200);
     pdf.line(margin, footerY - 4, pageWidth - margin, footerY - 4);
     pdf.setFontSize(8); pdf.setFont("helvetica", "normal"); pdf.setTextColor(120, 120, 120);
-    pdf.text(`Thank you for choosing ${companyInfo?.name || "Shifterz"}!  |  ${companyInfo?.phone || "0422-123 4567"}`, pageWidth / 2, footerY, { align: "center" });
+    const footerText = `Thank you for choosing ${companyInfo?.name || "Shifterz"}!` + (companyInfo?.phone ? `  |  ${companyInfo.phone}` : "");
+    pdf.text(footerText, pageWidth / 2, footerY, { align: "center" });
 
     pdf.save(`${doc.id}.pdf`);
     toast.dismiss(loadingToast);

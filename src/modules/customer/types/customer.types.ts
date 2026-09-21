@@ -5,6 +5,7 @@ export interface Customer {
   email: string;
   vehicle: string;
   model: string;
+  carModel?: string;
   visits: number;
   totalSpend: number;
   lastVisit: string;

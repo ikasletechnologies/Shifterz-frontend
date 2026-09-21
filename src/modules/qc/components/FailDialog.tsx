@@ -2,16 +2,17 @@
 
 import { useState } from "react";
 import { X, XCircle } from "lucide-react";
-import { QCJob } from "../types/qc.types";
+import { QCJob, ChecklistResult } from "../types/qc.types";
 
 interface FailDialogProps {
   job: QCJob | null;
+  checklist?: ChecklistResult[] | null;
   isOpen: boolean;
   onClose: () => void;
   onFail: (notes: string) => Promise<boolean>;
 }
 
-export function FailDialog({ job, isOpen, onClose, onFail }: FailDialogProps) {
+export function FailDialog({ job, checklist, isOpen, onClose, onFail }: FailDialogProps) {
   const [notes, setNotes] = useState("");
   const [isFailing, setIsFailing] = useState(false);
 
@@ -50,11 +51,11 @@ export function FailDialog({ job, isOpen, onClose, onFail }: FailDialogProps) {
             <div className="flex justify-between"><span>Job</span><span className="font-bold text-gray-800">{job.id}</span></div>
             <div className="flex justify-between"><span>Vehicle</span><span className="font-bold text-gray-800">{job.vehicle}</span></div>
             <div className="flex justify-between"><span>Service</span><span className="font-bold text-gray-800">{job.service}</span></div>
-            {job.checklist && (
+            {checklist && checklist.length > 0 && (
               <div className="flex justify-between">
                 <span>Checklist</span>
                 <span className="font-bold text-red-700">
-                  {job.checklist.filter((i) => i.passed).length}/{job.checklist.length} passed
+                  {checklist.filter((i) => i.result === "Passed").length}/{checklist.length} passed
                 </span>
               </div>
             )}
