@@ -9,6 +9,7 @@ import {
   ChevronRight,
   ImageIcon,
   Loader2,
+  MapPin,
   Plus,
   Receipt,
   Search,
@@ -31,7 +32,7 @@ interface DraftService {
   price: string;
 }
 
-const STEPS = ["Company Info", "Tax Details", "Services"] as const;
+const STEPS = ["Company Info", "Services"] as const;
 
 export function SuperAdminSetupWizard() {
   const router = useRouter();
@@ -44,6 +45,7 @@ export function SuperAdminSetupWizard() {
     phone: "",
     email: "",
     registeredAddress: "",
+    branchAddress: "",
     city: "",
     state: "",
     country: "India",
@@ -55,19 +57,19 @@ export function SuperAdminSetupWizard() {
 
   const [gstinInput, setGstinInput] = useState("");
   const [isFetchingGstin, setIsFetchingGstin] = useState(false);
-  const [gstinFetched, setGstinFetched] = useState(false);
 
   const [services, setServices] = useState<DraftService[]>([]);
   const [draftService, setDraftService] = useState<DraftService>({ name: "", category: "", price: "" });
 
   const handleFetchGstin = async () => {
-    if (!isValidGST(gstinInput)) {
+    const inputGst = tax.gstin || gstinInput;
+    if (!isValidGST(inputGst)) {
       toast.error("Enter a valid 15-character GSTIN first");
       return;
     }
     setIsFetchingGstin(true);
     try {
-      const { details } = await lookupGstin(gstinInput);
+      const { details } = await lookupGstin(inputGst);
       setCompany((prev) => ({
         ...prev,
         name: details.legalName || details.tradeName || prev.name,
@@ -78,10 +80,10 @@ export function SuperAdminSetupWizard() {
       }));
       setTax((prev) => ({
         ...prev,
-        gstin: details.gstin,
+        gstin: details.gstin || inputGst,
         panNumber: details.pan || prev.panNumber,
       }));
-      setGstinFetched(true);
+      setGstinInput(details.gstin || inputGst);
       toast.success("Company details fetched from GSTIN — review and edit below if needed");
     } catch (err: any) {
       toast.error(err.message || "Failed to fetch GSTIN details");
@@ -133,6 +135,7 @@ export function SuperAdminSetupWizard() {
         phone: company.phone,
         email: company.email,
         registeredAddress: company.registeredAddress,
+        branchAddress: company.branchAddress,
         city: company.city,
         state: company.state,
         country: company.country,
@@ -178,12 +181,9 @@ export function SuperAdminSetupWizard() {
         {/* Header */}
         <div className="px-6 sm:px-8 pt-8 pb-6 border-b border-gray-100">
           <h1 className="text-2xl font-black text-gray-900">Welcome to Shifterz</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Let&apos;s set up your company before you start using the ERP.
-          </p>
 
           {/* Step indicator */}
-          <div className="flex items-center gap-2 mt-6">
+          <div className="flex items-center gap-2 mt-5">
             {STEPS.map((label, i) => (
               <div key={label} className="flex items-center flex-1 last:flex-none">
                 <div className="flex items-center gap-2">
@@ -209,144 +209,199 @@ export function SuperAdminSetupWizard() {
         </div>
 
         {/* Step body */}
-        <div className="px-6 sm:px-8 py-6 space-y-4 max-h-[55vh] overflow-y-auto">
+        <div className="px-6 sm:px-8 py-6 space-y-6 max-h-[60vh] overflow-y-auto">
           {step === 0 && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 text-sm font-bold text-gray-800">
-                <Building2 className="w-4 h-4 text-yellow-500" /> Company Information
-              </div>
-
-              <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-xl space-y-2">
-                <label className="text-xs font-bold text-yellow-800 uppercase tracking-wider">
-                  Have a GSTIN? Fetch your details automatically
-                </label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    value={gstinInput}
-                    onChange={(e) => setGstinInput(formatGSTInput(e.target.value))}
-                    maxLength={15}
-                    placeholder="22AAAAA0000A1Z5"
-                    className="flex-1 px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500/20 focus:border-yellow-500"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleFetchGstin}
-                    disabled={isFetchingGstin || !gstinInput}
-                    className="px-4 py-2.5 bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-bold rounded-lg flex items-center gap-1.5 text-sm shrink-0 disabled:opacity-60"
-                  >
-                    {isFetchingGstin ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
-                    Fetch Details
-                  </button>
-                </div>
-                {gstinFetched && (
-                  <p className="text-[11px] text-yellow-700 flex items-center gap-1">
-                    <Check className="w-3.5 h-3.5" /> Fetched — review the fields below and edit anything that needs correcting.
-                  </p>
-                )}
-                <p className="text-[11px] text-gray-500">
-                  Don&apos;t have a GSTIN yet, or prefer to enter details yourself? Skip this and fill the fields below manually.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-1.5 sm:col-span-2">
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Company Name *</label>
-                  <input
-                    type="text"
-                    value={company.name}
-                    onChange={(e) => setCompany((p) => ({ ...p, name: e.target.value }))}
-                    placeholder="Shifterz Detailing Pvt. Ltd."
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500/20 focus:border-yellow-500"
-                  />
+            <div className="space-y-6">
+              {/* Subsection: Company Information */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-gray-700 pb-2 border-b border-gray-100">
+                  <Building2 className="w-4 h-4 text-yellow-500" /> Company Information
                 </div>
 
-                <div className="space-y-1.5 sm:col-span-2">
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Company Logo</label>
-                  <div className="flex items-center gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5 sm:col-span-2">
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Company Name *</label>
+                    <input
+                      type="text"
+                      value={company.name}
+                      onChange={(e) => setCompany((p) => ({ ...p, name: e.target.value }))}
+                      placeholder="Shifterz Detailing Pvt. Ltd."
+                      className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500/20 focus:border-yellow-500"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5 sm:col-span-2">
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Company Logo</label>
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => logoInputRef.current?.click()}
+                        className="w-14 h-14 rounded-lg border-2 border-dashed border-gray-300 hover:border-yellow-400 flex items-center justify-center overflow-hidden bg-gray-50 shrink-0"
+                      >
+                        {uploadingLogo ? (
+                          <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+                        ) : company.companyLogo ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={resolveUploadUrl(company.companyLogo)} alt="Company logo" className="w-full h-full object-cover" />
+                        ) : (
+                          <ImageIcon className="w-5 h-5 text-gray-300" />
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => logoInputRef.current?.click()}
+                        disabled={uploadingLogo}
+                        className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold rounded-lg flex items-center gap-1.5 disabled:opacity-50"
+                      >
+                        <Upload className="w-3.5 h-3.5" />
+                        {company.companyLogo ? "Replace Logo" : "Upload Logo"}
+                      </button>
+                      <input ref={logoInputRef} type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={handleLogoUpload} />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Phone Number</label>
+                    <PhoneInput
+                      value={company.phone}
+                      onChange={(e) => setCompany((p) => ({ ...p, phone: e.target.value }))}
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Email Address</label>
+                    <input
+                      type="email"
+                      value={company.email}
+                      onChange={(e) => setCompany((p) => ({ ...p, email: e.target.value }))}
+                      placeholder="info@shifterz.com"
+                      className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500/20 focus:border-yellow-500"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Subsection: Tax Details */}
+              <div className="space-y-4 pt-2">
+                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-gray-700 pb-2 border-b border-gray-100">
+                  <ShieldCheck className="w-4 h-4 text-yellow-500" /> Tax Details
+                </div>
+
+                <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-xl space-y-2">
+                  <label className="text-xs font-bold text-yellow-800 uppercase tracking-wider">
+                    Have a GSTIN? Fetch your details automatically
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={tax.gstin}
+                      onChange={(e) => {
+                        const val = formatGSTInput(e.target.value);
+                        setGstinInput(val);
+                        setTax((p) => ({ ...p, gstin: val }));
+                      }}
+                      maxLength={15}
+                      placeholder="22AAAAA0000A1Z5"
+                      className="flex-1 px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500/20 focus:border-yellow-500"
+                    />
                     <button
                       type="button"
-                      onClick={() => logoInputRef.current?.click()}
-                      className="w-14 h-14 rounded-lg border-2 border-dashed border-gray-300 hover:border-yellow-400 flex items-center justify-center overflow-hidden bg-gray-50 shrink-0"
+                      onClick={handleFetchGstin}
+                      disabled={isFetchingGstin || !tax.gstin}
+                      className="px-4 py-2.5 bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-bold rounded-lg flex items-center gap-1.5 text-sm shrink-0 disabled:opacity-60"
                     >
-                      {uploadingLogo ? (
-                        <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
-                      ) : company.companyLogo ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={resolveUploadUrl(company.companyLogo)} alt="Company logo" className="w-full h-full object-cover" />
-                      ) : (
-                        <ImageIcon className="w-5 h-5 text-gray-300" />
-                      )}
+                      {isFetchingGstin ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                      Fetch Details
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => logoInputRef.current?.click()}
-                      disabled={uploadingLogo}
-                      className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold rounded-lg flex items-center gap-1.5 disabled:opacity-50"
-                    >
-                      <Upload className="w-3.5 h-3.5" />
-                      {company.companyLogo ? "Replace Logo" : "Upload Logo"}
-                    </button>
-                    <input ref={logoInputRef} type="file" accept="image/png" className="hidden" onChange={handleLogoUpload} />
                   </div>
                 </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Phone</label>
-                  <PhoneInput
-                    value={company.phone}
-                    onChange={(e) => setCompany((p) => ({ ...p, phone: e.target.value }))}
-                  />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">PAN Number</label>
+                    <input
+                      type="text"
+                      value={tax.panNumber}
+                      onChange={(e) => setTax((p) => ({ ...p, panNumber: e.target.value.toUpperCase().slice(0, 10) }))}
+                      maxLength={10}
+                      placeholder="ABCDE1234F"
+                      className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500/20 focus:border-yellow-500"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Default GST %</label>
+                    <input
+                      type="number"
+                      value={tax.gstPercent}
+                      onChange={(e) => setTax((p) => ({ ...p, gstPercent: e.target.value }))}
+                      placeholder="18"
+                      className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500/20 focus:border-yellow-500"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Subsection: Address Details */}
+              <div className="space-y-4 pt-2">
+                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-gray-700 pb-2 border-b border-gray-100">
+                  <MapPin className="w-4 h-4 text-yellow-500" /> Address Details
                 </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Email</label>
-                  <input
-                    type="email"
-                    value={company.email}
-                    onChange={(e) => setCompany((p) => ({ ...p, email: e.target.value }))}
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500/20 focus:border-yellow-500"
-                  />
-                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5 sm:col-span-2">
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Registered Address</label>
+                    <textarea
+                      value={company.registeredAddress}
+                      onChange={(e) => setCompany((p) => ({ ...p, registeredAddress: e.target.value }))}
+                      rows={2}
+                      placeholder="123 Main Business Park, Industrial Area"
+                      className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500/20 focus:border-yellow-500"
+                    />
+                  </div>
 
-                <div className="space-y-1.5 sm:col-span-2">
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Registered Address</label>
-                  <textarea
-                    value={company.registeredAddress}
-                    onChange={(e) => setCompany((p) => ({ ...p, registeredAddress: e.target.value }))}
-                    rows={2}
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500/20 focus:border-yellow-500"
-                  />
-                </div>
+                  <div className="space-y-1.5 sm:col-span-2">
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Branch Address</label>
+                    <textarea
+                      value={company.branchAddress}
+                      onChange={(e) => setCompany((p) => ({ ...p, branchAddress: e.target.value }))}
+                      rows={2}
+                      placeholder="Branch / Workshop Address (if different)"
+                      className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500/20 focus:border-yellow-500"
+                    />
+                  </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">City</label>
-                  <input
-                    type="text"
-                    value={company.city}
-                    onChange={(e) => setCompany((p) => ({ ...p, city: e.target.value }))}
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500/20 focus:border-yellow-500"
-                  />
-                </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">City</label>
+                    <input
+                      type="text"
+                      value={company.city}
+                      onChange={(e) => setCompany((p) => ({ ...p, city: e.target.value }))}
+                      placeholder="Bengaluru"
+                      className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500/20 focus:border-yellow-500"
+                    />
+                  </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">State</label>
-                  <input
-                    type="text"
-                    value={company.state}
-                    onChange={(e) => setCompany((p) => ({ ...p, state: e.target.value }))}
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500/20 focus:border-yellow-500"
-                  />
-                </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">State</label>
+                    <input
+                      type="text"
+                      value={company.state}
+                      onChange={(e) => setCompany((p) => ({ ...p, state: e.target.value }))}
+                      placeholder="Karnataka"
+                      className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500/20 focus:border-yellow-500"
+                    />
+                  </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">PIN Code</label>
-                  <input
-                    type="text"
-                    value={company.pinCode}
-                    onChange={(e) => setCompany((p) => ({ ...p, pinCode: e.target.value.replace(/\D/g, "").slice(0, 6) }))}
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500/20 focus:border-yellow-500"
-                  />
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">PIN Code</label>
+                    <input
+                      type="text"
+                      value={company.pinCode}
+                      onChange={(e) => setCompany((p) => ({ ...p, pinCode: e.target.value.replace(/\D/g, "").slice(0, 6) }))}
+                      placeholder="560001"
+                      className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500/20 focus:border-yellow-500"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
@@ -355,57 +410,8 @@ export function SuperAdminSetupWizard() {
           {step === 1 && (
             <div className="space-y-4">
               <div className="flex items-center gap-2 text-sm font-bold text-gray-800">
-                <ShieldCheck className="w-4 h-4 text-yellow-500" /> Tax Details
-              </div>
-              <p className="text-xs text-gray-500">
-                Optional — add these now if you have them, or fill them in later from Settings.
-              </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">GST Number</label>
-                  <input
-                    type="text"
-                    value={tax.gstin}
-                    onChange={(e) => setTax((p) => ({ ...p, gstin: formatGSTInput(e.target.value) }))}
-                    maxLength={15}
-                    placeholder="22AAAAA0000A1Z5"
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500/20 focus:border-yellow-500"
-                  />
-                  {tax.gstin && !isValidGST(tax.gstin) && (
-                    <p className="text-[11px] text-amber-600">Doesn&apos;t look like a valid GSTIN yet.</p>
-                  )}
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">PAN Number</label>
-                  <input
-                    type="text"
-                    value={tax.panNumber}
-                    onChange={(e) => setTax((p) => ({ ...p, panNumber: e.target.value.toUpperCase().slice(0, 10) }))}
-                    maxLength={10}
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500/20 focus:border-yellow-500"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Default GST %</label>
-                  <input
-                    type="number"
-                    value={tax.gstPercent}
-                    onChange={(e) => setTax((p) => ({ ...p, gstPercent: e.target.value }))}
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500/20 focus:border-yellow-500"
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {step === 2 && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 text-sm font-bold text-gray-800">
                 <Receipt className="w-4 h-4 text-yellow-500" /> Services
               </div>
-              <p className="text-xs text-gray-500">
-                Add the services you offer so Billing can generate invoices against them. You can add more later from Dashboard → Services.
-              </p>
 
               <div className="flex items-end gap-2">
                 <div className="flex-1 space-y-1.5">
@@ -448,7 +454,7 @@ export function SuperAdminSetupWizard() {
                 </button>
               </div>
 
-              {services.length > 0 ? (
+              {services.length > 0 && (
                 <div className="space-y-1.5 pt-1">
                   {services.map((s, i) => (
                     <div key={s.name} className="flex items-center justify-between gap-2 bg-gray-50 rounded-lg px-3 py-2 border border-gray-200">
@@ -464,10 +470,6 @@ export function SuperAdminSetupWizard() {
                     </div>
                   ))}
                 </div>
-              ) : (
-                <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-                  No services added yet — you can skip this and add them later, but Billing won&apos;t be able to invoice anything until at least one exists.
-                </p>
               )}
             </div>
           )}
