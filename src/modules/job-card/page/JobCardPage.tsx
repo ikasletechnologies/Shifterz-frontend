@@ -13,11 +13,10 @@ import { AssignQCDialog } from "../components/AssignQCDialog";
 import { useVehicleCheckin } from "@/modules/vehicle-checkin/hooks/useVehicleCheckin";
 import VehicleInspectionDialog from "@/modules/vehicle-checkin/components/VehicleInspectionDialog";
 import { CarEntry, hasCompletedInspection } from "@/modules/vehicle-checkin/types/vehicle-checkin.types";
-import { sendToQC } from "@/modules/workshop/services/workshop.service";
-import { passQC, failQC, startInspection, submitChecklist } from "@/modules/qc/services/qc.service";
-import { ChecklistResult } from "@/modules/qc/types/qc.types";
+import { passQC, failQC } from "@/modules/qc/services/qc.service";
 import { PassDialog } from "@/modules/qc/components/PassDialog";
 import { FailDialog } from "@/modules/qc/components/FailDialog";
+import { ensureSentToQCAndChecklistSubmitted } from "../lib/qcQuickDecide";
 
 import { JobCardNavTabs } from "../components/JobCardNavTabs";
 
@@ -156,25 +155,7 @@ export function JobCardPage() {
   };
 
   // Super Admin quick Pass/Fail on the Job Card board itself, so it's
-  // available without opening the detail view. The backend only allows
-  // starting a QC inspection once a job is already "Waiting for Quality
-  // Check" or "Rework Required" — for a job still sitting at "Completed",
-  // these transparently call Send to QC first so there's no separate manual
-  // step to click through. See ViewJobCardDialog.tsx for the same pattern.
-  const QC_NOT_YET_SENT_STATUSES = new Set(["Completed", "Work Completed", "Complete"]);
-
-  const ensureSentToQCAndChecklistSubmitted = async (job: JobCard) => {
-    if (QC_NOT_YET_SENT_STATUSES.has(job.status)) {
-      await sendToQC(job.id);
-    }
-    const attempt = await startInspection(job.id);
-    const frozenChecklist = attempt.checklist || [];
-    if (frozenChecklist.length > 0) {
-      const allPassed: ChecklistResult[] = frozenChecklist.map((item) => ({ id: item.id, result: "Passed" }));
-      await submitChecklist(job.id, allPassed);
-    }
-  };
-
+  // available without opening the detail view.
   const handleConfirmQuickPass = async (notes?: string) => {
     if (!quickQCJob) return false;
     try {

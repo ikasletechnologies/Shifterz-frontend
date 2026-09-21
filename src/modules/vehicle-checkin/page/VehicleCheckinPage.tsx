@@ -64,6 +64,28 @@ export function VehicleCheckinPage() {
     return `${year}-${month}-${day}`;
   };
 
+  const handleCustomFromDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selected = e.target.value;
+    const today = getTodayISO();
+    if (selected && selected > today) {
+      toast.error("Future dates are not allowed. Please select today or a past date.");
+      setCustomFromDate(today);
+      return;
+    }
+    setCustomFromDate(selected);
+  };
+
+  const handleCustomToDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selected = e.target.value;
+    const today = getTodayISO();
+    if (selected && selected > today) {
+      toast.error("Future dates are not allowed. Please select today or a past date.");
+      setCustomToDate(today);
+      return;
+    }
+    setCustomToDate(selected);
+  };
+
   const getDateRange = () => {
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -560,14 +582,14 @@ export function VehicleCheckinPage() {
                       <div>
                         <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">From</label>
                         <div className="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-lg px-2 py-1.5">
-                          <input type="date" value={customFromDate} max={getTodayISO()} onChange={(e) => setCustomFromDate(e.target.value)} className="bg-transparent border-none text-xs text-gray-800 outline-none w-full" />
+                          <input type="date" value={customFromDate} max={getTodayISO()} onChange={handleCustomFromDateChange} className="bg-transparent border-none text-xs text-gray-800 outline-none w-full" />
                           {customFromDate && <button type="button" onClick={() => setCustomFromDate("")} className="text-gray-400 hover:text-gray-600 shrink-0"><X className="w-3 h-3" /></button>}
                         </div>
                       </div>
                       <div>
                         <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">To</label>
                         <div className="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-lg px-2 py-1.5">
-                          <input type="date" value={customToDate} max={getTodayISO()} onChange={(e) => setCustomToDate(e.target.value)} className="bg-transparent border-none text-xs text-gray-800 outline-none w-full" />
+                          <input type="date" value={customToDate} max={getTodayISO()} onChange={handleCustomToDateChange} className="bg-transparent border-none text-xs text-gray-800 outline-none w-full" />
                           {customToDate && <button type="button" onClick={() => setCustomToDate("")} className="text-gray-400 hover:text-gray-600 shrink-0"><X className="w-3 h-3" /></button>}
                         </div>
                       </div>
@@ -760,7 +782,7 @@ export function VehicleCheckinPage() {
 
                     <div className="border-t border-gray-100 my-3" />
 
-                    {/* Mandatory Inspection status
+                    {/* Mandatory Inspection status */}
                     <button
                       type="button"
                       onClick={() => handleInspectionClick(entry)}
@@ -779,7 +801,7 @@ export function VehicleCheckinPage() {
                           <ShieldAlert className="w-3.5 h-3.5" /> Complete Inspection (required for QC)
                         </>
                       )}
-                    </button> */}
+                    </button>
                   </div>
                 </div>
               ))}

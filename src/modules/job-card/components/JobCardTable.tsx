@@ -24,6 +24,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
 import { JobCard } from "../types/job-card.types";
 import { READY_FOR_BILLING_STATUSES } from "../constants/job-card.constants";
+import { QC_QUICK_DECIDE_STATUSES } from "../lib/qcQuickDecide";
 
 // Statuses from technician-marked-Completed through the QC queue, before a
 // Pass/Fail decision has been recorded — a Service Advisor should assign a
@@ -38,19 +39,6 @@ const QC_ASSIGNABLE_STATUSES = new Set([
   "Review for QC",
   "Inspecting",
   "In QC",
-]);
-
-// A job in one of these can have its QC decision recorded directly by a
-// Super Admin from this card — Pass/Fail transparently sends it to the QC
-// queue first if it hasn't been already (see JobCardPage's
-// handleConfirmQuickPass/Fail), so there's no separate "Send to QC" step to
-// click through first.
-const QC_QUICK_DECIDE_STATUSES = new Set([
-  "Completed",
-  "Work Completed",
-  "Complete",
-  "Waiting for Quality Check",
-  "Rework Required",
 ]);
 
 interface JobCardTableProps {
@@ -108,7 +96,7 @@ export function JobCardTable({ jobCards, onView, onEdit, onDelete, isInspectionP
   useEffect(() => {
     try {
       const u = localStorage.getItem("user");
-      if (u) setUserRole((JSON.parse(u).role || "").toUpperCase());
+      if (u) setUserRole((JSON.parse(u).role || "").toUpperCase().replace(/[\s_]+/g, "_"));
     } catch {
       // Ignore
     }

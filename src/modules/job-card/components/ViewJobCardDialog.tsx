@@ -1,21 +1,21 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { X, ClipboardList, Calendar, Clock, User, Wrench, AlertCircle, FileText, Edit, Trash2, ShieldCheck, Camera, ClipboardCheck, Receipt } from "lucide-react";
 import { JobCard } from "../types/job-card.types";
 import { JobStatusBadge } from "./JobStatusBadge";
 import { PriorityBadge } from "./PriorityBadge";
 import { CarEntry } from "@/modules/vehicle-checkin/types/vehicle-checkin.types";
-import { getInspections, passQC, failQC, startInspection, submitChecklist } from "@/modules/qc/services/qc.service";
-import { QCInspection, ChecklistResult } from "@/modules/qc/types/qc.types";
+import { getInspections, passQC, failQC } from "@/modules/qc/services/qc.service";
+import { QCInspection } from "@/modules/qc/types/qc.types";
 import { PassDialog } from "@/modules/qc/components/PassDialog";
 import { FailDialog } from "@/modules/qc/components/FailDialog";
-import { sendToQC } from "@/modules/workshop/services/workshop.service";
 import { getInvoices } from "@/modules/billing/services/billing.service";
 import { BillingDocument } from "@/modules/billing/types/billing.types";
 import { toast } from "react-hot-toast";
 import { READY_FOR_BILLING_STATUSES } from "../constants/job-card.constants";
+import { QC_QUICK_DECIDE_STATUSES, ensureSentToQCAndChecklistSubmitted } from "../lib/qcQuickDecide";
 
 interface ViewJobCardDialogProps {
   isOpen: boolean;
@@ -30,26 +30,6 @@ interface ViewJobCardDialogProps {
   // refetch the job list (this dialog holds its own snapshot of `job`).
   onRefresh?: () => void;
 }
-
-// The backend only allows starting/resuming a QC inspection when the job is in
-// exactly one of "Waiting for Quality Check"/"Rework Required" (confirmed by
-// its own rejection message) — a technician marking work "Completed" isn't
-// enough on its own. Rather than surface that as a separate manual "Send to
-// QC" step, the Pass/Fail handlers below call Send to QC first whenever the
-// job is still in one of the "not yet sent" statuses, so a Super Admin here
-// only ever needs the one Pass/Fail click regardless of which of these
-// statuses the job is currently in.
-const QC_NOT_YET_SENT_STATUSES = new Set([
-  "Completed",
-  "Work Completed",
-  "Complete",
-]);
-
-const QC_QUICK_DECIDE_STATUSES = new Set([
-  ...QC_NOT_YET_SENT_STATUSES,
-  "Waiting for Quality Check",
-  "Rework Required",
-]);
 
 const INSPECTION_PHOTO_SLOTS: { key: keyof CarEntry; label: string }[] = [
   { key: "photoFront", label: "Front" },
@@ -156,18 +136,21 @@ export function ViewJobCardDialog({ isOpen, onClose, job, onEdit, onDelete, insp
     }
   }, [isOpen]);
 
+  const vehicleInvoices = useMemo(() => {
+    if (!job) return [];
+    return invoices
+      .filter(
+        (inv) =>
+          normalizeVehicle(inv.vehicle) === normalizeVehicle(job.vehicle) &&
+          inv.status !== "Cancelled"
+      )
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [invoices, job]);
+
   if (!isOpen || !job) return null;
 
   const latestQC = qcInspections[0];
   const priorQCAttempts = qcInspections.length - 1;
-
-  const vehicleInvoices = invoices
-    .filter(
-      (inv) =>
-        normalizeVehicle(inv.vehicle) === normalizeVehicle(job.vehicle) &&
-        inv.status !== "Cancelled"
-    )
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   const needsBilling = READY_FOR_BILLING_STATUSES.has(job.status);
 
@@ -207,29 +190,9 @@ export function ViewJobCardDialog({ isOpen, onClose, job, onEdit, onDelete, insp
   const isSuperAdmin = userRole === "SUPER_ADMIN" || userRole === "SUPERADMIN";
   const canDecideQC = isSuperAdmin && QC_QUICK_DECIDE_STATUSES.has(job.status);
 
-  // The backend rejects a decision unless the job has already been sent to
-  // QC and has an open QCInspection attempt with a submitted checklist, for
-  // both Pass and Fail — the "bypass" this override offers is doing those
-  // steps automatically (marking every frozen checklist item Passed, which
-  // the checklist-result-agnostic Fail path doesn't care about either way)
-  // rather than actually skipping backend validation, which isn't possible
-  // from here. Both calls are idempotent, so this is safe even if the job's
-  // already been sent / has a filled checklist.
-  const ensureSentToQCAndChecklistSubmitted = async () => {
-    if (QC_NOT_YET_SENT_STATUSES.has(job.status)) {
-      await sendToQC(job.id);
-    }
-    const attempt = await startInspection(job.id);
-    const frozenChecklist = attempt.checklist || [];
-    if (frozenChecklist.length > 0) {
-      const allPassed: ChecklistResult[] = frozenChecklist.map((item) => ({ id: item.id, result: "Passed" }));
-      await submitChecklist(job.id, allPassed);
-    }
-  };
-
   const handleConfirmPassQC = async (notes?: string) => {
     try {
-      await ensureSentToQCAndChecklistSubmitted();
+      await ensureSentToQCAndChecklistSubmitted(job);
       await passQC(job.id, notes);
       toast.success("QC passed — job moved to Ready For Billing");
       onRefresh?.();
@@ -243,7 +206,7 @@ export function ViewJobCardDialog({ isOpen, onClose, job, onEdit, onDelete, insp
 
   const handleConfirmFailQC = async (notes: string) => {
     try {
-      await ensureSentToQCAndChecklistSubmitted();
+      await ensureSentToQCAndChecklistSubmitted(job);
       await failQC(job.id, notes);
       toast.error("QC failed — job requires rework");
       onRefresh?.();

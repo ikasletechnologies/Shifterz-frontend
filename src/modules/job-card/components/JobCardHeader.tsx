@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Search, X } from "lucide-react";
+import { toast } from "react-hot-toast";
 import { JobCardStats } from "../types/job-card.types";
 
 interface JobCardHeaderProps {
@@ -57,12 +58,38 @@ export function JobCardHeader({
     return { from: null, to: null };
   };
 
-  // Expose date range to parent whenever it changes
   const { from, to } = getDateRange();
   const fromISO = from ? `${from.getFullYear()}-${(from.getMonth()+1).toString().padStart(2,"0")}-${from.getDate().toString().padStart(2,"0")}` : "";
   const toISO = to ? `${to.getFullYear()}-${(to.getMonth()+1).toString().padStart(2,"0")}-${to.getDate().toString().padStart(2,"0")}` : "";
-  if (onFromDateChange && fromISO !== (fromDate || "")) onFromDateChange(fromISO);
-  if (onToDateChange && toISO !== (toDate || "")) onToDateChange(toISO);
+
+  // Expose date range to parent whenever it changes (must run after render, not during it)
+  useEffect(() => {
+    if (onFromDateChange && fromISO !== (fromDate || "")) onFromDateChange(fromISO);
+    if (onToDateChange && toISO !== (toDate || "")) onToDateChange(toISO);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fromISO, toISO]);
+
+  const handleCustomFromDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selected = e.target.value;
+    const today = getTodayISO();
+    if (selected && selected > today) {
+      toast.error("Future dates are not allowed. Please select today or a past date.");
+      setCustomFromDate(today);
+      return;
+    }
+    setCustomFromDate(selected);
+  };
+
+  const handleCustomToDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selected = e.target.value;
+    const today = getTodayISO();
+    if (selected && selected > today) {
+      toast.error("Future dates are not allowed. Please select today or a past date.");
+      setCustomToDate(today);
+      return;
+    }
+    setCustomToDate(selected);
+  };
 
   const storedUser = typeof window !== "undefined" ? (() => { try { const u = localStorage.getItem("user"); return u ? JSON.parse(u) : null; } catch { return null; } })() : null;
   const storedRole = ((storedUser?.role || "")).toUpperCase().replace(/[\s_]+/g, "_");
@@ -120,14 +147,14 @@ export function JobCardHeader({
                       <div>
                         <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">From</label>
                         <div className="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-lg px-2 py-1.5">
-                          <input type="date" value={customFromDate} max={getTodayISO()} onChange={(e) => setCustomFromDate(e.target.value)} className="bg-transparent border-none text-xs text-gray-800 outline-none w-full" />
+                          <input type="date" value={customFromDate} max={getTodayISO()} onChange={handleCustomFromDateChange} className="bg-transparent border-none text-xs text-gray-800 outline-none w-full" />
                           {customFromDate && <button type="button" onClick={() => setCustomFromDate("")} className="text-gray-400 hover:text-gray-600 shrink-0"><X className="w-3 h-3" /></button>}
                         </div>
                       </div>
                       <div>
                         <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">To</label>
                         <div className="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-lg px-2 py-1.5">
-                          <input type="date" value={customToDate} max={getTodayISO()} onChange={(e) => setCustomToDate(e.target.value)} className="bg-transparent border-none text-xs text-gray-800 outline-none w-full" />
+                          <input type="date" value={customToDate} max={getTodayISO()} onChange={handleCustomToDateChange} className="bg-transparent border-none text-xs text-gray-800 outline-none w-full" />
                           {customToDate && <button type="button" onClick={() => setCustomToDate("")} className="text-gray-400 hover:text-gray-600 shrink-0"><X className="w-3 h-3" /></button>}
                         </div>
                       </div>

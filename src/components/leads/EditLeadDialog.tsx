@@ -135,6 +135,14 @@ export default function EditLeadDialog({
 
     if (onSubmit && lead) {
       const selectedAssignee = assignees.find((a) => a.name === formData.assigned);
+      // `assignees` only lists Active employees, so a lead assigned to someone
+      // who has since gone Inactive won't match here even though the field
+      // wasn't touched — fall back to the lead's existing assignedToId in that
+      // case instead of silently clearing a valid FK on an unrelated edit.
+      const originalAssignedName = lead.assignedTo || lead.assigned || "";
+      const assignedToId = selectedAssignee
+        ? selectedAssignee.id
+        : (formData.assigned && formData.assigned === originalAssignedName ? (lead.assignedToId ?? null) : null);
       const updatedLead = {
         ...lead,
         name: formData.name,
@@ -144,7 +152,7 @@ export default function EditLeadDialog({
         source: formData.source,
         service: formData.service,
         assignedTo: formData.assigned,
-        assignedToId: selectedAssignee?.id || null,
+        assignedToId,
         // Raw numeric value — the backend's high-value-lead alert does
         // parseFloat(budget), which a baked-in "₹" breaks (parseFloat("₹50000")
         // is NaN, so the alert can never fire).

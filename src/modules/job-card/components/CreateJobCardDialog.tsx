@@ -273,7 +273,7 @@ export function CreateJobCardDialog({ isOpen, onClose, onSave, initialData }: Cr
               {(formData.services || []).length > 0 && (
                 <div className="space-y-1.5 pt-1">
                   {(formData.services || []).map((s, i) => (
-                    <div key={i} className="flex items-center justify-between gap-2 bg-gray-50 rounded-lg px-3 py-2 border border-gray-200">
+                    <div key={s.name} className="flex items-center justify-between gap-2 bg-gray-50 rounded-lg px-3 py-2 border border-gray-200">
                       <span className="text-sm text-gray-800 truncate">{s.name} × {s.qty}</span>
                       <div className="flex items-center gap-2 shrink-0">
                         <span className="text-sm font-bold text-gray-900">₹{(s.price * s.qty).toLocaleString("en-IN")}</span>
@@ -350,7 +350,10 @@ export function CreateJobCardDialog({ isOpen, onClose, onSave, initialData }: Cr
                 onChange={(e) => setFormData({ ...formData, status: e.target.value })}
                 className="w-full px-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:bg-white"
               >
-                {JOB_STATUSES.map((s) => (
+                {/* "QC Passed"/"Ready For Billing" are QC-decision outputs — the backend
+                    rejects an update that resubmits either as a plain status edit, so they
+                    may only be recorded via the QC Inspection module's Pass/Fail flow. */}
+                {JOB_STATUSES.filter((s) => s !== "QC Passed" && s !== "Ready For Billing").map((s) => (
                   <option key={s} value={s}>{s}</option>
                 ))}
               </select>
