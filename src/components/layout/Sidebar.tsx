@@ -167,12 +167,11 @@ export const hqSidebarSections: NavSection[] = [
   {
     label: "SETTINGS",
     items: [
-      { label: "Settings", icon: Settings, href: "/dashboard/settings", module: "settings" },
+      { label: "Company Profile", icon: Settings, href: "/dashboard/settings", module: "settings" },
       { label: "Roles & Permissions", icon: ShieldCheck, href: "/dashboard/roles", module: "roles" },
       { label: "License Management", icon: Key, href: "/dashboard/franchise-control/licenses", module: "settings" },
       { label: "Audit Logs", icon: ScrollText, href: "/dashboard/franchise-control/audit-logs", module: "settings" },
       { label: "Notifications", icon: Bell, href: "/dashboard/franchise-control/notifications", module: "settings" },
-      { label: "Profile", icon: User, href: "/dashboard/profile" },
     ],
   },
 ];
@@ -240,9 +239,8 @@ export const franchiseSidebarSections: NavSection[] = [
   {
     label: "SETTINGS",
     items: [
-      { label: "Settings", icon: Settings, href: "/dashboard/settings", module: "settings" },
+      { label: "Company Profile", icon: Settings, href: "/dashboard/settings", module: "settings" },
       { label: "Roles & Permissions", icon: ShieldCheck, href: "/dashboard/roles", module: "roles" },
-      { label: "Profile", icon: User, href: "/dashboard/profile" },
     ],
   },
 ];

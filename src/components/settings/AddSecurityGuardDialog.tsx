@@ -1,6 +1,5 @@
 "use client";
 
-import { PhoneInput } from "@/components/common/PhoneInput";
 import { useState } from "react";
 import { X, Shield } from "lucide-react";
 
@@ -9,8 +8,6 @@ interface AddSecurityGuardDialogProps {
   onClose: () => void;
   onSubmit?: (guardData: {
     name: string;
-    phone: string;
-    shift: string;
   }) => void;
 }
 
@@ -21,19 +18,13 @@ export default function AddSecurityGuardDialog({
 }: AddSecurityGuardDialogProps) {
   const [formData, setFormData] = useState({
     name: "",
-    phone: "",
-    shift: "Day",
   });
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
-    if (name === "phone") {
-      setFormData((prev) => ({ ...prev, [name]: value.replace(/\D/g, "").slice(0, 10) }));
-    } else {
-      setFormData((prev) => ({ ...prev, [name]: value }));
-    }
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -47,8 +38,6 @@ export default function AddSecurityGuardDialog({
     }
     setFormData({
       name: "",
-      phone: "",
-      shift: "Day",
     });
     onClose();
   };
@@ -86,36 +75,6 @@ export default function AddSecurityGuardDialog({
               className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-transparent"
               required
             />
-          </div>
-
-          {/* Phone */}
-          <div>
-            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">
-              Phone Number
-            </label>
-            <PhoneInput
-              name="phone"
-              value={formData.phone}
-              onChange={handleChange}
-              placeholder="XXXXX XXXXX"
-            />
-          </div>
-
-          {/* Shift */}
-          <div>
-            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">
-              Shift
-            </label>
-            <select
-              name="shift"
-              value={formData.shift}
-              onChange={handleChange}
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-transparent bg-white"
-            >
-              <option>Day</option>
-              <option>Night</option>
-              <option>Both</option>
-            </select>
           </div>
 
           {/* Submit Button */}

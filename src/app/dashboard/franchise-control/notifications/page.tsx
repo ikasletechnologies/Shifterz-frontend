@@ -5,13 +5,10 @@ import {
   Bell,
   CheckCheck,
   Megaphone,
-  AlertCircle,
   Clock,
   Send,
-  Filter,
   CheckCircle2,
   ExternalLink,
-  ShieldAlert,
   Info,
   RefreshCw,
   Trash2,
@@ -132,22 +129,17 @@ export default function NotificationCenterPage() {
   const unreadCount = notifications.filter((n) => !n.read).length;
 
   return (
-    <div className="p-8 max-w-6xl mx-auto space-y-6">
+    <div className="p-6 max-w-5xl mx-auto space-y-5">
       {/* Header Banner */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-slate-900 via-blue-950 to-slate-900 p-6 rounded-2xl text-white shadow-xl">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-200 pb-5">
         <div>
-          <div className="flex items-center gap-2 text-blue-400 text-xs font-bold uppercase tracking-wider mb-1">
-            <Bell className="w-4 h-4" /> System Administration & Security (§17.6)
-          </div>
-          <h1 className="text-2xl font-black">Notification Center</h1>
-          <p className="text-sm text-slate-300 mt-1">
-            Manage system alerts, operational reminders, and headquarters announcements across all branches.
-          </p>
+          <h1 className="text-2xl font-semibold text-gray-900">Notifications</h1>
+          <p className="mt-1 text-sm text-gray-500">View system alerts and announcements.</p>
         </div>
         <div className="flex items-center gap-3">
           <button
             onClick={loadNotifs}
-            className="p-2.5 bg-white/10 hover:bg-white/20 rounded-xl transition text-white"
+            className="p-2 border border-gray-300 text-gray-600 hover:bg-gray-50 rounded-md transition"
             title="Refresh"
           >
             <RefreshCw className={`w-5 h-5 ${loading ? "animate-spin" : ""}`} />
@@ -155,7 +147,7 @@ export default function NotificationCenterPage() {
           {unreadCount > 0 && (
             <button
               onClick={handleMarkAllRead}
-              className="px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm rounded-xl transition flex items-center gap-2 shadow-lg shadow-blue-600/30"
+              className="px-3 py-2 border border-gray-300 text-gray-700 hover:bg-gray-50 font-medium text-sm rounded-md transition flex items-center gap-2"
             >
               <CheckCheck className="w-4 h-4" /> Mark All as Read
             </button>
@@ -163,7 +155,7 @@ export default function NotificationCenterPage() {
           {authorizedHQ && (
             <button
               onClick={() => setShowBroadcastModal(true)}
-              className="px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-900 font-extrabold text-sm rounded-xl transition flex items-center gap-2 shadow-lg shadow-amber-500/30"
+              className="px-3 py-2 bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-medium text-sm rounded-md transition flex items-center gap-2"
             >
               <Megaphone className="w-4 h-4" /> Send Announcement
             </button>
@@ -172,39 +164,39 @@ export default function NotificationCenterPage() {
       </div>
 
       {/* Tabs & Filter Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
-        <div className="flex items-center gap-2">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white px-4 py-3 border border-gray-200 rounded-lg">
+        <div className="flex items-center gap-1 overflow-x-auto">
           <button
             onClick={() => setActiveTab("ALL")}
-            className={`px-4 py-2 rounded-lg text-sm font-bold transition ${
+            className={`px-3 py-2 rounded-md text-sm font-medium transition ${
               activeTab === "ALL"
-                ? "bg-blue-50 text-blue-600 border border-blue-200"
-                : "text-gray-600 hover:bg-gray-100"
+                ? "bg-gray-100 text-gray-900"
+                : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"
             }`}
           >
             All Notifications ({notifications.length})
           </button>
           <button
             onClick={() => setActiveTab("UNREAD")}
-            className={`px-4 py-2 rounded-lg text-sm font-bold transition flex items-center gap-2 ${
+            className={`px-3 py-2 rounded-md text-sm font-medium transition flex items-center gap-2 ${
               activeTab === "UNREAD"
-                ? "bg-red-50 text-red-600 border border-red-200"
-                : "text-gray-600 hover:bg-gray-100"
+                ? "bg-gray-100 text-gray-900"
+                : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"
             }`}
           >
             Unread
             {unreadCount > 0 && (
-              <span className="px-2 py-0.5 bg-red-500 text-white text-xs rounded-full">
+              <span className="px-1.5 py-0.5 bg-gray-700 text-white text-xs rounded-full">
                 {unreadCount}
               </span>
             )}
           </button>
           <button
             onClick={() => setActiveTab("ANNOUNCEMENTS")}
-            className={`px-4 py-2 rounded-lg text-sm font-bold transition ${
+            className={`px-3 py-2 rounded-md text-sm font-medium transition ${
               activeTab === "ANNOUNCEMENTS"
-                ? "bg-amber-50 text-amber-700 border border-amber-200"
-                : "text-gray-600 hover:bg-gray-100"
+                ? "bg-gray-100 text-gray-900"
+                : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"
             }`}
           >
             System Announcements
@@ -214,7 +206,7 @@ export default function NotificationCenterPage() {
           {notifications.length > 0 && (
             <button
               onClick={handleClearAll}
-              className="px-4 py-2 bg-red-50 hover:bg-red-100 text-red-600 font-bold text-xs rounded-lg transition flex items-center gap-2"
+              className="px-3 py-2 text-red-600 hover:bg-red-50 font-medium text-xs rounded-md transition flex items-center gap-2"
               title="Clear all notifications"
             >
               <Trash2 className="w-4 h-4" /> Clear All
@@ -223,7 +215,7 @@ export default function NotificationCenterPage() {
           <select
             value={filterType}
             onChange={(e) => setFilterType(e.target.value)}
-            className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-3 py-2 bg-white border border-gray-300 rounded-md text-xs font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-300"
           >
             <option value="ALL">All Categories</option>
             <option value="JOB_ASSIGNED">Job Card Assignments</option>
@@ -235,29 +227,27 @@ export default function NotificationCenterPage() {
       </div>
 
       {/* Notifications List */}
-      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
         {loading ? (
-          <div className="p-12 text-center text-gray-400">Loading notifications...</div>
+          <div className="p-10 text-center text-sm text-gray-500">Loading notifications...</div>
         ) : filteredNotifications.length === 0 ? (
-          <div className="p-16 text-center">
-            <Bell className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-            <h3 className="text-base font-bold text-gray-700">No notifications found</h3>
-            <p className="text-xs text-gray-500 mt-1">
-              You have caught up with all alerts and announcements.
-            </p>
+          <div className="p-12 text-center">
+            <Bell className="w-8 h-8 text-gray-400 mx-auto mb-3" />
+            <h3 className="text-sm font-semibold text-gray-800">No notifications</h3>
+            <p className="text-xs text-gray-500 mt-1">There are no alerts or announcements to show.</p>
           </div>
         ) : (
           <div className="divide-y divide-gray-100">
             {filteredNotifications.map((n, idx) => (
               <div
                 key={idx}
-                className={`p-5 flex items-start justify-between gap-4 transition-colors ${
-                  n.read ? "bg-white hover:bg-slate-50/50" : "bg-blue-50/50 hover:bg-blue-50"
+                className={`p-4 flex items-start justify-between gap-4 transition-colors ${
+                  n.read ? "bg-white hover:bg-gray-50" : "bg-yellow-50/50 hover:bg-yellow-50"
                 }`}
               >
                 <div className="flex items-start gap-4">
                   <div
-                    className={`p-2.5 rounded-xl ${
+                    className={`p-2 rounded-md ${
                       n.type === "SYSTEM_ANNOUNCEMENT"
                         ? "bg-amber-100 text-amber-700"
                         : n.type === "JOB_ASSIGNED"
@@ -279,8 +269,8 @@ export default function NotificationCenterPage() {
                     <div className="flex items-center gap-2">
                       <h4 className="text-sm font-bold text-gray-900">{n.title}</h4>
                       {!n.read && (
-                        <span className="px-2 py-0.5 bg-blue-600 text-white text-[10px] font-extrabold uppercase rounded-full">
-                          NEW
+                        <span className="px-1.5 py-0.5 bg-gray-800 text-white text-[10px] font-medium uppercase rounded">
+                          New
                         </span>
                       )}
                     </div>
@@ -321,16 +311,16 @@ export default function NotificationCenterPage() {
 
       {/* Broadcast Modal (§17.6) */}
       {showBroadcastModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 w-full max-w-lg overflow-hidden">
-            <div className="bg-slate-900 text-white px-6 py-4 flex items-center justify-between">
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg shadow-xl border border-gray-200 w-full max-w-lg overflow-hidden">
+            <div className="px-6 py-4 flex items-center justify-between border-b border-gray-200">
               <div className="flex items-center gap-2">
-                <Megaphone className="w-5 h-5 text-amber-400" />
-                <h3 className="font-bold text-base">Broadcast System Announcement (§17.6)</h3>
+                <Megaphone className="w-5 h-5 text-gray-700" />
+                <h3 className="font-semibold text-base text-gray-900">Send Announcement</h3>
               </div>
               <button
                 onClick={() => setShowBroadcastModal(false)}
-                className="text-gray-400 hover:text-white"
+                className="text-gray-400 hover:text-gray-700"
               >
                 ✕
               </button>
@@ -349,7 +339,7 @@ export default function NotificationCenterPage() {
                   onChange={(e) =>
                     setBroadcastForm({ ...broadcastForm, title: e.target.value })
                   }
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-300"
                 />
               </div>
 
@@ -365,7 +355,7 @@ export default function NotificationCenterPage() {
                   onChange={(e) =>
                     setBroadcastForm({ ...broadcastForm, message: e.target.value })
                   }
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-300"
                 />
               </div>
 
@@ -379,7 +369,7 @@ export default function NotificationCenterPage() {
                     onChange={(e) =>
                       setBroadcastForm({ ...broadcastForm, type: e.target.value })
                     }
-                    className="w-full px-3 py-2.5 border border-gray-300 rounded-xl text-sm font-bold text-gray-900"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-900"
                   >
                     <option value="SYSTEM_ANNOUNCEMENT">System Announcement</option>
                     <option value="ALERT">Security Alert</option>
@@ -397,7 +387,7 @@ export default function NotificationCenterPage() {
                     onChange={(e) =>
                       setBroadcastForm({ ...broadcastForm, link: e.target.value })
                     }
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm font-semibold text-gray-900"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-900"
                   />
                 </div>
               </div>
@@ -406,14 +396,14 @@ export default function NotificationCenterPage() {
                 <button
                   type="button"
                   onClick={() => setShowBroadcastModal(false)}
-                  className="px-4 py-2 border border-gray-300 rounded-xl text-sm font-bold text-gray-700 hover:bg-gray-50 transition"
+                  className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={broadcasting}
-                  className="px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold rounded-xl transition flex items-center gap-2"
+                  className="px-4 py-2 bg-yellow-400 hover:bg-yellow-500 text-gray-900 text-sm font-medium rounded-md transition flex items-center gap-2"
                 >
                   <Send className="w-4 h-4" />
                   {broadcasting ? "Broadcasting..." : "Send Announcement"}

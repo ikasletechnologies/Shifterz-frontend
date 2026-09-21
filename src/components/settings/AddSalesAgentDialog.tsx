@@ -1,6 +1,5 @@
 "use client";
 
-import { PhoneInput } from "@/components/common/PhoneInput";
 import { useState } from "react";
 import { X, UserPlus } from "lucide-react";
 
@@ -9,8 +8,6 @@ interface AddSalesAgentDialogProps {
   onClose: () => void;
   onSubmit?: (agentData: {
     name: string;
-    phone: string;
-    email: string;
   }) => void;
 }
 
@@ -21,19 +18,13 @@ export default function AddSalesAgentDialog({
 }: AddSalesAgentDialogProps) {
   const [formData, setFormData] = useState({
     name: "",
-    phone: "",
-    email: "",
   });
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement>
   ) => {
     const { name, value } = e.target;
-    if (name === "phone") {
-      setFormData((prev) => ({ ...prev, [name]: value.replace(/\D/g, "").slice(0, 10) }));
-    } else {
-      setFormData((prev) => ({ ...prev, [name]: value }));
-    }
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -47,8 +38,6 @@ export default function AddSalesAgentDialog({
     }
     setFormData({
       name: "",
-      phone: "",
-      email: "",
     });
     onClose();
   };
@@ -85,34 +74,6 @@ export default function AddSalesAgentDialog({
               placeholder="Enter agent name"
               className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent"
               required
-            />
-          </div>
-
-          {/* Phone */}
-          <div>
-            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">
-              Phone Number
-            </label>
-            <PhoneInput
-              name="phone"
-              value={formData.phone}
-              onChange={handleChange}
-              placeholder="XXXXX XXXXX"
-            />
-          </div>
-
-          {/* Email */}
-          <div>
-            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">
-              Email
-            </label>
-            <input
-              type="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              placeholder="agent@example.com"
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent"
             />
           </div>
 

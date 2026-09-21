@@ -277,7 +277,7 @@ export default function Header() {
             {isProfileOpen && (
               <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-50">
                 <Link 
-                  href="/dashboard/settings"
+                  href={userRole === "SUPER_ADMIN" || userRole === "FRANCHISE_ADMIN" ? "/dashboard/settings" : "/dashboard/profile"}
                   className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 w-full text-left transition-colors"
                   onMouseDown={(e) => {
                     // Prevent default to avoid blur, or just let it redirect
@@ -285,7 +285,7 @@ export default function Header() {
                   }}
                 >
                   <User className="w-4 h-4" />
-                  Profile
+                  {userRole === "SUPER_ADMIN" || userRole === "FRANCHISE_ADMIN" ? "Company Profile" : "My Profile"}
                 </Link>
                 <div className="h-px bg-gray-100 my-1"></div>
                 <button

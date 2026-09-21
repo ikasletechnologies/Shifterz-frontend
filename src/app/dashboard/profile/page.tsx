@@ -13,7 +13,7 @@ interface UserProfile {
   role: string;
 }
 
-export default function ProfilePage() {
+export default function ProfilePage({ embedded = false }: { embedded?: boolean }) {
   const [profile, setProfile] = useState<UserProfile>({
     name: "",
     email: "",
@@ -96,14 +96,14 @@ export default function ProfilePage() {
     : profile.username.slice(0, 2).toUpperCase();
 
   return (
-    <div className="p-6 max-w-3xl mx-auto">
+    <div className={embedded ? "max-w-3xl" : "p-6 max-w-3xl mx-auto"}>
       {/* Header */}
       <div className="flex items-center gap-3 mb-8">
         <div className="p-2 rounded-xl bg-yellow-100">
           <User className="w-6 h-6 text-yellow-600" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">My Profile</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{embedded ? "Administrator Account" : "My Profile"}</h1>
           <p className="text-sm text-gray-500">Manage your account details and password.</p>
         </div>
       </div>

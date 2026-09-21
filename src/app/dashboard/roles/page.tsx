@@ -7,45 +7,45 @@ import { toast } from "react-hot-toast";
 
 // ── Role definitions ─────────────────────────────────────────────────────────
 const ROLES = [
-  { id: "SUPER_ADMIN",         label: "Super Admin",      color: "#ef4444", badge: "bg-red-100 text-red-700" },
-  { id: "HQ_USER",             label: "HQ User",          color: "#f59e0b", badge: "bg-amber-100 text-amber-700" },
-  { id: "FRANCHISE_ADMIN",     label: "Franchise Admin",  color: "#3b82f6", badge: "bg-blue-100 text-blue-700" },
-  { id: "BRANCH_MANAGER",      label: "Branch Manager",   color: "#8b5cf6", badge: "bg-violet-100 text-violet-700" },
+  { id: "SUPER_ADMIN", label: "Super Admin", color: "#ef4444", badge: "bg-red-100 text-red-700" },
+  { id: "HQ_USER", label: "HQ User", color: "#f59e0b", badge: "bg-amber-100 text-amber-700" },
+  { id: "FRANCHISE_ADMIN", label: "Franchise Admin", color: "#3b82f6", badge: "bg-blue-100 text-blue-700" },
+  { id: "BRANCH_MANAGER", label: "Branch Manager", color: "#8b5cf6", badge: "bg-violet-100 text-violet-700" },
   { id: "RECEPTION_EXECUTIVE", label: "Reception Executive", color: "#06b6d4", badge: "bg-cyan-100 text-cyan-700" },
-  { id: "SERVICE_ADVISOR",     label: "Service Advisor",  color: "#3b82f6", badge: "bg-blue-100 text-blue-700" },
-  { id: "TECHNICIAN",          label: "Technician",       color: "#10b981", badge: "bg-emerald-100 text-emerald-700" },
-  { id: "QUALITY_INSPECTOR",   label: "Quality Inspector", color: "#a855f7", badge: "bg-purple-100 text-purple-700" },
-  { id: "BILLING_EXECUTIVE",   label: "Billing Executive", color: "#f97316", badge: "bg-orange-100 text-orange-700" },
+  { id: "SERVICE_ADVISOR", label: "Service Advisor", color: "#3b82f6", badge: "bg-blue-100 text-blue-700" },
+  { id: "TECHNICIAN", label: "Technician", color: "#10b981", badge: "bg-emerald-100 text-emerald-700" },
+  { id: "QUALITY_INSPECTOR", label: "Quality Inspector", color: "#a855f7", badge: "bg-purple-100 text-purple-700" },
+  { id: "BILLING_EXECUTIVE", label: "Billing Executive", color: "#f97316", badge: "bg-orange-100 text-orange-700" },
   { id: "INVENTORY_EXECUTIVE", label: "Inventory Executive", color: "#14b8a6", badge: "bg-teal-100 text-teal-700" },
 ];
 
 // ── Permission matrix ────────────────────────────────────────────────────────
 const PERMISSIONS = [
-  { module: "Dashboard",         key: "dashboard" },
-  { module: "Car In",            key: "carin" },
-  { module: "Job Cards",         key: "jobs" },
-  { module: "Out Pass",          key: "outpass" },
-  { module: "Leads",             key: "leads" },
-  { module: "Customers",         key: "customers" },
-  { module: "Billing",           key: "billing" },
-  { module: "Payments",          key: "payments" },
-  { module: "Inventory",         key: "inventory" },
-  { module: "Reports",           key: "reports" },
-  { module: "Employees",         key: "employees" },
-  { module: "Attendance",        key: "attendance" },
-  { module: "Settings",          key: "settings" },
+  { module: "Dashboard", key: "dashboard" },
+  { module: "Car In", key: "carin" },
+  { module: "Job Cards", key: "jobs" },
+  { module: "Out Pass", key: "outpass" },
+  { module: "Leads", key: "leads" },
+  { module: "Customers", key: "customers" },
+  { module: "Billing", key: "billing" },
+  { module: "Payments", key: "payments" },
+  { module: "Inventory", key: "inventory" },
+  { module: "Reports", key: "reports" },
+  { module: "Employees", key: "employees" },
+  { module: "Attendance", key: "attendance" },
+  { module: "Settings", key: "settings" },
   { module: "Roles & Permissions", key: "roles" },
 ];
 
 // Default matrix – true = has access
 const DEFAULT_MATRIX: Record<string, Record<string, boolean>> = {
-  SUPER_ADMIN:     Object.fromEntries(PERMISSIONS.map(p => [p.key, true])),
-  HQ_USER:         Object.fromEntries(PERMISSIONS.map(p => [p.key, !["roles"].includes(p.key)])),
+  SUPER_ADMIN: Object.fromEntries(PERMISSIONS.map(p => [p.key, true])),
+  HQ_USER: Object.fromEntries(PERMISSIONS.map(p => [p.key, !["roles"].includes(p.key)])),
   FRANCHISE_ADMIN: Object.fromEntries(PERMISSIONS.map(p => [p.key, !["settings", "roles"].includes(p.key)])),
-  BRANCH_MANAGER:  Object.fromEntries(PERMISSIONS.map(p => [p.key, !["settings", "roles", "employees"].includes(p.key)])),
+  BRANCH_MANAGER: Object.fromEntries(PERMISSIONS.map(p => [p.key, !["settings", "roles", "employees"].includes(p.key)])),
   RECEPTION_EXECUTIVE: Object.fromEntries(PERMISSIONS.map(p => [p.key, ["dashboard", "carin", "outpass", "customers", "leads"].includes(p.key)])),
   SERVICE_ADVISOR: Object.fromEntries(PERMISSIONS.map(p => [p.key, ["dashboard", "carin", "jobs", "outpass", "customers", "leads"].includes(p.key)])),
-  TECHNICIAN:      Object.fromEntries(PERMISSIONS.map(p => [p.key, ["dashboard", "jobs", "attendance"].includes(p.key)])),
+  TECHNICIAN: Object.fromEntries(PERMISSIONS.map(p => [p.key, ["dashboard", "jobs", "attendance"].includes(p.key)])),
   QUALITY_INSPECTOR: Object.fromEntries(PERMISSIONS.map(p => [p.key, ["dashboard", "jobs", "carin"].includes(p.key)])),
   BILLING_EXECUTIVE: Object.fromEntries(PERMISSIONS.map(p => [p.key, ["dashboard", "billing", "payments", "reports"].includes(p.key)])),
   INVENTORY_EXECUTIVE: Object.fromEntries(PERMISSIONS.map(p => [p.key, ["dashboard", "inventory", "reports"].includes(p.key)])),
@@ -102,7 +102,7 @@ export default function RolesPermissionsPage() {
       const currentRolePerms = Object.entries(matrix[selected] || {})
         .filter(([_, val]) => val)
         .map(([key]) => key);
-        
+
       await updateRolePermissions(selected, currentRolePerms);
       toast.success(`Successfully saved permissions for ${activeRole.label}`);
     } catch (err: any) {
@@ -236,10 +236,10 @@ export default function RolesPermissionsPage() {
             </div>
           </div>
 
-          {/* Info note */}
+          {/* Info note
           <p className="text-xs text-gray-400 mt-3 px-1">
             ⚠️ Changes here are saved to the database and will take effect upon the user's next login or profile reload.
-          </p>
+          </p> */}
         </div>
       </div>
     </div>

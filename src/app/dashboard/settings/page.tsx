@@ -2,11 +2,12 @@
 
 import { PhoneInput } from "@/components/common/PhoneInput";
 import { useRef, useState, useEffect } from "react";
-import { Building2, Database, Download, Headset, Lock, Plus, Trash2, Users, Tag, Upload, Loader2, Image as ImageIcon } from "lucide-react";
+import { Building2, Headset, Lock, Plus, Trash2, Tag, Upload, Loader2, Image as ImageIcon, User } from "lucide-react";
 import { getSettings, updateSettings, uploadFile } from "@/lib/api";
 import AddTechnicianDialog from "@/modules/vehicle-checkin/components/AddTechnicianDialog";
 import AddSalesAgentDialog from "@/components/settings/AddSalesAgentDialog";
 import AddSecurityGuardDialog from "@/components/settings/AddSecurityGuardDialog";
+import ProfilePage from "@/app/dashboard/profile/page";
 import { toast } from "react-hot-toast";
 
 function resolveUploadUrl(url: string): string {
@@ -64,11 +65,11 @@ export default function SettingsPage() {
   };
 
   const tabs = [
-    { id: "company", label: "Company Info", icon: Building2 },
+    { id: "company", label: "Company Details", icon: Building2 },
+    { id: "admin", label: "Administrator Account", icon: User },
     { id: "sales", label: "Sales Agents", icon: Headset },
     { id: "security", label: "Security Guards", icon: Lock },
     { id: "categories", label: "Categories", icon: Tag },
-    { id: "data", label: "Data Management", icon: Database },
   ];
 
   useEffect(() => {
@@ -160,7 +161,7 @@ export default function SettingsPage() {
         gstPct: Number(companyInfo.gstPercent)
       };
       await updateSettings({ ...mappedInfo, agents: salesAgents, securityGuards, categories });
-      toast.success("Settings saved successfully!");
+      toast.success("Company profile saved");
     } catch (err: any) {
       console.error("Failed to save settings:", err);
       toast.error(err.message || "Failed to save settings");
@@ -224,17 +225,16 @@ export default function SettingsPage() {
 
   const handleAddSalesAgentSubmit = async (agentData: {
     name: string;
-    phone: string;
-    email: string;
   }) => {
-    if (agentData.name && !salesAgents.includes(agentData.name)) {
-      const newSalesAgents = [...salesAgents, agentData.name];
-      setSalesAgents(newSalesAgents);
+    const name = agentData.name.trim();
+    if (name && !salesAgents.includes(name)) {
+      const newSalesAgents = [...salesAgents, name];
       try {
-        await updateSettings({ companyInfo, technicians, salesAgents: newSalesAgents, securityGuards, categories });
-        toast.success("Sales Agent added to database");
+        await updateSettings({ agents: newSalesAgents });
+        setSalesAgents(newSalesAgents);
+        toast.success("Sales agent added");
       } catch (err: any) {
-        toast.error("Failed to add Sales Agent: " + err.message);
+        toast.error("Failed to add sales agent: " + err.message);
       }
     }
   };
@@ -242,12 +242,12 @@ export default function SettingsPage() {
   const handleRemoveSalesAgent = async (index: number) => {
     if (window.confirm("Are you sure you want to remove this sales agent?")) {
       const newSalesAgents = salesAgents.filter((_, i) => i !== index);
-      setSalesAgents(newSalesAgents);
       try {
-        await updateSettings({ companyInfo, technicians, salesAgents: newSalesAgents, securityGuards, categories });
-        toast.success("Sales Agent removed from database");
+        await updateSettings({ agents: newSalesAgents });
+        setSalesAgents(newSalesAgents);
+        toast.success("Sales agent removed");
       } catch (err: any) {
-        toast.error("Failed to remove Sales Agent: " + err.message);
+        toast.error("Failed to remove sales agent: " + err.message);
       }
     }
   };
@@ -258,17 +258,16 @@ export default function SettingsPage() {
 
   const handleAddSecurityGuardSubmit = async (guardData: {
     name: string;
-    phone: string;
-    shift: string;
   }) => {
-    if (guardData.name && !securityGuards.includes(guardData.name)) {
-      const newSecurityGuards = [...securityGuards, guardData.name];
-      setSecurityGuards(newSecurityGuards);
+    const name = guardData.name.trim();
+    if (name && !securityGuards.includes(name)) {
+      const newSecurityGuards = [...securityGuards, name];
       try {
-        await updateSettings({ companyInfo, technicians, salesAgents, securityGuards: newSecurityGuards, categories });
-        toast.success("Security Guard added to database");
+        await updateSettings({ securityGuards: newSecurityGuards });
+        setSecurityGuards(newSecurityGuards);
+        toast.success("Security guard added");
       } catch (err: any) {
-        toast.error("Failed to add Security Guard: " + err.message);
+        toast.error("Failed to add security guard: " + err.message);
       }
     }
   };
@@ -276,12 +275,12 @@ export default function SettingsPage() {
   const handleRemoveSecurityGuard = async (index: number) => {
     if (window.confirm("Are you sure you want to remove this security guard?")) {
       const newSecurityGuards = securityGuards.filter((_, i) => i !== index);
-      setSecurityGuards(newSecurityGuards);
       try {
-        await updateSettings({ companyInfo, technicians, salesAgents, securityGuards: newSecurityGuards, categories });
-        toast.success("Security Guard removed from database");
+        await updateSettings({ securityGuards: newSecurityGuards });
+        setSecurityGuards(newSecurityGuards);
+        toast.success("Security guard removed");
       } catch (err: any) {
-        toast.error("Failed to remove Security Guard: " + err.message);
+        toast.error("Failed to remove security guard: " + err.message);
       }
     }
   };
@@ -289,13 +288,13 @@ export default function SettingsPage() {
   const handleAddCategory = async () => {
     if (newCategory.trim() !== "" && !categories.includes(newCategory.trim())) {
       const newCategories = [...categories, newCategory.trim()];
-      setCategories(newCategories);
-      setNewCategory("");
       try {
-        await updateSettings({ companyInfo, technicians, salesAgents, categories: newCategories });
-        toast.success("Category saved to database");
+        await updateSettings({ categories: newCategories });
+        setCategories(newCategories);
+        setNewCategory("");
+        toast.success("Category added");
       } catch (err: any) {
-        toast.error("Failed to save category: " + err.message);
+        toast.error("Failed to add category: " + err.message);
       }
     }
   };
@@ -303,23 +302,13 @@ export default function SettingsPage() {
   const handleRemoveCategory = async (index: number) => {
     if (window.confirm("Are you sure you want to remove this category?")) {
       const newCategories = categories.filter((_, i) => i !== index);
-      setCategories(newCategories);
       try {
-        await updateSettings({ companyInfo, technicians, salesAgents, categories: newCategories });
-        toast.success("Category removed from database");
+        await updateSettings({ categories: newCategories });
+        setCategories(newCategories);
+        toast.success("Category removed");
       } catch (err: any) {
         toast.error("Failed to remove category: " + err.message);
       }
-    }
-  };
-
-  const handleExportData = () => {
-    alert("Data exported successfully!");
-  };
-
-  const handleResetData = () => {
-    if (window.confirm("Are you sure you want to reset all data? This cannot be undone.")) {
-      alert("All data has been reset.");
     }
   };
 
@@ -329,6 +318,11 @@ export default function SettingsPage() {
 
   return (
     <div className="p-8 max-w-5xl mx-auto space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900">Company Profile</h1>
+        <p className="mt-1 text-sm text-gray-500">Manage your company details and administrator account.</p>
+      </div>
+
       {/* Tabs */}
       <div className="flex gap-2 border-b border-gray-200 overflow-x-auto pb-px [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
         {tabs.map((tab) => (
@@ -348,11 +342,11 @@ export default function SettingsPage() {
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden p-8">
 
-        {/* Company Information */}
+        {/* Company Details */}
         {activeTab === "company" && (
           <div>
             <h2 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
-              <Building2 className="w-5 h-5 text-yellow-500" /> Company Information
+              <Building2 className="w-5 h-5 text-yellow-500" /> Company Details
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1.5">
@@ -470,11 +464,13 @@ export default function SettingsPage() {
 
             <div className="pt-6">
               <button onClick={handleSaveSettings} className="bg-[#facc15] hover:bg-[#eab308] text-gray-900 font-bold px-6 py-3 rounded-lg flex items-center gap-2 transition-colors text-sm shadow-sm">
-                <Lock className="w-4 h-4" /> Save Company Setup
+                <Lock className="w-4 h-4" /> Save Company Profile
               </button>
             </div>
           </div>
         )}
+
+        {activeTab === "admin" && <ProfilePage embedded />}
 
 
 
@@ -547,13 +543,10 @@ export default function SettingsPage() {
         {/* Categories */}
         {activeTab === "categories" && (
           <div className="max-w-3xl">
-            <div className="flex items-center justify-between mb-8">
-              <div>
-                <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                  <Tag className="w-5 h-5 text-yellow-500" /> Categories
-                </h2>
-                <p className="text-xs text-gray-500 mt-1">📊 Total: <span className="font-bold text-gray-700">{categories.length}</span></p>
-              </div>
+            <div className="mb-8">
+              <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                <Tag className="w-5 h-5 text-yellow-500" /> Categories
+              </h2>
             </div>
 
             {/* Add Category Input */}
@@ -579,29 +572,8 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {/* Categories Dropdown View */}
-              <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
-                  Category Selector Preview
-                </label>
-                <select className="w-full px-4 py-3 bg-white border-2 border-yellow-400 rounded-lg text-sm font-bold text-gray-900 focus:outline-none cursor-pointer appearance-none bg-no-repeat bg-right"
-                  style={{
-                    backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`,
-                    backgroundSize: '1.5em 1.5em',
-                    paddingRight: '2.5em'
-                  }}
-                >
-                  <option value="">-- Select Category --</option>
-                  {categories.map((category, i) => (
-                    <option key={i} value={category}>{category}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Categories List */}
-              <div>
-                <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">All Saved Categories</h3>
+            <div>
+                <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Saved Categories</h3>
                 {categories.length === 0 ? (
                   <div className="py-8 text-center bg-gray-50 rounded-lg border border-dashed border-gray-200">
                     <Tag className="w-8 h-8 text-gray-300 mx-auto mb-2" />
@@ -629,34 +601,10 @@ export default function SettingsPage() {
                     ))}
                   </div>
                 )}
-              </div>
             </div>
           </div>
         )}
 
-        {/* Data Management */}
-        {activeTab === "data" && (
-          <div className="max-w-2xl">
-            <h2 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
-              <Database className="w-5 h-5 text-yellow-500" /> Data Management
-            </h2>
-            <p className="text-sm text-gray-600 mb-6">Manage your business data by exporting a complete backup or resetting all records.</p>
-            <div className="flex items-center gap-4">
-              <button onClick={handleExportData} className="px-5 py-3 border-2 border-emerald-200 bg-emerald-50 text-emerald-700 text-sm font-bold rounded-xl hover:bg-emerald-100 transition-colors flex items-center gap-2">
-                <Download className="w-4 h-4 stroke-[3]" /> Export All Data
-              </button>
-              <button onClick={handleResetData} className="px-5 py-3 border-2 border-red-200 bg-red-50 text-red-700 text-sm font-bold rounded-xl hover:bg-red-100 transition-colors flex items-center gap-2">
-                <Trash2 className="w-4 h-4 stroke-[3]" /> Reset All Data
-              </button>
-            </div>
-            <div className="mt-8 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <p className="text-xs text-yellow-800 font-bold mb-1">⚠️ Warning: Resetting Data</p>
-              <p className="text-xs text-yellow-700">
-                Clicking "Reset All Data" will permanently delete all records (Invoices, Jobs, Services, Inventory) from the database. This action cannot be undone. Always export data before resetting.
-              </p>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Add Technician Dialog */}
