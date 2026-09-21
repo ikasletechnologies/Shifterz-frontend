@@ -126,7 +126,7 @@ export default function EmployeeApprovalPage() {
                     ? "bg-emerald-600 text-white shadow-xs ring-2 ring-emerald-600/20"
                     : tab.id === "Rejected"
                     ? "bg-red-600 text-white shadow-xs ring-2 ring-red-600/20"
-                    : "bg-slate-900 text-white shadow-xs ring-2 ring-slate-900/20"
+                    : "bg-yellow-400 text-slate-900 shadow-xs ring-2 ring-yellow-400/20"
                   : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-200 hover:border-gray-300"
               }`}
             >
