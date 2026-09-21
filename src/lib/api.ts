@@ -477,6 +477,12 @@ export async function updateSettings(settings: any) {
   });
 }
 
+// Setup wizard's "fetch details from GSTIN" auto-fill — server-side cached,
+// so a repeat lookup never spends another upstream GstVerify credit.
+export async function lookupGstin(gstin: string) {
+  return apiCall(`/settings/gstin/${encodeURIComponent(gstin)}`);
+}
+
 
 
 // ═══════════════════════════════════════════════════════════════

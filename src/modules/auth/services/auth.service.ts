@@ -26,3 +26,15 @@ export async function logout() {
     }
   }
 }
+
+// Marks the current user's first-time setup wizard as done (POST
+// /auth/complete-onboarding, backed by Employee.needsOnboarding). Only
+// meaningful for FRANCHISE_ADMIN/BRANCH_MANAGER accounts — see
+// BranchAdminSetupWizard.
+export async function completeOnboarding() {
+  const response = await apiCall("/auth/complete-onboarding", { method: "POST" });
+  if (typeof window !== "undefined" && response.user) {
+    localStorage.setItem("user", JSON.stringify(response.user));
+  }
+  return response;
+}
