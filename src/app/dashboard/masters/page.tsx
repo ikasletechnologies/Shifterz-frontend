@@ -11,7 +11,19 @@ import {
   type MasterRecord,
   type MasterCategory,
 } from "@/lib/api";
-import { X } from "lucide-react";
+import {
+  X,
+  Search,
+  Plus,
+  Sparkles,
+  Edit2,
+  Trash2,
+  ShieldCheck,
+  Database,
+  Layers,
+  Check,
+  Tag,
+} from "lucide-react";
 
 // ─── group categories into sections ───────────────────────────────────────────
 const SECTIONS: Record<string, { key: MasterCategory; label: string }[]> = {};
@@ -101,7 +113,10 @@ export default function MastersPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formName.trim()) { setFormError("Name is required."); return; }
+    if (!formName.trim()) {
+      setFormError("Name is required.");
+      return;
+    }
     setFormLoading(true);
     setFormError(null);
     try {
@@ -168,219 +183,290 @@ export default function MastersPage() {
   const valueLabelForCategory = VALUE_LABEL[activeCategory];
 
   return (
-    <div className="flex h-full gap-6">
-      {/* ── Left Nav ── */}
-      <aside className="w-56 shrink-0 space-y-6">
-        <div>
-          <h2 className="text-lg font-bold text-white tracking-tight mb-1">Masters</h2>
-          <p className="text-xs text-slate-400">HQ-only configuration</p>
-        </div>
-
-        <div className="space-y-4">
-          {SECTION_ORDER.map((section) => {
-            const cats = SECTIONS[section];
-            if (!cats) return null;
-            return (
-              <div key={section}>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2 px-1">
-                  {section}
-                </p>
-                <div className="space-y-0.5">
-                  {cats.map(({ key, label }) => (
-                    <button
-                      key={key}
-                      onClick={() => setActiveCategory(key)}
-                      className={`w-full text-left px-3 py-2 rounded-xl text-xs font-medium transition-all ${
-                        activeCategory === key
-                          ? "bg-amber-500/15 text-amber-400 border border-amber-500/25 shadow-sm shadow-amber-500/10"
-                          : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
-                      }`}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </aside>
-
-      {/* ── Main Panel ── */}
-      <div className="flex-1 space-y-5 min-w-0">
-        {/* Header */}
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <h1 className="text-xl font-bold text-white tracking-tight">
-              {activeLabel}
-            </h1>
-            <p className="text-xs text-slate-400 mt-0.5">
-              Manage {activeLabel.toLowerCase()} used across all franchises. Changes apply system-wide.
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleSeed}
-              disabled={seedLoading}
-              className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium rounded-xl border border-slate-700 transition-colors"
-            >
-              {seedLoading ? "Seeding..." : "⚡ Seed Defaults"}
-            </button>
-            <button
-              onClick={openCreate}
-              className="px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white text-xs font-semibold rounded-xl shadow-lg shadow-amber-500/20 transition-all"
-            >
-              + Add {activeLabel.replace(/s$/, "")}
-            </button>
-          </div>
-        </div>
-
-        {/* Seed result banner */}
-        {seedResult && (
-          <div className={`p-3 rounded-xl text-xs border ${
-            seedResult.startsWith("✅")
-              ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
-              : "bg-red-500/10 border-red-500/20 text-red-400"
-          }`}>
-            {seedResult}
-          </div>
-        )}
-
-        {/* Search */}
-        <div className="flex items-center gap-3">
-          <div className="relative flex-1">
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder={`Search ${activeLabel.toLowerCase()}...`}
-              className="w-full bg-slate-900 border border-slate-800 rounded-xl pl-4 pr-8 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-500/60 transition-colors"
-            />
-            {search && (
-              <button
-                onClick={() => setSearch("")}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            )}
-          </div>
-          <span className="text-xs text-slate-500 whitespace-nowrap">
-            {filtered.length} / {records.length} entries
-          </span>
-        </div>
-
-        {/* Table */}
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
-          {loading ? (
-            <div className="p-12 text-center text-slate-400 text-sm">
-              Loading {activeLabel.toLowerCase()}...
+    <div className="p-6 sm:p-8 space-y-6 max-w-7xl mx-auto">
+      <div className="flex flex-col lg:flex-row gap-6 items-start">
+        {/* ── Left Category Nav Card ── */}
+        <aside className="w-full lg:w-72 shrink-0 bg-white rounded-2xl border border-gray-200 shadow-sm p-4 space-y-4">
+          <div className="px-2 pt-1 pb-2 border-b border-gray-100 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Database className="w-4 h-4 text-yellow-500" />
+              <span className="text-xs font-bold text-gray-900 uppercase tracking-wider">
+                Master Catalogs
+              </span>
             </div>
-          ) : filtered.length === 0 ? (
-            <div className="p-12 text-center space-y-3">
-              <div className="w-12 h-12 rounded-full bg-slate-800/80 mx-auto flex items-center justify-center text-2xl">
-                📋
-              </div>
-              <p className="text-white font-medium text-sm">
-                {records.length === 0 ? `No ${activeLabel.toLowerCase()} configured yet` : "No results match your search"}
-              </p>
-              <p className="text-slate-400 text-xs">
-                {records.length === 0
-                  ? `Click "⚡ Seed Defaults" to load standard defaults, or "Add" to create a new entry.`
-                  : "Try a different search term."}
-              </p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="border-b border-slate-800 bg-slate-800/30 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
-                    <th className="py-3.5 px-5">Name</th>
-                    {filtered.some((r) => r.code) && <th className="py-3.5 px-5">Code</th>}
-                    {valueLabelForCategory && <th className="py-3.5 px-5">{valueLabelForCategory}</th>}
-                    <th className="py-3.5 px-5">Sort</th>
-                    <th className="py-3.5 px-5">Status</th>
-                    <th className="py-3.5 px-5 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-800 text-sm">
-                  {filtered.map((r) => (
-                    <tr key={r.id} className="hover:bg-slate-800/25 transition-colors group">
-                      <td className="py-3.5 px-5 font-medium text-white">{r.name}</td>
-                      {filtered.some((x) => x.code) && (
-                        <td className="py-3.5 px-5 text-slate-400 font-mono text-xs">{r.code || "—"}</td>
-                      )}
-                      {valueLabelForCategory && (
-                        <td className="py-3.5 px-5 text-amber-400 text-xs font-medium max-w-xs truncate">
-                          {r.value || "—"}
-                        </td>
-                      )}
-                      <td className="py-3.5 px-5 text-slate-400 text-xs">{r.sortOrder}</td>
-                      <td className="py-3.5 px-5">
+            <span className="text-[11px] font-semibold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-md">
+              HQ Only
+            </span>
+          </div>
+
+          <div className="space-y-4 max-h-[calc(100vh-250px)] overflow-y-auto pr-1">
+            {SECTION_ORDER.map((section) => {
+              const cats = SECTIONS[section];
+              if (!cats) return null;
+              return (
+                <div key={section} className="space-y-1.5">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 px-2">
+                    {section}
+                  </p>
+                  <div className="space-y-0.5">
+                    {cats.map(({ key, label }) => {
+                      const isActive = activeCategory === key;
+                      return (
                         <button
-                          onClick={() => handleToggleStatus(r)}
-                          className={`px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-colors ${
-                            r.status === "Active"
-                              ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20"
-                              : "bg-slate-700/30 border-slate-600/30 text-slate-400 hover:bg-slate-700/50"
+                          key={key}
+                          onClick={() => setActiveCategory(key)}
+                          className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold transition-all flex items-center justify-between ${
+                            isActive
+                              ? "bg-yellow-50 text-yellow-900 border border-yellow-300 shadow-2xs font-bold"
+                              : "text-gray-600 hover:text-gray-900 hover:bg-gray-50 border border-transparent"
                           }`}
                         >
-                          {r.status}
+                          <span className="truncate">{label}</span>
+                          {isActive && (
+                            <span className="w-1.5 h-1.5 rounded-full bg-yellow-500 shrink-0 ml-2" />
+                          )}
                         </button>
-                      </td>
-                      <td className="py-3.5 px-5">
-                        <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button
-                            onClick={() => openEdit(r)}
-                            className="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-white text-xs font-medium rounded-lg border border-slate-700 transition-colors"
-                          >
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => handleDelete(r)}
-                            className="px-3 py-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 text-xs font-medium rounded-lg border border-rose-500/20 transition-colors"
-                          >
-                            Remove
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </aside>
 
-        {/* PRD notice */}
-        <p className="text-[11px] text-slate-500 px-1">
-          ⚠️ <strong className="text-slate-400">HQ Authority Only</strong> — Changes apply across all franchises. Historical transactions retain their values at time of recording and are not affected by master data updates.
-        </p>
+        {/* ── Main Content Area ── */}
+        <div className="flex-1 space-y-5 min-w-0 w-full">
+          {/* Header Card */}
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-2.5">
+                  <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
+                    {activeLabel}
+                  </h1>
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-yellow-50 text-yellow-800 border border-yellow-200">
+                    {records.length} {records.length === 1 ? "entry" : "entries"}
+                  </span>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Manage standard {activeLabel.toLowerCase()} used across all franchise branches. Changes apply system-wide.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2.5 shrink-0">
+                <button
+                  onClick={handleSeed}
+                  disabled={seedLoading}
+                  className="px-3.5 py-2 bg-gray-50 hover:bg-gray-100 text-gray-700 text-xs font-bold rounded-xl border border-gray-200 transition-colors flex items-center gap-1.5 disabled:opacity-60"
+                  title="Load recommended default values"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-yellow-600" />
+                  {seedLoading ? "Seeding..." : "Seed Defaults"}
+                </button>
+                <button
+                  onClick={openCreate}
+                  className="px-4 py-2 bg-yellow-400 hover:bg-yellow-500 text-gray-900 text-xs font-bold rounded-xl shadow-xs transition-all flex items-center gap-1.5"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add {activeLabel.replace(/s$/, "")}
+                </button>
+              </div>
+            </div>
+
+            {/* Seed result notification banner */}
+            {seedResult && (
+              <div
+                className={`p-3.5 rounded-xl text-xs font-medium border flex items-center justify-between ${
+                  seedResult.startsWith("✅")
+                    ? "bg-emerald-50 border-emerald-200 text-emerald-800"
+                    : "bg-red-50 border-red-200 text-red-800"
+                }`}
+              >
+                <span>{seedResult}</span>
+                <button
+                  onClick={() => setSeedResult(null)}
+                  className="text-gray-400 hover:text-gray-700 p-0.5"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
+
+            {/* Search Bar */}
+            <div className="flex items-center gap-3 pt-1">
+              <div className="relative flex-1">
+                <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder={`Search ${activeLabel.toLowerCase()} by name, code or value...`}
+                  className="w-full bg-gray-50/70 border border-gray-200 rounded-xl pl-9 pr-9 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-yellow-500/20 focus:border-yellow-500 transition-all"
+                />
+                {search && (
+                  <button
+                    onClick={() => setSearch("")}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-0.5 rounded-full"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+              <span className="text-xs font-semibold text-gray-500 whitespace-nowrap bg-gray-50 border border-gray-200 px-3 py-2.5 rounded-xl hidden sm:inline-block">
+                Showing {filtered.length} of {records.length}
+              </span>
+            </div>
+          </div>
+
+          {/* Table Card */}
+          <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
+            {loading ? (
+              <div className="p-16 text-center text-gray-500 text-sm">
+                Loading {activeLabel.toLowerCase()}...
+              </div>
+            ) : filtered.length === 0 ? (
+              <div className="p-16 text-center space-y-3">
+                <div className="w-12 h-12 rounded-full bg-yellow-50 border border-yellow-200 mx-auto flex items-center justify-center text-yellow-600">
+                  <Tag className="w-6 h-6" />
+                </div>
+                <p className="text-gray-900 font-bold text-base">
+                  {records.length === 0
+                    ? `No ${activeLabel.toLowerCase()} configured yet`
+                    : "No matching entries found"}
+                </p>
+                <p className="text-gray-500 text-xs max-w-sm mx-auto">
+                  {records.length === 0
+                    ? `Click "Seed Defaults" to prefill standard options, or click "Add ${activeLabel.replace(/s$/, "")}" to create one.`
+                    : "Try adjusting your search keywords."}
+                </p>
+                {records.length === 0 && (
+                  <div className="pt-2 flex items-center justify-center gap-2">
+                    <button
+                      onClick={handleSeed}
+                      disabled={seedLoading}
+                      className="px-3.5 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-bold rounded-xl transition-colors"
+                    >
+                      ⚡ Seed Defaults
+                    </button>
+                    <button
+                      onClick={openCreate}
+                      className="px-4 py-2 bg-yellow-400 hover:bg-yellow-500 text-gray-900 text-xs font-bold rounded-xl shadow-xs transition-colors"
+                    >
+                      + Add New
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-gray-200 bg-gray-50/75 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                      <th className="py-3.5 px-6">Name</th>
+                      {filtered.some((r) => r.code) && <th className="py-3.5 px-6">Code</th>}
+                      {valueLabelForCategory && <th className="py-3.5 px-6">{valueLabelForCategory}</th>}
+                      <th className="py-3.5 px-6">Sort Order</th>
+                      <th className="py-3.5 px-6">Status</th>
+                      <th className="py-3.5 px-6 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100 text-sm">
+                    {filtered.map((r) => (
+                      <tr key={r.id} className="hover:bg-yellow-50/30 transition-colors group">
+                        <td className="py-3.5 px-6 font-semibold text-gray-900">{r.name}</td>
+                        {filtered.some((x) => x.code) && (
+                          <td className="py-3.5 px-6">
+                            <span className="inline-block px-2 py-0.5 rounded bg-gray-100 text-gray-700 font-mono text-xs border border-gray-200">
+                              {r.code || "—"}
+                            </span>
+                          </td>
+                        )}
+                        {valueLabelForCategory && (
+                          <td className="py-3.5 px-6 text-yellow-800 text-xs font-semibold max-w-xs truncate">
+                            {r.value || "—"}
+                          </td>
+                        )}
+                        <td className="py-3.5 px-6 text-gray-500 text-xs font-medium">{r.sortOrder}</td>
+                        <td className="py-3.5 px-6">
+                          <button
+                            onClick={() => handleToggleStatus(r)}
+                            className={`px-2.5 py-1 rounded-full text-xs font-bold border transition-colors ${
+                              r.status === "Active"
+                                ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100"
+                                : "bg-gray-100 border-gray-200 text-gray-500 hover:bg-gray-200"
+                            }`}
+                            title="Click to toggle status"
+                          >
+                            {r.status}
+                          </button>
+                        </td>
+                        <td className="py-3.5 px-6 text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            <button
+                              onClick={() => openEdit(r)}
+                              className="p-1.5 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                              title="Edit"
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(r)}
+                              className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+                              title="Delete"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          {/* PRD notice */}
+          <div className="flex items-center gap-2 text-xs text-gray-500 bg-amber-50/70 border border-amber-200/80 rounded-xl p-3.5">
+            <ShieldCheck className="w-4 h-4 text-amber-600 shrink-0" />
+            <span>
+              <strong className="text-gray-800">HQ Authority Only</strong> — Changes to master records take effect system-wide across all franchises. Historical transactions retain their recorded values.
+            </span>
+          </div>
+        </div>
       </div>
 
       {/* ── Add / Edit Dialog ── */}
       {isFormOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl">
-            <div className="px-6 py-5 border-b border-slate-800 flex items-center justify-between">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
+          <div className="bg-white border border-gray-200 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
               <div>
-                <h3 className="text-base font-semibold text-white">
+                <h3 className="text-base font-bold text-gray-900">
                   {editing ? `Edit ${activeLabel.replace(/s$/, "")}` : `Add ${activeLabel.replace(/s$/, "")}`}
                 </h3>
-                <p className="text-xs text-amber-400 font-medium">Category: {activeLabel}</p>
+                <span className="inline-block mt-0.5 text-xs font-semibold text-yellow-800 bg-yellow-50 px-2 py-0.5 rounded border border-yellow-200">
+                  Category: {activeLabel}
+                </span>
               </div>
-              <button onClick={() => setIsFormOpen(false)} className="text-slate-400 hover:text-white">✕</button>
+              <button
+                onClick={() => setIsFormOpen(false)}
+                className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
 
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               {formError && (
-                <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-xs">
+                <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs font-semibold">
                   {formError}
                 </div>
               )}
 
-              <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1">Name *</label>
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-gray-600 uppercase tracking-wider">Name *</label>
                 <input
                   type="text"
                   value={formName}
@@ -392,38 +478,38 @@ export default function MastersPage() {
                     activeCategory === "GST_RATE" ? "18% GST" :
                     "Enter name"
                   }`}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-yellow-500/20 focus:border-yellow-500"
                   required
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1">Code / Slug (Optional)</label>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-gray-600 uppercase tracking-wider">Code / Slug</label>
                   <input
                     type="text"
                     value={formCode}
                     onChange={(e) => setFormCode(e.target.value.toUpperCase())}
                     placeholder="e.g. MSUZ"
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white font-mono focus:outline-none focus:border-amber-500"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm text-gray-900 font-mono focus:bg-white focus:outline-none focus:ring-2 focus:ring-yellow-500/20 focus:border-yellow-500"
                   />
                 </div>
 
-                <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1">Sort Order</label>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-gray-600 uppercase tracking-wider">Sort Order</label>
                   <input
                     type="number"
                     value={formSortOrder}
                     onChange={(e) => setFormSortOrder(Number(e.target.value))}
                     min={0}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-yellow-500/20 focus:border-yellow-500"
                   />
                 </div>
               </div>
 
               {valueLabelForCategory && (
-                <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-gray-600 uppercase tracking-wider">
                     {valueLabelForCategory}
                   </label>
                   {activeCategory === "BUSINESS_HOURS" || activeCategory === "NOTIFICATION_TEMPLATE" ? (
@@ -432,7 +518,7 @@ export default function MastersPage() {
                       onChange={(e) => setFormValue(e.target.value)}
                       rows={3}
                       placeholder="Enter configuration value..."
-                      className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white font-mono focus:outline-none focus:border-amber-500"
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm text-gray-900 font-mono focus:bg-white focus:outline-none focus:ring-2 focus:ring-yellow-500/20 focus:border-yellow-500"
                     />
                   ) : (
                     <input
@@ -440,29 +526,29 @@ export default function MastersPage() {
                       value={formValue}
                       onChange={(e) => setFormValue(e.target.value)}
                       placeholder={activeCategory === "GST_RATE" ? "e.g. 18" : "Additional value..."}
-                      className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500"
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-yellow-500/20 focus:border-yellow-500"
                     />
                   )}
                 </div>
               )}
 
-              <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1">Status</label>
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-gray-600 uppercase tracking-wider">Status</label>
                 <select
                   value={formStatus}
                   onChange={(e) => setFormStatus(e.target.value)}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-yellow-500/20 focus:border-yellow-500"
                 >
                   <option value="Active">Active</option>
                   <option value="Inactive">Inactive</option>
                 </select>
               </div>
 
-              <div className="pt-4 border-t border-slate-800 flex items-center justify-end gap-3">
+              <div className="pt-4 border-t border-gray-100 flex items-center justify-end gap-2.5">
                 <button
                   type="button"
                   onClick={() => setIsFormOpen(false)}
-                  className="px-4 py-2 text-sm text-slate-400 hover:text-white transition-colors"
+                  className="px-4 py-2.5 text-xs font-bold text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition-colors"
                   disabled={formLoading}
                 >
                   Cancel
@@ -470,7 +556,7 @@ export default function MastersPage() {
                 <button
                   type="submit"
                   disabled={formLoading}
-                  className="px-5 py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white text-sm font-semibold rounded-xl shadow-lg shadow-amber-500/20 transition-all disabled:opacity-50"
+                  className="px-5 py-2.5 bg-yellow-400 hover:bg-yellow-500 text-gray-900 text-xs font-bold rounded-xl shadow-xs transition-all disabled:opacity-50"
                 >
                   {formLoading ? "Saving..." : editing ? "Save Changes" : "Add Entry"}
                 </button>

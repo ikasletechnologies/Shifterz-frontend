@@ -166,25 +166,25 @@ export function CreatePurchaseOrderDialog({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="w-full max-w-2xl bg-[#1e293b] border border-slate-700/80 rounded-2xl shadow-2xl overflow-hidden text-slate-100 max-h-[90vh] flex flex-col">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700/80 bg-slate-800/50">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
+      <div className="w-full max-w-2xl bg-white border border-gray-200 rounded-2xl shadow-2xl overflow-hidden text-gray-900 max-h-[90vh] flex flex-col">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gray-50/70">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400">
+            <div className="p-2 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-100">
               <ShoppingCart className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-base font-semibold text-white">
+              <h3 className="text-base font-bold text-gray-900">
                 {initialData ? "Edit Headquarters Purchase Order" : "Create Headquarters Purchase Order"}
               </h3>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-gray-500">
                 PRD §10: Only Headquarters shall create & authorize Purchase Orders.
               </p>
             </div>
           </div>
           <button
             onClick={() => onOpenChange(false)}
-            className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-700/50 transition-colors"
+            className="p-1.5 text-gray-400 hover:text-gray-700 rounded-lg hover:bg-gray-100 transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -192,27 +192,27 @@ export function CreatePurchaseOrderDialog({
 
         <form onSubmit={handleSubmit} className="p-6 space-y-5 overflow-y-auto flex-1">
           {error && (
-            <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs flex items-center gap-2">
+            <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
               <ShieldAlert className="w-4 h-4 shrink-0" />
               <span>{error}</span>
             </div>
           )}
 
-          <div className="p-3 rounded-lg bg-emerald-950/20 border border-emerald-500/30 flex items-center justify-between">
-            <div className="flex items-center gap-2 text-emerald-400 text-xs">
-              <ShieldCheck className="w-4 h-4" />
+          <div className="p-3 rounded-xl bg-emerald-50/80 border border-emerald-200 flex items-center justify-between">
+            <div className="flex items-center gap-2 text-emerald-800 text-xs font-medium">
+              <ShieldCheck className="w-4 h-4 text-emerald-600" />
               <span>
                 <strong>HQ Authority Enforced:</strong> Goods Receipt will automatically update HQ inventory stock.
               </span>
             </div>
-            <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded uppercase font-bold tracking-wider">
+            <span className="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full uppercase font-bold tracking-wider">
               PRD Compliant
             </span>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-300">
+              <label className="text-xs font-bold text-gray-700">
                 Order Number *
               </label>
               <input
@@ -221,19 +221,19 @@ export function CreatePurchaseOrderDialog({
                 onChange={(e) => setOrderNumber(e.target.value)}
                 placeholder="PO-2026-0001"
                 required
-                className="w-full h-9 px-3 rounded-lg bg-slate-900 border border-slate-700 text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="w-full h-9 px-3 rounded-xl bg-gray-50/80 border border-gray-200 text-gray-900 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
               />
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-300">
+              <label className="text-xs font-bold text-gray-700">
                 Select Supplier (Vendor) *
               </label>
               <select
                 value={vendorId}
                 onChange={(e) => setVendorId(e.target.value)}
                 required
-                className="w-full h-9 px-3 rounded-lg bg-slate-900 border border-slate-700 text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="w-full h-9 px-3 rounded-xl bg-gray-50/80 border border-gray-200 text-gray-900 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
               >
                 <option value="">-- Select Vendor --</option>
                 {vendors.map((v) => (
@@ -248,13 +248,13 @@ export function CreatePurchaseOrderDialog({
           {/* Items Section */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider">
+              <label className="text-xs font-bold text-gray-700 uppercase tracking-wider">
                 Purchase Order Items
               </label>
               <button
                 type="button"
                 onClick={handleAddItem}
-                className="h-7 px-3 text-xs font-medium border border-slate-700 hover:bg-slate-800 rounded-lg text-emerald-400 flex items-center gap-1 transition-colors"
+                className="h-7 px-3 text-xs font-bold border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 rounded-lg text-emerald-700 flex items-center gap-1 transition-colors"
               >
                 <Plus className="w-3.5 h-3.5" />
                 Add Line Item
@@ -265,43 +265,43 @@ export function CreatePurchaseOrderDialog({
               {items.map((item, idx) => (
                 <div
                   key={idx}
-                  className="grid grid-cols-12 gap-2 p-3 rounded-lg bg-slate-900/80 border border-slate-700/80 items-center"
+                  className="grid grid-cols-12 gap-2 p-3 rounded-xl bg-gray-50 border border-gray-200 items-center"
                 >
                   <div className="col-span-4 space-y-1">
-                    <span className="text-[10px] text-slate-400 uppercase">Item Name</span>
+                    <span className="text-[10px] font-bold text-gray-500 uppercase">Item Name</span>
                     <input
                       type="text"
                       value={item.name}
                       onChange={(e) => handleItemChange(idx, "name", e.target.value)}
                       placeholder="e.g. Brake Pads Front"
-                      className="w-full h-8 px-2 text-xs rounded bg-slate-950 border border-slate-700 text-slate-100"
+                      className="w-full h-8 px-2.5 text-xs rounded-lg bg-white border border-gray-200 text-gray-900 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                     />
                   </div>
 
                   <div className="col-span-3 space-y-1">
-                    <span className="text-[10px] text-slate-400 uppercase">SKU / Code</span>
+                    <span className="text-[10px] font-bold text-gray-500 uppercase">SKU / Code</span>
                     <input
                       type="text"
                       value={item.sku}
                       onChange={(e) => handleItemChange(idx, "sku", e.target.value)}
                       placeholder="BP-FR-01"
-                      className="w-full h-8 px-2 text-xs rounded bg-slate-950 border border-slate-700 text-slate-100"
+                      className="w-full h-8 px-2.5 text-xs rounded-lg bg-white border border-gray-200 text-gray-900 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                     />
                   </div>
 
                   <div className="col-span-2 space-y-1">
-                    <span className="text-[10px] text-slate-400 uppercase">Qty</span>
+                    <span className="text-[10px] font-bold text-gray-500 uppercase">Qty</span>
                     <input
                       type="number"
                       min="1"
                       value={item.qty}
                       onChange={(e) => handleItemChange(idx, "qty", e.target.value)}
-                      className="w-full h-8 px-2 text-xs rounded bg-slate-950 border border-slate-700 text-slate-100"
+                      className="w-full h-8 px-2.5 text-xs rounded-lg bg-white border border-gray-200 text-gray-900 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                     />
                   </div>
 
                   <div className="col-span-2 space-y-1">
-                    <span className="text-[10px] text-slate-400 uppercase">Unit Price (₹)</span>
+                    <span className="text-[10px] font-bold text-gray-500 uppercase">Unit Price (₹)</span>
                     <input
                       type="number"
                       min="0"
@@ -309,7 +309,7 @@ export function CreatePurchaseOrderDialog({
                       onChange={(e) =>
                         handleItemChange(idx, "unitPrice", e.target.value)
                       }
-                      className="w-full h-8 px-2 text-xs rounded bg-slate-950 border border-slate-700 text-slate-100"
+                      className="w-full h-8 px-2.5 text-xs rounded-lg bg-white border border-gray-200 text-gray-900 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                     />
                   </div>
 
@@ -318,7 +318,7 @@ export function CreatePurchaseOrderDialog({
                       <button
                         type="button"
                         onClick={() => handleRemoveItem(idx)}
-                        className="p-1.5 text-slate-500 hover:text-rose-400 rounded transition-colors"
+                        className="p-1.5 text-gray-400 hover:text-rose-600 rounded transition-colors"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -328,16 +328,16 @@ export function CreatePurchaseOrderDialog({
               ))}
             </div>
 
-            <div className="flex justify-end items-center gap-3 py-2 px-3 rounded-lg bg-slate-900 border border-slate-700">
-              <span className="text-xs text-slate-400">Total Purchase Amount:</span>
-              <span className="text-lg font-bold text-emerald-400">
+            <div className="flex justify-end items-center gap-3 py-2 px-3 rounded-xl bg-gray-50 border border-gray-200">
+              <span className="text-xs font-medium text-gray-500">Total Purchase Amount:</span>
+              <span className="text-lg font-bold text-emerald-700">
                 ₹{totalAmount.toLocaleString("en-IN")}
               </span>
             </div>
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-300">
+            <label className="text-xs font-bold text-gray-700">
               Notes & Delivery Instructions
             </label>
             <input
@@ -345,22 +345,22 @@ export function CreatePurchaseOrderDialog({
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="e.g. Please deliver to HQ warehouse Gate 2 before 5 PM."
-              className="w-full h-9 px-3 rounded-lg bg-slate-900 border border-slate-700 text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              className="w-full h-9 px-3 rounded-xl bg-gray-50/80 border border-gray-200 text-gray-900 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
             />
           </div>
 
-          <div className="flex justify-end gap-3 pt-4 border-t border-slate-700/80">
+          <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
             <button
               type="button"
               onClick={() => onOpenChange(false)}
-              className="px-4 py-2 text-sm font-medium text-slate-300 bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors"
+              className="px-4 py-2 text-sm font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="px-4 py-2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-500 rounded-lg shadow-lg shadow-emerald-600/20 transition-all disabled:opacity-50"
+              className="px-4 py-2 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-xs transition-all disabled:opacity-50"
             >
               {loading ? (initialData ? "Saving..." : "Creating...") : (initialData ? "✓ Save Changes" : "Create Purchase Order")}
             </button>
