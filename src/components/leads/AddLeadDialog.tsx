@@ -8,6 +8,7 @@ import { X, User, Plus } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { fetchVehicleDetails, getEmployees, getServices, getSettings } from "@/lib/api";
 import { getVehicleType, formatVehicleNumber } from "@/utils/vehicleNumber";
+import { DEFAULT_LEAD_SOURCES } from "@/constants/leadSources";
 
 interface AddLeadDialogProps {
   isOpen: boolean;
@@ -39,7 +40,7 @@ export default function AddLeadDialog({
   // (seeded with real defaults server-side — see settings.repository.ts),
   // which this dialog previously never read at all.
   const [serviceCatalog, setServiceCatalog] = useState<{ id: string; name: string }[]>([]);
-  const [leadSources, setLeadSources] = useState<string[]>([]);
+  const [leadSources, setLeadSources] = useState<string[]>(DEFAULT_LEAD_SOURCES);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -81,11 +82,15 @@ export default function AddLeadDialog({
     const loadLeadSources = async () => {
       try {
         const settings = await getSettings();
-        const sources: string[] = settings?.leadSources || [];
+        const sources: string[] = (settings?.leadSources && settings.leadSources.length > 0)
+          ? settings.leadSources
+          : DEFAULT_LEAD_SOURCES;
         setLeadSources(sources);
-        setFormData((prev) => ({ ...prev, source: prev.source || sources[0] || "" }));
+        setFormData((prev) => ({ ...prev, source: prev.source || sources[0] || DEFAULT_LEAD_SOURCES[0] }));
       } catch (err) {
         console.error("Failed to load lead sources:", err);
+        setLeadSources(DEFAULT_LEAD_SOURCES);
+        setFormData((prev) => ({ ...prev, source: prev.source || DEFAULT_LEAD_SOURCES[0] }));
       }
     };
     loadAssignees();
@@ -111,6 +116,15 @@ export default function AddLeadDialog({
       // Ignore — worst case the draft just isn't restored on return.
     }
     router.push(`/dashboard/services?returnTo=${encodeURIComponent("/dashboard/leads")}`);
+  };
+
+  const handleAddEmployeeClick = () => {
+    try {
+      sessionStorage.setItem(LEAD_DRAFT_STORAGE_KEY, JSON.stringify(formData));
+    } catch {
+      // Ignore — worst case the draft just isn't restored on return.
+    }
+    router.push(`/dashboard/receptionists?returnTo=${encodeURIComponent("/dashboard/leads")}`);
   };
 
   const handleChange = (
@@ -154,6 +168,17 @@ export default function AddLeadDialog({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    const cleanedPhone = formData.phone.trim().replace(/\D/g, "");
+    if (!cleanedPhone || cleanedPhone.length !== 10) {
+      toast.error("Please enter a valid 10-digit mobile number.");
+      return;
+    }
+
+    if (formData.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
+      toast.error("Please enter a valid email address.");
+      return;
+    }
 
     // Validate vehicle number format if provided: TN 04 AB 1234
     if (formData.vehicle.trim() && getVehicleType(formData.vehicle) === "INVALID") {
@@ -309,9 +334,9 @@ export default function AddLeadDialog({
                 <button
                   type="button"
                   onClick={handleAddServiceClick}
-                  className="text-[11px] font-bold text-blue-600 hover:text-blue-700 flex items-center gap-0.5"
+                  className="cursor-pointer inline-flex items-center gap-1 px-2.5 py-0.5 text-[11px] font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 hover:text-blue-800 border border-blue-200/80 rounded-md transition-all shadow-2xs active:scale-95"
                 >
-                  <Plus className="w-3 h-3" /> Add Service
+                  <Plus className="w-3 h-3 stroke-[2.5]" /> Add Service
                 </button>
               </div>
               <select
@@ -334,9 +359,18 @@ export default function AddLeadDialog({
           {/* Row 4: Assign To & Budget */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
             <div>
-              <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">
-                Assign To
-              </label>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                  Assign To
+                </label>
+                <button
+                  type="button"
+                  onClick={handleAddEmployeeClick}
+                  className="cursor-pointer inline-flex items-center gap-1 px-2.5 py-0.5 text-[11px] font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 hover:text-blue-800 border border-blue-200/80 rounded-md transition-all shadow-2xs active:scale-95"
+                >
+                  <Plus className="w-3 h-3 stroke-[2.5]" /> Add Employee
+                </button>
+              </div>
               <select
                 name="assigned"
                 value={formData.assigned}

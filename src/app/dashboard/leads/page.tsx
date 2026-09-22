@@ -5,8 +5,9 @@ import { useState, useEffect, useRef } from "react";
 import { Plus, ChevronDown, Trash2, Pencil, Search, X, Car, User, Phone, Wrench, Tag, Calendar, UserCheck, Mail } from "lucide-react";
 import AddLeadDialog, { LEAD_DRAFT_STORAGE_KEY } from "@/components/leads/AddLeadDialog";
 import EditLeadDialog from "@/components/leads/EditLeadDialog";
-import { getLeads, createLead, deleteLead, updateLead } from "@/lib/api";
+import { getLeads, createLead, deleteLead, updateLead, getSettings } from "@/lib/api";
 import { toast } from "react-hot-toast";
+import { DEFAULT_LEAD_SOURCES } from "@/constants/leadSources";
 
 interface Lead {
   id: string;
@@ -37,20 +38,6 @@ const getStatusColor = (status: string) => {
   }
 };
 
-const getSourceColor = (source: string) => {
-  switch (source) {
-    case "JustDial":
-      return "bg-blue-100 text-blue-700";
-    case "Instagram":
-      return "bg-purple-100 text-purple-700";
-    case "Referral":
-      return "bg-green-100 text-green-700";
-    case "Facebook":
-      return "bg-blue-100 text-blue-700";
-    default:
-      return "bg-gray-100 text-gray-700";
-  }
-};
 
 const StatusDropdown = ({ lead, handleStatusChange, dropUp }: { lead: Lead, handleStatusChange: (id: string, newStatus: string, lead: Lead) => void, dropUp?: boolean }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -117,6 +104,7 @@ export default function LeadsPage() {
   const [error, setError] = useState("");
   const [filter, setFilter] = useState("All");
   const [sourceFilter, setSourceFilter] = useState("All Sources");
+  const [availableSources, setAvailableSources] = useState<string[]>(DEFAULT_LEAD_SOURCES);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [leadToEdit, setLeadToEdit] = useState<Lead | null>(null);
@@ -145,6 +133,21 @@ export default function LeadsPage() {
     fetchLeads();
   }, []);
 
+  // Load lead sources from settings
+  useEffect(() => {
+    async function fetchSources() {
+      try {
+        const settings = await getSettings();
+        if (settings?.leadSources && settings.leadSources.length > 0) {
+          setAvailableSources(settings.leadSources);
+        }
+      } catch (err) {
+        console.error("Failed to load lead sources:", err);
+      }
+    }
+    fetchSources();
+  }, []);
+
   // Resume a New Lead draft after the "+ Add Service" round trip to
   // /dashboard/services and back — without this, that trip would silently
   // discard whatever the user had already typed into the New Lead form.
@@ -168,8 +171,9 @@ export default function LeadsPage() {
       setLeads([...leads, created]);
       setIsDialogOpen(false);
       setLeadDraft(null);
+      toast.success("Lead created successfully!");
     } catch (err: any) {
-      alert("Failed to create lead: " + err.message);
+      toast.error(err.message || "Failed to create lead");
       console.error(err);
     }
   };
@@ -180,8 +184,9 @@ export default function LeadsPage() {
     try {
       await deleteLead(id);
       setLeads(leads.filter((lead) => lead.id !== id));
+      toast.success("Lead deleted successfully!");
     } catch (err: any) {
-      alert("Failed to delete lead: " + err.message);
+      toast.error(err.message || "Failed to delete lead");
       console.error(err);
     }
   };
@@ -192,6 +197,9 @@ export default function LeadsPage() {
       const currentLead = leads.find(l => l.id === id);
       const updated = await updateLead(id, updatedLead);
       setLeads(leads.map(lead => lead.id === id ? updated : lead));
+      setIsEditDialogOpen(false);
+      setLeadToEdit(null);
+      toast.success("Lead updated successfully!");
 
       // The backend's updateLead already creates/links the Customer record
       // atomically whenever status transitions to "Converted" (with richer
@@ -203,7 +211,7 @@ export default function LeadsPage() {
         toast.success("Lead converted! Customer profile created.");
       }
     } catch (err: any) {
-      alert("Failed to update lead: " + err.message);
+      toast.error(err.message || "Failed to update lead");
       console.error(err);
     }
   };
@@ -211,13 +219,13 @@ export default function LeadsPage() {
   // Change Status
   const executeStatusChange = async (id: string, newStatus: string, currentLead: Lead, reason?: string) => {
     try {
-      const updatedLead = { 
+      const updatedLead = {
         ...currentLead,
         name: currentLead.name || "",
         email: currentLead.email || "",
         phone: currentLead.phone || "",
         vehicle: currentLead.vehicle || "",
-        source: currentLead.source || "JustDial",
+        source: currentLead.source || availableSources[0] || "Website",
         service: currentLead.service || "PPF Full Body",
         budget: currentLead.budget || "₹0",
         status: newStatus,
@@ -254,10 +262,15 @@ export default function LeadsPage() {
     await executeStatusChange(id, newStatus, currentLead);
   };
 
+  const allSourceOptions = Array.from(
+    new Set([...availableSources, ...leads.map((l) => l.source).filter(Boolean)])
+  );
+
   const filteredLeads = leads.filter((lead) => {
     const statusMatch = filter === "All" || lead.status === filter;
     const sourceMatch =
-      sourceFilter === "All Sources" || lead.source === sourceFilter;
+      sourceFilter === "All Sources" ||
+      lead.source?.toLowerCase() === sourceFilter.toLowerCase();
     const searchMatch =
       lead.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       lead.phone.includes(searchQuery) ||
@@ -339,11 +352,11 @@ export default function LeadsPage() {
               </button>
             ))}
           </div>
-          <div className="relative w-full max-w-xs">
+          <div className="relative w-full sm:w-80 max-w-sm">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
               type="text"
-              placeholder="Search leads by name, phone, or vehicle..."
+              placeholder="Search name, phone, or vehicle..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-9 pr-9 py-2 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400 text-sm"
@@ -364,15 +377,15 @@ export default function LeadsPage() {
             <select
               value={sourceFilter}
               onChange={(e) => setSourceFilter(e.target.value)}
-              className="appearance-none px-6 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 font-medium focus:outline-none focus:ring-2 focus:ring-yellow-400 text-center w-36"
+              className="appearance-none px-6 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 font-medium focus:outline-none focus:ring-2 focus:ring-yellow-400 text-center min-w-[140px]"
               style={{ textAlignLast: "center" }}
             >
-              <option className="text-center" style={{ textAlign: "center" }}>All Sources</option>
-              <option className="text-center" style={{ textAlign: "center" }}>JustDial</option>
-              <option className="text-center" style={{ textAlign: "center" }}>Instagram</option>
-              <option className="text-center" style={{ textAlign: "center" }}>Referral</option>
-              <option className="text-center" style={{ textAlign: "center" }}>Facebook</option>
-              <option className="text-center" style={{ textAlign: "center" }}>Walk-in</option>
+              <option value="All Sources" className="text-center" style={{ textAlign: "center" }}>All Sources</option>
+              {allSourceOptions.map((src) => (
+                <option key={src} value={src} className="text-center" style={{ textAlign: "center" }}>
+                  {src}
+                </option>
+              ))}
             </select>
             <ChevronDown className="absolute right-2.5 w-4 h-4 text-gray-500 pointer-events-none" />
           </div>
@@ -418,14 +431,14 @@ export default function LeadsPage() {
                         setLeadToEdit(lead);
                         setIsEditDialogOpen(true);
                       }}
-                      className="p-1.5 text-slate-400 hover:text-blue-600 transition-colors"
+                      className="p-1.5 text-slate-400 hover:text-blue-600 transition-colors cursor-pointer"
                       title="Edit Lead"
                     >
                       <Pencil className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => handleDeleteLead(lead.id)}
-                      className="p-1.5 text-slate-400 hover:text-red-600 transition-colors"
+                      className="p-1.5 text-slate-400 hover:text-red-600 transition-colors cursor-pointer"
                       title="Delete Lead"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -463,6 +476,16 @@ export default function LeadsPage() {
                     </div>
                     <span className="text-slate-300 font-bold text-center">:</span>
                     <p className="font-bold text-slate-900 uppercase font-mono tracking-wider text-left truncate">{lead.vehicle || "—"}</p>
+                  </div>
+
+                  {/* Source */}
+                  <div className="grid grid-cols-[100px_20px_1fr] items-center py-1 border-b border-slate-50">
+                    <div className="flex items-center gap-2 text-slate-500 font-medium shrink-0">
+                      <Tag className="w-4 h-4 text-slate-400 shrink-0" />
+                      <span>Source</span>
+                    </div>
+                    <span className="text-slate-300 font-bold text-center">:</span>
+                    <p className="font-bold text-slate-900 text-left truncate">{lead.source || "—"}</p>
                   </div>
 
                   {/* Service */}

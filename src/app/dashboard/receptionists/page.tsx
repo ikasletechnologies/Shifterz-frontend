@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { Suspense, useState, useEffect, useCallback } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   ConciergeBell, Search, Filter, ChevronLeft, ChevronRight, Pencil, Trash2, Plus,
-  Users, UserCheck2, UserX2, Briefcase, Loader2, CheckCircle2, TrendingUp, X
+  Users, UserCheck2, UserX2, Briefcase, Loader2, CheckCircle2, TrendingUp, X, ArrowLeft
 } from "lucide-react";
 import { StatCard } from "@/components/dashboard/StatCard";
 import EditEmployeeDialog from "@/components/employees/EditEmployeeDialog";
@@ -43,6 +44,18 @@ interface Summary {
 const PAGE_SIZE = 8;
 
 export default function ReceptionistsPage() {
+  return (
+    <Suspense fallback={null}>
+      <ReceptionistsPageContent />
+    </Suspense>
+  );
+}
+
+function ReceptionistsPageContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const returnTo = searchParams.get("returnTo");
+
   const [rows, setRows] = useState<ReceptionRow[]>([]);
   const [summary, setSummary] = useState<Summary | null>(null);
   const [total, setTotal] = useState(0);
@@ -126,6 +139,12 @@ export default function ReceptionistsPage() {
     getFranchises().then(setFranchises).catch(() => setFranchises([]));
   }, []);
 
+  useEffect(() => {
+    if (returnTo) {
+      setIsAddOpen(true);
+    }
+  }, [returnTo]);
+
   const totalPages = Math.ceil(total / PAGE_SIZE) || 1;
 
   const handleAdd = async (employeeData: any) => {
@@ -143,6 +162,10 @@ export default function ReceptionistsPage() {
       setCurrentPage(1);
 
       fetchData();
+
+      if (returnTo) {
+        router.push(returnTo);
+      }
     } catch (err: any) {
       toast.error("Failed to create receptionist: " + err.message);
     }
@@ -177,6 +200,19 @@ export default function ReceptionistsPage() {
 
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-6">
+      {returnTo && (
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-center justify-between shadow-xs">
+          <span className="text-sm font-semibold text-blue-900">
+            Adding a new employee. Click return when finished to resume your lead form.
+          </span>
+          <button
+            onClick={() => router.push(returnTo)}
+            className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer"
+          >
+            <ArrowLeft className="w-4 h-4" /> Return to Form
+          </button>
+        </div>
+      )}
       {summary && (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <StatCard title="Total Receptionists" value={summary.total} icon={Users} color="blue" />
