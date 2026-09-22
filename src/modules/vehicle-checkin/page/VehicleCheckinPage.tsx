@@ -509,7 +509,6 @@ export function VehicleCheckinPage() {
           <div>
             <p className="text-xs font-bold uppercase tracking-wider text-gray-500">All Vehicles</p>
             <p className="text-2xl font-black text-gray-900 mt-1">{allCount}</p>
-            <p className="text-xs text-gray-500 mt-0.5 font-medium">Total check-in records</p>
           </div>
           <div className={`p-3 rounded-xl transition-colors ${statusFilter === "All" ? "bg-amber-400 text-gray-900 shadow-xs" : "bg-gray-100 text-gray-600"}`}>
             <Car className="w-6 h-6" />
@@ -527,7 +526,6 @@ export function VehicleCheckinPage() {
           <div>
             <p className="text-xs font-bold uppercase tracking-wider text-emerald-600">In Workshop</p>
             <p className="text-2xl font-black text-emerald-700 mt-1">{inWorkshopCount}</p>
-            <p className="text-xs text-gray-500 mt-0.5 font-medium">Cars currently in workshop</p>
           </div>
           <div className={`p-3 rounded-xl transition-colors ${statusFilter === "In Workshop" ? "bg-emerald-600 text-white shadow-xs" : "bg-emerald-50 text-emerald-600"}`}>
             <Wrench className="w-6 h-6" />
@@ -562,8 +560,8 @@ export function VehicleCheckinPage() {
                 <button
                   onClick={() => setPeriodFilter(period)}
                   className={`text-sm px-3 py-1 rounded-md font-medium transition-all whitespace-nowrap ${periodFilter === period
-                      ? "bg-white text-gray-900 font-semibold shadow-sm"
-                      : "text-gray-500 hover:text-gray-800"
+                    ? "bg-white text-gray-900 font-semibold shadow-sm"
+                    : "text-gray-500 hover:text-gray-800"
                     }`}
                 >
                   {period}
@@ -786,11 +784,10 @@ export function VehicleCheckinPage() {
                     <button
                       type="button"
                       onClick={() => handleInspectionClick(entry)}
-                      className={`w-full flex items-center justify-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl transition-colors cursor-pointer ${
-                        hasCompletedInspection(entry)
-                          ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
-                          : "bg-amber-50 text-amber-700 hover:bg-amber-100"
-                      }`}
+                      className={`w-full flex items-center justify-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl transition-colors cursor-pointer ${hasCompletedInspection(entry)
+                        ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                        : "bg-amber-50 text-amber-700 hover:bg-amber-100"
+                        }`}
                     >
                       {hasCompletedInspection(entry) ? (
                         <>
@@ -967,11 +964,11 @@ export function VehicleCheckinPage() {
               <div className="w-10 h-10 rounded-full bg-gray-100 text-gray-400 flex items-center justify-center mx-auto mb-3">
                 <Search className="w-5 h-5" />
               </div>
-              <p className="font-bold text-gray-800 text-base mb-1">No vehicles found</p>
-              <p className="text-xs text-gray-500 max-w-sm mx-auto">
+
+              <p className="font-bold text-gray-800 text-base mb-1">
                 {searchQuery
                   ? `No vehicle record matching "${searchQuery}" was found.`
-                  : "No vehicle check-in records available."}
+                  : "No vehicle check-in records available"}
               </p>
             </div>
           )}
