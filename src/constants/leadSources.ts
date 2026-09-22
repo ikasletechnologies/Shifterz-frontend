@@ -1,0 +1,16 @@
+export const DEFAULT_LEAD_SOURCES: string[] = [
+  "Website",
+  "Walk-In",
+  "Phone Call",
+  "WhatsApp",
+  "Google Business Profile",
+  "Facebook",
+  "Instagram",
+  "Justdial",
+  "Referral",
+  "Existing Customer",
+  "Corporate",
+  "Exhibition / Event",
+  "Manual Entry",
+  "Other",
+];

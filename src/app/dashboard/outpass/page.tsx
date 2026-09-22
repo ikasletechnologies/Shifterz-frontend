@@ -1,4 +1,4 @@
- "use client";
+"use client";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { useState, useEffect, useCallback } from "react";
@@ -78,7 +78,7 @@ export default function OutPassPage() {
       try {
         const user = JSON.parse(userStr);
         setUserRole(user.role?.split("|")[0] || null);
-      } catch (e) {}
+      } catch (e) { }
     }
   }, []);
 
@@ -463,11 +463,10 @@ export default function OutPassPage() {
         {/* 1. All */}
         <div
           onClick={() => setStatusFilter("All")}
-          className={`bg-white rounded-2xl border p-4 shadow-2xs flex items-center justify-between cursor-pointer select-none transition-all ${
-            statusFilter === "All"
-              ? "border-slate-800 ring-2 ring-slate-800/20 bg-slate-50/60 shadow-sm"
-              : "border-gray-200 hover:border-slate-300"
-          }`}
+          className={`bg-white rounded-2xl border p-4 shadow-2xs flex items-center justify-between cursor-pointer select-none transition-all ${statusFilter === "All"
+            ? "border-slate-800 ring-2 ring-slate-800/20 bg-slate-50/60 shadow-sm"
+            : "border-gray-200 hover:border-slate-300"
+            }`}
         >
           <div>
             <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">All</p>
@@ -481,11 +480,10 @@ export default function OutPassPage() {
         {/* 2. Pending */}
         <div
           onClick={() => setStatusFilter("Pending")}
-          className={`bg-white rounded-2xl border p-4 shadow-2xs flex items-center justify-between cursor-pointer select-none transition-all ${
-            statusFilter === "Pending"
-              ? "border-amber-500 ring-2 ring-amber-500/20 bg-amber-50/60 shadow-sm"
-              : "border-gray-200 hover:border-amber-200"
-          }`}
+          className={`bg-white rounded-2xl border p-4 shadow-2xs flex items-center justify-between cursor-pointer select-none transition-all ${statusFilter === "Pending"
+            ? "border-amber-500 ring-2 ring-amber-500/20 bg-amber-50/60 shadow-sm"
+            : "border-gray-200 hover:border-amber-200"
+            }`}
         >
           <div>
             <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Pending</p>
@@ -499,11 +497,10 @@ export default function OutPassPage() {
         {/* 4. Rejected */}
         <div
           onClick={() => setStatusFilter("Rejected")}
-          className={`bg-white rounded-2xl border p-4 shadow-2xs flex items-center justify-between cursor-pointer select-none transition-all ${
-            statusFilter === "Rejected"
-              ? "border-red-500 ring-2 ring-red-500/20 bg-red-50/60 shadow-sm"
-              : "border-gray-200 hover:border-red-200"
-          }`}
+          className={`bg-white rounded-2xl border p-4 shadow-2xs flex items-center justify-between cursor-pointer select-none transition-all ${statusFilter === "Rejected"
+            ? "border-red-500 ring-2 ring-red-500/20 bg-red-50/60 shadow-sm"
+            : "border-gray-200 hover:border-red-200"
+            }`}
         >
           <div>
             <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Rejected</p>
@@ -517,11 +514,10 @@ export default function OutPassPage() {
         {/* 5. Delivered */}
         <div
           onClick={() => setStatusFilter("Delivered")}
-          className={`bg-white rounded-2xl border p-4 shadow-2xs flex items-center justify-between cursor-pointer select-none transition-all ${
-            statusFilter === "Delivered"
-              ? "border-blue-500 ring-2 ring-blue-500/20 bg-blue-50/60 shadow-sm"
-              : "border-gray-200 hover:border-blue-200"
-          }`}
+          className={`bg-white rounded-2xl border p-4 shadow-2xs flex items-center justify-between cursor-pointer select-none transition-all ${statusFilter === "Delivered"
+            ? "border-blue-500 ring-2 ring-blue-500/20 bg-blue-50/60 shadow-sm"
+            : "border-gray-200 hover:border-blue-200"
+            }`}
         >
           <div>
             <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Delivered</p>
@@ -566,11 +562,10 @@ export default function OutPassPage() {
             type="button"
             disabled={!fromDate}
             onClick={() => fromDate && setFromDate("")}
-            className={`p-0.5 rounded transition-colors flex items-center justify-center shrink-0 ${
-              fromDate
-                ? "text-gray-600 hover:text-gray-900 hover:bg-gray-100 cursor-pointer"
-                : "text-gray-300 cursor-not-allowed opacity-50"
-            }`}
+            className={`p-0.5 rounded transition-colors flex items-center justify-center shrink-0 ${fromDate
+              ? "text-gray-600 hover:text-gray-900 hover:bg-gray-100 cursor-pointer"
+              : "text-gray-300 cursor-not-allowed opacity-50"
+              }`}
             title={fromDate ? "Clear From Date" : ""}
           >
             <X className="w-3.5 h-3.5" />
@@ -591,11 +586,10 @@ export default function OutPassPage() {
             type="button"
             disabled={!toDate}
             onClick={() => toDate && setToDate("")}
-            className={`p-0.5 rounded transition-colors flex items-center justify-center shrink-0 ${
-              toDate
-                ? "text-gray-600 hover:text-gray-900 hover:bg-gray-100 cursor-pointer"
-                : "text-gray-300 cursor-not-allowed opacity-50"
-            }`}
+            className={`p-0.5 rounded transition-colors flex items-center justify-center shrink-0 ${toDate
+              ? "text-gray-600 hover:text-gray-900 hover:bg-gray-100 cursor-pointer"
+              : "text-gray-300 cursor-not-allowed opacity-50"
+              }`}
             title={toDate ? "Clear To Date" : ""}
           >
             <X className="w-3.5 h-3.5" />
@@ -647,10 +641,10 @@ export default function OutPassPage() {
       {/* Filter Buttons Below Search Bar */}
       <div className="flex items-center gap-2 mb-6 flex-wrap">
         {[
-          { id: "All", label: "All", count: allCount },
-          { id: "Pending", label: "Pending", count: pendingCount },
-          { id: "Rejected", label: "Rejected", count: rejectedCount },
-          { id: "Delivered", label: "Delivered", count: deliveredCount },
+          { id: "All", label: "All" },
+          { id: "Pending", label: "Pending" },
+          { id: "Rejected", label: "Rejected" },
+          { id: "Delivered", label: "Delivered" },
         ].map((tab) => {
           const isActive = statusFilter === tab.id;
           return (
@@ -658,51 +652,50 @@ export default function OutPassPage() {
               key={tab.id}
               type="button"
               onClick={() => setStatusFilter(tab.id as any)}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer shadow-2xs ${
-                isActive
-                  ? tab.id === "Pending"
-                    ? "bg-amber-600 text-white shadow-xs ring-2 ring-amber-600/20"
-                    : tab.id === "Rejected"
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer shadow-2xs ${isActive
+                ? tab.id === "Pending"
+                  ? "bg-amber-600 text-white shadow-xs ring-2 ring-amber-600/20"
+                  : tab.id === "Rejected"
                     ? "bg-red-600 text-white shadow-xs ring-2 ring-red-600/20"
                     : tab.id === "Delivered"
-                    ? "bg-blue-600 text-white shadow-xs ring-2 ring-blue-600/20"
-                    : tab.id === "Approved"
-                    ? "bg-emerald-600 text-white shadow-xs ring-2 ring-emerald-600/20"
-                    : "bg-slate-900 text-white shadow-xs ring-2 ring-slate-900/20"
-                  : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-200 hover:border-gray-300"
-              }`}
+                      ? "bg-blue-600 text-white shadow-xs ring-2 ring-blue-600/20"
+                      : tab.id === "Approved"
+                        ? "bg-emerald-600 text-white shadow-xs ring-2 ring-emerald-600/20"
+                        : "bg-slate-900 text-white shadow-xs ring-2 ring-slate-900/20"
+                : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-200 hover:border-gray-300"
+                }`}
             >
               <span>{tab.label}</span>
-              <span
-                className={`px-1.5 py-0.5 rounded-full text-[10px] font-black ${
-                  isActive
-                    ? "bg-white/25 text-white"
-                    : tab.id === "Pending"
+              {/* <span
+                className={`px-1.5 py-0.5 rounded-full text-[10px] font-black ${isActive
+                  ? "bg-white/25 text-white"
+                  : tab.id === "Pending"
                     ? "bg-amber-100 text-amber-800"
                     : tab.id === "Rejected"
-                    ? "bg-red-100 text-red-700"
-                    : tab.id === "Delivered"
-                    ? "bg-blue-100 text-blue-700"
-                    : tab.id === "Approved"
-                    ? "bg-emerald-100 text-emerald-700"
-                    : "bg-gray-100 text-gray-700"
-                }`}
-              >
-                {tab.count}
-              </span>
+                      ? "bg-red-100 text-red-700"
+                      : tab.id === "Delivered"
+                        ? "bg-blue-100 text-blue-700"
+                        : tab.id === "Approved"
+                          ? "bg-emerald-100 text-emerald-700"
+                          : "bg-gray-100 text-gray-700"
+                  }`}
+              > */}
+              {/* {tab.count} */}
+              {/* </span> */}
             </button>
           );
         })}
       </div>
 
       {/* Main Display Area (Cards / Table) */}
-      {viewMode === "cards" ? (
-        <div className="space-y-6">
-          {filteredOutPasses.length === 0 ? (
-            <div className="bg-white border border-dashed border-gray-300 rounded-xl p-8 text-center text-gray-500 text-sm">
-              No out passes registered.
-            </div>
-          ) : (
+      {
+        viewMode === "cards" ? (
+          <div className="space-y-6">
+            {filteredOutPasses.length === 0 ? (
+              <div className="bg-white border border-dashed border-gray-300 rounded-xl p-8 text-center text-gray-500 text-sm">
+                No out passes registered.
+              </div>
+            ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {filteredOutPasses.map((pass) => {
                   const isApproved = pass.status === "Approved" || pass.status === "Delivered" || pass.issued === true;
@@ -712,32 +705,32 @@ export default function OutPassPage() {
                   const cardBgClass = isApproved
                     ? "bg-emerald-50/20 border-emerald-200 hover:border-emerald-300"
                     : isRejected
-                    ? "bg-red-50/20 border-red-200 hover:border-red-300"
-                    : "bg-amber-50/30 border-amber-200 hover:border-amber-300";
+                      ? "bg-red-50/20 border-red-200 hover:border-red-300"
+                      : "bg-amber-50/30 border-amber-200 hover:border-amber-300";
 
                   const iconBgClass = isApproved
                     ? "bg-emerald-100 text-emerald-600"
                     : isRejected
-                    ? "bg-red-100 text-red-600"
-                    : "bg-amber-100 text-amber-700";
+                      ? "bg-red-100 text-red-600"
+                      : "bg-amber-100 text-amber-700";
 
                   const downloadBtnClass = isApproved
                     ? "bg-emerald-100/70 hover:bg-emerald-200/80 text-emerald-700"
                     : isRejected
-                    ? "bg-red-100/70 hover:bg-red-200/80 text-red-700"
-                    : "bg-amber-100/70 hover:bg-amber-200/80 text-amber-800";
+                      ? "bg-red-100/70 hover:bg-red-200/80 text-red-700"
+                      : "bg-amber-100/70 hover:bg-amber-200/80 text-amber-800";
 
                   const viewBtnClass = isApproved
                     ? "bg-emerald-600 hover:bg-emerald-700"
                     : isRejected
-                    ? "bg-red-600 hover:bg-red-700"
-                    : "bg-amber-600 hover:bg-amber-700";
+                      ? "bg-red-600 hover:bg-red-700"
+                      : "bg-amber-600 hover:bg-amber-700";
 
                   const dividerClass = isApproved
                     ? "border-emerald-100/70"
                     : isRejected
-                    ? "border-red-100/70"
-                    : "border-amber-100/70";
+                      ? "border-red-100/70"
+                      : "border-amber-100/70";
 
                   return (
                     <div
@@ -784,67 +777,67 @@ export default function OutPassPage() {
                             </div>
                           )}
 
-                        <div className="flex items-center gap-2">
-                          <div className="relative">
-                            <button
-                              type="button"
-                              onClick={() => setActiveCardDownloadId(activeCardDownloadId === pass.id ? null : pass.id)}
-                              className={`p-1.5 ${downloadBtnClass} rounded-full transition-colors cursor-pointer flex items-center justify-center`}
-                              title="Download outpass record"
-                            >
-                              <Download className="w-3.5 h-3.5" />
-                            </button>
+                          <div className="flex items-center gap-2">
+                            <div className="relative">
+                              <button
+                                type="button"
+                                onClick={() => setActiveCardDownloadId(activeCardDownloadId === pass.id ? null : pass.id)}
+                                className={`p-1.5 ${downloadBtnClass} rounded-full transition-colors cursor-pointer flex items-center justify-center`}
+                                title="Download outpass record"
+                              >
+                                <Download className="w-3.5 h-3.5" />
+                              </button>
 
-                            {activeCardDownloadId === pass.id && (
-                              <>
-                                <div className="fixed inset-0 z-40" onClick={() => setActiveCardDownloadId(null)} />
-                                <div className="absolute right-0 mt-1.5 w-44 bg-white rounded-xl shadow-xl border border-gray-200 py-1.5 z-50 animate-in fade-in zoom-in-95 duration-150 text-left">
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      downloadSingleOutPassExcel(pass);
-                                      setActiveCardDownloadId(null);
-                                    }}
-                                    className="w-full px-3.5 py-2 text-left text-xs font-bold text-gray-700 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 transition-colors cursor-pointer"
-                                  >
-                                    <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
-                                    Download as CSV
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      downloadSingleOutPassPDF(pass);
-                                      setActiveCardDownloadId(null);
-                                    }}
-                                    className="w-full px-3.5 py-2 text-left text-xs font-bold text-gray-700 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 transition-colors cursor-pointer"
-                                  >
-                                    <FileText className="w-3.5 h-3.5 text-red-500" />
-                                    Download as PDF
-                                  </button>
-                                </div>
-                              </>
+                              {activeCardDownloadId === pass.id && (
+                                <>
+                                  <div className="fixed inset-0 z-40" onClick={() => setActiveCardDownloadId(null)} />
+                                  <div className="absolute right-0 mt-1.5 w-44 bg-white rounded-xl shadow-xl border border-gray-200 py-1.5 z-50 animate-in fade-in zoom-in-95 duration-150 text-left">
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        downloadSingleOutPassExcel(pass);
+                                        setActiveCardDownloadId(null);
+                                      }}
+                                      className="w-full px-3.5 py-2 text-left text-xs font-bold text-gray-700 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 transition-colors cursor-pointer"
+                                    >
+                                      <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+                                      Download as CSV
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        downloadSingleOutPassPDF(pass);
+                                        setActiveCardDownloadId(null);
+                                      }}
+                                      className="w-full px-3.5 py-2 text-left text-xs font-bold text-gray-700 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 transition-colors cursor-pointer"
+                                    >
+                                      <FileText className="w-3.5 h-3.5 text-red-500" />
+                                      Download as PDF
+                                    </button>
+                                  </div>
+                                </>
+                              )}
+                            </div>
+
+                            {isRejected && (
+                              <button
+                                type="button"
+                                onClick={() => { setEditingPass(pass); setIsDialogOpen(true); }}
+                                className={`p-1.5 ${downloadBtnClass} rounded-full transition-colors cursor-pointer flex items-center justify-center`}
+                                title="Edit out pass"
+                              >
+                                <Edit2 className="w-3.5 h-3.5" />
+                              </button>
                             )}
-                          </div>
 
-                          {isRejected && (
                             <button
                               type="button"
-                              onClick={() => { setEditingPass(pass); setIsDialogOpen(true); }}
-                              className={`p-1.5 ${downloadBtnClass} rounded-full transition-colors cursor-pointer flex items-center justify-center`}
-                              title="Edit out pass"
+                              onClick={() => handlePrintClick(pass)}
+                              className={`${viewBtnClass} text-white text-[11px] font-semibold px-3 py-1 rounded-full whitespace-nowrap shadow-2xs transition-colors cursor-pointer`}
                             >
-                              <Edit2 className="w-3.5 h-3.5" />
+                              View
                             </button>
-                          )}
-
-                          <button
-                            type="button"
-                            onClick={() => handlePrintClick(pass)}
-                            className={`${viewBtnClass} text-white text-[11px] font-semibold px-3 py-1 rounded-full whitespace-nowrap shadow-2xs transition-colors cursor-pointer`}
-                          >
-                            View
-                          </button>
-                        </div>
+                          </div>
                         </div>
 
                         <div className={`border-t ${dividerClass} my-3`} />
@@ -900,11 +893,10 @@ export default function OutPassPage() {
                             {pass.paymentStatus && (
                               <div>
                                 <p className="text-[10px] uppercase font-semibold text-gray-400">Payment</p>
-                                <span className={`inline-block mt-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                                  pass.paymentStatus === "Paid" ? "bg-emerald-100 text-emerald-700" :
+                                <span className={`inline-block mt-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold ${pass.paymentStatus === "Paid" ? "bg-emerald-100 text-emerald-700" :
                                   pass.paymentStatus === "Approved Credit" ? "bg-blue-100 text-blue-700" :
-                                  "bg-amber-100 text-amber-700"
-                                }`}>
+                                    "bg-amber-100 text-amber-700"
+                                  }`}>
                                   {pass.paymentStatus}
                                 </span>
                               </div>
@@ -912,11 +904,10 @@ export default function OutPassPage() {
                             {pass.status && !isApproved && (
                               <div>
                                 <p className="text-[10px] uppercase font-semibold text-gray-400">Pass Status</p>
-                                <span className={`inline-block mt-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                                  pass.status === "Rejected" ? "bg-red-100 text-red-700" :
+                                <span className={`inline-block mt-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold ${pass.status === "Rejected" ? "bg-red-100 text-red-700" :
                                   pass.status === "Updated" ? "bg-amber-100 text-amber-800" :
-                                  "bg-gray-100 text-gray-600"
-                                }`}>
+                                    "bg-gray-100 text-gray-600"
+                                  }`}>
                                   {pass.status}
                                 </span>
                               </div>
@@ -958,113 +949,112 @@ export default function OutPassPage() {
                 })}
               </div>
             )}
-        </div>
-      ) : (
-        /* Table View */
-        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900">Out Pass Register</h2>
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full table-fixed">
-              <thead>
-                <tr className="border-b border-gray-200 bg-gray-50">
-                  <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-900 uppercase tracking-wider">Pass ID</th>
-                  <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-900 uppercase tracking-wider">Vehicle</th>
-                  <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-900 uppercase tracking-wider">Customer</th>
-                  <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-900 uppercase tracking-wider">Job Card</th>
-                  <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-900 uppercase tracking-wider">Invoice</th>
-                  <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-900 uppercase tracking-wider">Payment</th>
-                  <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-900 uppercase tracking-wider">Status</th>
-                  <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-900 uppercase tracking-wider">Out Time</th>
-                  <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-900 uppercase tracking-wider">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {filteredOutPasses.map((pass) => {
-                  const isApproved = pass.status === "Approved" || pass.status === "Delivered" || pass.issued === true;
-                  const isRejected = pass.status === "Rejected";
-                  const isPending = !isApproved && !isRejected;
+        ) : (
+          /* Table View */
+          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h2 className="text-lg font-semibold text-gray-900">Out Pass Register</h2>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full table-fixed">
+                <thead>
+                  <tr className="border-b border-gray-200 bg-gray-50">
+                    <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-900 uppercase tracking-wider">Pass ID</th>
+                    <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-900 uppercase tracking-wider">Vehicle</th>
+                    <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-900 uppercase tracking-wider">Customer</th>
+                    <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-900 uppercase tracking-wider">Job Card</th>
+                    <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-900 uppercase tracking-wider">Invoice</th>
+                    <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-900 uppercase tracking-wider">Payment</th>
+                    <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-900 uppercase tracking-wider">Status</th>
+                    <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-900 uppercase tracking-wider">Out Time</th>
+                    <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-900 uppercase tracking-wider">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {filteredOutPasses.map((pass) => {
+                    const isApproved = pass.status === "Approved" || pass.status === "Delivered" || pass.issued === true;
+                    const isRejected = pass.status === "Rejected";
+                    const isPending = !isApproved && !isRejected;
 
-                  return (
-                    <tr key={pass.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-3 py-3 text-xs font-mono font-bold" style={{ color: "#F0B100" }}>{pass.passId || pass.id}</td>
-                      <td className="px-3 py-3 text-xs font-bold text-gray-900 whitespace-nowrap">{pass.vehicle}</td>
-                      <td className="px-3 py-3 text-xs">
-                        <div className="font-bold text-gray-900">{pass.customer}</div>
-                        <div className="text-[10px] font-medium text-gray-500">{pass.phone}</div>
-                      </td>
-                      <td className="px-3 py-3 text-xs font-mono text-gray-700">{pass.jobCardId || "—"}</td>
-                      <td className="px-3 py-3 text-xs font-mono text-gray-700">{pass.invoiceId || "—"}</td>
-                      <td className="px-3 py-3 text-xs">
-                        {pass.paymentStatus ? (
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                            pass.paymentStatus === "Paid" ? "bg-emerald-100 text-emerald-700" :
-                            pass.paymentStatus === "Approved Credit" ? "bg-blue-100 text-blue-700" :
-                            "bg-amber-100 text-amber-700"
-                          }`}>
-                            {pass.paymentStatus}
+                    return (
+                      <tr key={pass.id} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-3 py-3 text-xs font-mono font-bold" style={{ color: "#F0B100" }}>{pass.passId || pass.id}</td>
+                        <td className="px-3 py-3 text-xs font-bold text-gray-900 whitespace-nowrap">{pass.vehicle}</td>
+                        <td className="px-3 py-3 text-xs">
+                          <div className="font-bold text-gray-900">{pass.customer}</div>
+                          <div className="text-[10px] font-medium text-gray-500">{pass.phone}</div>
+                        </td>
+                        <td className="px-3 py-3 text-xs font-mono text-gray-700">{pass.jobCardId || "—"}</td>
+                        <td className="px-3 py-3 text-xs font-mono text-gray-700">{pass.invoiceId || "—"}</td>
+                        <td className="px-3 py-3 text-xs">
+                          {pass.paymentStatus ? (
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${pass.paymentStatus === "Paid" ? "bg-emerald-100 text-emerald-700" :
+                              pass.paymentStatus === "Approved Credit" ? "bg-blue-100 text-blue-700" :
+                                "bg-amber-100 text-amber-700"
+                              }`}>
+                              {pass.paymentStatus}
+                            </span>
+                          ) : "—"}
+                        </td>
+                        <td className="px-3 py-3 text-xs">
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${isApproved ? "bg-emerald-100 text-emerald-700" :
+                            isRejected ? "bg-red-100 text-red-700" :
+                              isPending ? "bg-amber-100 text-amber-800" :
+                                "bg-gray-100 text-gray-600"
+                            }`}>
+                            {pass.status || "Pending"}
                           </span>
-                        ) : "—"}
-                      </td>
-                      <td className="px-3 py-3 text-xs">
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                          isApproved ? "bg-emerald-100 text-emerald-700" :
-                          isRejected ? "bg-red-100 text-red-700" :
-                          isPending ? "bg-amber-100 text-amber-800" :
-                          "bg-gray-100 text-gray-600"
-                        }`}>
-                          {pass.status || "Pending"}
-                        </span>
-                      </td>
-                      <td className="px-3 py-3 text-xs font-medium text-gray-900">
-                        {pass.outTime ? new Date(pass.outTime).toLocaleString("en-IN", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "—"}
-                      </td>
-                      <td className="px-3 py-3 text-xs">
-                        <div className="flex items-center gap-1.5">
-                          <button
-                            onClick={() => handlePrintClick(pass)}
-                            className="bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-semibold px-2 py-1 rounded text-[10px] transition-colors flex items-center gap-1 cursor-pointer"
-                          >
-                            <Printer className="w-3 h-3" />
-                            Print
-                          </button>
-                          {isRejected && (
+                        </td>
+                        <td className="px-3 py-3 text-xs font-medium text-gray-900">
+                          {pass.outTime ? new Date(pass.outTime).toLocaleString("en-IN", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "—"}
+                        </td>
+                        <td className="px-3 py-3 text-xs">
+                          <div className="flex items-center gap-1.5">
                             <button
-                              onClick={() => { setEditingPass(pass); setIsDialogOpen(true); }}
-                              className="p-1 hover:bg-gray-100 rounded transition-colors cursor-pointer"
+                              onClick={() => handlePrintClick(pass)}
+                              className="bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-semibold px-2 py-1 rounded text-[10px] transition-colors flex items-center gap-1 cursor-pointer"
                             >
-                              <Edit2 className="w-3.5 h-3.5 text-gray-600" />
+                              <Printer className="w-3 h-3" />
+                              Print
                             </button>
-                          )}
-                          {isPending && (
-                            <>
+                            {isRejected && (
                               <button
-                                onClick={() => handleApproveClick(pass)}
-                                className="p-1 text-emerald-600 hover:bg-emerald-50 rounded transition-colors cursor-pointer"
-                                title="Approve"
+                                onClick={() => { setEditingPass(pass); setIsDialogOpen(true); }}
+                                className="p-1 hover:bg-gray-100 rounded transition-colors cursor-pointer"
                               >
-                                <CheckCircle className="w-4 h-4" />
+                                <Edit2 className="w-3.5 h-3.5 text-gray-600" />
                               </button>
-                              <button
-                                onClick={() => handleRejectClick(pass)}
-                                className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors cursor-pointer"
-                                title="Reject"
-                              >
-                                <XCircle className="w-4 h-4" />
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                            )}
+                            {isPending && (
+                              <>
+                                <button
+                                  onClick={() => handleApproveClick(pass)}
+                                  className="p-1 text-emerald-600 hover:bg-emerald-50 rounded transition-colors cursor-pointer"
+                                  title="Approve"
+                                >
+                                  <CheckCircle className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => handleRejectClick(pass)}
+                                  className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors cursor-pointer"
+                                  title="Reject"
+                                >
+                                  <XCircle className="w-4 h-4" />
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
       {/* Dialogs */}
       <NewOutPassDialog
@@ -1090,7 +1080,7 @@ export default function OutPassPage() {
           createdBy: selectedPass.createdBy,
         } : undefined}
       />
-    </div>
+    </div >
   );
 }
 
