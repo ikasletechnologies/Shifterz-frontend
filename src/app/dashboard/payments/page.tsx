@@ -231,7 +231,6 @@ export default function PaymentsPage() {
           <div>
             <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Total Received</p>
             <p className="text-2xl font-bold text-gray-900">₹{totalCollected.toLocaleString("en-IN")}</p>
-            <p className="text-xs text-gray-400 font-medium mt-1">Today's Collection</p>
           </div>
           <div className="p-3 bg-emerald-100 text-emerald-600 rounded-2xl shrink-0">
             <Wallet className="w-6 h-6" />
@@ -243,7 +242,6 @@ export default function PaymentsPage() {
           <div>
             <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Cash</p>
             <p className="text-2xl font-bold text-gray-900">₹{cashTotal.toLocaleString("en-IN")}</p>
-            <p className="text-xs text-gray-400 font-medium mt-1">Transactions: {cashPayments.length}</p>
           </div>
           <div className="p-3 bg-emerald-100 text-emerald-600 rounded-2xl shrink-0">
             <Banknote className="w-6 h-6" />
@@ -255,7 +253,6 @@ export default function PaymentsPage() {
           <div>
             <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">UPI / Online</p>
             <p className="text-2xl font-bold text-gray-900">₹{upiTotal.toLocaleString("en-IN")}</p>
-            <p className="text-xs text-gray-400 font-medium mt-1">Transactions: {upiPayments.length}</p>
           </div>
           <div className="p-3 bg-purple-100 text-purple-600 rounded-2xl shrink-0">
             <Smartphone className="w-6 h-6" />
@@ -267,7 +264,6 @@ export default function PaymentsPage() {
           <div>
             <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Card / POS</p>
             <p className="text-2xl font-bold text-gray-900">₹{cardTotal.toLocaleString("en-IN")}</p>
-            <p className="text-xs text-gray-400 font-medium mt-1">Transactions: {cardPayments.length}</p>
           </div>
           <div className="p-3 bg-blue-100 text-blue-600 rounded-2xl shrink-0">
             <CreditCard className="w-6 h-6" />
@@ -336,11 +332,10 @@ export default function PaymentsPage() {
               type="button"
               disabled={!startDate}
               onClick={() => { setStartDate(""); setCurrentPage(1); }}
-              className={`p-0.5 rounded transition-colors flex items-center justify-center shrink-0 ${
-                startDate
-                  ? "text-gray-600 hover:text-gray-900 hover:bg-gray-100 cursor-pointer"
-                  : "text-gray-300 cursor-not-allowed opacity-50"
-              }`}
+              className={`p-0.5 rounded transition-colors flex items-center justify-center shrink-0 ${startDate
+                ? "text-gray-600 hover:text-gray-900 hover:bg-gray-100 cursor-pointer"
+                : "text-gray-300 cursor-not-allowed opacity-50"
+                }`}
               title={startDate ? "Clear From Date" : ""}
             >
               <X className="w-3.5 h-3.5" />
@@ -359,11 +354,10 @@ export default function PaymentsPage() {
               type="button"
               disabled={!endDate}
               onClick={() => { setEndDate(""); setCurrentPage(1); }}
-              className={`p-0.5 rounded transition-colors flex items-center justify-center shrink-0 ${
-                endDate
-                  ? "text-gray-600 hover:text-gray-900 hover:bg-gray-100 cursor-pointer"
-                  : "text-gray-300 cursor-not-allowed opacity-50"
-              }`}
+              className={`p-0.5 rounded transition-colors flex items-center justify-center shrink-0 ${endDate
+                ? "text-gray-600 hover:text-gray-900 hover:bg-gray-100 cursor-pointer"
+                : "text-gray-300 cursor-not-allowed opacity-50"
+                }`}
               title={endDate ? "Clear To Date" : ""}
             >
               <X className="w-3.5 h-3.5" />

@@ -46,12 +46,6 @@ export function VehicleInspectionPage() {
   return (
     <div className="p-4 sm:p-6 md:p-8">
       <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Vehicle Inspection</h1>
-          <p className="text-sm text-gray-500 mt-0.5">
-            Every checked-in vehicle must have inspection details and at least one photo recorded before its Job Card can start work or be sent to QC.
-          </p>
-        </div>
       </div>
 
       {/* Summary cards */}
@@ -59,16 +53,14 @@ export function VehicleInspectionPage() {
         <button
           type="button"
           onClick={() => setStatusFilter("Pending")}
-          className={`p-4 rounded-xl border text-left flex items-center justify-between transition-all cursor-pointer ${
-            statusFilter === "Pending"
-              ? "bg-amber-50/70 border-amber-400 ring-2 ring-amber-400/20 shadow-sm"
-              : "bg-white border-gray-200 hover:border-amber-300 hover:bg-gray-50/60"
-          }`}
+          className={`p-4 rounded-xl border text-left flex items-center justify-between transition-all cursor-pointer ${statusFilter === "Pending"
+            ? "bg-amber-50/70 border-amber-400 ring-2 ring-amber-400/20 shadow-sm"
+            : "bg-white border-gray-200 hover:border-amber-300 hover:bg-gray-50/60"
+            }`}
         >
           <div>
             <p className="text-xs font-bold uppercase tracking-wider text-amber-600">Inspection Pending</p>
             <p className="text-2xl font-black text-amber-700 mt-1">{pendingCount}</p>
-            <p className="text-xs text-gray-500 mt-0.5 font-medium">Blocked from starting work / QC</p>
           </div>
           <div className={`p-3 rounded-xl transition-colors ${statusFilter === "Pending" ? "bg-amber-400 text-gray-900 shadow-xs" : "bg-amber-50 text-amber-600"}`}>
             <ShieldAlert className="w-6 h-6" />
@@ -78,16 +70,14 @@ export function VehicleInspectionPage() {
         <button
           type="button"
           onClick={() => setStatusFilter("Complete")}
-          className={`p-4 rounded-xl border text-left flex items-center justify-between transition-all cursor-pointer ${
-            statusFilter === "Complete"
-              ? "bg-emerald-50/70 border-emerald-500 ring-2 ring-emerald-500/20 shadow-sm"
-              : "bg-white border-gray-200 hover:border-emerald-300 hover:bg-gray-50/60"
-          }`}
+          className={`p-4 rounded-xl border text-left flex items-center justify-between transition-all cursor-pointer ${statusFilter === "Complete"
+            ? "bg-emerald-50/70 border-emerald-500 ring-2 ring-emerald-500/20 shadow-sm"
+            : "bg-white border-gray-200 hover:border-emerald-300 hover:bg-gray-50/60"
+            }`}
         >
           <div>
             <p className="text-xs font-bold uppercase tracking-wider text-emerald-600">Inspection Complete</p>
             <p className="text-2xl font-black text-emerald-700 mt-1">{completeCount}</p>
-            <p className="text-xs text-gray-500 mt-0.5 font-medium">Cleared for Workshop / QC</p>
           </div>
           <div className={`p-3 rounded-xl transition-colors ${statusFilter === "Complete" ? "bg-emerald-600 text-white shadow-xs" : "bg-emerald-50 text-emerald-600"}`}>
             <ShieldCheck className="w-6 h-6" />
@@ -112,9 +102,8 @@ export function VehicleInspectionPage() {
             <button
               key={s}
               onClick={() => setStatusFilter(s)}
-              className={`text-sm px-3 py-1 rounded-md font-medium transition-all whitespace-nowrap ${
-                statusFilter === s ? "bg-white text-gray-900 font-semibold shadow-sm" : "text-gray-500 hover:text-gray-800"
-              }`}
+              className={`text-sm px-3 py-1 rounded-md font-medium transition-all whitespace-nowrap ${statusFilter === s ? "bg-white text-gray-900 font-semibold shadow-sm" : "text-gray-500 hover:text-gray-800"
+                }`}
             >
               {s}
             </button>
@@ -136,9 +125,8 @@ export function VehicleInspectionPage() {
             return (
               <div
                 key={car.id}
-                className={`bg-white border rounded-2xl p-4 shadow-xs transition-all flex flex-col justify-between ${
-                  complete ? "border-emerald-200" : "border-amber-300"
-                }`}
+                className={`bg-white border rounded-2xl p-4 shadow-xs transition-all flex flex-col justify-between ${complete ? "border-emerald-200" : "border-amber-300"
+                  }`}
               >
                 <div className="flex items-start justify-between gap-3 mb-3">
                   <div className="flex items-center gap-3">
@@ -153,9 +141,8 @@ export function VehicleInspectionPage() {
                     </div>
                   </div>
                   <span
-                    className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold ${
-                      complete ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"
-                    }`}
+                    className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold ${complete ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"
+                      }`}
                   >
                     {complete ? <ShieldCheck className="w-3 h-3" /> : <ShieldAlert className="w-3 h-3" />}
                     {complete ? "Complete" : "Pending"}
@@ -192,9 +179,8 @@ export function VehicleInspectionPage() {
                 <button
                   type="button"
                   onClick={() => openInspection(car)}
-                  className={`w-full flex items-center justify-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl transition-colors cursor-pointer ${
-                    complete ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100" : "bg-amber-400 text-gray-900 hover:bg-amber-500"
-                  }`}
+                  className={`w-full flex items-center justify-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl transition-colors cursor-pointer ${complete ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100" : "bg-amber-400 text-gray-900 hover:bg-amber-500"
+                    }`}
                 >
                   {complete ? "View / Edit Inspection" : "Complete Inspection"}
                 </button>

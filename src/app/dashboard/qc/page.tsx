@@ -328,7 +328,6 @@ export default function QCInspectionPage() {
       {/* SECTION 1: QC Performance Summary */}
       <div className="space-y-3">
         <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
-          <TrendingUp className="w-4 h-4 text-purple-600" />
           QC Performance Summary
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
@@ -341,7 +340,6 @@ export default function QCInspectionPage() {
               <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Pass Rate</p>
               <div className="flex items-baseline gap-1">
                 <span className="text-2xl font-black text-emerald-600">{passRate}%</span>
-                <span className="text-[10px] font-semibold text-gray-400">of reviews</span>
               </div>
             </div>
           </div>
@@ -399,10 +397,8 @@ export default function QCInspectionPage() {
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-2">
               <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
-                <UserCheck className="w-4 h-4 text-purple-600" />
                 QC Personnel & Inspectors
               </h2>
-              <span className="text-xs text-gray-500 font-medium">({filteredQcInspectors.length})</span>
             </div>
 
             {/* Search Bar */}
@@ -553,18 +549,18 @@ export default function QCInspectionPage() {
           {/* Section Filter Tabs */}
           <div className="flex flex-wrap items-center gap-1.5">
             {[
-              { id: "All", label: "All Jobs", count: jobs.length },
-              { id: "Inspecting", label: "Inspecting", count: stats.inspecting },
-              { id: "Passed Jobs", label: "QC Passed Jobs", count: passedCount },
-              { id: "Failed / Rework", label: "QC Failed / Rework Required", count: failedCount },
+              { id: "All", label: "All Jobs" },
+              { id: "Inspecting", label: "Inspecting" },
+              { id: "Passed Jobs", label: "QC Passed Jobs" },
+              { id: "Failed / Rework", label: "QC Failed / Rework Required" },
             ].map((tab) => (
               <button
                 key={tab.id}
                 type="button"
                 onClick={() => setActiveTab(tab.id)}
                 className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${activeTab === tab.id
-                    ? "bg-purple-600 text-white shadow-md shadow-purple-600/20"
-                    : "bg-gray-50 text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                  ? "bg-purple-600 text-white shadow-md shadow-purple-600/20"
+                  : "bg-gray-50 text-gray-600 hover:bg-gray-100 hover:text-gray-900"
                   }`}
               >
                 {tab.label}

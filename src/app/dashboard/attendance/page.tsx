@@ -44,8 +44,8 @@ export default function AttendancePage() {
     ];
     // Filter out active roles already covered by predefined list
     const predefinedKeys = [
-      "BILLING_EXECUTIVE", "BILLING", "RECEPTION_EXECUTIVE", "RECEPTIONIST", 
-      "SERVICE_ADVISOR", "TECHNICIAN", "QUALITY_INSPECTOR", "QC", 
+      "BILLING_EXECUTIVE", "BILLING", "RECEPTION_EXECUTIVE", "RECEPTIONIST",
+      "SERVICE_ADVISOR", "TECHNICIAN", "QUALITY_INSPECTOR", "QC",
       "INVENTORY_EXECUTIVE", "FRANCHISE_ADMIN"
     ];
     const otherRoles = rawRoles.filter(role => {
@@ -277,10 +277,7 @@ export default function AttendancePage() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Attendance</h1>
-          <p className="text-gray-500 mt-1 text-sm">
-            Track employee check-ins, active duty status, and daily working hours
-          </p>
+          <h1 className="text-2xl font-bold text-gray-900"></h1>
         </div>
 
         {currentUser && (
@@ -433,11 +430,10 @@ export default function AttendancePage() {
               type="button"
               disabled={!fromDate}
               onClick={() => fromDate && setFromDate("")}
-              className={`p-0.5 rounded transition-colors flex items-center justify-center shrink-0 ${
-                fromDate
-                  ? "text-gray-600 hover:text-gray-900 hover:bg-gray-200 cursor-pointer"
-                  : "text-gray-300 cursor-not-allowed opacity-50"
-              }`}
+              className={`p-0.5 rounded transition-colors flex items-center justify-center shrink-0 ${fromDate
+                ? "text-gray-600 hover:text-gray-900 hover:bg-gray-200 cursor-pointer"
+                : "text-gray-300 cursor-not-allowed opacity-50"
+                }`}
               title={fromDate ? "Clear From Date" : ""}
             >
               <X className="w-3.5 h-3.5" />
@@ -458,11 +454,10 @@ export default function AttendancePage() {
               type="button"
               disabled={!toDate}
               onClick={() => toDate && setToDate("")}
-              className={`p-0.5 rounded transition-colors flex items-center justify-center shrink-0 ${
-                toDate
-                  ? "text-gray-600 hover:text-gray-900 hover:bg-gray-200 cursor-pointer"
-                  : "text-gray-300 cursor-not-allowed opacity-50"
-              }`}
+              className={`p-0.5 rounded transition-colors flex items-center justify-center shrink-0 ${toDate
+                ? "text-gray-600 hover:text-gray-900 hover:bg-gray-200 cursor-pointer"
+                : "text-gray-300 cursor-not-allowed opacity-50"
+                }`}
               title={toDate ? "Clear To Date" : ""}
             >
               <X className="w-3.5 h-3.5" />
@@ -516,11 +511,10 @@ export default function AttendancePage() {
                       </div>
                     </td>
                     <td className="px-6 py-4 text-sm">
-                      <span className={`px-2.5 py-1 rounded-md text-xs font-semibold inline-flex items-center gap-1 ${
-                        record.status === "Present" ? "bg-green-100 text-green-700" :
+                      <span className={`px-2.5 py-1 rounded-md text-xs font-semibold inline-flex items-center gap-1 ${record.status === "Present" ? "bg-green-100 text-green-700" :
                         record.status === "Absent" ? "bg-red-100 text-red-700" :
-                        "bg-yellow-100 text-yellow-700"
-                      }`}>
+                          "bg-yellow-100 text-yellow-700"
+                        }`}>
                         {record.status}
                       </span>
                     </td>
@@ -538,7 +532,6 @@ export default function AttendancePage() {
                     <div className="flex flex-col items-center justify-center gap-2">
                       <Clock className="w-8 h-8 text-gray-300" />
                       <p className="font-medium text-gray-600">No attendance records found</p>
-                      <p className="text-xs text-gray-400">Try adjusting your search query or filters</p>
                     </div>
                   </td>
                 </tr>

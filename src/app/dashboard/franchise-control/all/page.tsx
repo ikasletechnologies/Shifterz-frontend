@@ -2,9 +2,9 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { 
-  Building2, Search, Filter, Mail, Phone, MapPin, 
-  User, Users, CheckCircle2, XCircle, Clock, ChevronLeft, 
+import {
+  Building2, Search, Filter, Mail, Phone, MapPin,
+  User, Users, CheckCircle2, XCircle, Clock, ChevronLeft,
   ChevronRight, Edit2, Eye, X
 } from "lucide-react";
 import { getFranchises, updateFranchise } from "@/lib/api";
@@ -15,13 +15,13 @@ export default function AllFranchisesPage() {
   const router = useRouter();
   const [franchises, setFranchises] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  
+
   // Search, Filter, Pagination state
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 6; // Display 6 cards per page
-  
+
   // Edit Dialog state
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingFranchise, setEditingFranchise] = useState<any>(null);
@@ -59,14 +59,14 @@ export default function AllFranchisesPage() {
       const safeCustomer = f.customerName || f.customer || f.owner || "";
       const query = searchTerm.toLowerCase();
 
-      const matchesSearch = 
+      const matchesSearch =
         safeName.toLowerCase().includes(query) ||
         safeId.toLowerCase().includes(query) ||
         safeOwner.toLowerCase().includes(query) ||
         safeCustomer.toLowerCase().includes(query);
-      
+
       const matchesStatus = statusFilter === "All" || f.status === statusFilter;
-      
+
       return matchesSearch && matchesStatus;
     });
   }, [franchises, searchTerm, statusFilter]);
@@ -98,7 +98,7 @@ export default function AllFranchisesPage() {
   };
 
   const getStatusColor = (status: string) => {
-    switch(status) {
+    switch (status) {
       case "Active": return "bg-green-100 text-green-700 border-green-200";
       case "Inactive": return "bg-red-100 text-red-700 border-red-200";
       case "Pending": return "bg-yellow-100 text-yellow-700 border-yellow-200";
@@ -107,7 +107,7 @@ export default function AllFranchisesPage() {
   };
 
   const getStatusIcon = (status: string) => {
-    switch(status) {
+    switch (status) {
       case "Active": return <CheckCircle2 className="w-3.5 h-3.5" />;
       case "Inactive": return <XCircle className="w-3.5 h-3.5" />;
       case "Pending": return <Clock className="w-3.5 h-3.5" />;
@@ -131,13 +131,12 @@ export default function AllFranchisesPage() {
             <Building2 className="w-6 h-6 text-yellow-500" />
             All Franchises
           </h1>
-          <p className="text-gray-500 mt-1">Manage and view all registered franchises</p>
         </div>
-        
+
         <div className="flex items-center gap-3">
           <div className="relative">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input 
+            <input
               type="text"
               placeholder="Search by name or ID..."
               value={searchTerm}
@@ -153,7 +152,7 @@ export default function AllFranchisesPage() {
               </button>
             )}
           </div>
-          
+
           <div className="relative">
             <Filter className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <select
@@ -176,13 +175,12 @@ export default function AllFranchisesPage() {
             <Building2 className="w-8 h-8 text-gray-400" />
           </div>
           <h3 className="text-lg font-bold text-gray-900 mb-1">No Franchises Found</h3>
-          <p className="text-gray-500">Try adjusting your search or filters.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {paginatedFranchises.map((f) => (
             <div key={f.id} className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow overflow-hidden flex flex-col group">
-              
+
               {/* Card Header */}
               <div className="p-5 border-b border-gray-100 bg-gray-50/50 flex justify-between items-start">
                 <div>
@@ -233,16 +231,16 @@ export default function AllFranchisesPage() {
                   <Users className="w-3.5 h-3.5" />
                   {f.totalEmployees !== undefined ? `${f.totalEmployees} Employees` : "Employees N/A"}
                 </div>
-                
+
                 <div className="flex items-center gap-2">
-                  <button 
+                  <button
                     onClick={() => handleEdit(f)}
                     className="p-2 bg-white border border-gray-200 rounded-lg text-gray-600 hover:text-yellow-600 hover:border-yellow-300 hover:bg-yellow-50 transition-all shadow-sm"
                     title="Edit Franchise"
                   >
                     <Edit2 className="w-4 h-4" />
                   </button>
-                  <button 
+                  <button
                     onClick={() => router.push(`/dashboard/franchise-control/${f.id}`)}
                     className="flex items-center gap-1.5 px-3 py-2 bg-gray-900 hover:bg-gray-800 text-white text-xs font-bold rounded-lg transition-colors shadow-sm"
                   >
@@ -271,16 +269,15 @@ export default function AllFranchisesPage() {
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
-            
+
             {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
               <button
                 key={page}
                 onClick={() => setCurrentPage(page)}
-                className={`w-8 h-8 rounded-xl text-sm font-bold transition-colors ${
-                  currentPage === page 
-                    ? "bg-yellow-500 text-white border border-yellow-600 shadow-sm" 
-                    : "text-gray-600 hover:bg-gray-100 border border-transparent"
-                }`}
+                className={`w-8 h-8 rounded-xl text-sm font-bold transition-colors ${currentPage === page
+                  ? "bg-yellow-500 text-white border border-yellow-600 shadow-sm"
+                  : "text-gray-600 hover:bg-gray-100 border border-transparent"
+                  }`}
               >
                 {page}
               </button>

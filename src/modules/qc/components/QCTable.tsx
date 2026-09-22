@@ -119,7 +119,6 @@ export function QCTable({
       <div className="flex flex-col items-center justify-center py-16 text-gray-400 bg-white rounded-2xl border border-gray-100 shadow-sm">
         <ClipboardCheck className="w-12 h-12 mb-3 opacity-30 text-yellow-500" />
         <p className="font-semibold text-gray-700">No jobs in QC queue</p>
-        <p className="text-sm text-gray-400 mt-1">Jobs sent from Workshop will appear here</p>
       </div>
     );
   }

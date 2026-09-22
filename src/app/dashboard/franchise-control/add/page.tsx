@@ -104,7 +104,6 @@ export default function FranchiseManagementPage() {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Franchise Management</h1>
-            <p className="text-sm text-gray-500">Create and manage franchises with individual configurations.</p>
           </div>
         </div>
         <button
@@ -121,27 +120,24 @@ export default function FranchiseManagementPage() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         <button
           onClick={() => setStatusFilter("ALL")}
-          className={`p-4 rounded-xl border text-left transition-all ${
-            statusFilter === "ALL" ? "border-yellow-400 shadow-md bg-white" : "border-gray-100 bg-white hover:border-gray-200"
-          }`}
+          className={`p-4 rounded-xl border text-left transition-all ${statusFilter === "ALL" ? "border-yellow-400 shadow-md bg-white" : "border-gray-100 bg-white hover:border-gray-200"
+            }`}
         >
           <p className="text-2xl font-bold text-gray-900">{totalCount}</p>
           <p className="text-[11px] font-semibold text-gray-500 mt-0.5 leading-tight">Total Franchises</p>
         </button>
         <button
           onClick={() => setStatusFilter("Active")}
-          className={`p-4 rounded-xl border text-left transition-all ${
-            statusFilter === "Active" ? "border-yellow-400 shadow-md bg-white" : "border-gray-100 bg-white hover:border-gray-200"
-          }`}
+          className={`p-4 rounded-xl border text-left transition-all ${statusFilter === "Active" ? "border-yellow-400 shadow-md bg-white" : "border-gray-100 bg-white hover:border-gray-200"
+            }`}
         >
           <p className="text-2xl font-bold text-green-500">{activeCount}</p>
           <p className="text-[11px] font-semibold text-gray-500 mt-0.5 leading-tight">Active Franchises</p>
         </button>
         <button
           onClick={() => setStatusFilter("Inactive")}
-          className={`p-4 rounded-xl border text-left transition-all ${
-            statusFilter === "Inactive" ? "border-yellow-400 shadow-md bg-white" : "border-gray-100 bg-white hover:border-gray-200"
-          }`}
+          className={`p-4 rounded-xl border text-left transition-all ${statusFilter === "Inactive" ? "border-yellow-400 shadow-md bg-white" : "border-gray-100 bg-white hover:border-gray-200"
+            }`}
         >
           <p className="text-2xl font-bold text-amber-500">{inactiveCount}</p>
           <p className="text-[11px] font-semibold text-gray-500 mt-0.5 leading-tight">Inactive/Pending Franchises</p>
@@ -216,9 +212,8 @@ export default function FranchiseManagementPage() {
                     <td className="px-6 py-4 text-gray-600 text-center font-bold">{f.royalty || 0}%</td>
                     <td className="px-6 py-4">
                       <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${
-                          f.status === "Active" ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"
-                        }`}
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${f.status === "Active" ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"
+                          }`}
                       >
                         {f.status}
                       </span>

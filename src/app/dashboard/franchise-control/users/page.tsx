@@ -418,7 +418,6 @@ export default function UserManagementPage() {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-gray-900">User Management</h1>
-            <p className="text-sm text-gray-500">Create users with individual dashboard access based on their role.</p>
           </div>
         </div>
         <button
@@ -547,8 +546,8 @@ export default function UserManagementPage() {
                           }
                         }}
                         className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-extrabold cursor-pointer transition-all ${u.status === "Active"
-                            ? "bg-green-100 text-green-700 hover:bg-green-200"
-                            : "bg-red-100 text-red-700 hover:bg-red-200"
+                          ? "bg-green-100 text-green-700 hover:bg-green-200"
+                          : "bg-red-100 text-red-700 hover:bg-red-200"
                           }`}
                         title="Click to toggle account activation/deactivation (§17.8)"
                       >

@@ -134,7 +134,6 @@ export default function NotificationCenterPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-200 pb-5">
         <div>
           <h1 className="text-2xl font-semibold text-gray-900">Notifications</h1>
-          <p className="mt-1 text-sm text-gray-500">View system alerts and announcements.</p>
         </div>
         <div className="flex items-center gap-3">
           <button
@@ -168,21 +167,19 @@ export default function NotificationCenterPage() {
         <div className="flex items-center gap-1 overflow-x-auto">
           <button
             onClick={() => setActiveTab("ALL")}
-            className={`px-3 py-2 rounded-md text-sm font-medium transition ${
-              activeTab === "ALL"
-                ? "bg-gray-100 text-gray-900"
-                : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"
-            }`}
+            className={`px-3 py-2 rounded-md text-sm font-medium transition ${activeTab === "ALL"
+              ? "bg-gray-100 text-gray-900"
+              : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"
+              }`}
           >
-            All Notifications ({notifications.length})
+            All Notifications
           </button>
           <button
             onClick={() => setActiveTab("UNREAD")}
-            className={`px-3 py-2 rounded-md text-sm font-medium transition flex items-center gap-2 ${
-              activeTab === "UNREAD"
-                ? "bg-gray-100 text-gray-900"
-                : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"
-            }`}
+            className={`px-3 py-2 rounded-md text-sm font-medium transition flex items-center gap-2 ${activeTab === "UNREAD"
+              ? "bg-gray-100 text-gray-900"
+              : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"
+              }`}
           >
             Unread
             {unreadCount > 0 && (
@@ -193,11 +190,10 @@ export default function NotificationCenterPage() {
           </button>
           <button
             onClick={() => setActiveTab("ANNOUNCEMENTS")}
-            className={`px-3 py-2 rounded-md text-sm font-medium transition ${
-              activeTab === "ANNOUNCEMENTS"
-                ? "bg-gray-100 text-gray-900"
-                : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"
-            }`}
+            className={`px-3 py-2 rounded-md text-sm font-medium transition ${activeTab === "ANNOUNCEMENTS"
+              ? "bg-gray-100 text-gray-900"
+              : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"
+              }`}
           >
             System Announcements
           </button>
@@ -234,28 +230,25 @@ export default function NotificationCenterPage() {
           <div className="p-12 text-center">
             <Bell className="w-8 h-8 text-gray-400 mx-auto mb-3" />
             <h3 className="text-sm font-semibold text-gray-800">No notifications</h3>
-            <p className="text-xs text-gray-500 mt-1">There are no alerts or announcements to show.</p>
           </div>
         ) : (
           <div className="divide-y divide-gray-100">
             {filteredNotifications.map((n, idx) => (
               <div
                 key={idx}
-                className={`p-4 flex items-start justify-between gap-4 transition-colors ${
-                  n.read ? "bg-white hover:bg-gray-50" : "bg-yellow-50/50 hover:bg-yellow-50"
-                }`}
+                className={`p-4 flex items-start justify-between gap-4 transition-colors ${n.read ? "bg-white hover:bg-gray-50" : "bg-yellow-50/50 hover:bg-yellow-50"
+                  }`}
               >
                 <div className="flex items-start gap-4">
                   <div
-                    className={`p-2 rounded-md ${
-                      n.type === "SYSTEM_ANNOUNCEMENT"
-                        ? "bg-amber-100 text-amber-700"
-                        : n.type === "JOB_ASSIGNED"
+                    className={`p-2 rounded-md ${n.type === "SYSTEM_ANNOUNCEMENT"
+                      ? "bg-amber-100 text-amber-700"
+                      : n.type === "JOB_ASSIGNED"
                         ? "bg-blue-100 text-blue-700"
                         : n.type === "UPCOMING_DELIVERY"
-                        ? "bg-emerald-100 text-emerald-700"
-                        : "bg-slate-100 text-slate-700"
-                    }`}
+                          ? "bg-emerald-100 text-emerald-700"
+                          : "bg-slate-100 text-slate-700"
+                      }`}
                   >
                     {n.type === "SYSTEM_ANNOUNCEMENT" ? (
                       <Megaphone className="w-5 h-5" />

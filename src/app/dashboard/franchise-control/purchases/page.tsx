@@ -211,9 +211,7 @@ export default function PurchaseManagementPage() {
           <h1 className="text-2xl font-bold tracking-tight text-gray-900 flex items-center gap-3">
             Vendor & Purchase Management
           </h1>
-          <p className="text-xs sm:text-sm text-gray-500">
-            Manage Headquarters suppliers, purchase orders, automated inventory goods receipt, and supplier billing.
-          </p>
+
         </div>
 
         <div className="flex items-center gap-3 shrink-0">
@@ -243,35 +241,30 @@ export default function PurchaseManagementPage() {
           <span className="w-6 h-6 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold shrink-0 text-xs">1</span>
           <div>
             <div className="font-bold text-gray-800">Purchase Order</div>
-            <div className="text-[11px] text-gray-500">HQ Authorized</div>
           </div>
         </div>
         <div className="flex items-center gap-2.5 p-3 rounded-xl bg-emerald-50 border border-emerald-200 shadow-2xs">
           <span className="w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold shrink-0 text-xs">2</span>
           <div>
             <div className="font-bold text-emerald-900">Goods Received</div>
-            <div className="text-[11px] text-emerald-600 font-bold">Auto-adds Stock</div>
           </div>
         </div>
         <div className="flex items-center gap-2.5 p-3 rounded-xl bg-purple-50/60 border border-purple-100">
           <span className="w-6 h-6 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center font-bold shrink-0 text-xs">3</span>
           <div>
             <div className="font-bold text-gray-800">Purchase Invoice</div>
-            <div className="text-[11px] text-gray-500">Bill Linked</div>
           </div>
         </div>
         <div className="flex items-center gap-2.5 p-3 rounded-xl bg-amber-50/60 border border-amber-100">
           <span className="w-6 h-6 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center font-bold shrink-0 text-xs">4</span>
           <div>
             <div className="font-bold text-gray-800">Stock Updated</div>
-            <div className="text-[11px] text-gray-500">HQ Warehouse</div>
           </div>
         </div>
         <div className="flex items-center gap-2.5 p-3 rounded-xl bg-emerald-50/60 border border-emerald-100">
           <span className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold shrink-0 text-xs">5</span>
           <div>
             <div className="font-bold text-gray-800">Supplier Payment</div>
-            <div className="text-[11px] text-gray-500">Paid & Audited</div>
           </div>
         </div>
       </div>
@@ -281,22 +274,20 @@ export default function PurchaseManagementPage() {
         <div className="flex items-center gap-1.5 p-1 rounded-xl bg-gray-100 border border-gray-200">
           <button
             onClick={() => setActiveTab("purchases")}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all ${
-              activeTab === "purchases"
-                ? "bg-emerald-600 text-white shadow-xs"
-                : "text-gray-600 hover:text-gray-900"
-            }`}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all ${activeTab === "purchases"
+              ? "bg-emerald-600 text-white shadow-xs"
+              : "text-gray-600 hover:text-gray-900"
+              }`}
           >
             <ShoppingCart className="w-4 h-4" />
             Purchase Orders ({purchases.length})
           </button>
           <button
             onClick={() => setActiveTab("vendors")}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all ${
-              activeTab === "vendors"
-                ? "bg-emerald-600 text-white shadow-xs"
-                : "text-gray-600 hover:text-gray-900"
-            }`}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all ${activeTab === "vendors"
+              ? "bg-emerald-600 text-white shadow-xs"
+              : "text-gray-600 hover:text-gray-900"
+              }`}
           >
             <Building2 className="w-4 h-4" />
             Vendor Master ({vendors.length})
@@ -336,9 +327,6 @@ export default function PurchaseManagementPage() {
             <div className="py-20 text-center text-gray-500 space-y-2">
               <ShoppingCart className="w-12 h-12 mx-auto text-gray-300" />
               <p className="text-base font-bold text-gray-800">No Purchase Orders Found</p>
-              <p className="text-xs text-gray-400">
-                Click &quot;+ New Purchase Order&quot; above to initiate a procurement order with suppliers.
-              </p>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -387,15 +375,14 @@ export default function PurchaseManagementPage() {
                         </td>
                         <td className="py-3.5 px-4">
                           <span
-                            className={`px-2.5 py-1 text-xs rounded-full font-bold inline-flex items-center gap-1 ${
-                              po.stage === "PAID"
-                                ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                                : po.stage === "INVOICED"
+                            className={`px-2.5 py-1 text-xs rounded-full font-bold inline-flex items-center gap-1 ${po.stage === "PAID"
+                              ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                              : po.stage === "INVOICED"
                                 ? "bg-purple-50 text-purple-700 border border-purple-200"
                                 : po.stage === "RECEIVED"
-                                ? "bg-blue-50 text-blue-700 border border-blue-200"
-                                : "bg-amber-50 text-amber-700 border border-amber-200"
-                            }`}
+                                  ? "bg-blue-50 text-blue-700 border border-blue-200"
+                                  : "bg-amber-50 text-amber-700 border border-amber-200"
+                              }`}
                           >
                             {po.stage === "PAID" && <CheckCircle2 className="w-3.5 h-3.5" />}
                             {po.stage === "RECEIVED" && <PackageCheck className="w-3.5 h-3.5" />}
@@ -469,9 +456,6 @@ export default function PurchaseManagementPage() {
             <div className="py-20 text-center text-gray-500 space-y-2">
               <Building2 className="w-12 h-12 mx-auto text-gray-300" />
               <p className="text-base font-bold text-gray-800">No Suppliers (Vendors) Found</p>
-              <p className="text-xs text-gray-400">
-                Click &quot;Add Supplier (Vendor)&quot; above to add suppliers to the Headquarters Vendor Master repository.
-              </p>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -509,11 +493,10 @@ export default function PurchaseManagementPage() {
                       </td>
                       <td className="py-3.5 px-4">
                         <span
-                          className={`px-2.5 py-1 text-xs rounded-full font-bold inline-flex items-center gap-1 ${
-                            vendor.status === "Active"
-                              ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                              : "bg-gray-100 text-gray-500 border border-gray-200"
-                          }`}
+                          className={`px-2.5 py-1 text-xs rounded-full font-bold inline-flex items-center gap-1 ${vendor.status === "Active"
+                            ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                            : "bg-gray-100 text-gray-500 border border-gray-200"
+                            }`}
                         >
                           {vendor.status === "Active" && <CheckCircle2 className="w-3 h-3" />}
                           {vendor.status}

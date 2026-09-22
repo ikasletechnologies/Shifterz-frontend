@@ -215,11 +215,10 @@ export default function MastersPage() {
                         <button
                           key={key}
                           onClick={() => setActiveCategory(key)}
-                          className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold transition-all flex items-center justify-between ${
-                            isActive
+                          className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold transition-all flex items-center justify-between ${isActive
                               ? "bg-yellow-50 text-yellow-900 border border-yellow-300 shadow-2xs font-bold"
                               : "text-gray-600 hover:text-gray-900 hover:bg-gray-50 border border-transparent"
-                          }`}
+                            }`}
                         >
                           <span className="truncate">{label}</span>
                           {isActive && (
@@ -249,9 +248,6 @@ export default function MastersPage() {
                     {records.length} {records.length === 1 ? "entry" : "entries"}
                   </span>
                 </div>
-                <p className="text-xs text-gray-500 mt-1">
-                  Manage standard {activeLabel.toLowerCase()} used across all franchise branches. Changes apply system-wide.
-                </p>
               </div>
 
               <div className="flex items-center gap-2.5 shrink-0">
@@ -277,11 +273,10 @@ export default function MastersPage() {
             {/* Seed result notification banner */}
             {seedResult && (
               <div
-                className={`p-3.5 rounded-xl text-xs font-medium border flex items-center justify-between ${
-                  seedResult.startsWith("✅")
+                className={`p-3.5 rounded-xl text-xs font-medium border flex items-center justify-between ${seedResult.startsWith("✅")
                     ? "bg-emerald-50 border-emerald-200 text-emerald-800"
                     : "bg-red-50 border-red-200 text-red-800"
-                }`}
+                  }`}
               >
                 <span>{seedResult}</span>
                 <button
@@ -391,11 +386,10 @@ export default function MastersPage() {
                         <td className="py-3.5 px-6">
                           <button
                             onClick={() => handleToggleStatus(r)}
-                            className={`px-2.5 py-1 rounded-full text-xs font-bold border transition-colors ${
-                              r.status === "Active"
+                            className={`px-2.5 py-1 rounded-full text-xs font-bold border transition-colors ${r.status === "Active"
                                 ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100"
                                 : "bg-gray-100 border-gray-200 text-gray-500 hover:bg-gray-200"
-                            }`}
+                              }`}
                             title="Click to toggle status"
                           >
                             {r.status}
@@ -471,13 +465,12 @@ export default function MastersPage() {
                   type="text"
                   value={formName}
                   onChange={(e) => setFormName(e.target.value)}
-                  placeholder={`e.g. ${
-                    activeCategory === "VEHICLE_BRAND" ? "Maruti Suzuki" :
-                    activeCategory === "FUEL_TYPE" ? "Electric (EV)" :
-                    activeCategory === "DEPARTMENT" ? "Workshop" :
-                    activeCategory === "GST_RATE" ? "18% GST" :
-                    "Enter name"
-                  }`}
+                  placeholder={`e.g. ${activeCategory === "VEHICLE_BRAND" ? "Maruti Suzuki" :
+                      activeCategory === "FUEL_TYPE" ? "Electric (EV)" :
+                        activeCategory === "DEPARTMENT" ? "Workshop" :
+                          activeCategory === "GST_RATE" ? "18% GST" :
+                            "Enter name"
+                    }`}
                   className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-yellow-500/20 focus:border-yellow-500"
                   required
                 />
