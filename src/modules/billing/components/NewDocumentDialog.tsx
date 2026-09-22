@@ -1,7 +1,7 @@
 "use client";
 
 import { PhoneInput } from "@/components/common/PhoneInput";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import {
   X, FileText, Plus, Trash2, Loader2, Clock, Eye,
   MapPin, CheckCircle2, ArrowRight
@@ -71,6 +71,7 @@ export default function NewDocumentDialog({
     mileage: "",
     fuelType: "Petrol",
     billingAddress: "",
+    customerState: "",
     discount: "",
     invoiceDate: new Date().toISOString().split("T")[0],
     dueDate: "",
@@ -102,6 +103,7 @@ export default function NewDocumentDialog({
   const [eligibleJobs, setEligibleJobs] = useState<JobCard[]>([]);
   const [isLoadingJobs, setIsLoadingJobs] = useState(false);
   const [jobId, setJobId] = useState<string>("");
+  const customerStateInputRef = useRef<HTMLInputElement | null>(null);
 
   // GET /vehicle/:vehicleNo also returns `model` (from the matched Customer's
   // saved vehicle, or the latest Car-In record) — it was being fetched and
@@ -143,6 +145,7 @@ export default function NewDocumentDialog({
           mileage: initialData.mileage || "",
           fuelType: initialData.fuelType || "Petrol",
           billingAddress: initialData.billingAddress || "",
+          customerState: initialData.buyerState || "",
           discount: (initialData.discount || 0).toString(),
           invoiceDate: initialData.date ? new Date(initialData.date).toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
           dueDate: initialData.dueDate ? new Date(initialData.dueDate).toISOString().split("T")[0] : "",
@@ -216,6 +219,7 @@ export default function NewDocumentDialog({
           mileage: "",
           fuelType: "Petrol",
           billingAddress: "",
+          customerState: "",
           discount: "",
           invoiceDate: new Date().toISOString().split("T")[0],
           dueDate: "",
@@ -343,6 +347,7 @@ export default function NewDocumentDialog({
         mileage: "",
         fuelType: "Petrol",
         billingAddress: "",
+        customerState: "",
         discount: "",
         invoiceDate: new Date().toISOString().split("T")[0],
         dueDate: "",
@@ -542,6 +547,21 @@ export default function NewDocumentDialog({
       return;
     }
 
+    // Only an Invoice actually runs GST calculation server-side (Estimates/
+    // Quotations don't) — the "Customer State" input's `required` attribute
+    // can't enforce this itself since this handler is wired to a footer
+    // button outside the <form>, so native HTML validation never fires.
+    if (formData.type === "Invoice" && !formData.customerState.trim()) {
+      toast.error("Customer State is required to generate an Invoice — GST calculation needs it to determine CGST+SGST vs IGST.");
+      // The form is one long scrollable page (the numbered 1/2/3 stepper up
+      // top is a visual guide only, not real per-step navigation), so on a
+      // small viewport the field this error refers to is easily off-screen
+      // below wherever the user happened to be scrolled to.
+      customerStateInputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      customerStateInputRef.current?.focus();
+      return;
+    }
+
     if (onSubmit) {
       const overallDiscountPercent = parseFloat(formData.discount) || 0;
       const overallDiscountAmount = ((baseAmount - lineDiscountAmount) * overallDiscountPercent) / 100;
@@ -577,6 +597,7 @@ export default function NewDocumentDialog({
         mileage: formData.mileage || "",
         fuelType: formData.fuelType || "Petrol",
         billingAddress: formData.billingAddress || "",
+        buyerState: formData.customerState || null,
         service: computedService,
         serviceCategory: formData.serviceCategory || "General Service",
         customerComplaint: formData.customerComplaint || "",
@@ -794,6 +815,25 @@ export default function NewDocumentDialog({
                         />
                         <MapPin className="w-3.5 h-3.5 text-blue-500 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                       </div>
+                    </div>
+
+                    <div className="sm:col-span-2">
+                      <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                        Customer State <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        ref={customerStateInputRef}
+                        type="text"
+                        name="customerState"
+                        value={formData.customerState}
+                        onChange={handleChange}
+                        placeholder="Type the customer's state — e.g. Karnataka"
+                        className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        required
+                      />
+                      <p className="text-[10px] text-slate-400 mt-1">
+                        Determines CGST+SGST vs IGST — required to generate the invoice.
+                      </p>
                     </div>
                   </div>
                 </div>

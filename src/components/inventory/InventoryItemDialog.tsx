@@ -19,7 +19,7 @@ export default function InventoryItemDialog({
   const [categories, setCategories] = useState<string[]>([]);
   const [formData, setFormData] = useState({
     name: "",
-    category: "PPF",
+    category: "",
     unit: "Meter / Bottle / Kit",
     stock: "",
     costPerUnit: "",
@@ -36,7 +36,7 @@ export default function InventoryItemDialog({
             setCategories(data.categories);
             setFormData((prev) => ({
               ...prev,
-              category: data.categories.length > 0 ? data.categories[0] : "PPF",
+              category: data.categories.length > 0 ? data.categories[0] : "",
             }));
           }
         })
@@ -83,7 +83,7 @@ export default function InventoryItemDialog({
 
     setFormData({
       name: "",
-      category: "PPF",
+      category: "",
       unit: "Meter / Bottle / Kit",
       stock: "",
       costPerUnit: "",
@@ -147,12 +147,7 @@ export default function InventoryItemDialog({
                     <option key={i} value={cat}>{cat}</option>
                   ))
                 ) : (
-                  <>
-                    <option>PPF</option>
-                    <option>Coating</option>
-                    <option>Consumable</option>
-                    <option>Chemical</option>
-                  </>
+                  <option value={formData.category || ""}>{formData.category || "Select Category"}</option>
                 )}
               </select>
             </div>

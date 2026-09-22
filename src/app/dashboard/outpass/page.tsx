@@ -666,22 +666,6 @@ export default function OutPassPage() {
                 }`}
             >
               <span>{tab.label}</span>
-              {/* <span
-                className={`px-1.5 py-0.5 rounded-full text-[10px] font-black ${isActive
-                  ? "bg-white/25 text-white"
-                  : tab.id === "Pending"
-                    ? "bg-amber-100 text-amber-800"
-                    : tab.id === "Rejected"
-                      ? "bg-red-100 text-red-700"
-                      : tab.id === "Delivered"
-                        ? "bg-blue-100 text-blue-700"
-                        : tab.id === "Approved"
-                          ? "bg-emerald-100 text-emerald-700"
-                          : "bg-gray-100 text-gray-700"
-                  }`}
-              > */}
-              {/* {tab.count} */}
-              {/* </span> */}
             </button>
           );
         })}

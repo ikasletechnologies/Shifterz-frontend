@@ -41,7 +41,7 @@ export default function VehicleCheckInDialog({
     carModel: "",
     customerName: "",
     phone: "",
-    service: "PPF Full Body",
+    service: "",
     odometer: "",
     inTime: "",
     notes: "",
@@ -130,7 +130,7 @@ export default function VehicleCheckInDialog({
           carModel: initialData.model || initialData.carModel || "",
           customerName: initialData.customer || initialData.name || initialData.customerName || "",
           phone: initialData.phone || "",
-          service: initialData.service || "PPF Full Body",
+          service: initialData.service || "",
           odometer: initialData.odometer || "",
           inTime: initialData.inTime || "",
           notes: initialData.notes || "",
@@ -148,7 +148,7 @@ export default function VehicleCheckInDialog({
           carModel: "",
           customerName: "",
           phone: "",
-          service: "PPF Full Body",
+          service: "",
           odometer: "",
           inTime: "",
           notes: "",
@@ -176,6 +176,24 @@ export default function VehicleCheckInDialog({
     };
     fetchServices();
   }, []);
+
+  // The <select> below is controlled by formData.service, but it used to
+  // default to a hardcoded "PPF Full Body" that isn't guaranteed to exist in
+  // this workshop's actual catalog. When it didn't, the browser silently fell
+  // back to displaying whatever option happened to be first in the list while
+  // formData.service (what actually gets submitted) stayed on the missing
+  // default — so the value shown on screen and the value saved to the CarIn
+  // record could silently diverge. Once the real catalog loads, snap the
+  // selection to a name that's actually in it.
+  useEffect(() => {
+    if (!isOpen || (initialData && !isPrefillOnly)) return;
+    if (services.length === 0) return;
+    setFormData((prev) => {
+      const validNames = new Set(services.map((s: any) => s.name));
+      if (prev.service && validNames.has(prev.service)) return prev;
+      return { ...prev, service: services[0].name };
+    });
+  }, [services, isOpen, initialData, isPrefillOnly]);
 
 
 

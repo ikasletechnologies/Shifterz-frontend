@@ -43,6 +43,11 @@ export interface BillingDocument {
   notes: string;
   paidAmount?: number;
   gstNumber?: string;
+  // GST-03 — the buyer's state, used to derive place of supply (CGST+SGST vs
+  // IGST). Required by the backend's GST calculation whenever it can't be
+  // looked up from a matching Customer record instead.
+  buyerState?: string | null;
+  placeOfSupply?: string | null;
   items?: BillingLineItem[];
   bankDetails?: string;
   paymentTerms?: string;

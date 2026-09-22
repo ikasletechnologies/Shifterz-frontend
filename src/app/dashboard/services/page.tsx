@@ -5,7 +5,7 @@ import { Suspense, useState, useEffect, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Plus, Edit2, Trash2, Search, ShieldCheck, X, ArrowLeft } from "lucide-react";
 import AddServiceDialog from "@/components/services/AddServiceDialog";
-import { getServices, createService, updateService, deleteService } from "@/lib/api";
+import { getServices, createService, updateService, deleteService, getSettings, updateSettings } from "@/lib/api";
 
 // Deep-linked from AddLeadDialog/EditLeadDialog's "+ Add Service" (and
 // anywhere else that needs a service added before it can proceed) via
@@ -23,6 +23,7 @@ function ServicesPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const returnTo = searchParams.get("returnTo");
+  const openAdd = searchParams.get("openAdd");
   const [services, setServices] = useState<any[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingService, setEditingService] = useState<any>(null);
@@ -59,12 +60,11 @@ function ServicesPageContent() {
     // Arrived via a "+ Add Service" deep link — that's clearly what they're
     // here to do, so open the form immediately instead of making them find
     // the Add button themselves.
-    if (returnTo) {
+    if (returnTo || openAdd === "true") {
       setEditingService(null);
       setIsDialogOpen(true);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fetchServices]);
+  }, [fetchServices, returnTo, openAdd]);
 
   const handleAdd = () => {
     setEditingService(null);
@@ -107,6 +107,20 @@ function ServicesPageContent() {
       } else {
         await createService(payload);
       }
+
+      if (data.category && typeof data.category === "string" && data.category.trim()) {
+        try {
+          const settings = await getSettings();
+          const existingCats: string[] = settings?.categories || [];
+          const cleanCat = data.category.trim();
+          if (!existingCats.includes(cleanCat)) {
+            await updateSettings({ categories: [...existingCats, cleanCat] });
+          }
+        } catch (e) {
+          console.error("Failed to persist new category to database:", e);
+        }
+      }
+
       await fetchServices();
     } catch (err: any) {
       console.error("Failed to save service:", err);

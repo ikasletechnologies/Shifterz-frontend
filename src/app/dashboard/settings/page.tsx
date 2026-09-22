@@ -1,8 +1,9 @@
 "use client";
 
 import { PhoneInput } from "@/components/common/PhoneInput";
-import { useRef, useState, useEffect } from "react";
-import { Building2, Headset, Lock, Plus, Trash2, Tag, Upload, Loader2, Image as ImageIcon, User } from "lucide-react";
+import { useRef, useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Building2, Headset, Lock, Plus, Trash2, Tag, Upload, Loader2, Image as ImageIcon, User, ArrowLeft } from "lucide-react";
 import { getSettings, updateSettings, uploadFile } from "@/lib/api";
 import AddTechnicianDialog from "@/modules/vehicle-checkin/components/AddTechnicianDialog";
 import AddSalesAgentDialog from "@/components/settings/AddSalesAgentDialog";
@@ -16,6 +17,21 @@ function resolveUploadUrl(url: string): string {
 }
 
 export default function SettingsPage() {
+  return (
+    <Suspense fallback={null}>
+      <SettingsPageContent />
+    </Suspense>
+  );
+}
+
+function SettingsPageContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get("tab");
+  const returnToParam = searchParams.get("returnTo");
+
+  const logoInputRef = useRef<HTMLInputElement | null>(null);
+
   const [companyInfo, setCompanyInfo] = useState({
     name: "",
     companyLogo: "",
@@ -36,18 +52,21 @@ export default function SettingsPage() {
 
   const [technicians, setTechnicians] = useState<any[]>([]);
   const [salesAgents, setSalesAgents] = useState<string[]>([]);
+  const [securityGuards, setSecurityGuards] = useState<string[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
   const [isAddTechnicianOpen, setIsAddTechnicianOpen] = useState(false);
   const [isAddSalesAgentOpen, setIsAddSalesAgentOpen] = useState(false);
-  const [newCategory, setNewCategory] = useState("");
-  const [activeTab, setActiveTab] = useState("company");
-
-  const [securityGuards, setSecurityGuards] = useState<string[]>([]);
   const [isAddSecurityOpen, setIsAddSecurityOpen] = useState(false);
+  const [newCategory, setNewCategory] = useState("");
+  const [activeTab, setActiveTab] = useState(tabParam || "company");
 
-  const [uploadingLogo, setUploadingLogo] = useState(false);
-  const logoInputRef = useRef<HTMLInputElement | null>(null);
+  useEffect(() => {
+    if (tabParam) {
+      setActiveTab(tabParam);
+    }
+  }, [tabParam]);
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -78,11 +97,6 @@ export default function SettingsPage() {
         setIsLoading(true);
         const data = await getSettings();
         if (data) {
-          // The backend's Setting model stores these fields flat (see
-          // shifterz_backend settings.repository.ts / settings.validation.ts) —
-          // there is no nested "companyInfo" object on the wire in either
-          // direction. Reading from data.companyInfo?.X here always produced ""
-          // regardless of what had been saved.
           const normInfo = {
             name: data.companyName || "",
             companyLogo: data.companyLogo || "",
@@ -318,6 +332,15 @@ export default function SettingsPage() {
 
   return (
     <div className="p-8 max-w-5xl mx-auto space-y-6">
+      {returnToParam && (
+        <button
+          type="button"
+          onClick={() => router.push(returnToParam)}
+          className="flex items-center gap-1.5 text-sm font-bold text-blue-600 hover:text-blue-700 transition-colors mb-2 cursor-pointer"
+        >
+          <ArrowLeft className="w-4 h-4" /> Back to Services
+        </button>
+      )}
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Company Profile</h1>
         <p className="mt-1 text-sm text-gray-500">Manage your company details and administrator account.</p>

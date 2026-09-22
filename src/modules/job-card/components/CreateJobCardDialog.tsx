@@ -123,9 +123,25 @@ export function CreateJobCardDialog({ isOpen, onClose, onSave, initialData }: Cr
         ? { ...initialData }
         : { ...DEFAULT_FORM, startDate: new Date().toISOString().split("T")[0] };
 
+      // A job can arrive with a plain-text `service` label but no priced
+      // `services` line items yet — most commonly the Car-In check-in deep
+      // link (?fromCarIn=), which only ever collects a free-text name, never
+      // a catalog id/price. Depends on serviceCatalog rather than being
+      // computed once at the call site so it still fires correctly if the
+      // catalog fetch above hasn't resolved by the time this effect first
+      // runs — this effect re-runs once serviceCatalog updates.
+      if ((initialForm.services || []).length === 0 && initialForm.service && serviceCatalog.length > 0) {
+        const match = serviceCatalog.find(
+          (s) => s.name.trim().toLowerCase() === initialForm.service.trim().toLowerCase()
+        );
+        if (match) {
+          initialForm = { ...initialForm, services: [{ name: match.name, price: match.price, qty: 1 }] };
+        }
+      }
+
       setFormData(initialForm);
     }
-  }, [isOpen, initialData]);
+  }, [isOpen, initialData, serviceCatalog]);
 
   const handleAddService = () => {
     if (!selectedCatalogId) {

@@ -91,13 +91,17 @@ export function JobCardPage() {
     if (cars.length > 0) {
       const car = cars.find((c) => c.id === carInId);
       if (car) {
+        // Only the plain-text label is set here — CreateJobCardDialog is
+        // responsible for matching it against the Service catalog and
+        // filling in the priced `services` line item Billing actually reads,
+        // once its own catalog fetch has resolved (see the effect there).
         setSelectedJob({
           id: "",
           carInId: car.id,
           vehicle: car.vehicleNo || car.vehicle || car.vehicleNumber || "",
           customer: car.customer || "",
           phone: car.phone || "",
-          service: car.service || "PPF Full Body",
+          service: car.service || "",
           technician: "",
           priority: "Normal",
           status: "Pending",

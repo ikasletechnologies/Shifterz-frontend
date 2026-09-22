@@ -133,8 +133,16 @@ export function SuperAdminSetupWizard() {
   const finishSetup = async () => {
     setIsSaving(true);
     try {
+      // A service typed into the quick-add row but never confirmed with the
+      // "+" button was silently dropped on Finish — nothing in the UI told
+      // the user their entry hadn't been saved yet. Fold it in here so
+      // whatever is visibly on screen is what actually gets persisted.
+      const pendingDraft =
+        draftService.name.trim() && draftService.price.trim() ? [draftService] : [];
+      const allServices = [...services, ...pendingDraft];
+
       const categories = Array.from(
-        new Set(services.map((s) => s.category.trim()).filter(Boolean))
+        new Set(allServices.map((s) => s.category.trim()).filter(Boolean))
       );
 
       await updateSettings({
@@ -155,7 +163,7 @@ export function SuperAdminSetupWizard() {
         isSetupComplete: true,
       });
 
-      for (const s of services) {
+      for (const s of allServices) {
         try {
           await createService({
             name: s.name.trim(),
