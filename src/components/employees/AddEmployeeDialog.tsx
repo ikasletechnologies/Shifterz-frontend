@@ -13,16 +13,16 @@ interface AddEmployeeDialogProps {
 }
 
 const MODULE_OPTIONS = [
-  { value: "dashboard",  label: "Dashboard" },
-  { value: "carin",      label: "Car In" },
-  { value: "jobs",       label: "Job Cards" },
-  { value: "leads",      label: "Leads" },
-  { value: "customers",  label: "Customers" },
-  { value: "billing",    label: "Billing" },
-  { value: "payments",   label: "Payments" },
-  { value: "inventory",  label: "Inventory" },
-  { value: "reports",    label: "Reports" },
-  { value: "employees",  label: "Employees" },
+  { value: "dashboard", label: "Dashboard" },
+  { value: "carin", label: "Car In" },
+  { value: "jobs", label: "Job Cards" },
+  { value: "leads", label: "Leads" },
+  { value: "customers", label: "Customers" },
+  { value: "billing", label: "Billing" },
+  { value: "payments", label: "Payments" },
+  { value: "inventory", label: "Inventory" },
+  { value: "reports", label: "Reports" },
+  { value: "employees", label: "Employees" },
   { value: "attendance", label: "Attendance" },
 ];
 
@@ -40,25 +40,7 @@ const DEFAULT_ROLE_MODULES: Record<string, string[]> = {
 };
 
 export default function AddEmployeeDialog({ isOpen, onClose, onAdd, franchises, defaultRole = "TECHNICIAN", allowedRoles, lockFranchiseId }: AddEmployeeDialogProps) {
-  const [formData, setFormData] = useState({
-    name: "",
-    phone: "",
-    email: "",
-    username: "",
-    password: "",
-    role: defaultRole,
-    franchiseId: lockFranchiseId || "",
-  });
-
-  const [showPassword, setShowPassword] = useState(false);
-
-  const [selectedModules, setSelectedModules] = useState<string[]>(
-    DEFAULT_ROLE_MODULES[defaultRole] || DEFAULT_ROLE_MODULES["TECHNICIAN"]
-  );
-
-  const roles = allowedRoles || [
-    "SUPER_ADMIN",
-    "HQ_USER",
+  const defaultRoles = [
     "FRANCHISE_ADMIN",
     "BRANCH_MANAGER",
     "RECEPTION_EXECUTIVE",
@@ -68,6 +50,30 @@ export default function AddEmployeeDialog({ isOpen, onClose, onAdd, franchises, 
     "BILLING_EXECUTIVE",
     "INVENTORY_EXECUTIVE",
   ];
+
+  const roles = (allowedRoles || defaultRoles).filter(
+    r => r !== "SUPER_ADMIN" && r !== "HQ_USER"
+  );
+
+  const initialRole = (defaultRole && defaultRole !== "SUPER_ADMIN" && defaultRole !== "HQ_USER")
+    ? defaultRole
+    : (roles[0] || "RECEPTION_EXECUTIVE");
+
+  const [formData, setFormData] = useState({
+    name: "",
+    phone: "",
+    email: "",
+    username: "",
+    password: "",
+    role: initialRole,
+    franchiseId: lockFranchiseId || "",
+  });
+
+  const [showPassword, setShowPassword] = useState(false);
+
+  const [selectedModules, setSelectedModules] = useState<string[]>(
+    DEFAULT_ROLE_MODULES[initialRole] || DEFAULT_ROLE_MODULES["RECEPTION_EXECUTIVE"] || []
+  );
 
   if (!isOpen) return null;
 
@@ -106,7 +112,6 @@ export default function AddEmployeeDialog({ isOpen, onClose, onAdd, franchises, 
         <div className="p-6 border-b border-gray-100 flex items-center justify-between">
           <div>
             <h2 className="text-xl font-bold text-gray-900">Add New Employee</h2>
-            <p className="text-sm text-gray-500 mt-1">Enter employee details below.</p>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
             <X className="w-5 h-5 text-gray-500" />
@@ -114,7 +119,7 @@ export default function AddEmployeeDialog({ isOpen, onClose, onAdd, franchises, 
         </div>
 
         <div className="p-6 overflow-y-auto">
-          <form id="add-employee-form" onSubmit={handleSubmit} className="space-y-6">
+          <form id="add-employee-form" onSubmit={handleSubmit} className="space-y-6" autoComplete="off">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5 col-span-2">
                 <label className="text-sm font-medium text-gray-700">Full Name *</label>
@@ -153,6 +158,8 @@ export default function AddEmployeeDialog({ isOpen, onClose, onAdd, franchises, 
                 <label className="text-sm font-medium text-gray-700">Username</label>
                 <input
                   type="text"
+                  name="new_employee_username"
+                  autoComplete="off"
                   value={formData.username}
                   onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                   className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all outline-none"
@@ -165,6 +172,8 @@ export default function AddEmployeeDialog({ isOpen, onClose, onAdd, franchises, 
                 <div className="relative">
                   <input
                     type={showPassword ? "text" : "password"}
+                    name="new_employee_password"
+                    autoComplete="new-password"
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                     className="w-full px-4 py-2.5 pr-10 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all outline-none"
@@ -188,7 +197,7 @@ export default function AddEmployeeDialog({ isOpen, onClose, onAdd, franchises, 
                   onChange={(e) => handleRoleChange(e.target.value)}
                   className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all outline-none bg-white"
                 >
-                  {roles.map(r => <option key={r} value={r}>{r.replace("_", " ")}</option>)}
+                  {roles.map(r => <option key={r} value={r}>{r.replace(/_/g, " ")}</option>)}
                 </select>
               </div>
 
@@ -213,7 +222,7 @@ export default function AddEmployeeDialog({ isOpen, onClose, onAdd, franchises, 
                 <label className="text-sm font-semibold text-gray-700 block mb-2">
                   Customize Dashboard Access
                 </label>
-                <p className="text-xs text-gray-400 mb-3">Toggled options overrides standard role permissions.</p>
+
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {MODULE_OPTIONS.map((opt) => {
                     const isChecked = selectedModules.includes(opt.value);
@@ -222,11 +231,10 @@ export default function AddEmployeeDialog({ isOpen, onClose, onAdd, franchises, 
                         type="button"
                         key={opt.value}
                         onClick={() => handleToggleModule(opt.value)}
-                        className={`flex items-center gap-2 p-2 rounded-xl border text-left transition-all ${
-                          isChecked
-                            ? "bg-blue-50/50 border-blue-300 text-blue-700 font-semibold"
-                            : "bg-gray-50 border-gray-100 text-gray-400"
-                        }`}
+                        className={`flex items-center gap-2 p-2 rounded-xl border text-left transition-all ${isChecked
+                          ? "bg-blue-50/50 border-blue-300 text-blue-700 font-semibold"
+                          : "bg-gray-50 border-gray-100 text-gray-400"
+                          }`}
                       >
                         <input
                           type="checkbox"

@@ -300,30 +300,7 @@ export default function QCInspectionPage() {
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-8">
       {/* Module Title Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <div className="p-2.5 rounded-xl bg-purple-100 text-purple-700">
-              <ShieldCheck className="w-6 h-6" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900 tracking-tight">QC Inspection Module</h1>
-              <div className="flex items-center gap-1.5 text-xs font-semibold text-purple-700 bg-purple-50 border border-purple-200/80 px-2.5 py-0.5 rounded-lg w-fit mt-1 shadow-2xs">
-                <Building2 className="w-3.5 h-3.5 text-purple-600 shrink-0" />
-                <span>Franchise: {selectedQcBranchName}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="px-3 py-1 bg-purple-50 border border-purple-200 text-purple-700 text-xs font-bold rounded-full">
-            Super Admin View
-          </span>
-          <span className="px-3 py-1 bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold rounded-full">
-            {jobs.length} Active Records
-          </span>
-        </div>
-      </div>
+
 
       {/* SECTION 1: QC Performance Summary */}
       <div className="space-y-3">

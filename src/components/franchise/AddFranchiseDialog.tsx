@@ -1,10 +1,11 @@
 "use client";
 /* eslint-disable react-hooks/exhaustive-deps, @typescript-eslint/no-explicit-any */
 
-import { X, Check, Eye, EyeOff } from "lucide-react";
-import { useEffect, useState } from "react";
+import { X, Check, Eye, EyeOff, Loader2, Sparkles } from "lucide-react";
+import { useEffect, useState, useRef } from "react";
 import { toast } from "react-hot-toast";
 import { isValidGST, formatGSTInput } from "@/lib/validation";
+import { lookupGstin } from "@/lib/api";
 
 interface FranchiseData {
   id?: string;
@@ -35,6 +36,8 @@ interface AddFranchiseDialogProps {
 export default function AddFranchiseDialog({ isOpen, onClose, franchiseData, onSave }: AddFranchiseDialogProps) {
   const [mounted, setMounted] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [isFetchingGst, setIsFetchingGst] = useState(false);
+  const lastFetchedGstRef = useRef<string>("");
   const [formData, setFormData] = useState<FranchiseData>({
     name: "",
     city: "",
@@ -60,6 +63,7 @@ export default function AddFranchiseDialog({ isOpen, onClose, franchiseData, onS
   useEffect(() => {
     if (franchiseData) {
       setFormData(franchiseData);
+      lastFetchedGstRef.current = franchiseData.gstNumber ? franchiseData.gstNumber.trim().toUpperCase() : "";
     } else {
       setFormData({
         name: "",
@@ -78,8 +82,49 @@ export default function AddFranchiseDialog({ isOpen, onClose, franchiseData, onS
         state: "",
         pinCode: "",
       });
+      lastFetchedGstRef.current = "";
     }
   }, [franchiseData, isOpen]);
+
+  const handleFetchGst = async (overrideGst?: string) => {
+    const inputGst = (overrideGst || formData.gstNumber || "").trim().toUpperCase();
+    if (!isValidGST(inputGst)) {
+      toast.error("Enter a valid 15-character GSTIN first");
+      return;
+    }
+    setIsFetchingGst(true);
+    try {
+      const res = await lookupGstin(inputGst);
+      const details = (res as any)?.details || (res as any)?.data || res;
+      if (details) {
+        setFormData((prev) => ({
+          ...prev,
+          gstNumber: details.gstin || inputGst,
+          businessName: details.legalName || details.tradeName || prev.businessName,
+          address: details.address || prev.address,
+          city: details.city || prev.city,
+          state: details.state || prev.state,
+          pinCode: details.pinCode || prev.pinCode,
+          name: prev.name ? prev.name : (details.tradeName || details.legalName || ""),
+        }));
+        lastFetchedGstRef.current = details.gstin || inputGst;
+        toast.success("GST details fetched successfully!");
+      }
+    } catch (err: any) {
+      console.error("Failed to fetch GST details:", err);
+      toast.error(err.message || "Failed to fetch GST details");
+    } finally {
+      setIsFetchingGst(false);
+    }
+  };
+
+  useEffect(() => {
+    const gst = (formData.gstNumber || "").trim().toUpperCase();
+    if (isValidGST(gst) && gst !== lastFetchedGstRef.current) {
+      lastFetchedGstRef.current = gst;
+      handleFetchGst(gst);
+    }
+  }, [formData.gstNumber]);
 
   if (!mounted || !isOpen) return null;
 
@@ -247,21 +292,48 @@ export default function AddFranchiseDialog({ isOpen, onClose, franchiseData, onS
                   <input 
                     type="text" 
                     value={formData.businessName || ""}
-                    onChange={e => setFormData({...formData, businessName: e.target.value.replace(/[^A-Za-z\s]/g, "")})}
+                    onChange={e => setFormData({...formData, businessName: e.target.value})}
                     className="w-full px-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm text-[#334155] focus:outline-none focus:ring-2 focus:ring-[#f59e0b] focus:bg-white transition-colors"
                     placeholder="Legal Entity Name"
                   />
                 </div>
                 
                 <div className="col-span-2 sm:col-span-1 space-y-1.5">
-                  <label className="text-[11px] font-bold text-[#64748b] uppercase tracking-wider">GST Number *</label>
-                  <input 
-                    type="text" 
-                    value={formData.gstNumber || ""}
-                    onChange={e => setFormData({...formData, gstNumber: formatGSTInput(e.target.value)})}
-                    className="w-full px-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm text-[#334155] focus:outline-none focus:ring-2 focus:ring-[#f59e0b] focus:bg-white transition-colors"
-                    placeholder="22AAAAA0000A1Z5"
-                  />
+                  <div className="flex items-center justify-between">
+                    <label className="text-[11px] font-bold text-[#64748b] uppercase tracking-wider">GST Number *</label>
+                    {isFetchingGst && (
+                      <span className="flex items-center gap-1 text-[11px] font-medium text-amber-600">
+                        <Loader2 className="w-3 h-3 animate-spin" /> Fetching GST...
+                      </span>
+                    )}
+                  </div>
+                  <div className="relative">
+                    <input 
+                      type="text" 
+                      value={formData.gstNumber || ""}
+                      onChange={e => setFormData({...formData, gstNumber: formatGSTInput(e.target.value)})}
+                      className="w-full px-4 py-2.5 pr-20 bg-gray-50/50 border border-gray-200 rounded-lg text-sm text-[#334155] focus:outline-none focus:ring-2 focus:ring-[#f59e0b] focus:bg-white transition-colors uppercase font-mono"
+                      placeholder="22AAAAA0000A1Z5"
+                      maxLength={15}
+                    />
+                    <button
+                      type="button"
+                      disabled={isFetchingGst || !isValidGST(formData.gstNumber || "")}
+                      onClick={() => handleFetchGst()}
+                      className="absolute right-1.5 top-1/2 -translate-y-1/2 px-2.5 py-1 text-xs font-semibold bg-amber-500 hover:bg-amber-600 text-white rounded-md disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center gap-1 shadow-sm"
+                      title="Fetch details from GSTIN"
+                    >
+                      {isFetchingGst ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : (
+                        <Sparkles className="w-3 h-3" />
+                      )}
+                      <span>Fetch</span>
+                    </button>
+                  </div>
+                  <p className="text-[10px] text-gray-400">
+                    Auto-fetches Business Name, Address, City, State & PIN on valid 15-digit GSTIN
+                  </p>
                 </div>
 
                 <div className="col-span-2 sm:col-span-1 space-y-1.5">

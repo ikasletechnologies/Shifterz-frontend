@@ -36,12 +36,12 @@ export default function TechnicianAttendance() {
         const attData = await getAttendance();
         // Filter attendance records to only show the logged-in technician's records
         const myAttendance = attData.filter((record: AttendanceRecord) => record.employeeId === user.id);
-        
+
         // Sort by date descending (assuming date is ISO string)
         myAttendance.sort((a: AttendanceRecord, b: AttendanceRecord) => {
           return new Date(b.date).getTime() - new Date(a.date).getTime();
         });
-        
+
         setAttendance(myAttendance);
       }
     } catch (err: any) {
@@ -123,10 +123,9 @@ export default function TechnicianAttendance() {
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">My Attendance</h1>
-          <p className="text-gray-500 mt-1">Track your daily check-ins and working hours</p>
+
         </div>
-        
+
         {currentUser && (
           <div className="flex gap-3">
             {!isCheckedIn ? (
@@ -175,11 +174,10 @@ export default function TechnicianAttendance() {
                       {new Date(record.date).toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}
                     </td>
                     <td className="px-6 py-4 text-sm">
-                      <span className={`px-2.5 py-1 rounded-md text-xs font-medium ${
-                        record.status === "Present" ? "bg-green-100 text-green-700" :
+                      <span className={`px-2.5 py-1 rounded-md text-xs font-medium ${record.status === "Present" ? "bg-green-100 text-green-700" :
                         record.status === "Absent" ? "bg-red-100 text-red-700" :
-                        "bg-yellow-100 text-yellow-700"
-                      }`}>
+                          "bg-yellow-100 text-yellow-700"
+                        }`}>
                         {record.status}
                       </span>
                     </td>

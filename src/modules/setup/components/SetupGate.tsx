@@ -46,12 +46,6 @@ export function SetupGate({ children }: { children: ReactNode }) {
             router.replace("/setup");
             return;
           }
-        } else if (BRANCH_ADMIN_SETUP_ROLES.includes(role)) {
-          if (cancelled) return;
-          if (user.needsOnboarding === true) {
-            router.replace("/setup");
-            return;
-          }
         }
       } catch {
         // Don't trap the user on a blank screen if the check itself fails

@@ -413,12 +413,8 @@ export default function UserManagementPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="p-2 rounded-xl bg-yellow-100">
-            <Users className="w-6 h-6 text-yellow-600" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">User Management</h1>
-          </div>
+
+
         </div>
         <button
           onClick={openCreate}
