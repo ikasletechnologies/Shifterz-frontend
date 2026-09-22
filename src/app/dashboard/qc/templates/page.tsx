@@ -67,22 +67,7 @@ export default function QCTemplatesPage() {
 
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-8">
-      <div className="flex items-center justify-between bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-        <div className="flex items-center gap-2.5">
-          <div className="p-2.5 rounded-xl bg-purple-100 text-purple-700">
-            <ClipboardList className="w-6 h-6" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 tracking-tight">QC Checklist Templates</h1>
-            <p className="text-xs text-gray-400 mt-0.5">
-              {isHqUser ? "Manage the HQ standard checklist" : "Manage your franchise's checklist additions"}
-            </p>
-          </div>
-        </div>
-        <button onClick={fetchAll} className="p-2 hover:bg-gray-100 rounded-lg text-gray-500" title="Refresh">
-          <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
-        </button>
-      </div>
+
 
       {isLoading && (
         <div className="py-16 text-center text-gray-400 bg-white rounded-2xl border border-gray-100">Loading QC checklist templates...</div>

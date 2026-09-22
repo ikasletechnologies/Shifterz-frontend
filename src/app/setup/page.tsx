@@ -30,8 +30,6 @@ export default function SetupPage() {
     const role = normalizeRole(user.role);
     if (HQ_SETUP_ROLES.includes(role)) {
       setWizard("hq");
-    } else if (BRANCH_ADMIN_SETUP_ROLES.includes(role)) {
-      setWizard("branch");
     } else {
       // Setup doesn't apply to this role — send them where they'd normally land.
       router.replace(role === "TECHNICIAN" ? "/technician" : "/dashboard");

@@ -5,11 +5,8 @@
 // boolean.
 export const HQ_SETUP_ROLES = ["SUPER_ADMIN", "SUPERADMIN", "HQ_USER", "HQ"];
 
-// Roles that get the lighter, branch-scoped welcome/review wizard — their
-// franchise record (address/GST/contact) is already filled in by whichever
-// Super Admin created it (see AddFranchiseDialog), so there's nothing to
-// re-collect, only to review.
-export const BRANCH_ADMIN_SETUP_ROLES = ["FRANCHISE_ADMIN", "BRANCH_MANAGER"];
+// Franchise admin and branch manager accounts do not require setup onboarding wizard.
+export const BRANCH_ADMIN_SETUP_ROLES: string[] = [];
 
 export function normalizeRole(role?: string | null): string {
   return (role || "").toUpperCase().replace(/[\s_]+/g, "_");

@@ -167,9 +167,7 @@ function ServicesPageContent() {
               </span>
             )}
           </div>
-          <p className="text-xs text-gray-500 mt-1">
-            Centralized Shifterz repository of all services, standard pricing, warranties, and GST rates (§Service Master)
-          </p>
+
         </div>
         <div className="flex items-center gap-3">
           <div className="relative">
@@ -249,11 +247,10 @@ function ServicesPageContent() {
                         }
                       }}
                       disabled={!isHQ}
-                      className={`px-2.5 py-1 rounded-full text-xs font-extrabold transition-colors ${
-                        s.status === "Active"
-                          ? "bg-green-100 text-green-700 hover:bg-green-200"
-                          : "bg-red-100 text-red-700 hover:bg-red-200"
-                      }`}
+                      className={`px-2.5 py-1 rounded-full text-xs font-extrabold transition-colors ${s.status === "Active"
+                        ? "bg-green-100 text-green-700 hover:bg-green-200"
+                        : "bg-red-100 text-red-700 hover:bg-red-200"
+                        }`}
                     >
                       {s.status || "Active"}
                     </button>

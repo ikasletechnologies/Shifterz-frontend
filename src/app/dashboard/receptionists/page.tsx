@@ -151,7 +151,7 @@ function ReceptionistsPageContent() {
     try {
       await createEmployee({
         ...employeeData,
-        role: "RECEPTION_EXECUTIVE",
+        role: employeeData.role || "RECEPTION_EXECUTIVE",
         franchiseId: (employeeData.franchiseId && employeeData.franchiseId !== "HQ") ? employeeData.franchiseId : null
       });
       toast.success("Receptionist created successfully");

@@ -69,9 +69,7 @@ export default function EditEmployeeDialog({ isOpen, onClose, onEdit, employee, 
     }
   }, [employee]);
 
-  const roles = allowedRoles || [
-    "SUPER_ADMIN",
-    "HQ_USER",
+  const defaultRoles = [
     "FRANCHISE_ADMIN",
     "BRANCH_MANAGER",
     "RECEPTION_EXECUTIVE",
@@ -81,6 +79,10 @@ export default function EditEmployeeDialog({ isOpen, onClose, onEdit, employee, 
     "BILLING_EXECUTIVE",
     "INVENTORY_EXECUTIVE",
   ];
+
+  const roles = (allowedRoles || defaultRoles).filter(
+    r => r !== "SUPER_ADMIN" && r !== "HQ_USER"
+  );
 
   if (!isOpen) return null;
 
@@ -188,7 +190,7 @@ export default function EditEmployeeDialog({ isOpen, onClose, onEdit, employee, 
                   onChange={(e) => handleRoleChange(e.target.value)}
                   className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all outline-none bg-white"
                 >
-                  {roles.map(r => <option key={r} value={r}>{r.replace("_", " ")}</option>)}
+                  {roles.map(r => <option key={r} value={r}>{r.replace(/_/g, " ")}</option>)}
                 </select>
               </div>
 

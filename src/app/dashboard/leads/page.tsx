@@ -407,7 +407,6 @@ export default function LeadsPage() {
             <User className="w-8 h-8" />
           </div>
           <h3 className="text-xl font-bold text-gray-900 mb-2">No leads found</h3>
-          <p className="text-gray-500">Try adjusting your search or filters, or create a new lead.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

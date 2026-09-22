@@ -300,99 +300,99 @@ export function BillingPage() {
       ) : (
         <>
           {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
-          ⚠️ {error}
-        </div>
-      )}
-
-      {/* Stats Cards Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* TOTAL INVOICED */}
-        <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-xs flex items-center justify-between">
-          <div>
-            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">TOTAL INVOICED</p>
-            <p className="text-2xl font-bold text-gray-900">₹{totalInvoiced.toLocaleString("en-IN")}</p>
-            <p className="text-xs text-gray-400 font-medium mt-1">Across {totalInvoicedCount} Documents</p>
-          </div>
-          <div className="p-3 bg-purple-100 text-purple-600 rounded-2xl shrink-0">
-            <FileText className="w-6 h-6" />
-          </div>
-        </div>
-
-        {/* COLLECTED */}
-        <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-xs flex items-center justify-between">
-          <div>
-            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">COLLECTED</p>
-            <p className="text-2xl font-bold text-gray-900">₹{collected.toLocaleString("en-IN")}</p>
-            <p className="text-xs text-gray-400 font-medium mt-1">Across {collectedCount} Documents</p>
-          </div>
-          <div className="p-3 bg-emerald-100 text-emerald-600 rounded-2xl shrink-0">
-            <Wallet className="w-6 h-6" />
-          </div>
-        </div>
-
-        {/* PENDING */}
-        <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-xs flex items-center justify-between">
-          <div>
-            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">PENDING</p>
-            <p className="text-2xl font-bold text-gray-900">₹{pending.toLocaleString("en-IN")}</p>
-            <p className="text-xs text-gray-400 font-medium mt-1">Across {pendingCount} Documents</p>
-          </div>
-          <div className="p-3 bg-amber-100 text-amber-600 rounded-2xl shrink-0">
-            <Clock className="w-6 h-6" />
-          </div>
-        </div>
-
-        {/* OVERDUE */}
-        <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-xs flex items-center justify-between">
-          <div>
-            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">OVERDUE</p>
-            <p className="text-2xl font-bold text-gray-900">₹{overdue.toLocaleString("en-IN")}</p>
-            <p className="text-xs text-gray-400 font-medium mt-1">Across {overdueCount} Documents</p>
-          </div>
-          <div className="p-3 bg-red-100 text-red-600 rounded-2xl shrink-0">
-            <AlertTriangle className="w-6 h-6" />
-          </div>
-        </div>
-      </div>
-
-      {/* Filter Bar */}
-      <div className="bg-white p-3 rounded-2xl border border-gray-100 shadow-xs flex flex-col lg:flex-row items-stretch lg:items-center gap-3">
-        {/* Search Bar */}
-        <div className="flex-1 relative min-w-[240px]">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Search by doc no., client, vehicle or phone..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-9 pr-9 py-2 text-xs border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-400"
-          />
-          {searchTerm && (
-            <button
-              onClick={() => setSearchTerm("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-            >
-              <X className="w-4 h-4" />
-            </button>
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
+              ⚠️ {error}
+            </div>
           )}
-        </div>
 
-        {/* Type Filter Pills */}
-        <div className="bg-gray-100 rounded-xl p-1 flex items-center gap-1 shrink-0">
-          {["All", "Estimate", "Quotation", "Invoice"].map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setFilter(tab)}
-              className={`text-xs px-3.5 py-1.5 rounded-lg transition-all ${filter === tab
-                ? "bg-white text-gray-900 font-bold shadow-xs"
-                : "text-gray-600 hover:text-gray-900 font-medium"
-                }`}
-            >
-              {tab}
-            </button>
-          ))}
-        </div>
+          {/* Stats Cards Row */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* TOTAL INVOICED */}
+            <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-xs flex items-center justify-between">
+              <div>
+                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">TOTAL INVOICED</p>
+                <p className="text-2xl font-bold text-gray-900">₹{totalInvoiced.toLocaleString("en-IN")}</p>
+                <p className="text-xs text-gray-400 font-medium mt-1">Across {totalInvoicedCount} Documents</p>
+              </div>
+              <div className="p-3 bg-purple-100 text-purple-600 rounded-2xl shrink-0">
+                <FileText className="w-6 h-6" />
+              </div>
+            </div>
+
+            {/* COLLECTED */}
+            <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-xs flex items-center justify-between">
+              <div>
+                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">COLLECTED</p>
+                <p className="text-2xl font-bold text-gray-900">₹{collected.toLocaleString("en-IN")}</p>
+                <p className="text-xs text-gray-400 font-medium mt-1">Across {collectedCount} Documents</p>
+              </div>
+              <div className="p-3 bg-emerald-100 text-emerald-600 rounded-2xl shrink-0">
+                <Wallet className="w-6 h-6" />
+              </div>
+            </div>
+
+            {/* PENDING */}
+            <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-xs flex items-center justify-between">
+              <div>
+                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">PENDING</p>
+                <p className="text-2xl font-bold text-gray-900">₹{pending.toLocaleString("en-IN")}</p>
+                <p className="text-xs text-gray-400 font-medium mt-1">Across {pendingCount} Documents</p>
+              </div>
+              <div className="p-3 bg-amber-100 text-amber-600 rounded-2xl shrink-0">
+                <Clock className="w-6 h-6" />
+              </div>
+            </div>
+
+            {/* OVERDUE */}
+            <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-xs flex items-center justify-between">
+              <div>
+                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">OVERDUE</p>
+                <p className="text-2xl font-bold text-gray-900">₹{overdue.toLocaleString("en-IN")}</p>
+                <p className="text-xs text-gray-400 font-medium mt-1">Across {overdueCount} Documents</p>
+              </div>
+              <div className="p-3 bg-red-100 text-red-600 rounded-2xl shrink-0">
+                <AlertTriangle className="w-6 h-6" />
+              </div>
+            </div>
+          </div>
+
+          {/* Filter Bar */}
+          <div className="bg-white p-3 rounded-2xl border border-gray-100 shadow-xs flex flex-col lg:flex-row items-stretch lg:items-center gap-3">
+            {/* Search Bar */}
+            <div className="flex-1 relative min-w-[240px]">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search by doc no., client, vehicle or phone..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-9 pr-9 py-2 text-xs border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-400"
+              />
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+
+            {/* Type Filter Pills */}
+            <div className="bg-gray-100 rounded-xl p-1 flex items-center gap-1 shrink-0">
+              {["All", "Estimate", "Quotation", "Invoice"].map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setFilter(tab)}
+                  className={`text-xs px-3.5 py-1.5 rounded-lg transition-all ${filter === tab
+                    ? "bg-white text-gray-900 font-bold shadow-xs"
+                    : "text-gray-600 hover:text-gray-900 font-medium"
+                    }`}
+                >
+                  {tab}
+                </button>
+              ))}
+            </div>
 
         {/* Date Inputs & New Document Action Button */}
         <div className="flex items-center gap-3 shrink-0 flex-wrap">
@@ -455,57 +455,56 @@ export function BillingPage() {
         </div>
       </div>
 
-      {/* Cards Grid (2 Columns on Desktop) */}
-      {filteredDocs.length === 0 ? (
-        <div className="bg-white border border-gray-100 rounded-2xl p-12 flex flex-col items-center justify-center text-center shadow-xs">
-          <div className="w-16 h-16 bg-amber-50 text-amber-500 rounded-full flex items-center justify-center mb-4">
-            <Receipt className="w-8 h-8" />
-          </div>
-          <h3 className="text-xl font-bold text-gray-900 mb-2">No documents found</h3>
-          <p className="text-gray-500">Try adjusting your search or date filters, or create a new document.</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 gap-6">
-          {filteredDocs.map((doc) => {
-            const totalAmount = (doc.amount || 0) + (doc.gst || 0) - (doc.discount || 0);
-            const rawPaidAmount = doc.paidAmount || 0;
-            const paidAmount = (rawPaidAmount === 0 && (doc.status === "Paid" || doc.status === "Completed"))
-              ? totalAmount
-              : rawPaidAmount;
-            const remainingAmount = Math.max(0, totalAmount - paidAmount);
+          {/* Cards Grid (2 Columns on Desktop) */}
+          {filteredDocs.length === 0 ? (
+            <div className="bg-white border border-gray-100 rounded-2xl p-12 flex flex-col items-center justify-center text-center shadow-xs">
+              <div className="w-16 h-16 bg-amber-50 text-amber-500 rounded-full flex items-center justify-center mb-4">
+                <Receipt className="w-8 h-8" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">No documents found</h3>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-6">
+              {filteredDocs.map((doc) => {
+                const totalAmount = (doc.amount || 0) + (doc.gst || 0) - (doc.discount || 0);
+                const rawPaidAmount = doc.paidAmount || 0;
+                const paidAmount = (rawPaidAmount === 0 && (doc.status === "Paid" || doc.status === "Completed"))
+                  ? totalAmount
+                  : rawPaidAmount;
+                const remainingAmount = Math.max(0, totalAmount - paidAmount);
 
-            const formattedDate = doc.date
-              ? (() => {
-                const d = new Date(doc.date);
-                return isNaN(d.getTime()) ? doc.date : d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
-              })()
-              : "—";
+                const formattedDate = doc.date
+                  ? (() => {
+                    const d = new Date(doc.date);
+                    return isNaN(d.getTime()) ? doc.date : d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+                  })()
+                  : "—";
 
-            return (
-              <div
-                key={doc.id}
-                className="bg-white rounded-2xl border border-gray-200/90 p-5 shadow-xs hover:shadow-md transition-all flex flex-col justify-between space-y-4"
-              >
-                <div>
-                  {/* Card Top Bar: Doc ID, Type Badge, Vehicle Badge, and Action Buttons */}
-                  <div className="flex items-center justify-between gap-3 mb-4 pb-3 border-b border-gray-100 flex-wrap">
-                    <div className="flex items-center gap-2 min-w-0 flex-wrap">
-                      <div className={`p-2 rounded-xl shrink-0 ${doc.type === "Invoice" ? "bg-purple-100 text-purple-600" :
-                        doc.type === "Quotation" ? "bg-blue-100 text-blue-600" :
-                          "bg-emerald-100 text-emerald-600"
-                        }`}>
-                        <FileText className="w-4 h-4" />
-                      </div>
-                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold shrink-0 ${doc.type === "Invoice" ? "bg-purple-50 text-purple-700" :
-                        doc.type === "Quotation" ? "bg-blue-50 text-blue-700" :
-                          "bg-emerald-50 text-emerald-700"
-                        }`}>
-                        {doc.type}
-                      </span>
-                      <h3 className="text-sm font-black text-gray-900 tracking-tight font-mono truncate">
-                        {doc.id}
-                      </h3>
-                    </div>
+                return (
+                  <div
+                    key={doc.id}
+                    className="bg-white rounded-2xl border border-gray-200/90 p-5 shadow-xs hover:shadow-md transition-all flex flex-col justify-between space-y-4"
+                  >
+                    <div>
+                      {/* Card Top Bar: Doc ID, Type Badge, Vehicle Badge, and Action Buttons */}
+                      <div className="flex items-center justify-between gap-3 mb-4 pb-3 border-b border-gray-100 flex-wrap">
+                        <div className="flex items-center gap-2 min-w-0 flex-wrap">
+                          <div className={`p-2 rounded-xl shrink-0 ${doc.type === "Invoice" ? "bg-purple-100 text-purple-600" :
+                            doc.type === "Quotation" ? "bg-blue-100 text-blue-600" :
+                              "bg-emerald-100 text-emerald-600"
+                            }`}>
+                            <FileText className="w-4 h-4" />
+                          </div>
+                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold shrink-0 ${doc.type === "Invoice" ? "bg-purple-50 text-purple-700" :
+                            doc.type === "Quotation" ? "bg-blue-50 text-blue-700" :
+                              "bg-emerald-50 text-emerald-700"
+                            }`}>
+                            {doc.type}
+                          </span>
+                          <h3 className="text-sm font-black text-gray-900 tracking-tight font-mono truncate">
+                            {doc.id}
+                          </h3>
+                        </div>
 
                     <div className="flex items-center gap-1.5">
                       <button
@@ -540,71 +539,71 @@ export function BillingPage() {
                     </div>
                   </div>
 
-                  {/* 2-Column Aligned Details Grid (4 Left, 4 Right) */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 lg:gap-16 text-sm px-2 pb-2">
-                    {/* Left Column (4 Fields) */}
-                    <div className="space-y-3">
-                      <div className="grid grid-cols-[140px_20px_1fr] items-center">
-                        <span className="font-semibold text-gray-600">Vehicle No</span>
-                        <span className="text-gray-300 font-bold text-center">:</span>
-                        <span className="font-bold text-slate-900 font-mono text-sm tracking-wider uppercase">
-                          {doc.vehicle || "—"}
-                        </span>
-                      </div>
+                      {/* 2-Column Aligned Details Grid (4 Left, 4 Right) */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 lg:gap-16 text-sm px-2 pb-2">
+                        {/* Left Column (4 Fields) */}
+                        <div className="space-y-3">
+                          <div className="grid grid-cols-[140px_20px_1fr] items-center">
+                            <span className="font-semibold text-gray-600">Vehicle No</span>
+                            <span className="text-gray-300 font-bold text-center">:</span>
+                            <span className="font-bold text-slate-900 font-mono text-sm tracking-wider uppercase">
+                              {doc.vehicle || "—"}
+                            </span>
+                          </div>
 
-                      <div className="grid grid-cols-[140px_20px_1fr] items-center">
-                        <span className="font-medium text-gray-500">Customer Name</span>
-                        <span className="text-gray-300 font-bold text-center">:</span>
-                        <span className="font-bold text-gray-900 whitespace-nowrap">{doc.client || "—"}</span>
-                      </div>
+                          <div className="grid grid-cols-[140px_20px_1fr] items-center">
+                            <span className="font-medium text-gray-500">Customer Name</span>
+                            <span className="text-gray-300 font-bold text-center">:</span>
+                            <span className="font-bold text-gray-900 whitespace-nowrap">{doc.client || "—"}</span>
+                          </div>
 
-                      <div className="grid grid-cols-[140px_20px_1fr] items-center">
-                        <span className="font-medium text-gray-500">Service</span>
-                        <span className="text-gray-300 font-bold text-center">:</span>
-                        <span className="font-bold text-gray-900 whitespace-nowrap">
-                          {doc.service && doc.service !== "—" && doc.service !== "-"
-                            ? doc.service
-                            : (doc.serviceCategory || (doc.items && doc.items.find((i: any) => i.desc && i.desc.trim())?.desc) || "General Service")}
-                        </span>
-                      </div>
+                          <div className="grid grid-cols-[140px_20px_1fr] items-center">
+                            <span className="font-medium text-gray-500">Service</span>
+                            <span className="text-gray-300 font-bold text-center">:</span>
+                            <span className="font-bold text-gray-900 whitespace-nowrap">
+                              {doc.service && doc.service !== "—" && doc.service !== "-"
+                                ? doc.service
+                                : (doc.serviceCategory || (doc.items && doc.items.find((i: any) => i.desc && i.desc.trim())?.desc) || "General Service")}
+                            </span>
+                          </div>
 
-                      <div className="grid grid-cols-[140px_20px_1fr] items-center">
-                        <span className="font-medium text-gray-500">Phone</span>
-                        <span className="text-gray-300 font-bold text-center">:</span>
-                        <span className="font-bold text-blue-600 font-mono whitespace-nowrap">{doc.phone || "—"}</span>
+                          <div className="grid grid-cols-[140px_20px_1fr] items-center">
+                            <span className="font-medium text-gray-500">Phone</span>
+                            <span className="text-gray-300 font-bold text-center">:</span>
+                            <span className="font-bold text-blue-600 font-mono whitespace-nowrap">{doc.phone || "—"}</span>
+                          </div>
+                        </div>
+
+                        {/* Right Column (4 Fields) */}
+                        <div className="space-y-3">
+                          <div className="grid grid-cols-[140px_20px_1fr] items-center">
+                            <span className="font-medium text-gray-500">Date</span>
+                            <span className="text-gray-300 font-bold text-center">:</span>
+                            <span className="font-bold text-gray-900 whitespace-nowrap">{formattedDate}</span>
+                          </div>
+
+                          <div className="grid grid-cols-[140px_20px_1fr] items-center">
+                            <span className="font-medium text-gray-500">Total Amount</span>
+                            <span className="text-gray-300 font-bold text-center">:</span>
+                            <span className="font-bold text-gray-900 whitespace-nowrap">₹{totalAmount.toLocaleString("en-IN")}</span>
+                          </div>
+
+                          <div className="grid grid-cols-[140px_20px_1fr] items-center">
+                            <span className="font-medium text-gray-500">Paid Amount</span>
+                            <span className="text-gray-300 font-bold text-center">:</span>
+                            <span className="font-bold text-emerald-600 whitespace-nowrap">₹{paidAmount.toLocaleString("en-IN")}</span>
+                          </div>
+
+                          <div className="grid grid-cols-[140px_20px_1fr] items-center">
+                            <span className="font-medium text-gray-500">Pending Amount</span>
+                            <span className="text-gray-300 font-bold text-center">:</span>
+                            <span className={`font-bold whitespace-nowrap ${remainingAmount > 0 ? "text-red-600" : "text-emerald-600"}`}>
+                              ₹{remainingAmount.toLocaleString("en-IN")}
+                            </span>
+                          </div>
+                        </div>
                       </div>
                     </div>
-
-                    {/* Right Column (4 Fields) */}
-                    <div className="space-y-3">
-                      <div className="grid grid-cols-[140px_20px_1fr] items-center">
-                        <span className="font-medium text-gray-500">Date</span>
-                        <span className="text-gray-300 font-bold text-center">:</span>
-                        <span className="font-bold text-gray-900 whitespace-nowrap">{formattedDate}</span>
-                      </div>
-
-                      <div className="grid grid-cols-[140px_20px_1fr] items-center">
-                        <span className="font-medium text-gray-500">Total Amount</span>
-                        <span className="text-gray-300 font-bold text-center">:</span>
-                        <span className="font-bold text-gray-900 whitespace-nowrap">₹{totalAmount.toLocaleString("en-IN")}</span>
-                      </div>
-
-                      <div className="grid grid-cols-[140px_20px_1fr] items-center">
-                        <span className="font-medium text-gray-500">Paid Amount</span>
-                        <span className="text-gray-300 font-bold text-center">:</span>
-                        <span className="font-bold text-emerald-600 whitespace-nowrap">₹{paidAmount.toLocaleString("en-IN")}</span>
-                      </div>
-
-                      <div className="grid grid-cols-[140px_20px_1fr] items-center">
-                        <span className="font-medium text-gray-500">Pending Amount</span>
-                        <span className="text-gray-300 font-bold text-center">:</span>
-                        <span className={`font-bold whitespace-nowrap ${remainingAmount > 0 ? "text-red-600" : "text-emerald-600"}`}>
-                          ₹{remainingAmount.toLocaleString("en-IN")}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
 
                 {/* Add Payment / Go to Out Pass Button (Footer) */}
                 <div className="flex justify-between items-center gap-2 pt-4 border-t border-gray-50 mt-4">
@@ -637,11 +636,11 @@ export function BillingPage() {
                   </div>
                 </div>
 
-              </div>
-            );
-          })}
-        </div>
-      )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </>
       )}
 

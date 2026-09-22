@@ -73,7 +73,6 @@ export function WorkshopPage() {
     <div className="p-6 md:p-8 space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900">Workshop</h1>
-        <p className="text-sm text-gray-500">{isTechnician ? "Technician Workspace" : "Workshop Queue"}</p>
       </div>
 
       {/* KPI Stats */}

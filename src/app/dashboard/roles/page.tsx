@@ -125,9 +125,6 @@ export default function RolesPermissionsPage() {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Roles & Permissions</h1>
-            <p className="text-sm text-gray-500 mt-0.5">
-              Control which modules each role can access.
-            </p>
           </div>
         </div>
       </div>
@@ -173,9 +170,6 @@ export default function RolesPermissionsPage() {
               >
                 <Shield className="w-3 h-3" />
                 {activeRole.label}
-              </span>
-              <span className="text-sm text-gray-500">
-                — {Object.values(matrix[selected] || {}).filter(Boolean).length} / {PERMISSIONS.length} modules enabled
               </span>
             </div>
 

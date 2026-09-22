@@ -226,7 +226,6 @@ export default function BillingJobCards({ onInvoiceGenerated }: { onInvoiceGener
             <CheckCircle2 className="w-8 h-8" />
           </div>
           <h3 className="text-xl font-bold text-gray-900 mb-2"> No vehicles are currently waiting for billing.</h3>
-          <p className="text-gray-500">All completed jobs have been billed. Check back later when technicians finish more jobs.</p>
         </div>
       ) : (
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
@@ -347,9 +346,9 @@ export default function BillingJobCards({ onInvoiceGenerated }: { onInvoiceGener
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap">
                         <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${j.billingStatus === 'Fully Paid' ? 'bg-green-100 text-green-700' :
-                            j.billingStatus === 'Payment Pending' ? 'bg-amber-100 text-amber-700' :
-                              j.billingStatus === 'Invoice Created' ? 'bg-blue-100 text-blue-700' :
-                                'bg-gray-100 text-gray-500'
+                          j.billingStatus === 'Payment Pending' ? 'bg-amber-100 text-amber-700' :
+                            j.billingStatus === 'Invoice Created' ? 'bg-blue-100 text-blue-700' :
+                              'bg-gray-100 text-gray-500'
                           }`}>
                           {inv ? inv.status : "Pending"}
                         </span>
@@ -414,13 +413,13 @@ export default function BillingJobCards({ onInvoiceGenerated }: { onInvoiceGener
         initialData={
           outPassContext
             ? {
-                vehicle: outPassContext.vehicle || "",
-                model: outPassContext.model || "",
-                customer: outPassContext.customer || "",
-                phone: outPassContext.phone || "",
-                service: outPassContext.service || "",
-                technician: outPassContext.technician || "",
-              }
+              vehicle: outPassContext.vehicle || "",
+              model: outPassContext.model || "",
+              customer: outPassContext.customer || "",
+              phone: outPassContext.phone || "",
+              service: outPassContext.service || "",
+              technician: outPassContext.technician || "",
+            }
             : null
         }
         isPrefillOnly

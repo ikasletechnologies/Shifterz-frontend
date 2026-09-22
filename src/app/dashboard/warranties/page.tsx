@@ -419,16 +419,14 @@ export default function WarrantyManagementPage() {
         {/* ROW 1 CARD 1: TOTAL WARRANTIES */}
         <div
           onClick={() => handleCardClick("ALL")}
-          className={`bg-white rounded-2xl border p-4 shadow-2xs flex items-center justify-between cursor-pointer select-none transition-all ${
-            cardFilter === "ALL"
+          className={`bg-white rounded-2xl border p-4 shadow-2xs flex items-center justify-between cursor-pointer select-none transition-all ${cardFilter === "ALL"
               ? "border-blue-500 ring-2 ring-blue-500/20 bg-blue-50/10 shadow-sm"
               : "border-slate-100 hover:border-blue-200"
-          }`}
+            }`}
         >
           <div>
             <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">TOTAL WARRANTIES</p>
             <p className="text-2xl font-bold text-slate-900">{totalCount}</p>
-            <p className="text-[11px] text-slate-400 font-medium mt-1">All time <span className="text-[10px]">ⓘ</span></p>
           </div>
           <div className="p-3 bg-blue-500 text-white rounded-2xl shrink-0">
             <FileText className="w-5 h-5" />
@@ -438,16 +436,14 @@ export default function WarrantyManagementPage() {
         {/* ROW 1 CARD 2: ACTIVE COVERAGE */}
         <div
           onClick={() => handleCardClick("ACTIVE")}
-          className={`bg-white rounded-2xl border p-4 shadow-2xs flex items-center justify-between cursor-pointer select-none transition-all ${
-            cardFilter === "ACTIVE"
+          className={`bg-white rounded-2xl border p-4 shadow-2xs flex items-center justify-between cursor-pointer select-none transition-all ${cardFilter === "ACTIVE"
               ? "border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-50/10 shadow-sm"
               : "border-slate-100 hover:border-emerald-200"
-          }`}
+            }`}
         >
           <div>
             <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">ACTIVE COVERAGE</p>
             <p className="text-2xl font-bold text-slate-900">{activeCount}</p>
-            <p className="text-[11px] text-slate-400 font-medium mt-1">Currently active <span className="text-[10px]">ⓘ</span></p>
           </div>
           <div className="p-3 bg-emerald-500 text-white rounded-2xl shrink-0">
             <ShieldCheck className="w-5 h-5" />
@@ -457,16 +453,14 @@ export default function WarrantyManagementPage() {
         {/* ROW 1 CARD 3: EXPIRING SOON */}
         <div
           onClick={() => handleCardClick("EXPIRING_SOON")}
-          className={`bg-white rounded-2xl border p-4 shadow-2xs flex items-center justify-between cursor-pointer select-none transition-all ${
-            cardFilter === "EXPIRING_SOON"
+          className={`bg-white rounded-2xl border p-4 shadow-2xs flex items-center justify-between cursor-pointer select-none transition-all ${cardFilter === "EXPIRING_SOON"
               ? "border-amber-500 ring-2 ring-amber-500/20 bg-amber-50/10 shadow-sm"
               : "border-slate-100 hover:border-amber-200"
-          }`}
+            }`}
         >
           <div>
             <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">EXPIRING SOON</p>
             <p className="text-2xl font-bold text-slate-900">{expiringSoonCount}</p>
-            <p className="text-[11px] text-slate-400 font-medium mt-1">Within 30 days <span className="text-[10px]">ⓘ</span></p>
           </div>
           <div className="p-3 bg-amber-500 text-white rounded-2xl shrink-0">
             <Clock className="w-5 h-5" />
@@ -476,16 +470,14 @@ export default function WarrantyManagementPage() {
         {/* ROW 2 CARD 1: EXPIRED */}
         <div
           onClick={() => handleCardClick("EXPIRED")}
-          className={`bg-white rounded-2xl border p-4 shadow-2xs flex items-center justify-between cursor-pointer select-none transition-all ${
-            cardFilter === "EXPIRED"
+          className={`bg-white rounded-2xl border p-4 shadow-2xs flex items-center justify-between cursor-pointer select-none transition-all ${cardFilter === "EXPIRED"
               ? "border-rose-500 ring-2 ring-rose-500/20 bg-rose-50/10 shadow-sm"
               : "border-slate-100 hover:border-rose-200"
-          }`}
+            }`}
         >
           <div>
             <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">EXPIRED</p>
             <p className="text-2xl font-bold text-slate-900">{expiredCount}</p>
-            <p className="text-[11px] text-slate-400 font-medium mt-1">Past expiry <span className="text-[10px]">ⓘ</span></p>
           </div>
           <div className="p-3 bg-rose-500 text-white rounded-2xl shrink-0">
             <Calendar className="w-5 h-5" />
@@ -495,16 +487,14 @@ export default function WarrantyManagementPage() {
         {/* ROW 2 CARD 2: CLAIMS RAISED */}
         <div
           onClick={() => handleCardClick("CLAIMS_RAISED")}
-          className={`bg-white rounded-2xl border p-4 shadow-2xs flex items-center justify-between cursor-pointer select-none transition-all ${
-            cardFilter === "CLAIMS_RAISED"
+          className={`bg-white rounded-2xl border p-4 shadow-2xs flex items-center justify-between cursor-pointer select-none transition-all ${cardFilter === "CLAIMS_RAISED"
               ? "border-purple-500 ring-2 ring-purple-500/20 bg-purple-50/10 shadow-sm"
               : "border-slate-100 hover:border-purple-200"
-          }`}
+            }`}
         >
           <div>
             <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">CLAIMS RAISED</p>
             <p className="text-2xl font-bold text-slate-900">{claimsRaisedCount}</p>
-            <p className="text-[11px] text-slate-400 font-medium mt-1">All time <span className="text-[10px]">ⓘ</span></p>
           </div>
           <div className="p-3 bg-purple-500 text-white rounded-2xl shrink-0">
             <FileText className="w-5 h-5" />
@@ -514,16 +504,14 @@ export default function WarrantyManagementPage() {
         {/* ROW 2 CARD 3: CLAIMS APPROVED */}
         <div
           onClick={() => handleCardClick("CLAIMS_APPROVED")}
-          className={`bg-white rounded-2xl border p-4 shadow-2xs flex items-center justify-between cursor-pointer select-none transition-all ${
-            cardFilter === "CLAIMS_APPROVED"
+          className={`bg-white rounded-2xl border p-4 shadow-2xs flex items-center justify-between cursor-pointer select-none transition-all ${cardFilter === "CLAIMS_APPROVED"
               ? "border-teal-500 ring-2 ring-teal-500/20 bg-teal-50/10 shadow-sm"
               : "border-slate-100 hover:border-teal-200"
-          }`}
+            }`}
         >
           <div>
             <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">CLAIMS APPROVED</p>
             <p className="text-2xl font-bold text-slate-900">{claimsApprovedCount}</p>
-            <p className="text-[11px] text-slate-400 font-medium mt-1">All time <span className="text-[10px]">ⓘ</span></p>
           </div>
           <div className="p-3 bg-teal-500 text-white rounded-2xl shrink-0">
             <CheckCircle2 className="w-5 h-5" />
@@ -581,11 +569,10 @@ export default function WarrantyManagementPage() {
               type="button"
               disabled={!dateFrom}
               onClick={() => dateFrom && setDateFrom("")}
-              className={`p-0.5 rounded transition-colors flex items-center justify-center shrink-0 ${
-                dateFrom
+              className={`p-0.5 rounded transition-colors flex items-center justify-center shrink-0 ${dateFrom
                   ? "text-slate-600 hover:text-slate-900 hover:bg-slate-100 cursor-pointer"
                   : "text-slate-300 cursor-not-allowed opacity-50"
-              }`}
+                }`}
               title={dateFrom ? "Clear From Date" : ""}
             >
               <X className="w-3.5 h-3.5" />
@@ -605,11 +592,10 @@ export default function WarrantyManagementPage() {
               type="button"
               disabled={!dateTo}
               onClick={() => dateTo && setDateTo("")}
-              className={`p-0.5 rounded transition-colors flex items-center justify-center shrink-0 ${
-                dateTo
+              className={`p-0.5 rounded transition-colors flex items-center justify-center shrink-0 ${dateTo
                   ? "text-slate-600 hover:text-slate-900 hover:bg-slate-100 cursor-pointer"
                   : "text-slate-300 cursor-not-allowed opacity-50"
-              }`}
+                }`}
               title={dateTo ? "Clear To Date" : ""}
             >
               <X className="w-3.5 h-3.5" />

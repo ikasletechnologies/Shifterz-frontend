@@ -173,11 +173,10 @@ export default function EmployeeDashboard() {
         <button
           type="button"
           onClick={() => setActiveFilter((prev) => (prev === "Assigned" ? "All" : "Assigned"))}
-          className={`p-4 rounded-2xl border text-center transition-all cursor-pointer ${
-            activeFilter === "Assigned"
+          className={`p-4 rounded-2xl border text-center transition-all cursor-pointer ${activeFilter === "Assigned"
               ? "bg-purple-600 text-white border-purple-600 shadow-md ring-2 ring-purple-600"
               : "bg-purple-50 text-purple-900 border-purple-100 hover:border-purple-200 hover:bg-purple-100/70"
-          }`}
+            }`}
         >
           <div className="text-2xl font-black mb-1">{assignedCount}</div>
           <div className={`text-xs font-bold uppercase tracking-wide ${activeFilter === "Assigned" ? "text-purple-100" : "text-purple-700"}`}>
@@ -188,11 +187,10 @@ export default function EmployeeDashboard() {
         <button
           type="button"
           onClick={() => setActiveFilter((prev) => (prev === "In Progress" ? "All" : "In Progress"))}
-          className={`p-4 rounded-2xl border text-center transition-all cursor-pointer ${
-            activeFilter === "In Progress"
+          className={`p-4 rounded-2xl border text-center transition-all cursor-pointer ${activeFilter === "In Progress"
               ? "bg-blue-600 text-white border-blue-600 shadow-md ring-2 ring-blue-600"
               : "bg-blue-50 text-blue-900 border-blue-100 hover:border-blue-200 hover:bg-blue-100/70"
-          }`}
+            }`}
         >
           <div className="text-2xl font-black mb-1">{inProgressCount}</div>
           <div className={`text-xs font-bold uppercase tracking-wide ${activeFilter === "In Progress" ? "text-blue-100" : "text-blue-700"}`}>
@@ -203,11 +201,10 @@ export default function EmployeeDashboard() {
         <button
           type="button"
           onClick={() => setActiveFilter((prev) => (prev === "Waiting for Parts" ? "All" : "Waiting for Parts"))}
-          className={`p-4 rounded-2xl border text-center transition-all cursor-pointer ${
-            activeFilter === "Waiting for Parts"
+          className={`p-4 rounded-2xl border text-center transition-all cursor-pointer ${activeFilter === "Waiting for Parts"
               ? "bg-amber-500 text-white border-amber-500 shadow-md ring-2 ring-amber-500"
               : "bg-amber-50 text-amber-900 border-amber-100 hover:border-amber-200 hover:bg-amber-100/70"
-          }`}
+            }`}
         >
           <div className="text-2xl font-black mb-1">{waitingPartsCount}</div>
           <div className={`text-xs font-bold uppercase tracking-wide ${activeFilter === "Waiting for Parts" ? "text-amber-100" : "text-amber-700"}`}>
@@ -218,11 +215,10 @@ export default function EmployeeDashboard() {
         <button
           type="button"
           onClick={() => setActiveFilter((prev) => (prev === "Completed" ? "All" : "Completed"))}
-          className={`p-4 rounded-2xl border text-center transition-all cursor-pointer ${
-            activeFilter === "Completed"
+          className={`p-4 rounded-2xl border text-center transition-all cursor-pointer ${activeFilter === "Completed"
               ? "bg-emerald-600 text-white border-emerald-600 shadow-md ring-2 ring-emerald-600"
               : "bg-emerald-50 text-emerald-900 border-emerald-100 hover:border-emerald-200 hover:bg-emerald-100/70"
-          }`}
+            }`}
         >
           <div className="text-2xl font-black mb-1">{completedCount}</div>
           <div className={`text-xs font-bold uppercase tracking-wide ${activeFilter === "Completed" ? "text-emerald-100" : "text-emerald-700"}`}>
@@ -269,11 +265,10 @@ export default function EmployeeDashboard() {
               type="button"
               disabled={!fromDate}
               onClick={() => fromDate && setFromDate("")}
-              className={`p-0.5 rounded transition-colors flex items-center justify-center shrink-0 ${
-                fromDate
+              className={`p-0.5 rounded transition-colors flex items-center justify-center shrink-0 ${fromDate
                   ? "text-gray-600 hover:text-gray-900 hover:bg-gray-100 cursor-pointer"
                   : "text-gray-300 cursor-not-allowed opacity-50"
-              }`}
+                }`}
               title={fromDate ? "Clear From Date" : ""}
             >
               <X className="w-3.5 h-3.5" />
@@ -294,11 +289,10 @@ export default function EmployeeDashboard() {
               type="button"
               disabled={!toDate}
               onClick={() => toDate && setToDate("")}
-              className={`p-0.5 rounded transition-colors flex items-center justify-center shrink-0 ${
-                toDate
+              className={`p-0.5 rounded transition-colors flex items-center justify-center shrink-0 ${toDate
                   ? "text-gray-600 hover:text-gray-900 hover:bg-gray-100 cursor-pointer"
                   : "text-gray-300 cursor-not-allowed opacity-50"
-              }`}
+                }`}
               title={toDate ? "Clear To Date" : ""}
             >
               <X className="w-3.5 h-3.5" />
@@ -315,7 +309,6 @@ export default function EmployeeDashboard() {
         <div className="bg-white rounded-2xl shadow-sm border p-12 text-center">
           <Car className="w-12 h-12 text-gray-300 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-gray-900">No jobs assigned</h3>
-          <p className="text-gray-500">You don't have any pending jobs at the moment.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

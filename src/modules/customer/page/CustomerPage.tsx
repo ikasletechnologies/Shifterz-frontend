@@ -119,7 +119,7 @@ export function CustomerPage() {
 
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    
+
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
 
@@ -132,7 +132,7 @@ export function CustomerPage() {
         return checkDate.getTime() === yesterday.getTime();
       case "Custom": {
         if (!customFromDate && !customToDate) return true;
-        
+
         let start = null;
         if (customFromDate) {
           const fromParts = customFromDate.split("-");
@@ -140,7 +140,7 @@ export function CustomerPage() {
             start = new Date(parseInt(fromParts[0], 10), parseInt(fromParts[1], 10) - 1, parseInt(fromParts[2], 10));
           }
         }
-        
+
         let end = null;
         if (customToDate) {
           const toParts = customToDate.split("-");
@@ -148,7 +148,7 @@ export function CustomerPage() {
             end = new Date(parseInt(toParts[0], 10), parseInt(toParts[1], 10) - 1, parseInt(toParts[2], 10));
           }
         }
-        
+
         if (start && end) {
           return checkDate >= start && checkDate <= end;
         } else if (start) {
@@ -164,11 +164,11 @@ export function CustomerPage() {
   };
 
   const filteredCustomers = customers.filter(customer => {
-    const matchesSearch = 
+    const matchesSearch =
       customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       customer.phone.includes(searchQuery) ||
       (customer.vehicle && customer.vehicle.toLowerCase().includes(searchQuery.toLowerCase()));
-    
+
     const matchesPeriod = filterByPeriod(customer.lastVisit, periodFilter);
     return matchesSearch && matchesPeriod;
   }).sort((a, b) => {
@@ -222,7 +222,7 @@ export function CustomerPage() {
 
     // Summary stats
     const totalVisits = filteredCustomers.reduce((s, c) => s + (c.visits || 0), 0);
-    const totalSpend  = filteredCustomers.reduce((s, c) => s + (c.totalSpend || 0), 0);
+    const totalSpend = filteredCustomers.reduce((s, c) => s + (c.totalSpend || 0), 0);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
     doc.setTextColor(30, 30, 30);
@@ -317,11 +317,10 @@ export function CustomerPage() {
               <div key={period} className="relative">
                 <button
                   onClick={() => setPeriodFilter(period)}
-                  className={`text-sm px-3 py-1 rounded-md font-medium transition-all whitespace-nowrap ${
-                    periodFilter === period
+                  className={`text-sm px-3 py-1 rounded-md font-medium transition-all whitespace-nowrap ${periodFilter === period
                       ? "bg-white text-gray-900 font-semibold shadow-sm"
                       : "text-gray-500 hover:text-gray-800"
-                  }`}
+                    }`}
                 >
                   {period}
                 </button>
@@ -410,7 +409,6 @@ export function CustomerPage() {
             <User className="w-8 h-8" />
           </div>
           <h3 className="text-xl font-bold text-gray-900 mb-2">No customers found</h3>
-          <p className="text-gray-500">Try adjusting your search or date filters, or create a new customer.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-4">

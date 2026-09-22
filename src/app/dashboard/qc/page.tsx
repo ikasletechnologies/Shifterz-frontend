@@ -300,35 +300,11 @@ export default function QCInspectionPage() {
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-8">
       {/* Module Title Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <div className="p-2.5 rounded-xl bg-purple-100 text-purple-700">
-              <ShieldCheck className="w-6 h-6" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900 tracking-tight">QC Inspection Module</h1>
-              <div className="flex items-center gap-1.5 text-xs font-semibold text-purple-700 bg-purple-50 border border-purple-200/80 px-2.5 py-0.5 rounded-lg w-fit mt-1 shadow-2xs">
-                <Building2 className="w-3.5 h-3.5 text-purple-600 shrink-0" />
-                <span>Franchise: {selectedQcBranchName}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="px-3 py-1 bg-purple-50 border border-purple-200 text-purple-700 text-xs font-bold rounded-full">
-            Super Admin View
-          </span>
-          <span className="px-3 py-1 bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold rounded-full">
-            {jobs.length} Active Records
-          </span>
-        </div>
-      </div>
+
 
       {/* SECTION 1: QC Performance Summary */}
       <div className="space-y-3">
         <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
-          <TrendingUp className="w-4 h-4 text-purple-600" />
           QC Performance Summary
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
@@ -341,7 +317,6 @@ export default function QCInspectionPage() {
               <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Pass Rate</p>
               <div className="flex items-baseline gap-1">
                 <span className="text-2xl font-black text-emerald-600">{passRate}%</span>
-                <span className="text-[10px] font-semibold text-gray-400">of reviews</span>
               </div>
             </div>
           </div>
@@ -399,10 +374,8 @@ export default function QCInspectionPage() {
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-2">
               <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
-                <UserCheck className="w-4 h-4 text-purple-600" />
                 QC Personnel & Inspectors
               </h2>
-              <span className="text-xs text-gray-500 font-medium">({filteredQcInspectors.length})</span>
             </div>
 
             {/* Search Bar */}
@@ -553,18 +526,18 @@ export default function QCInspectionPage() {
           {/* Section Filter Tabs */}
           <div className="flex flex-wrap items-center gap-1.5">
             {[
-              { id: "All", label: "All Jobs", count: jobs.length },
-              { id: "Inspecting", label: "Inspecting", count: stats.inspecting },
-              { id: "Passed Jobs", label: "QC Passed Jobs", count: passedCount },
-              { id: "Failed / Rework", label: "QC Failed / Rework Required", count: failedCount },
+              { id: "All", label: "All Jobs" },
+              { id: "Inspecting", label: "Inspecting" },
+              { id: "Passed Jobs", label: "QC Passed Jobs" },
+              { id: "Failed / Rework", label: "QC Failed / Rework Required" },
             ].map((tab) => (
               <button
                 key={tab.id}
                 type="button"
                 onClick={() => setActiveTab(tab.id)}
                 className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${activeTab === tab.id
-                    ? "bg-purple-600 text-white shadow-md shadow-purple-600/20"
-                    : "bg-gray-50 text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                  ? "bg-purple-600 text-white shadow-md shadow-purple-600/20"
+                  : "bg-gray-50 text-gray-600 hover:bg-gray-100 hover:text-gray-900"
                   }`}
               >
                 {tab.label}

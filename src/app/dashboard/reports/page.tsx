@@ -1,13 +1,13 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { 
-  Download, Filter, Calendar, Building2, Wrench, Users, UserCheck, 
-  Briefcase, DollarSign, Package, RefreshCw, FileSpreadsheet, 
+import {
+  Download, Filter, Calendar, Building2, Wrench, Users, UserCheck,
+  Briefcase, DollarSign, Package, RefreshCw, FileSpreadsheet,
   TrendingUp, AlertTriangle, ChevronRight, BarChart3, Search, X
 } from "lucide-react";
-import { 
-  getReports, getHQSummaryReport, getCrmReport, getCustomerReport, getEmployeeReport, 
+import {
+  getReports, getHQSummaryReport, getCrmReport, getCustomerReport, getEmployeeReport,
   getFinancialReport, getInventoryReport, getWorkshopReport, downloadReportCsv, getFranchises
 } from "@/lib/api";
 import { getInvoiceRegister } from "@/modules/billing/services/billing.service";
@@ -21,12 +21,12 @@ export default function ReportsPage() {
   const [subReport, setSubReport] = useState<string>("business-summary");
   const [userRole, setUserRole] = useState<string | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
-  
+
   // Global Filters & Search
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [fromDate, setFromDate] = useState<string>("");
   const [toDate, setToDate] = useState<string>("");
-  
+
   // State for loaded tables
   const [tableRows, setTableRows] = useState<any[]>([]);
   const [billingRows, setBillingRows] = useState<BillingReportRow[]>([]);
@@ -93,10 +93,10 @@ export default function ReportsPage() {
     setActiveCategory(cat);
     switch (cat) {
       case "executive": setSubReport("business-summary"); break;
-      case "workshop":  setSubReport("progress"); break;
-      case "crm":       setSubReport("register"); break;
-      case "customer":  setSubReport("register"); break;
-      case "employee":  setSubReport("attendance"); break;
+      case "workshop": setSubReport("progress"); break;
+      case "crm": setSubReport("register"); break;
+      case "customer": setSubReport("register"); break;
+      case "employee": setSubReport("attendance"); break;
       case "financial": setSubReport("payment-register"); break;
       case "inventory": setSubReport("register"); break;
     }
@@ -388,21 +388,21 @@ export default function ReportsPage() {
       const rowsHtml =
         rowsData.length > 0
           ? rowsData
-              .map(
-                (r, idx) =>
-                  `<tr style="background-color:${idx % 2 === 0 ? "#ffffff" : "#f8fafc"};">` +
-                  r
-                    .map(
-                      (cell) =>
-                        `<td style="padding:7px 10px;border:1px solid #cbd5e1;font-size:9.5pt;color:#334155;">${cell
-                          .replace(/&/g, "&amp;")
-                          .replace(/</g, "&lt;")
-                          .replace(/>/g, "&gt;")}</td>`
-                    )
-                    .join("") +
-                  `</tr>`
-              )
-              .join("")
+            .map(
+              (r, idx) =>
+                `<tr style="background-color:${idx % 2 === 0 ? "#ffffff" : "#f8fafc"};">` +
+                r
+                  .map(
+                    (cell) =>
+                      `<td style="padding:7px 10px;border:1px solid #cbd5e1;font-size:9.5pt;color:#334155;">${cell
+                        .replace(/&/g, "&amp;")
+                        .replace(/</g, "&lt;")
+                        .replace(/>/g, "&gt;")}</td>`
+                  )
+                  .join("") +
+                `</tr>`
+            )
+            .join("")
           : `<tr><td colspan="${headers.length || 1}" style="padding:16px;text-align:center;color:#64748b;">No report data available for the selected criteria.</td></tr>`;
 
       const docxHtml = `
@@ -537,12 +537,8 @@ export default function ReportsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-            <FileSpreadsheet className="w-7 h-7 text-yellow-600" />
-            Reports & Analytics Center
+
           </h1>
-          <p className="text-sm text-slate-500 mt-1">
-            PRD §16 — Comprehensive financial, CRM, operational, employee, and inventory reporting
-          </p>
         </div>
 
         <button
@@ -593,11 +589,10 @@ export default function ReportsPage() {
               type="button"
               disabled={!fromDate}
               onClick={() => setFromDate("")}
-              className={`p-0.5 rounded transition-colors flex items-center justify-center shrink-0 ${
-                fromDate
-                  ? "text-gray-600 hover:text-gray-900 hover:bg-gray-100 cursor-pointer"
-                  : "text-gray-300 cursor-not-allowed opacity-50"
-              }`}
+              className={`p-0.5 rounded transition-colors flex items-center justify-center shrink-0 ${fromDate
+                ? "text-gray-600 hover:text-gray-900 hover:bg-gray-100 cursor-pointer"
+                : "text-gray-300 cursor-not-allowed opacity-50"
+                }`}
               title={fromDate ? "Clear From Date" : ""}
             >
               <X className="w-3.5 h-3.5" />
@@ -618,11 +613,10 @@ export default function ReportsPage() {
               type="button"
               disabled={!toDate}
               onClick={() => setToDate("")}
-              className={`p-0.5 rounded transition-colors flex items-center justify-center shrink-0 ${
-                toDate
-                  ? "text-gray-600 hover:text-gray-900 hover:bg-gray-100 cursor-pointer"
-                  : "text-gray-300 cursor-not-allowed opacity-50"
-              }`}
+              className={`p-0.5 rounded transition-colors flex items-center justify-center shrink-0 ${toDate
+                ? "text-gray-600 hover:text-gray-900 hover:bg-gray-100 cursor-pointer"
+                : "text-gray-300 cursor-not-allowed opacity-50"
+                }`}
               title={toDate ? "Clear To Date" : ""}
             >
               <X className="w-3.5 h-3.5" />
@@ -648,11 +642,10 @@ export default function ReportsPage() {
             <button
               key={tab.id}
               onClick={() => handleTabChange(tab.id as TabCategory)}
-              className={`flex items-center gap-2 px-4 py-3 text-sm font-semibold border-b-2 transition ${
-                isActive
-                  ? "border-yellow-500 text-yellow-600"
-                  : "border-transparent text-slate-500 hover:text-slate-800"
-              }`}
+              className={`flex items-center gap-2 px-4 py-3 text-sm font-semibold border-b-2 transition ${isActive
+                ? "border-yellow-500 text-yellow-600"
+                : "border-transparent text-slate-500 hover:text-slate-800"
+                }`}
             >
               <Icon className="w-4 h-4" />
               <span>{tab.label}</span>
@@ -669,11 +662,10 @@ export default function ReportsPage() {
             <button
               key={opt.id}
               onClick={() => setSubReport(opt.id)}
-              className={`px-4 py-2 text-xs font-semibold rounded-xl border transition ${
-                isSelected
-                  ? "bg-yellow-400 text-gray-900 border-yellow-400 shadow-sm"
-                  : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
-              }`}
+              className={`px-4 py-2 text-xs font-semibold rounded-xl border transition ${isSelected
+                ? "bg-yellow-400 text-gray-900 border-yellow-400 shadow-sm"
+                : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                }`}
             >
               {opt.label}
             </button>
@@ -728,12 +720,11 @@ export default function ReportsPage() {
                       <td className="py-3 px-4 text-right font-mono text-slate-700">{(r.gst || 0).toLocaleString("en-IN")}</td>
                       <td className="py-3 px-4 text-right font-mono font-bold text-slate-900">{(r.total || 0).toLocaleString("en-IN")}</td>
                       <td className="py-3 px-4">
-                        <span className={`px-2.5 py-1 text-xs font-semibold rounded-full ${
-                          r.status === "Paid" ? "bg-emerald-100 text-emerald-700" :
+                        <span className={`px-2.5 py-1 text-xs font-semibold rounded-full ${r.status === "Paid" ? "bg-emerald-100 text-emerald-700" :
                           r.status === "Partially Paid" ? "bg-amber-100 text-amber-700" :
-                          r.status === "Cancelled" ? "bg-red-100 text-red-700" :
-                          "bg-slate-100 text-slate-700"
-                        }`}>
+                            r.status === "Cancelled" ? "bg-red-100 text-red-700" :
+                              "bg-slate-100 text-slate-700"
+                          }`}>
                           {String(r.status || '')}
                         </span>
                       </td>
@@ -767,9 +758,9 @@ export default function ReportsPage() {
                       {Object.values(row || {}).map((val: any, vIdx) => (
                         <td key={vIdx} className="py-3 px-4 text-slate-700">
                           {typeof val === "number" && (Object.keys(row || {})[vIdx]?.toLowerCase().includes("price") ||
-                           Object.keys(row || {})[vIdx]?.toLowerCase().includes("amount") ||
-                           Object.keys(row || {})[vIdx]?.toLowerCase().includes("value") ||
-                           Object.keys(row || {})[vIdx]?.toLowerCase().includes("revenue")) ? (
+                            Object.keys(row || {})[vIdx]?.toLowerCase().includes("amount") ||
+                            Object.keys(row || {})[vIdx]?.toLowerCase().includes("value") ||
+                            Object.keys(row || {})[vIdx]?.toLowerCase().includes("revenue")) ? (
                             <span className="font-mono font-semibold">₹{val.toLocaleString("en-IN")}</span>
                           ) : typeof val === "number" ? (
                             <span className="font-mono">{val.toLocaleString("en-IN")}</span>
