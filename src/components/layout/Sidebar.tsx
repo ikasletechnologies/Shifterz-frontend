@@ -501,7 +501,7 @@ export default function Sidebar() {
   // Filter sections dynamically based on role + optional custom modules
   let baseRole = userRole || "";
   let allowedModules: string[] | null = userPermissions;
-  
+
   // Fallback for legacy database rows without permissions column:
   if (!allowedModules && baseRole.includes("|")) {
     const parts = baseRole.split("|");
@@ -567,7 +567,7 @@ export default function Sidebar() {
             style={{ color: "#facc15", letterSpacing: "0.2em" }}
             className="text-[9px] font-bold mt-1 ml-0.5"
           >
-            PRO SUITE
+            SHIFTERS
           </span>
         </div>
 

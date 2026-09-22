@@ -151,10 +151,6 @@ export function LiveStatusPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Vehicle Live Status Board</h1>
-          <p className="text-sm text-gray-500 flex items-center gap-1.5">
-            <RefreshCw className="w-3.5 h-3.5" />
-            Updates automatically · last refreshed {timeAgo(lastUpdated)}
-          </p>
         </div>
         <LiveStatusReports records={filteredRecords} allJobCards={allJobCards} />
       </div>
