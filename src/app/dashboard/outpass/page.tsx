@@ -1,4 +1,4 @@
- "use client";
+"use client";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { useState, useEffect, useCallback } from "react";
@@ -78,7 +78,7 @@ export default function OutPassPage() {
       try {
         const user = JSON.parse(userStr);
         setUserRole(user.role?.split("|")[0] || null);
-      } catch (e) {}
+      } catch (e) { }
     }
   }, []);
 
@@ -463,11 +463,10 @@ export default function OutPassPage() {
         {/* 1. All */}
         <div
           onClick={() => setStatusFilter("All")}
-          className={`bg-white rounded-2xl border p-4 shadow-2xs flex items-center justify-between cursor-pointer select-none transition-all ${
-            statusFilter === "All"
+          className={`bg-white rounded-2xl border p-4 shadow-2xs flex items-center justify-between cursor-pointer select-none transition-all ${statusFilter === "All"
               ? "border-slate-800 ring-2 ring-slate-800/20 bg-slate-50/60 shadow-sm"
               : "border-gray-200 hover:border-slate-300"
-          }`}
+            }`}
         >
           <div>
             <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">All</p>
@@ -481,11 +480,10 @@ export default function OutPassPage() {
         {/* 2. Pending */}
         <div
           onClick={() => setStatusFilter("Pending")}
-          className={`bg-white rounded-2xl border p-4 shadow-2xs flex items-center justify-between cursor-pointer select-none transition-all ${
-            statusFilter === "Pending"
+          className={`bg-white rounded-2xl border p-4 shadow-2xs flex items-center justify-between cursor-pointer select-none transition-all ${statusFilter === "Pending"
               ? "border-amber-500 ring-2 ring-amber-500/20 bg-amber-50/60 shadow-sm"
               : "border-gray-200 hover:border-amber-200"
-          }`}
+            }`}
         >
           <div>
             <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Pending</p>
@@ -499,11 +497,10 @@ export default function OutPassPage() {
         {/* 4. Rejected */}
         <div
           onClick={() => setStatusFilter("Rejected")}
-          className={`bg-white rounded-2xl border p-4 shadow-2xs flex items-center justify-between cursor-pointer select-none transition-all ${
-            statusFilter === "Rejected"
+          className={`bg-white rounded-2xl border p-4 shadow-2xs flex items-center justify-between cursor-pointer select-none transition-all ${statusFilter === "Rejected"
               ? "border-red-500 ring-2 ring-red-500/20 bg-red-50/60 shadow-sm"
               : "border-gray-200 hover:border-red-200"
-          }`}
+            }`}
         >
           <div>
             <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Rejected</p>
@@ -517,11 +514,10 @@ export default function OutPassPage() {
         {/* 5. Delivered */}
         <div
           onClick={() => setStatusFilter("Delivered")}
-          className={`bg-white rounded-2xl border p-4 shadow-2xs flex items-center justify-between cursor-pointer select-none transition-all ${
-            statusFilter === "Delivered"
+          className={`bg-white rounded-2xl border p-4 shadow-2xs flex items-center justify-between cursor-pointer select-none transition-all ${statusFilter === "Delivered"
               ? "border-blue-500 ring-2 ring-blue-500/20 bg-blue-50/60 shadow-sm"
               : "border-gray-200 hover:border-blue-200"
-          }`}
+            }`}
         >
           <div>
             <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Delivered</p>
@@ -566,11 +562,10 @@ export default function OutPassPage() {
             type="button"
             disabled={!fromDate}
             onClick={() => fromDate && setFromDate("")}
-            className={`p-0.5 rounded transition-colors flex items-center justify-center shrink-0 ${
-              fromDate
+            className={`p-0.5 rounded transition-colors flex items-center justify-center shrink-0 ${fromDate
                 ? "text-gray-600 hover:text-gray-900 hover:bg-gray-100 cursor-pointer"
                 : "text-gray-300 cursor-not-allowed opacity-50"
-            }`}
+              }`}
             title={fromDate ? "Clear From Date" : ""}
           >
             <X className="w-3.5 h-3.5" />
@@ -591,11 +586,10 @@ export default function OutPassPage() {
             type="button"
             disabled={!toDate}
             onClick={() => toDate && setToDate("")}
-            className={`p-0.5 rounded transition-colors flex items-center justify-center shrink-0 ${
-              toDate
+            className={`p-0.5 rounded transition-colors flex items-center justify-center shrink-0 ${toDate
                 ? "text-gray-600 hover:text-gray-900 hover:bg-gray-100 cursor-pointer"
                 : "text-gray-300 cursor-not-allowed opacity-50"
-            }`}
+              }`}
             title={toDate ? "Clear To Date" : ""}
           >
             <X className="w-3.5 h-3.5" />
@@ -658,35 +652,33 @@ export default function OutPassPage() {
               key={tab.id}
               type="button"
               onClick={() => setStatusFilter(tab.id as any)}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer shadow-2xs ${
-                isActive
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer shadow-2xs ${isActive
                   ? tab.id === "Pending"
                     ? "bg-amber-600 text-white shadow-xs ring-2 ring-amber-600/20"
                     : tab.id === "Rejected"
-                    ? "bg-red-600 text-white shadow-xs ring-2 ring-red-600/20"
-                    : tab.id === "Delivered"
-                    ? "bg-blue-600 text-white shadow-xs ring-2 ring-blue-600/20"
-                    : tab.id === "Approved"
-                    ? "bg-emerald-600 text-white shadow-xs ring-2 ring-emerald-600/20"
-                    : "bg-slate-900 text-white shadow-xs ring-2 ring-slate-900/20"
+                      ? "bg-red-600 text-white shadow-xs ring-2 ring-red-600/20"
+                      : tab.id === "Delivered"
+                        ? "bg-blue-600 text-white shadow-xs ring-2 ring-blue-600/20"
+                        : tab.id === "Approved"
+                          ? "bg-emerald-600 text-white shadow-xs ring-2 ring-emerald-600/20"
+                          : "bg-slate-900 text-white shadow-xs ring-2 ring-slate-900/20"
                   : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-200 hover:border-gray-300"
-              }`}
+                }`}
             >
               <span>{tab.label}</span>
               <span
-                className={`px-1.5 py-0.5 rounded-full text-[10px] font-black ${
-                  isActive
+                className={`px-1.5 py-0.5 rounded-full text-[10px] font-black ${isActive
                     ? "bg-white/25 text-white"
                     : tab.id === "Pending"
-                    ? "bg-amber-100 text-amber-800"
-                    : tab.id === "Rejected"
-                    ? "bg-red-100 text-red-700"
-                    : tab.id === "Delivered"
-                    ? "bg-blue-100 text-blue-700"
-                    : tab.id === "Approved"
-                    ? "bg-emerald-100 text-emerald-700"
-                    : "bg-gray-100 text-gray-700"
-                }`}
+                      ? "bg-amber-100 text-amber-800"
+                      : tab.id === "Rejected"
+                        ? "bg-red-100 text-red-700"
+                        : tab.id === "Delivered"
+                          ? "bg-blue-100 text-blue-700"
+                          : tab.id === "Approved"
+                            ? "bg-emerald-100 text-emerald-700"
+                            : "bg-gray-100 text-gray-700"
+                  }`}
               >
                 {tab.count}
               </span>
@@ -703,86 +695,86 @@ export default function OutPassPage() {
               No out passes registered.
             </div>
           ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {filteredOutPasses.map((pass) => {
-                  const isApproved = pass.status === "Approved" || pass.status === "Delivered" || pass.issued === true;
-                  const isRejected = pass.status === "Rejected";
-                  const isPending = !isApproved && !isRejected;
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {filteredOutPasses.map((pass) => {
+                const isApproved = pass.status === "Approved" || pass.status === "Delivered" || pass.issued === true;
+                const isRejected = pass.status === "Rejected";
+                const isPending = !isApproved && !isRejected;
 
-                  const cardBgClass = isApproved
-                    ? "bg-emerald-50/20 border-emerald-200 hover:border-emerald-300"
-                    : isRejected
+                const cardBgClass = isApproved
+                  ? "bg-emerald-50/20 border-emerald-200 hover:border-emerald-300"
+                  : isRejected
                     ? "bg-red-50/20 border-red-200 hover:border-red-300"
                     : "bg-amber-50/30 border-amber-200 hover:border-amber-300";
 
-                  const iconBgClass = isApproved
-                    ? "bg-emerald-100 text-emerald-600"
-                    : isRejected
+                const iconBgClass = isApproved
+                  ? "bg-emerald-100 text-emerald-600"
+                  : isRejected
                     ? "bg-red-100 text-red-600"
                     : "bg-amber-100 text-amber-700";
 
-                  const downloadBtnClass = isApproved
-                    ? "bg-emerald-100/70 hover:bg-emerald-200/80 text-emerald-700"
-                    : isRejected
+                const downloadBtnClass = isApproved
+                  ? "bg-emerald-100/70 hover:bg-emerald-200/80 text-emerald-700"
+                  : isRejected
                     ? "bg-red-100/70 hover:bg-red-200/80 text-red-700"
                     : "bg-amber-100/70 hover:bg-amber-200/80 text-amber-800";
 
-                  const viewBtnClass = isApproved
-                    ? "bg-emerald-600 hover:bg-emerald-700"
-                    : isRejected
+                const viewBtnClass = isApproved
+                  ? "bg-emerald-600 hover:bg-emerald-700"
+                  : isRejected
                     ? "bg-red-600 hover:bg-red-700"
                     : "bg-amber-600 hover:bg-amber-700";
 
-                  const dividerClass = isApproved
-                    ? "border-emerald-100/70"
-                    : isRejected
+                const dividerClass = isApproved
+                  ? "border-emerald-100/70"
+                  : isRejected
                     ? "border-red-100/70"
                     : "border-amber-100/70";
 
-                  return (
-                    <div
-                      key={pass.id}
-                      className={`${cardBgClass} border rounded-2xl p-4 shadow-xs transition-all flex flex-col justify-between`}
-                    >
-                      <div>
-                        {/* Card Header */}
-                        <div className="flex items-start justify-between gap-3 mb-3">
-                          <div className="flex items-center gap-3">
-                            <div className={`w-10 h-10 rounded-xl ${iconBgClass} flex items-center justify-center shrink-0`}>
-                              <Car className="w-5 h-5" />
-                            </div>
-                            <div>
-                              <h3 className="text-base font-black text-gray-900 tracking-tight">
-                                {pass.vehicle || "—"}
-                              </h3>
-                              <p className="text-xs text-gray-500 font-medium">
-                                {pass.model || "—"}
-                              </p>
-                            </div>
+                return (
+                  <div
+                    key={pass.id}
+                    className={`${cardBgClass} border rounded-2xl p-4 shadow-xs transition-all flex flex-col justify-between`}
+                  >
+                    <div>
+                      {/* Card Header */}
+                      <div className="flex items-start justify-between gap-3 mb-3">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-10 h-10 rounded-xl ${iconBgClass} flex items-center justify-center shrink-0`}>
+                            <Car className="w-5 h-5" />
                           </div>
+                          <div>
+                            <h3 className="text-base font-black text-gray-900 tracking-tight">
+                              {pass.vehicle || "—"}
+                            </h3>
+                            <p className="text-xs text-gray-500 font-medium">
+                              {pass.model || "—"}
+                            </p>
+                          </div>
+                        </div>
 
-                          {/* Top-Center Status Badge */}
-                          {isApproved && (
-                            <div className="flex-1 flex justify-center items-center">
-                              <span className="px-3 py-0.5 bg-emerald-100 text-emerald-700 rounded-full text-xs font-bold">
-                                {pass.status === "Delivered" ? "Delivered" : "Approved"}
-                              </span>
-                            </div>
-                          )}
-                          {isPending && (
-                            <div className="flex-1 flex justify-center items-center">
-                              <span className="px-3 py-0.5 bg-amber-100 text-amber-800 rounded-full text-xs font-bold animate-pulse">
-                                Pending Approval
-                              </span>
-                            </div>
-                          )}
-                          {isRejected && (
-                            <div className="flex-1 flex justify-center items-center">
-                              <span className="px-3 py-0.5 bg-red-100 text-red-700 rounded-full text-xs font-bold">
-                                Rejected
-                              </span>
-                            </div>
-                          )}
+                        {/* Top-Center Status Badge */}
+                        {isApproved && (
+                          <div className="flex-1 flex justify-center items-center">
+                            <span className="px-3 py-0.5 bg-emerald-100 text-emerald-700 rounded-full text-xs font-bold">
+                              {pass.status === "Delivered" ? "Delivered" : "Approved"}
+                            </span>
+                          </div>
+                        )}
+                        {isPending && (
+                          <div className="flex-1 flex justify-center items-center">
+                            <span className="px-3 py-0.5 bg-amber-100 text-amber-800 rounded-full text-xs font-bold animate-pulse">
+                              Pending Approval
+                            </span>
+                          </div>
+                        )}
+                        {isRejected && (
+                          <div className="flex-1 flex justify-center items-center">
+                            <span className="px-3 py-0.5 bg-red-100 text-red-700 rounded-full text-xs font-bold">
+                              Rejected
+                            </span>
+                          </div>
+                        )}
 
                         <div className="flex items-center gap-2">
                           <div className="relative">
@@ -845,119 +837,117 @@ export default function OutPassPage() {
                             View
                           </button>
                         </div>
-                        </div>
-
-                        <div className={`border-t ${dividerClass} my-3`} />
-
-                        {/* Card Body Details */}
-                        <div className="grid grid-cols-3 gap-2 text-xs">
-                          <div>
-                            <p className="text-[10px] uppercase font-semibold text-gray-400">Pass ID</p>
-                            <p className="font-bold text-amber-500 font-mono mt-0.5">{pass.passId || pass.id}</p>
-                            <p className="text-[10px] uppercase font-semibold text-gray-400 mt-2">Customer</p>
-                            <p className="font-bold text-gray-900 mt-0.5">{pass.customer || "—"}</p>
-                          </div>
-
-                          <div>
-                            <p className="text-[10px] uppercase font-semibold text-gray-400">Service</p>
-                            <p className="font-bold text-gray-900 mt-0.5">{pass.service || "—"}</p>
-                            <p className="text-[10px] uppercase font-semibold text-gray-400 mt-2">Mobile</p>
-                            <p className="font-medium text-gray-700 mt-0.5 flex items-center gap-1">
-                              <Phone className="w-3.5 h-3.5 text-gray-400" />
-                              {pass.phone || "—"}
-                            </p>
-                          </div>
-
-                          <div>
-                            <p className="text-[10px] uppercase font-semibold text-gray-400">Check-Out Date</p>
-                            <p className="font-medium text-gray-700 mt-0.5 flex items-center gap-1">
-                              <Calendar className="w-3.5 h-3.5 text-gray-400" />
-                              {formatDateStr(pass.outTime)}
-                            </p>
-                            <p className="text-[10px] uppercase font-semibold text-gray-400 mt-2">Check-Out Time</p>
-                            <p className="font-medium text-gray-700 mt-0.5 flex items-center gap-1">
-                              <Clock className="w-3.5 h-3.5 text-gray-400" />
-                              {formatTimeStr(pass.outTime)}
-                            </p>
-                          </div>
-                        </div>
-
-                        {/* Enriched fields: Job Card, Invoice, Payment, Status, Generated By */}
-                        {(pass.jobCardId || pass.invoiceId || pass.paymentStatus || pass.createdBy) && (
-                          <div className={`mt-3 pt-3 border-t ${dividerClass} grid grid-cols-2 gap-2 text-xs`}>
-                            {pass.jobCardId && (
-                              <div>
-                                <p className="text-[10px] uppercase font-semibold text-gray-400">Job Card</p>
-                                <p className="font-bold text-gray-900 mt-0.5 font-mono">{pass.jobCardId}</p>
-                              </div>
-                            )}
-                            {pass.invoiceId && (
-                              <div>
-                                <p className="text-[10px] uppercase font-semibold text-gray-400">Invoice</p>
-                                <p className="font-bold text-gray-900 mt-0.5 font-mono">{pass.invoiceId}</p>
-                              </div>
-                            )}
-                            {pass.paymentStatus && (
-                              <div>
-                                <p className="text-[10px] uppercase font-semibold text-gray-400">Payment</p>
-                                <span className={`inline-block mt-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                                  pass.paymentStatus === "Paid" ? "bg-emerald-100 text-emerald-700" :
-                                  pass.paymentStatus === "Approved Credit" ? "bg-blue-100 text-blue-700" :
-                                  "bg-amber-100 text-amber-700"
-                                }`}>
-                                  {pass.paymentStatus}
-                                </span>
-                              </div>
-                            )}
-                            {pass.status && !isApproved && (
-                              <div>
-                                <p className="text-[10px] uppercase font-semibold text-gray-400">Pass Status</p>
-                                <span className={`inline-block mt-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                                  pass.status === "Rejected" ? "bg-red-100 text-red-700" :
-                                  pass.status === "Updated" ? "bg-amber-100 text-amber-800" :
-                                  "bg-gray-100 text-gray-600"
-                                }`}>
-                                  {pass.status}
-                                </span>
-                              </div>
-                            )}
-                            {pass.createdBy && (
-                              <div className="col-span-2">
-                                <p className="text-[10px] uppercase font-semibold text-gray-400">Generated By</p>
-                                <p className="font-medium text-gray-700 mt-0.5 flex items-center gap-1">
-                                  <User className="w-3 h-3 text-gray-400" />
-                                  {pass.createdBy}
-                                </p>
-                              </div>
-                            )}
-                          </div>
-                        )}
-
-                        {/* Approval / Rejection Actions for Pending Outpasses */}
-                        {isPending && (
-                          <div className={`mt-3 pt-3 border-t ${dividerClass} flex gap-2`}>
-                            <button
-                              onClick={() => handleApproveClick(pass)}
-                              className="flex-1 bg-emerald-100 hover:bg-emerald-200 text-emerald-700 font-bold py-1.5 rounded-lg text-xs transition-colors flex items-center justify-center gap-1 cursor-pointer"
-                            >
-                              <CheckCircle className="w-3.5 h-3.5" />
-                              Approve
-                            </button>
-                            <button
-                              onClick={() => handleRejectClick(pass)}
-                              className="flex-1 bg-red-100 hover:bg-red-200 text-red-700 font-bold py-1.5 rounded-lg text-xs transition-colors flex items-center justify-center gap-1 cursor-pointer"
-                            >
-                              <XCircle className="w-3.5 h-3.5" />
-                              Reject
-                            </button>
-                          </div>
-                        )}
                       </div>
+
+                      <div className={`border-t ${dividerClass} my-3`} />
+
+                      {/* Card Body Details */}
+                      <div className="grid grid-cols-3 gap-2 text-xs">
+                        <div>
+                          <p className="text-[10px] uppercase font-semibold text-gray-400">Pass ID</p>
+                          <p className="font-bold text-amber-500 font-mono mt-0.5">{pass.passId || pass.id}</p>
+                          <p className="text-[10px] uppercase font-semibold text-gray-400 mt-2">Customer</p>
+                          <p className="font-bold text-gray-900 mt-0.5">{pass.customer || "—"}</p>
+                        </div>
+
+                        <div>
+                          <p className="text-[10px] uppercase font-semibold text-gray-400">Service</p>
+                          <p className="font-bold text-gray-900 mt-0.5">{pass.service || "—"}</p>
+                          <p className="text-[10px] uppercase font-semibold text-gray-400 mt-2">Mobile</p>
+                          <p className="font-medium text-gray-700 mt-0.5 flex items-center gap-1">
+                            <Phone className="w-3.5 h-3.5 text-gray-400" />
+                            {pass.phone || "—"}
+                          </p>
+                        </div>
+
+                        <div>
+                          <p className="text-[10px] uppercase font-semibold text-gray-400">Check-Out Date</p>
+                          <p className="font-medium text-gray-700 mt-0.5 flex items-center gap-1">
+                            <Calendar className="w-3.5 h-3.5 text-gray-400" />
+                            {formatDateStr(pass.outTime)}
+                          </p>
+                          <p className="text-[10px] uppercase font-semibold text-gray-400 mt-2">Check-Out Time</p>
+                          <p className="font-medium text-gray-700 mt-0.5 flex items-center gap-1">
+                            <Clock className="w-3.5 h-3.5 text-gray-400" />
+                            {formatTimeStr(pass.outTime)}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Enriched fields: Job Card, Invoice, Payment, Status, Generated By */}
+                      {(pass.jobCardId || pass.invoiceId || pass.paymentStatus || pass.createdBy) && (
+                        <div className={`mt-3 pt-3 border-t ${dividerClass} grid grid-cols-2 gap-2 text-xs`}>
+                          {pass.jobCardId && (
+                            <div>
+                              <p className="text-[10px] uppercase font-semibold text-gray-400">Job Card</p>
+                              <p className="font-bold text-gray-900 mt-0.5 font-mono">{pass.jobCardId}</p>
+                            </div>
+                          )}
+                          {pass.invoiceId && (
+                            <div>
+                              <p className="text-[10px] uppercase font-semibold text-gray-400">Invoice</p>
+                              <p className="font-bold text-gray-900 mt-0.5 font-mono">{pass.invoiceId}</p>
+                            </div>
+                          )}
+                          {pass.paymentStatus && (
+                            <div>
+                              <p className="text-[10px] uppercase font-semibold text-gray-400">Payment</p>
+                              <span className={`inline-block mt-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold ${pass.paymentStatus === "Paid" ? "bg-emerald-100 text-emerald-700" :
+                                  pass.paymentStatus === "Approved Credit" ? "bg-blue-100 text-blue-700" :
+                                    "bg-amber-100 text-amber-700"
+                                }`}>
+                                {pass.paymentStatus}
+                              </span>
+                            </div>
+                          )}
+                          {pass.status && !isApproved && (
+                            <div>
+                              <p className="text-[10px] uppercase font-semibold text-gray-400">Pass Status</p>
+                              <span className={`inline-block mt-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold ${pass.status === "Rejected" ? "bg-red-100 text-red-700" :
+                                  pass.status === "Updated" ? "bg-amber-100 text-amber-800" :
+                                    "bg-gray-100 text-gray-600"
+                                }`}>
+                                {pass.status}
+                              </span>
+                            </div>
+                          )}
+                          {pass.createdBy && (
+                            <div className="col-span-2">
+                              <p className="text-[10px] uppercase font-semibold text-gray-400">Generated By</p>
+                              <p className="font-medium text-gray-700 mt-0.5 flex items-center gap-1">
+                                <User className="w-3 h-3 text-gray-400" />
+                                {pass.createdBy}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Approval / Rejection Actions for Pending Outpasses */}
+                      {isPending && (
+                        <div className={`mt-3 pt-3 border-t ${dividerClass} flex gap-2`}>
+                          <button
+                            onClick={() => handleApproveClick(pass)}
+                            className="flex-1 bg-emerald-100 hover:bg-emerald-200 text-emerald-700 font-bold py-1.5 rounded-lg text-xs transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                          >
+                            <CheckCircle className="w-3.5 h-3.5" />
+                            Approve
+                          </button>
+                          <button
+                            onClick={() => handleRejectClick(pass)}
+                            className="flex-1 bg-red-100 hover:bg-red-200 text-red-700 font-bold py-1.5 rounded-lg text-xs transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                          >
+                            <XCircle className="w-3.5 h-3.5" />
+                            Reject
+                          </button>
+                        </div>
+                      )}
                     </div>
-                  );
-                })}
-              </div>
-            )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       ) : (
         /* Table View */
@@ -998,22 +988,20 @@ export default function OutPassPage() {
                       <td className="px-3 py-3 text-xs font-mono text-gray-700">{pass.invoiceId || "—"}</td>
                       <td className="px-3 py-3 text-xs">
                         {pass.paymentStatus ? (
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                            pass.paymentStatus === "Paid" ? "bg-emerald-100 text-emerald-700" :
-                            pass.paymentStatus === "Approved Credit" ? "bg-blue-100 text-blue-700" :
-                            "bg-amber-100 text-amber-700"
-                          }`}>
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${pass.paymentStatus === "Paid" ? "bg-emerald-100 text-emerald-700" :
+                              pass.paymentStatus === "Approved Credit" ? "bg-blue-100 text-blue-700" :
+                                "bg-amber-100 text-amber-700"
+                            }`}>
                             {pass.paymentStatus}
                           </span>
                         ) : "—"}
                       </td>
                       <td className="px-3 py-3 text-xs">
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                          isApproved ? "bg-emerald-100 text-emerald-700" :
-                          isRejected ? "bg-red-100 text-red-700" :
-                          isPending ? "bg-amber-100 text-amber-800" :
-                          "bg-gray-100 text-gray-600"
-                        }`}>
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${isApproved ? "bg-emerald-100 text-emerald-700" :
+                            isRejected ? "bg-red-100 text-red-700" :
+                              isPending ? "bg-amber-100 text-amber-800" :
+                                "bg-gray-100 text-gray-600"
+                          }`}>
                           {pass.status || "Pending"}
                         </span>
                       </td>
