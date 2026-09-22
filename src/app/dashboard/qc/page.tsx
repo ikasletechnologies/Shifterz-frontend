@@ -526,10 +526,10 @@ export default function QCInspectionPage() {
           {/* Section Filter Tabs */}
           <div className="flex flex-wrap items-center gap-1.5">
             {[
-              { id: "All", label: "All Jobs" },
-              { id: "Inspecting", label: "Inspecting" },
-              { id: "Passed Jobs", label: "QC Passed Jobs" },
-              { id: "Failed / Rework", label: "QC Failed / Rework Required" },
+              { id: "All", label: "All Jobs", count: jobs.length },
+              { id: "Inspecting", label: "Inspecting", count: stats.inspecting },
+              { id: "Passed Jobs", label: "QC Passed Jobs", count: passedCount },
+              { id: "Failed / Rework", label: "QC Failed / Rework Required", count: failedCount },
             ].map((tab) => (
               <button
                 key={tab.id}
