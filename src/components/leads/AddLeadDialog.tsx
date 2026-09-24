@@ -356,46 +356,31 @@ export default function AddLeadDialog({
             </div>
           </div>
 
-          {/* Row 4: Assign To & Budget */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide">
-                  Assign To
-                </label>
-                <button
-                  type="button"
-                  onClick={handleAddEmployeeClick}
-                  className="cursor-pointer inline-flex items-center gap-1 px-2.5 py-0.5 text-[11px] font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 hover:text-blue-800 border border-blue-200/80 rounded-md transition-all shadow-2xs active:scale-95"
-                >
-                  <Plus className="w-3 h-3 stroke-[2.5]" /> Add Employee
-                </button>
-              </div>
-              <select
-                name="assigned"
-                value={formData.assigned}
-                onChange={handleChange}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent bg-gray-50 text-gray-900"
-              >
-                <option value="">Unassigned</option>
-                {assignees.map((a) => (
-                  <option key={a.id} value={a.name}>{a.name}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">
-                Expected Budget (₹)
+          {/* Row 4: Assign To */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                Assign To
               </label>
-              <input
-                type="number"
-                name="budget"
-                value={formData.budget}
-                onChange={handleChange}
-                placeholder="00000"
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent bg-gray-50 text-gray-900"
-              />
+              <button
+                type="button"
+                onClick={handleAddEmployeeClick}
+                className="cursor-pointer inline-flex items-center gap-1 px-2.5 py-0.5 text-[11px] font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 hover:text-blue-800 border border-blue-200/80 rounded-md transition-all shadow-2xs active:scale-95"
+              >
+                <Plus className="w-3 h-3 stroke-[2.5]" /> Add Employee
+              </button>
             </div>
+            <select
+              name="assigned"
+              value={formData.assigned}
+              onChange={handleChange}
+              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent bg-gray-50 text-gray-900"
+            >
+              <option value="">Unassigned</option>
+              {assignees.map((a) => (
+                <option key={a.id} value={a.name}>{a.name}</option>
+              ))}
+            </select>
           </div>
 
           {/* Notes */}

@@ -26,9 +26,13 @@ export function useVehicleCheckin() {
         getOutPasses(franchiseId).catch(() => []),
       ]);
 
-      const activeOutpasses = (outpassData || []).filter(
-        (op: any) => (op.status || "").toLowerCase() !== "rejected"
-      );
+      // Only an approved/issued outpass means the vehicle has actually left —
+      // a Pending one (not yet approved) must keep the vehicle listed as
+      // "In Workshop" here, matching the isApproved check on the Out Pass page.
+      const activeOutpasses = (outpassData || []).filter((op: any) => {
+        const status = (op.status || "").toLowerCase();
+        return op.issued === true || ["approved", "delivered", "issued", "out"].includes(status);
+      });
       const outVehiclesSet = new Set(
         activeOutpasses
           .map((op: any) => (op.vehicle || "").replace(/[^A-Z0-9]/g, "").toUpperCase())

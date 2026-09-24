@@ -67,3 +67,29 @@ export function formatDateTime(date: Date | string): string {
     hour12: true,
   });
 }
+
+export function formatCarId(rawId?: string, entryId?: string): string {
+  const val = (entryId && entryId.trim() ? entryId : rawId) || "";
+  if (!val) return "CAR-0001";
+
+  if (/^[A-Z]{2,4}-[A-Z0-9]{3,8}$/i.test(val)) {
+    return val.toUpperCase();
+  }
+
+  const clean = val.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+
+  if (clean.startsWith("CAR") && clean.length > 3) {
+    const rest = clean.slice(3);
+    const code = rest.length > 5 ? rest.slice(-5) : rest;
+    return `CAR-${code}`;
+  }
+
+  if ((clean.startsWith("ENT") || clean.startsWith("CHK")) && clean.length > 3) {
+    const rest = clean.slice(3);
+    const code = rest.length > 5 ? rest.slice(-5) : rest;
+    return `CAR-${code}`;
+  }
+
+  const code = clean.length > 5 ? clean.slice(-5) : clean;
+  return `CAR-${code}`;
+}

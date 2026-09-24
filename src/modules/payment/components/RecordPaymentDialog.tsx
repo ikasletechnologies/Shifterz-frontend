@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from "react";
 import {
-  X, CreditCard, User, Car, Upload, Clock
+  X, CreditCard, User, Car, Clock
 } from "lucide-react";
 import { getInvoices, getPayments } from "@/lib/api";
+import { toast } from "react-hot-toast";
 
 interface RecordPaymentDialogProps {
   isOpen: boolean;
@@ -52,6 +53,9 @@ export default function RecordPaymentDialog({
   onSubmit,
   invoiceData,
 }: RecordPaymentDialogProps) {
+  const getFormattedCurrentTime = () =>
+    new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true });
+
   const [formData, setFormData] = useState({
     client: "",
     phone: "",
@@ -63,7 +67,7 @@ export default function RecordPaymentDialog({
     amount: "",
     mode: "UPI",
     date: new Date().toISOString().split("T")[0],
-    time: "11:23 AM",
+    time: getFormattedCurrentTime(),
     reference: "",
     receivedBy: getLoggedInUser(),
     notes: "",
@@ -107,7 +111,7 @@ export default function RecordPaymentDialog({
         amount: remaining > 0 ? remaining.toString() : "",
         mode: "UPI",
         date: invoiceData.date || new Date().toISOString().split("T")[0],
-        time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }),
+        time: getFormattedCurrentTime(),
         reference: "",
         receivedBy: getLoggedInUser(),
         notes: "",
@@ -186,12 +190,24 @@ export default function RecordPaymentDialog({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const finalAmount = Number(formData.amount);
 
-    if (!formData.client.trim() || !finalAmount) {
-      alert("Client name and payment amount are required");
+    if (!formData.client.trim()) {
+      toast.error("Customer name is required.");
       return;
     }
+
+    const finalAmount = Number(formData.amount);
+    if (isNaN(finalAmount) || finalAmount <= 0) {
+      toast.error("Please enter a valid payment amount greater than 0.");
+      return;
+    }
+
+    if (formData.mode !== "Cash" && !formData.reference.trim()) {
+      toast.error(`Reference / UTR No. is required for ${formData.mode} payments.`);
+      return;
+    }
+
+    const refVal = formData.reference.trim() || (formData.mode === "Cash" ? "CASH" : formData.invoiceNo);
 
     if (onSubmit) {
       const newPayment = {
@@ -200,11 +216,13 @@ export default function RecordPaymentDialog({
         phone: formData.phone,
         vehicle: formData.vehicle,
         model: formData.model,
+        jobCardNo: formData.jobCardNo,
         amount: finalAmount,
         mode: formData.mode,
         date: formData.date,
         time: formData.time,
-        ref: formData.reference,
+        ref: refVal,
+        reference: refVal,
         receivedBy: formData.receivedBy,
         notes: formData.notes,
       };

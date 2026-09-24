@@ -19,20 +19,55 @@
 
 :root {
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #0f172a;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: 'Switzer', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-sans: 'Switzer', var(--font-plus-jakarta), var(--font-inter), system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  /* Southern-Gothic style display font (Rye) for headings & brand text */
+  --font-heading: var(--font-rye), 'Switzer', var(--font-plus-jakarta), var(--font-inter), serif;
 }
 
-body {
+/* Global Smooth Text & Antialiased High-Legibility Typography Rules */
+*, ::before, ::after {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+html, body {
   background: var(--background);
   color: var(--foreground);
-  font-family: 'Switzer', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: 'Switzer', var(--font-plus-jakarta), var(--font-inter), system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11', 'calt', 'liga';
+  font-optical-sizing: auto;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Southern-Gothic display font for headings & brand text project-wide */
+h1, h2, h3, h4, h5, h6,
+.font-heading,
+[data-brand] {
+  font-family: var(--font-heading);
+  letter-spacing: 0.01em;
+}
+
+/* Form Controls & Interactive Elements Typography Smoothing */
+input, button, select, textarea, optgroup {
+  font-family: inherit;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Smooth Scrolling */
+html {
+  scroll-behavior: smooth;
 }
 
 /* Hide scrollbar track but keep scrolling on hover */
@@ -43,3 +78,4 @@ body {
 .scrollbar-hidden::-webkit-scrollbar {
   display: none;               /* Chrome / Safari / WebKit */
 }
+

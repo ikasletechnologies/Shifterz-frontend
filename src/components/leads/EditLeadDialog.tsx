@@ -379,21 +379,6 @@ export default function EditLeadDialog({
             </div>
           )}
 
-          {/* Budget */}
-          <div>
-            <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">
-              Expected Budget (₹)
-            </label>
-            <input
-              type="number"
-              name="budget"
-              value={formData.budget}
-              onChange={handleChange}
-              placeholder="00000"
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent bg-gray-50 text-gray-900"
-            />
-          </div>
-
           {/* Notes */}
           <div>
             <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">

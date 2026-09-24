@@ -24,9 +24,11 @@ import {
   XCircle,
   Truck,
   Layers,
+  ShieldAlert,
 } from "lucide-react";
 import NewOutPassDialog from "@/components/outpass/NewOutPassDialog";
 import PrintPassDialog from "@/components/outpass/PrintPassDialog";
+import { formatOutPassId } from "@/utils/outPassFormatter";
 import { getOutPasses, createOutPass, updateOutPass, approveOutpass, rejectOutpass } from "@/lib/api";
 import { getScopedFranchiseId, scopeToFranchise } from "@/lib/franchise-scope";
 import { toast } from "react-hot-toast";
@@ -71,6 +73,14 @@ export default function OutPassPage() {
   const [isDownloadOpen, setIsDownloadOpen] = useState(false);
   const [activeCardDownloadId, setActiveCardDownloadId] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
+
+  // Custom confirmation modal state (replaces window.confirm)
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    type: "approve" | "reject" | null;
+    pass: OutPass | null;
+  }>({ isOpen: false, type: null, pass: null });
+  const [isConfirming, setIsConfirming] = useState(false);
 
   useEffect(() => {
     const userStr = localStorage.getItem("user");
@@ -123,27 +133,36 @@ export default function OutPassPage() {
     setIsPrintOpen(true);
   };
 
-  const handleApproveClick = async (pass: OutPass) => {
-    if (!confirm(`Are you sure you want to approve out pass ${pass.passId || pass.id}?`)) return;
-    try {
-      await approveOutpass(pass.id);
-      toast.success("Out pass approved successfully");
-      fetchOutPasses();
-    } catch (err: any) {
-      toast.error("Failed to approve out pass: " + (err.message || "Unknown error"));
-      console.error(err);
-    }
+  const triggerApproveConfirm = (pass: OutPass) => {
+    setConfirmModal({ isOpen: true, type: "approve", pass });
   };
 
-  const handleRejectClick = async (pass: OutPass) => {
-    if (!confirm(`Are you sure you want to reject out pass ${pass.passId || pass.id}?`)) return;
+  const triggerRejectConfirm = (pass: OutPass) => {
+    setConfirmModal({ isOpen: true, type: "reject", pass });
+  };
+
+  const closeConfirmModal = () => setConfirmModal((prev) => ({ ...prev, isOpen: false }));
+
+  const handleConfirmAction = async () => {
+    const { type, pass } = confirmModal;
+    if (!type || !pass) return;
+
+    setIsConfirming(true);
     try {
-      await rejectOutpass(pass.id);
-      toast.success("Out pass rejected successfully");
+      if (type === "approve") {
+        await approveOutpass(pass.id);
+        toast.success("Out pass approved successfully");
+      } else {
+        await rejectOutpass(pass.id);
+        toast.success("Out pass rejected successfully");
+      }
+      closeConfirmModal();
       fetchOutPasses();
     } catch (err: any) {
-      toast.error("Failed to reject out pass: " + (err.message || "Unknown error"));
+      toast.error(`Failed to ${type} out pass: ` + (err.message || "Unknown error"));
       console.error(err);
+    } finally {
+      setIsConfirming(false);
     }
   };
   const getTodayISO = () => {
@@ -240,8 +259,8 @@ export default function OutPassPage() {
     try {
       const dataToExport = filteredOutPasses.length > 0 ? filteredOutPasses : outPasses;
 
-      const formattedData = dataToExport.map((pass) => ({
-        "Pass ID": pass.passId || pass.id || "-",
+      const formattedData = dataToExport.map((pass, index) => ({
+        "Pass ID": formatOutPassId(pass.passId || pass.id, index),
         "Vehicle": pass.vehicle || "-",
         "Model": pass.model || "-",
         "Customer": pass.customer || "-",
@@ -326,8 +345,8 @@ export default function OutPassPage() {
         "Security",
       ];
 
-      const tableData = dataToExport.map((pass) => [
-        pass.passId || pass.id || "-",
+      const tableData = dataToExport.map((pass, index) => [
+        formatOutPassId(pass.passId || pass.id, index),
         pass.vehicle || "-",
         pass.model || "-",
         pass.customer || "-",
@@ -361,7 +380,7 @@ export default function OutPassPage() {
     try {
       const vNum = pass.vehicle || pass.passId || pass.id;
       const formattedData = [{
-        "Pass ID": pass.passId || pass.id || "-",
+        "Pass ID": formatOutPassId(pass.passId || pass.id),
         "Vehicle": pass.vehicle || "-",
         "Model": pass.model || "-",
         "Customer": pass.customer || "-",
@@ -419,7 +438,7 @@ export default function OutPassPage() {
       doc.text(`OUT PASS DETAILS - ${vNum}`, 14, 16);
 
       const tableData = [
-        ["Pass ID", pass.passId || pass.id || "-"],
+        ["Pass ID", formatOutPassId(pass.passId || pass.id)],
         ["Vehicle No.", pass.vehicle || "-"],
         ["Model", pass.model || "-"],
         ["Customer Name", pass.customer || "-"],
@@ -830,7 +849,7 @@ export default function OutPassPage() {
                         <div className="grid grid-cols-3 gap-2 text-xs">
                           <div>
                             <p className="text-[10px] uppercase font-semibold text-gray-400">Pass ID</p>
-                            <p className="font-bold text-amber-500 font-mono mt-0.5">{pass.passId || pass.id}</p>
+                            <p className="font-bold text-amber-500 font-mono mt-0.5">{formatOutPassId(pass.passId || pass.id, outPasses.indexOf(pass))}</p>
                             <p className="text-[10px] uppercase font-semibold text-gray-400 mt-2">Customer</p>
                             <p className="font-bold text-gray-900 mt-0.5">{pass.customer || "—"}</p>
                           </div>
@@ -912,14 +931,14 @@ export default function OutPassPage() {
                         {isPending && (
                           <div className={`mt-3 pt-3 border-t ${dividerClass} flex gap-2`}>
                             <button
-                              onClick={() => handleApproveClick(pass)}
+                              onClick={() => triggerApproveConfirm(pass)}
                               className="flex-1 bg-emerald-100 hover:bg-emerald-200 text-emerald-700 font-bold py-1.5 rounded-lg text-xs transition-colors flex items-center justify-center gap-1 cursor-pointer"
                             >
                               <CheckCircle className="w-3.5 h-3.5" />
                               Approve
                             </button>
                             <button
-                              onClick={() => handleRejectClick(pass)}
+                              onClick={() => triggerRejectConfirm(pass)}
                               className="flex-1 bg-red-100 hover:bg-red-200 text-red-700 font-bold py-1.5 rounded-lg text-xs transition-colors flex items-center justify-center gap-1 cursor-pointer"
                             >
                               <XCircle className="w-3.5 h-3.5" />
@@ -963,7 +982,7 @@ export default function OutPassPage() {
 
                     return (
                       <tr key={pass.id} className="hover:bg-gray-50 transition-colors">
-                        <td className="px-3 py-3 text-xs font-mono font-bold" style={{ color: "#F0B100" }}>{pass.passId || pass.id}</td>
+                        <td className="px-3 py-3 text-xs font-mono font-bold" style={{ color: "#F0B100" }}>{formatOutPassId(pass.passId || pass.id, outPasses.indexOf(pass))}</td>
                         <td className="px-3 py-3 text-xs font-bold text-gray-900 whitespace-nowrap">{pass.vehicle}</td>
                         <td className="px-3 py-3 text-xs">
                           <div className="font-bold text-gray-900">{pass.customer}</div>
@@ -1013,14 +1032,14 @@ export default function OutPassPage() {
                             {isPending && (
                               <>
                                 <button
-                                  onClick={() => handleApproveClick(pass)}
+                                  onClick={() => triggerApproveConfirm(pass)}
                                   className="p-1 text-emerald-600 hover:bg-emerald-50 rounded transition-colors cursor-pointer"
                                   title="Approve"
                                 >
                                   <CheckCircle className="w-4 h-4" />
                                 </button>
                                 <button
-                                  onClick={() => handleRejectClick(pass)}
+                                  onClick={() => triggerRejectConfirm(pass)}
                                   className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors cursor-pointer"
                                   title="Reject"
                                 >
@@ -1055,7 +1074,7 @@ export default function OutPassPage() {
         onClose={() => setIsPrintOpen(false)}
         pass={selectedPass ? {
           ...selectedPass,
-          passId: selectedPass.passId || selectedPass.id,
+          passId: formatOutPassId(selectedPass.passId || selectedPass.id),
           technician: selectedPass.technicianName || selectedPass.technician || "",
           security: selectedPass.securityName || selectedPass.security || "",
           jobCardId: selectedPass.jobCardId,
@@ -1064,6 +1083,57 @@ export default function OutPassPage() {
           createdBy: selectedPass.createdBy,
         } : undefined}
       />
+
+      {/* Approve / Reject Confirmation Modal */}
+      {confirmModal.isOpen && confirmModal.pass && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-slate-200">
+            <div className="flex items-center gap-3 mb-4">
+              <div className={`p-3 rounded-full shrink-0 ${confirmModal.type === "approve" ? "bg-emerald-100 text-emerald-600" : "bg-red-100 text-red-600"}`}>
+                <ShieldAlert className="w-5 h-5" />
+              </div>
+              <h3 className="text-base font-semibold text-slate-900">
+                {confirmModal.type === "approve" ? "Approve out pass?" : "Reject out pass?"}
+              </h3>
+            </div>
+
+            <p className="text-sm text-slate-600 mb-6 leading-relaxed">
+              You&apos;re about to{" "}
+              <span className="font-semibold text-slate-900">{confirmModal.type}</span> out pass{" "}
+              <span className="font-mono font-semibold text-amber-600">
+                {formatOutPassId(confirmModal.pass.passId || confirmModal.pass.id)}
+              </span>{" "}
+              for vehicle <span className="font-semibold text-slate-900">{confirmModal.pass.vehicle}</span>.
+              {confirmModal.type === "approve"
+                ? " This will authorize the vehicle to leave the premises."
+                : " The pass will be marked as rejected and can be edited and resubmitted."}
+            </p>
+
+            <div className="flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={closeConfirmModal}
+                disabled={isConfirming}
+                className="px-4 py-2 text-sm font-medium text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-lg transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmAction}
+                disabled={isConfirming}
+                className={`px-4 py-2 text-sm font-medium text-white rounded-lg shadow-sm transition-colors flex items-center gap-2 disabled:opacity-60 ${confirmModal.type === "approve"
+                  ? "bg-emerald-600 hover:bg-emerald-700"
+                  : "bg-red-600 hover:bg-red-700"
+                  }`}
+              >
+                {confirmModal.type === "approve" ? <CheckCircle className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
+                {isConfirming ? "Please wait…" : confirmModal.type === "approve" ? "Approve" : "Reject"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div >
   );
 }

@@ -127,6 +127,7 @@ export function BillingPage() {
     outPasses,
     setOutPasses,
     hasOutPass,
+    fetchInvoices,
     handleAddInvoice,
     handleEditInvoice,
     handleCancelDocument,
@@ -176,6 +177,10 @@ export function BillingPage() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
 
+  useEffect(() => {
+    fetchInvoices();
+  }, [activeSubTab]);
+
   const getTodayISO = () => {
     const d = new Date();
     const year = d.getFullYear();
@@ -207,28 +212,37 @@ export function BillingPage() {
   };
 
   const filteredDocs = documents.filter((doc) => {
-    const matchesFilter = filter === "All" || doc.type === filter;
-    const matchesSearch = doc.client?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      doc.vehicle?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      doc.id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      doc.phone?.includes(searchTerm);
+    const matchesFilter =
+      filter === "All" ||
+      (doc.type && doc.type.toLowerCase() === filter.toLowerCase());
+
+    const q = searchTerm.trim().toLowerCase();
+    const matchesSearch =
+      !q ||
+      Boolean(
+        (doc.client && doc.client.toLowerCase().includes(q)) ||
+        (doc.vehicle && doc.vehicle.toLowerCase().includes(q)) ||
+        (doc.id && doc.id.toLowerCase().includes(q)) ||
+        (doc.phone && doc.phone.includes(q)) ||
+        (doc.service && doc.service.toLowerCase().includes(q))
+      );
+
     const matchesDate = (() => {
-      let valid = true;
-      if (doc.date) {
-        const dDate = new Date(doc.date);
-        if (!isNaN(dDate.getTime())) {
-          if (startDate) {
-            const start = new Date(startDate + "T00:00:00");
-            if (dDate < start) valid = false;
-          }
-          if (endDate) {
-            const end = new Date(endDate + "T23:59:59.999");
-            if (dDate > end) valid = false;
-          }
-        }
+      if (!startDate && !endDate) return true;
+      const dDate = doc.date ? new Date(doc.date) : null;
+      if (!dDate || isNaN(dDate.getTime())) return true;
+
+      if (startDate) {
+        const start = new Date(startDate + "T00:00:00");
+        if (dDate < start) return false;
       }
-      return valid;
+      if (endDate) {
+        const end = new Date(endDate + "T23:59:59.999");
+        if (dDate > end) return false;
+      }
+      return true;
     })();
+
     return matchesFilter && matchesSearch && matchesDate;
   });
 
@@ -244,10 +258,14 @@ export function BillingPage() {
   const totalInvoiced = activeDocs.reduce((sum, doc) => sum + getDocVal(doc), 0);
   const collected = activeDocs
     .filter((doc) => doc.status === "Paid" || doc.status === "Completed")
-    .reduce((sum, doc) => sum + getDocVal(doc), 0);
+    .reduce((sum, doc) => sum + (doc.paidAmount !== undefined ? Number(doc.paidAmount) : getDocVal(doc)), 0);
   const pending = activeDocs
     .filter((doc) => ["Pending", "Partially Paid", "Payment Pending", "Invoice Generated"].includes(doc.status))
-    .reduce((sum, doc) => sum + getDocVal(doc), 0);
+    .reduce((sum, doc) => {
+      const tot = getDocVal(doc);
+      const paid = Number(doc.paidAmount || 0);
+      return sum + Math.max(0, tot - paid);
+    }, 0);
   const overdue = activeDocs
     .filter((doc) => doc.status === "Overdue")
     .reduce((sum, doc) => sum + getDocVal(doc), 0);
@@ -296,7 +314,7 @@ export function BillingPage() {
       </div>
 
       {activeSubTab === "ready" ? (
-        <BillingJobCards onInvoiceGenerated={() => setActiveSubTab("documents")} />
+        <BillingJobCards onInvoiceGenerated={() => { fetchInvoices(); setActiveSubTab("documents"); }} />
       ) : (
         <>
           {error && (

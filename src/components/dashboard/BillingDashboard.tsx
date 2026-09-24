@@ -4,7 +4,8 @@ import { useState, useEffect } from "react";
 import {
   FileText, Wallet, Clock, Search, Plus, Printer, CreditCard, ChevronRight, CheckCircle2, AlertCircle
 } from "lucide-react";
-import { getInvoices, getPayments } from "@/lib/api";
+import { getInvoices, getPayments, createPayment } from "@/lib/api";
+import { toast } from "react-hot-toast";
 import NewDocumentDialog from "@/modules/billing/components/NewDocumentDialog";
 import RecordPaymentDialog from "@/modules/payment/components/RecordPaymentDialog";
 import PaymentHistoryDialog from "@/modules/payment/components/PaymentHistoryDialog";
@@ -359,9 +360,34 @@ export default function BillingDashboard() {
           setIsRecordPaymentOpen(false);
           setSelectedInvoice(null);
         }}
-        onSubmit={async () => {
-          setIsRecordPaymentOpen(false);
-          // reload logic
+        onSubmit={async (paymentData) => {
+          try {
+            const invId = selectedInvoice?.id || paymentData.invoiceId;
+            if (!invId) {
+              toast.error("Please select an invoice before recording payment.");
+              return;
+            }
+            const paidAmount = Number(paymentData.amount) || 0;
+            await createPayment({
+              invoiceId: invId,
+              client: selectedInvoice?.client || paymentData.client || "Walk-in Customer",
+              phone: selectedInvoice?.phone || paymentData.phone || "",
+              vehicle: selectedInvoice?.vehicle || paymentData.vehicle || "",
+              amount: paidAmount,
+              mode: paymentData.mode || "Cash",
+              date: paymentData.date || new Date().toISOString().split("T")[0],
+              ref: paymentData.ref || paymentData.reference || invId,
+              notes: paymentData.notes || "",
+            });
+            toast.success("Payment recorded successfully!");
+            setIsRecordPaymentOpen(false);
+            setSelectedInvoice(null);
+            const [invs, pays] = await Promise.all([getInvoices(), getPayments()]);
+            setInvoices(invs || []);
+            setPayments(pays || []);
+          } catch (err: any) {
+            toast.error("Failed to record payment: " + (err.message || "Error"));
+          }
         }}
         invoiceData={selectedInvoice || undefined}
       />

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { Search, X, FileText, CheckCircle2, AlertCircle, Printer, CreditCard, Ticket } from "lucide-react";
-import { getJobs, getInvoices, getPayments, createOutPass, getOutPasses } from "@/lib/api";
+import { getJobs, getInvoices, getPayments, createPayment, createOutPass, getOutPasses } from "@/lib/api";
 import { toast } from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import NewDocumentDialog from "./NewDocumentDialog";
@@ -396,11 +396,37 @@ export default function BillingJobCards({ onInvoiceGenerated }: { onInvoiceGener
           setIsRecordPaymentOpen(false);
           setSelectedContext(null);
         }}
-        onSubmit={async () => {
-          setIsRecordPaymentOpen(false);
-          await loadData();
+        onSubmit={async (paymentData) => {
+          try {
+            const invId = selectedContext?.invoice?.id || paymentData.invoiceId;
+            if (!invId) {
+              toast.error("Please generate an invoice for this vehicle before recording payment.");
+              return;
+            }
+            const paidAmount = Number(paymentData.amount) || 0;
+            await createPayment({
+              invoiceId: invId,
+              client: selectedContext?.invoice?.client || selectedContext?.customer || paymentData.client || "Walk-in Customer",
+              phone: selectedContext?.invoice?.phone || selectedContext?.phone || paymentData.phone || "",
+              vehicle: selectedContext?.vehicle || paymentData.vehicle || "",
+              amount: paidAmount,
+              mode: paymentData.mode || "Cash",
+              date: paymentData.date || new Date().toISOString().split("T")[0],
+              ref: paymentData.ref || paymentData.reference || invId,
+              notes: paymentData.notes || "",
+            });
+            toast.success("Payment recorded successfully!");
+            setIsRecordPaymentOpen(false);
+            setSelectedContext(null);
+            await loadData();
+            if (onInvoiceGenerated) {
+              onInvoiceGenerated();
+            }
+          } catch (err: any) {
+            toast.error("Failed to record payment: " + (err.message || "Error"));
+          }
         }}
-        invoiceData={selectedContext || undefined}
+        invoiceData={selectedContext?.invoice || undefined}
       />
 
       <NewOutPassDialog

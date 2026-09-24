@@ -595,17 +595,19 @@ export function ViewJobCardDialog({ isOpen, onClose, job, onEdit, onDelete, insp
                   <div className="bg-green-50/50 p-4 rounded-xl border border-green-100 space-y-2">
                     <div className="flex items-center justify-between gap-2 flex-wrap">
                       <span className="text-xs font-bold text-green-800 uppercase tracking-wider flex items-center gap-1.5">
-                        <Receipt className="w-3.5 h-3.5" /> Billing
+                        <Receipt className="w-3.5 h-3.5" /> Billing Lifecycle
                       </span>
                       {needsBilling && (
-                        <button
-                          type="button"
-                          onClick={handleGoToBilling}
-                          className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-[11px] font-bold rounded-lg flex items-center gap-1.5 transition-colors"
-                        >
-                          <Receipt className="w-3 h-3" />
-                          Go to Billing
-                        </button>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <button
+                            type="button"
+                            onClick={handleGoToBilling}
+                            className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-[11px] font-bold rounded-lg flex items-center gap-1.5 transition-colors"
+                          >
+                            <Receipt className="w-3 h-3" />
+                            Go to Billing
+                          </button>
+                        </div>
                       )}
                     </div>
 
@@ -615,7 +617,7 @@ export function ViewJobCardDialog({ isOpen, onClose, job, onEdit, onDelete, insp
 
                     <div className="space-y-2">
                       {vehicleInvoices.map((inv) => (
-                        <div key={inv.id} className="flex items-center justify-between gap-2 bg-white/70 rounded-lg px-3 py-2 border border-green-100">
+                        <div key={inv.id} className="flex items-center justify-between gap-2 bg-white/70 rounded-lg px-3 py-2 border border-green-100 flex-wrap">
                           <div className="min-w-0">
                             <p className="text-xs font-bold text-gray-900 truncate">{inv.type} · {formatDateOnly(inv.date)}</p>
                             <p className="text-[11px] text-gray-500 font-mono truncate">{inv.id}</p>
@@ -632,6 +634,24 @@ export function ViewJobCardDialog({ isOpen, onClose, job, onEdit, onDelete, insp
                             >
                               {inv.status}
                             </span>
+                            {inv.status !== "Paid" && inv.status !== "Completed" && (
+                              <button
+                                type="button"
+                                onClick={() => router.push(`/dashboard/billing?action=pay&invoiceId=${inv.id}`)}
+                                className="px-2.5 py-1 bg-amber-500 hover:bg-amber-600 text-white text-[10px] font-bold rounded flex items-center gap-1 transition-colors"
+                              >
+                                Record Payment
+                              </button>
+                            )}
+                            {(inv.status === "Paid" || inv.status === "Completed") && (
+                              <button
+                                type="button"
+                                onClick={() => router.push(`/dashboard/billing`)}
+                                className="px-2.5 py-1 bg-purple-600 hover:bg-purple-700 text-white text-[10px] font-bold rounded flex items-center gap-1 transition-colors"
+                              >
+                                Out Pass
+                              </button>
+                            )}
                           </div>
                         </div>
                       ))}

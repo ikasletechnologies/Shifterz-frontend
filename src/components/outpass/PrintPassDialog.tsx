@@ -2,6 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { X, Printer } from "lucide-react";
+import { formatOutPassId } from "@/utils/outPassFormatter";
 
 interface PrintPassDialogProps {
   isOpen: boolean;
@@ -39,7 +40,7 @@ export default function PrintPassDialog({
         <!DOCTYPE html>
         <html>
           <head>
-            <title>Out Pass ${pass?.passId}</title>
+            <title>Out Pass ${formatOutPassId(pass?.passId)}</title>
             <style>
               body {
                 font-family: Arial, sans-serif;
@@ -197,7 +198,7 @@ export default function PrintPassDialog({
             <h2 className="text-2xl font-bold text-gray-900 mt-4">
               VEHICLE OUT PASS
             </h2>
-            <p className="text-sm text-gray-600 mt-1">Pass No: {pass.passId}</p>
+            <p className="text-sm text-gray-600 mt-1">Pass No: {formatOutPassId(pass.passId)}</p>
           </div>
 
           {/* Details Grid */}

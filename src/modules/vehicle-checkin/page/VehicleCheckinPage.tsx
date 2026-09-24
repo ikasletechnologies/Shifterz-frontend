@@ -24,6 +24,7 @@ import {
   LayoutGrid,
   List,
   ChevronDown,
+  ChevronRight,
   FileSpreadsheet,
   FileText,
   ShieldCheck,
@@ -39,7 +40,7 @@ import VehicleDetailsDialog from "../components/VehicleDetailsDialog";
 import VehicleInspectionDialog from "../components/VehicleInspectionDialog";
 import { useVehicleCheckin } from "../hooks/useVehicleCheckin";
 import { CarEntry, hasCompletedInspection } from "../types/vehicle-checkin.types";
-import { calculateDuration, formatTime, formatDate, formatDateTime } from "@/lib/timeUtils";
+import { calculateDuration, formatTime, formatDate, formatDateTime, formatCarId } from "@/lib/timeUtils";
 
 export function VehicleCheckinPage() {
   const router = useRouter();
@@ -742,8 +743,10 @@ export function VehicleCheckinPage() {
                     {/* Card Body Details */}
                     <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
                       <div>
-                        <p className="text-[10px] uppercase font-semibold text-gray-400">Entry ID</p>
-                        <p className="font-bold text-amber-500 font-mono mt-0.5">{entry.entryId || entry.id}</p>
+                        <p className="text-[10px] uppercase font-bold text-gray-400">Entry ID</p>
+                        <span className="font-bold text-amber-700 font-mono text-xs bg-amber-50 border border-amber-200/80 px-2 py-0.5 rounded-md inline-block tracking-wider mt-0.5">
+                          {formatCarId(entry.id, entry.entryId)}
+                        </span>
                       </div>
                       <div>
                         <p className="text-[10px] uppercase font-semibold text-gray-400">Service</p>
@@ -780,24 +783,15 @@ export function VehicleCheckinPage() {
 
                     <div className="border-t border-gray-100 my-3" />
 
-                    {/* Mandatory Inspection status */}
+                    {/* Go to Job Card button */}
                     <button
                       type="button"
-                      onClick={() => handleInspectionClick(entry)}
-                      className={`w-full flex items-center justify-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl transition-colors cursor-pointer ${hasCompletedInspection(entry)
-                        ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
-                        : "bg-amber-50 text-amber-700 hover:bg-amber-100"
-                        }`}
+                      onClick={() => router.push(`/dashboard/jobs?search=${encodeURIComponent(entry.vehicleNo || entry.vehicle || entry.vehicleNumber || "")}`)}
+                      className="w-full flex items-center justify-center gap-2 text-xs font-bold px-4 py-2.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200/80 shadow-2xs transition-all cursor-pointer"
                     >
-                      {hasCompletedInspection(entry) ? (
-                        <>
-                          <ShieldCheck className="w-3.5 h-3.5" /> Inspection Complete
-                        </>
-                      ) : (
-                        <>
-                          <ShieldAlert className="w-3.5 h-3.5" /> Complete Inspection (required for QC)
-                        </>
-                      )}
+                      <Briefcase className="w-4 h-4 text-amber-700" />
+                      <span>Go to Job Card</span>
+                      <ChevronRight className="w-3.5 h-3.5 text-amber-700" />
                     </button>
                   </div>
                 </div>
@@ -888,8 +882,10 @@ export function VehicleCheckinPage() {
                       {/* Column 1: Core Details */}
                       <div className="space-y-2">
                         <div>
-                          <p className="text-[10px] uppercase font-semibold text-gray-400">Entry ID</p>
-                          <p className="font-bold text-amber-500 font-mono mt-0.5">{entry.entryId || entry.id}</p>
+                          <p className="text-[10px] uppercase font-bold text-gray-400">Entry ID</p>
+                          <span className="font-bold text-amber-700 font-mono text-xs bg-amber-50 border border-amber-200/80 px-2 py-0.5 rounded-md inline-block tracking-wider mt-0.5">
+                            {formatCarId(entry.id, entry.entryId)}
+                          </span>
                         </div>
                         <div>
                           <p className="text-[10px] uppercase font-semibold text-gray-400">Customer</p>
@@ -990,8 +986,10 @@ export function VehicleCheckinPage() {
               <tbody className="divide-y divide-gray-200">
                 {filteredCars.map((entry) => (
                   <tr key={entry.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 text-xs font-mono font-bold" style={{ color: "#F0B100" }}>
-                      {entry.entryId || entry.id}
+                    <td className="px-6 py-4 text-xs font-mono font-bold">
+                      <span className="px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200/80 font-bold inline-block tracking-wider">
+                        {formatCarId(entry.id, entry.entryId)}
+                      </span>
                     </td>
                     <td className="px-6 py-4 text-xs font-semibold text-gray-900 whitespace-nowrap">
                       {entry.vehicleNo || entry.vehicle || entry.vehicleNumber || ""}

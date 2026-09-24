@@ -17,7 +17,6 @@ import {
   PieChart,
   Settings,
   Grid3x3,
-  LogOut,
   Lock,
   X,
   UserCheck,
@@ -36,7 +35,6 @@ import {
   Boxes,
   ArrowLeftRight,
   ShoppingCart,
-  ClipboardCheck,
   ConciergeBell,
   BadgeCheck,
   UserRoundCog,
@@ -55,7 +53,6 @@ import {
   Camera,
 } from "lucide-react";
 import { SidebarContext } from "@/lib/context/SidebarContext";
-import { logout as backendLogout } from "@/lib/api";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface NavItem {
@@ -92,25 +89,11 @@ export const hqSidebarSections: NavSection[] = [
     items: [
       { label: "Car In", icon: Car, href: "/dashboard/carin", module: "carin" },
       { label: "Job Cards", icon: Briefcase, href: "/dashboard/jobs", module: "jobs" },
-      { label: "Live Status", icon: ActivitySquare, href: "/dashboard/live-status", module: "jobs" },
-      { label: "Out Pass", icon: Ticket, href: "/dashboard/outpass", module: "outpass" },
-    ],
-  },
-  {
-    label: "WORKFLOW",
-    items: [
       { label: "Vehicle Inspection", icon: Camera, href: "/dashboard/vehicle-inspection", module: "carin" },
+      { label: "QC", icon: ShieldCheck, href: "/dashboard/qc", module: "jobs" },
+      { label: "Out Pass", icon: Ticket, href: "/dashboard/outpass", module: "outpass" },
       { label: "Workshop", icon: Hammer, href: "/dashboard/workshop", module: "jobs" },
-      {
-        label: "QC",
-        icon: ShieldCheck,
-        href: "/dashboard/qc",
-        module: "jobs",
-        children: [
-          { label: "Inspections", icon: ShieldCheck, href: "/dashboard/qc" },
-          { label: "Checklist Templates", icon: ClipboardCheck, href: "/dashboard/qc/templates" },
-        ],
-      },
+      { label: "Live Status", icon: ActivitySquare, href: "/dashboard/live-status", module: "jobs" },
     ],
   },
   {
@@ -133,10 +116,6 @@ export const hqSidebarSections: NavSection[] = [
     items: [{ label: "Inventory", icon: Package, href: "/dashboard/inventory", module: "inventory" }],
   },
   {
-    label: "ANALYTICS",
-    items: [{ label: "Reports", icon: PieChart, href: "/dashboard/reports", module: "reports" }],
-  },
-  {
     label: "HR & STAFF",
     items: [
       { label: "Employees", icon: UserCheck, href: "/dashboard/employees", module: "employees" },
@@ -149,20 +128,21 @@ export const hqSidebarSections: NavSection[] = [
     ],
   },
   {
+    label: "FRANCHISE",
+    items: franchiseControlChildren,
+  },
+  {
     label: "MANAGEMENT",
     items: [
-      {
-        label: "Franchises",
-        icon: Building2,
-        href: "/dashboard/franchise",
-        children: franchiseControlChildren,
-        module: "franchise"
-      },
       { label: "Services", icon: Wrench, href: "/dashboard/services", module: "services" },
       { label: "Vendor & Purchase Management", icon: ShoppingCart, href: "/dashboard/franchise-control/purchases", module: "inventory" },
       { label: "Masters & Config", icon: Database, href: "/dashboard/masters", module: "settings" },
       { label: "User Management", icon: UserRoundCog, href: "/dashboard/franchise-control/users", module: "employees" },
     ],
+  },
+  {
+    label: "ANALYTICS",
+    items: [{ label: "Reports", icon: PieChart, href: "/dashboard/reports", module: "reports" }],
   },
   {
     label: "SETTINGS",
@@ -219,16 +199,7 @@ export const franchiseSidebarSections: NavSection[] = [
     items: [
       { label: "Employees", icon: UserCheck, href: "/dashboard/employees", module: "employees" },
       { label: "Technicians", icon: HardHat, href: "/dashboard/technicians", module: "employees" },
-      {
-        label: "QC",
-        icon: ShieldCheck,
-        href: "/dashboard/qc",
-        module: "jobs",
-        children: [
-          { label: "Inspections", icon: ShieldCheck, href: "/dashboard/qc" },
-          { label: "Checklist Templates", icon: ClipboardCheck, href: "/dashboard/qc/templates" },
-        ],
-      },
+      { label: "QC", icon: ShieldCheck, href: "/dashboard/qc", module: "jobs" },
       { label: "Service Advisors", icon: Headset, href: "/dashboard/service-advisors", module: "employees" },
       { label: "Billing Staff", icon: Receipt, href: "/dashboard/billing-staff", module: "employees" },
       { label: "Receptionists", icon: ConciergeBell, href: "/dashboard/receptionists", module: "employees" },
@@ -401,7 +372,6 @@ function NavLink({
           }}
           className="hover:bg-white/5 hover:text-white"
         >
-          <Icon className="w-4 h-4 shrink-0" />
           <span className="flex-1 text-left">{item.label}</span>
           <Chevron className="w-3.5 h-3.5 shrink-0 opacity-60" />
         </button>
@@ -417,7 +387,6 @@ function NavLink({
         >
           {item.children!.map((child) => {
             const childActive = isPathActive(pathname, child.href);
-            const ChildIcon = child.icon;
             return (
               <Link
                 key={child.href}
@@ -442,7 +411,6 @@ function NavLink({
                   ${!childActive ? "hover:bg-white/5 hover:text-white" : ""}
                 `}
               >
-                <ChildIcon className="w-3.5 h-3.5 shrink-0" />
                 <span>{child.label}</span>
               </Link>
             );
@@ -462,7 +430,6 @@ function NavLink({
         ${!isActive ? "hover:bg-white/5 hover:text-white" : ""}
       `}
     >
-      <Icon className="w-4 h-4 shrink-0" />
       <span>{item.label}</span>
     </Link>
   );
@@ -474,7 +441,6 @@ export default function Sidebar() {
   const { toggleSidebar } = useContext(SidebarContext);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [userPermissions, setUserPermissions] = useState<string[] | null>(null);
-  const [userName, setUserName] = useState<string>("");
 
   useEffect(() => {
     const userStr = localStorage.getItem("user");
@@ -483,20 +449,11 @@ export default function Sidebar() {
         const user = JSON.parse(userStr);
         setUserRole(user.role);
         setUserPermissions(user.permissions || null);
-        setUserName(user.name || user.username || "");
       } catch (e) {
         console.error("Failed to parse user from localStorage", e);
       }
     }
   }, []);
-
-  const handleLogout = async () => {
-    // Phase 0.5 — revoke the session server-side before navigating away,
-    // not just forget the token locally.
-    await backendLogout().catch(() => null);
-    sessionStorage.clear();
-    window.location.href = "/login";
-  };
 
   // Filter sections dynamically based on role + optional custom modules
   let baseRole = userRole || "";
@@ -539,8 +496,6 @@ export default function Sidebar() {
     })
     .filter((sec) => sec.items.length > 0);
 
-  const cleanRoleName = baseRole.replace(/_/g, " ");
-
   return (
     <aside
       style={{
@@ -554,20 +509,17 @@ export default function Sidebar() {
         style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}
         className="p-5 flex items-center justify-between min-h-[76px]"
       >
-        <div className="flex flex-col items-start">
+        <div className="flex items-center gap-2">
           <Image
             src="/logo.svg"
             alt="Shifterz Logo"
             width={160}
             height={52}
-            className="h-12 w-auto"
+            className="h-10 w-auto"
             priority
           />
-          <span
-            style={{ color: "#facc15", letterSpacing: "0.2em" }}
-            className="text-[9px] font-bold mt-1 ml-0.5"
-          >
-            SHIFTERS
+          <span className="font-outfit font-black text-lg text-yellow-500 tracking-wide">
+            SHIFTERS ERP
           </span>
         </div>
 
@@ -581,33 +533,6 @@ export default function Sidebar() {
           <X className="w-5 h-5" />
         </button>
       </div>
-
-      {/* ── User badge ── */}
-      {userName && (
-        <div
-          style={{
-            background: "rgba(250,204,21,0.08)",
-            borderBottom: "1px solid rgba(255,255,255,0.05)",
-          }}
-          className="px-5 py-3 flex items-center gap-3"
-        >
-          <div
-            style={{
-              background: "linear-gradient(135deg, #facc15, #f59e0b)",
-              flexShrink: 0,
-            }}
-            className="w-8 h-8 rounded-full flex items-center justify-center text-gray-900 font-bold text-sm"
-          >
-            {userName.charAt(0).toUpperCase()}
-          </div>
-          <div className="overflow-hidden">
-            <p className="text-white text-sm font-semibold truncate">{userName}</p>
-            <p style={{ color: "rgba(255,255,255,0.4)" }} className="text-[10px] uppercase tracking-wide truncate">
-              {cleanRoleName}
-            </p>
-          </div>
-        </div>
-      )}
 
       {/* ── Navigation ── */}
       <nav className="flex-1 px-3 py-5 overflow-y-auto scrollbar-hidden">
@@ -627,22 +552,6 @@ export default function Sidebar() {
           </div>
         ))}
       </nav>
-
-      {/* ── Logout ── */}
-      <div style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }} className="p-3">
-        <button
-          onClick={handleLogout}
-          style={{ color: "rgba(255,255,255,0.5)", borderLeft: "3px solid transparent" }}
-          className="
-            flex items-center gap-3 px-3 py-2.5 w-full rounded-r-lg rounded-l-none
-            text-sm font-medium transition-all duration-150
-            hover:bg-red-500/10 hover:text-red-400
-          "
-        >
-          <LogOut className="w-4 h-4 shrink-0" />
-          <span>Logout</span>
-        </button>
-      </div>
     </aside>
   );
 }

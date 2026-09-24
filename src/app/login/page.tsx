@@ -69,7 +69,7 @@ export default function LoginPage() {
               <Image src="/logo.svg" alt="Shifterz Logo" width={180} height={50} className="h-14 w-auto object-contain" priority />
             </div>
             <h1 className="text-4xl font-black text-yellow-500 font-['Outfit'] tracking-wide mb-1">SHIFTERZ</h1>
-            <p className="text-gray-400 text-sm font-medium tracking-wide">Mutli-level Super-pro Detailing Network</p>
+
           </div>
 
           {/* Error Message */}
@@ -139,10 +139,19 @@ export default function LoginPage() {
           </form>
 
           {/* Footer */}
-          <div className="mt-8 pt-6 border-t border-gray-800 text-center">
-            <p className="text-xs text-gray-600 mt-1">
-              © {new Date().getFullYear()} Ikasle Business Group. All rights reserved.
+          <div className="mt-8 pt-6 border-t border-white/10 flex flex-col items-center justify-center gap-3 text-center">
+            <p className="text-xs text-gray-400">
+              © {new Date().getFullYear()} Ikasle Technologies.
             </p>
+            <div className="bg-white px-2.5 py-1 rounded-sm inline-flex items-center justify-center shadow-md transition-all duration-300 ease-in-out hover:scale-105 hover:shadow-lg hover:shadow-white/20 cursor-pointer">
+              <Image
+                src="/IkasleTechnologiesLogo.png"
+                alt="Ikasle Technologies"
+                width={280}
+                height={150}
+                className="h-12 w-auto object-contain"
+              />
+            </div>
           </div>
         </div>
       </div>
