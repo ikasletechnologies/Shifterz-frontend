@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Car, Search, Phone, Calendar, ShieldCheck, ShieldAlert } from "lucide-react";
+import { Search, ShieldCheck, ShieldAlert } from "lucide-react";
 import { useVehicleCheckin } from "../hooks/useVehicleCheckin";
 import { CarEntry, hasCompletedInspection } from "../types/vehicle-checkin.types";
 import VehicleInspectionDialog from "../components/VehicleInspectionDialog";
@@ -112,81 +112,44 @@ export function VehicleInspectionPage() {
       </div>
 
       {filtered.length === 0 ? (
-        <div className="bg-white border border-dashed border-gray-300 rounded-2xl p-10 text-center text-gray-500 text-sm">
-          <div className="w-10 h-10 rounded-full bg-gray-100 text-gray-400 flex items-center justify-center mx-auto mb-3">
-            <Search className="w-5 h-5" />
-          </div>
-          <p className="font-bold text-gray-800 text-base mb-1">No vehicles found</p>
-        </div>
+        <div className="bg-white border border-slate-200 rounded-lg p-10 text-center text-slate-500 text-sm">No vehicles found</div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {filtered.map((car) => {
-            const complete = hasCompletedInspection(car);
-            return (
-              <div
-                key={car.id}
-                className={`bg-white border rounded-2xl p-4 shadow-xs transition-all flex flex-col justify-between ${complete ? "border-emerald-200" : "border-amber-300"
-                  }`}
-              >
-                <div className="flex items-start justify-between gap-3 mb-3">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${complete ? "bg-emerald-100 text-emerald-600" : "bg-amber-100 text-amber-600"}`}>
-                      <Car className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h3 className="text-base font-black text-gray-900 tracking-tight">
-                        {car.vehicleNo || car.vehicle || car.vehicleNumber || "—"}
-                      </h3>
-                      <p className="text-xs text-gray-500 font-medium">{car.model || "—"}</p>
-                    </div>
-                  </div>
-                  <span
-                    className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold ${complete ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"
-                      }`}
-                  >
-                    {complete ? <ShieldCheck className="w-3 h-3" /> : <ShieldAlert className="w-3 h-3" />}
-                    {complete ? "Complete" : "Pending"}
-                  </span>
-                </div>
-
-                <div className="border-t border-gray-100 my-3" />
-
-                <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs mb-3">
-                  <div>
-                    <p className="text-[10px] uppercase font-semibold text-gray-400">Customer</p>
-                    <p className="font-bold text-gray-900 mt-0.5">{car.customer || "—"}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] uppercase font-semibold text-gray-400">Mobile</p>
-                    <p className="font-medium text-gray-700 mt-0.5 flex items-center gap-1">
-                      <Phone className="w-3.5 h-3.5 text-gray-400" />
-                      {car.phone || "—"}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] uppercase font-semibold text-gray-400">Check-In</p>
-                    <p className="font-medium text-gray-700 mt-0.5 flex items-center gap-1">
-                      <Calendar className="w-3.5 h-3.5 text-gray-400" />
-                      {formatDate(car.inTime)} {formatTime(car.inTime)}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] uppercase font-semibold text-gray-400">Service</p>
-                    <p className="font-bold text-gray-900 mt-0.5">{car.service || "—"}</p>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => openInspection(car)}
-                  className={`w-full flex items-center justify-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl transition-colors cursor-pointer ${complete ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100" : "bg-amber-400 text-gray-900 hover:bg-amber-500"
-                    }`}
-                >
-                  {complete ? "View / Edit Inspection" : "Complete Inspection"}
-                </button>
-              </div>
-            );
-          })}
+        <div className="bg-white border border-slate-200 rounded-lg overflow-x-auto">
+          <table className="data-table w-full min-w-[950px] text-left">
+            <thead>
+              <tr>
+                <th>Vehicle Number</th>
+                <th>Model</th>
+                <th>Customer</th>
+                <th>Mobile</th>
+                <th>Service</th>
+                <th>Check-In</th>
+                <th>Inspection</th>
+                <th className="text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((car) => {
+                const complete = hasCompletedInspection(car);
+                return (
+                  <tr key={car.id}>
+                    <td className="whitespace-nowrap uppercase">{car.vehicleNo || car.vehicle || car.vehicleNumber || "—"}</td>
+                    <td className="max-w-[140px] truncate">{car.model || "—"}</td>
+                    <td className="max-w-[180px] truncate">{car.customer || "—"}</td>
+                    <td className="whitespace-nowrap">{car.phone || "—"}</td>
+                    <td className="max-w-[160px] truncate">{car.service || "—"}</td>
+                    <td className="whitespace-nowrap">{formatDate(car.inTime)} {formatTime(car.inTime)}</td>
+                    <td className="whitespace-nowrap">{complete ? "Complete" : "Pending"}</td>
+                    <td className="whitespace-nowrap text-right">
+                      <button type="button" onClick={() => openInspection(car)}>
+                        {complete ? "View / Edit Inspection" : "Complete Inspection"}
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       )}
 

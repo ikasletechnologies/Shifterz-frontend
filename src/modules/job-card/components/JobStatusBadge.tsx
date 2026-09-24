@@ -5,9 +5,11 @@ import { STATUS_COLORS } from "../constants/job-card.constants";
 
 interface JobStatusBadgeProps {
   status: string;
+  // Render as plain text (list view) instead of the coloured pill.
+  neutral?: boolean;
 }
 
-export function JobStatusBadge({ status }: JobStatusBadgeProps) {
+export function JobStatusBadge({ status, neutral = false }: JobStatusBadgeProps) {
   const [userRole, setUserRole] = useState<string>("");
 
   useEffect(() => {
@@ -44,6 +46,10 @@ export function JobStatusBadge({ status }: JobStatusBadgeProps) {
   }
 
   const displayStatus = status;
+
+  if (neutral) {
+    return <span className="whitespace-nowrap">{displayStatus}</span>;
+  }
 
   const colorClass =
     STATUS_COLORS[displayStatus] || STATUS_COLORS[status] || "bg-gray-100 text-gray-600";

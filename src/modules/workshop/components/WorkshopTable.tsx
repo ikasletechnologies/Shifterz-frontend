@@ -61,7 +61,7 @@ export function WorkshopTable({
   return (
     <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
       <div className="overflow-x-auto">
-        <table className="w-full text-sm text-left min-w-[900px]">
+        <table className="data-table w-full text-sm text-left min-w-[900px]">
           <thead className="bg-gray-50/50 border-b border-gray-100 text-xs text-gray-800 uppercase font-bold tracking-wider">
             <tr>
               <th className="px-4 py-4 whitespace-nowrap">Job Card</th>
@@ -77,7 +77,7 @@ export function WorkshopTable({
           <tbody className="divide-y divide-gray-50">
             {jobs.map((job) => (
               <tr key={job.id} className="hover:bg-gray-50/50 transition-colors">
-                <td className="px-4 py-4 font-mono text-xs font-bold whitespace-nowrap" style={{ color: "#F0B100" }}>
+                <td className="px-4 py-4 font-mono text-xs font-bold whitespace-nowrap">
                   {job.id}
                 </td>
                 <td className="px-4 py-4 font-bold text-gray-900 whitespace-nowrap">{job.vehicle}</td>

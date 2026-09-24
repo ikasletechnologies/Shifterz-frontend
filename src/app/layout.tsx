@@ -1,24 +1,13 @@
 import type { Metadata } from "next";
-import { Inter, Plus_Jakarta_Sans, Rye } from "next/font/google";
+import { Poppins } from "next/font/google";
 import { Toaster } from "react-hot-toast";
 import "./globals.css";
 
-const inter = Inter({
+const poppins = Poppins({
   subsets: ["latin"],
-  variable: "--font-inter",
-  display: "swap",
-});
-
-const plusJakarta = Plus_Jakarta_Sans({
-  subsets: ["latin"],
-  variable: "--font-plus-jakarta",
-  display: "swap",
-});
-
-const rye = Rye({
-  subsets: ["latin"],
-  weight: "400",
-  variable: "--font-rye",
+  weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"],
+  style: ["normal", "italic"],
+  variable: "--font-poppins",
   display: "swap",
 });
 
@@ -35,7 +24,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`h-full antialiased font-sans ${inter.variable} ${plusJakarta.variable} ${rye.variable}`}
+      className={`h-full antialiased font-sans ${poppins.variable} ${poppins.className}`}
       suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col antialiased text-slate-900 bg-white font-sans selection:bg-amber-100 selection:text-amber-900" suppressHydrationWarning>
@@ -45,4 +34,3 @@ export default function RootLayout({
     </html>
   );
 }
-

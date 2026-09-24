@@ -80,9 +80,10 @@ export default function WarrantyManagementPage() {
       <!DOCTYPE html>
       <html>
         <head>
+          <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,700&display=swap" rel="stylesheet">
           <title>Warranty Certificate - ${wNo}</title>
           <style>
-            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 40px; color: #0f172a; background: #fff; }
+            body { font-family: 'Poppins', sans-serif; margin: 0; padding: 40px; color: #0f172a; background: #fff; }
             .cert-card { border: 4px double #facc15; padding: 40px; border-radius: 16px; max-width: 750px; margin: 0 auto; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
             .header { text-align: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 20px; margin-bottom: 30px; }
             .logo { font-size: 32px; font-weight: 900; letter-spacing: 2px; color: #0f172a; margin: 0; }
@@ -638,7 +639,7 @@ export default function WarrantyManagementPage() {
       {/* Warranties Data Table Card */}
       <div className="bg-white rounded-2xl border border-slate-200/90 overflow-hidden shadow-2xs">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
+          <table className="data-table w-full text-left text-xs">
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50/70 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                 <th className="py-3.5 px-4">WARRANTY NO</th>

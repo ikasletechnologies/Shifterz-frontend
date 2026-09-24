@@ -318,7 +318,7 @@ export default function LicensesPage() {
           <div className="p-12 text-center text-gray-400 text-xs">No licenses registered yet.</div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+            <table className="data-table w-full text-left border-collapse">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-100 text-[10px] font-bold text-gray-400 uppercase tracking-wider">
                   <th className="p-4">License Key</th>

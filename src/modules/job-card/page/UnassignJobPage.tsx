@@ -8,7 +8,6 @@ import { JobCard, JobCardFormData } from "../types/job-card.types";
 import { JobCardHeader } from "../components/JobCardHeader";
 import { JobCardFilters } from "../components/JobCardFilters";
 import { JobCardTable } from "../components/JobCardTable";
-import { JobCardNavTabs } from "../components/JobCardNavTabs";
 import { CreateJobCardDialog } from "../components/CreateJobCardDialog";
 import { ViewJobCardDialog } from "../components/ViewJobCardDialog";
 
@@ -82,10 +81,6 @@ export function UnassignJobPage() {
         stats={stats}
         onNewJobCard={() => { setSelectedJob(null); setIsDialogOpen(true); }}
       />
-
-      <div className="border-b border-gray-200 pb-3">
-        <JobCardNavTabs activeTab="unassign" jobCards={jobCards} />
-      </div>
 
       <JobCardFilters
         priorityFilter={priorityFilter}

@@ -190,7 +190,7 @@ export default function BillingStaffPage() {
           <h2 className="font-bold text-gray-900">Billing Staff List</h2>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left min-w-[800px]">
+          <table className="data-table w-full text-sm text-left min-w-[800px]">
             <thead className="bg-gray-50/50 border-b border-gray-100 text-xs text-gray-500 uppercase font-semibold tracking-wider">
               <tr>
                 <th className="px-6 py-4">Emp ID</th>

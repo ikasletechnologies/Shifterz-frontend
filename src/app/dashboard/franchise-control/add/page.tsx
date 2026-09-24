@@ -183,7 +183,7 @@ export default function FranchiseManagementPage() {
           <div className="p-12 text-center text-gray-400 text-sm">No franchises found.</div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left">
+            <table className="data-table w-full text-sm text-left">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50">
                   <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">ID</th>

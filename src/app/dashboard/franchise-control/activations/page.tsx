@@ -217,7 +217,7 @@ export default function FranchiseActivationsPage() {
           <h2 className="text-lg font-bold text-gray-900">Historical Decisions</h2>
           <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-sm text-left">
+              <table className="data-table w-full text-sm text-left">
                 <thead>
                   <tr className="border-b border-gray-100 bg-gray-50/50">
                     <th className="px-4 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Date</th>

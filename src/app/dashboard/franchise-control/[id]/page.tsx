@@ -110,39 +110,33 @@ export default function FranchiseDetailsPage() {
           <p className="text-gray-500">There are no employees associated with this franchise.</p>
         </div>
       ) : (
-        <div className="space-y-8">
-          {Object.entries(categories).map(([role, emps]) => (
-            <div key={role} className="space-y-4">
-              <h2 className="text-lg font-bold text-gray-900 border-b border-gray-200 pb-2 capitalize">
-                {role.replace("_", " ")} ({emps.length})
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {emps.map((emp) => (
-                  <div key={emp.id} className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
-                    <div className="flex justify-between items-start mb-3">
-                      <div>
-                        <h3 className="text-md font-bold text-gray-900 truncate" title={emp.name}>{emp.name}</h3>
-                        <p className="text-xs text-gray-500">@{emp.username}</p>
-                      </div>
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${emp.status === "Active" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
-                        {emp.status}
-                      </span>
-                    </div>
-                    <div className="space-y-2 mt-4 pt-4 border-t border-gray-50">
-                      <div className="flex items-center gap-2">
-                        <Phone className="w-3.5 h-3.5 text-gray-400" />
-                        <p className="text-xs text-gray-700">{emp.phone || "N/A"}</p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Mail className="w-3.5 h-3.5 text-gray-400" />
-                        <p className="text-xs text-gray-700 truncate" title={emp.email}>{emp.email || "N/A"}</p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
+        <div className="bg-white border border-slate-200 rounded-lg overflow-x-auto">
+          <table className="data-table w-full min-w-[800px] text-left">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Username</th>
+                <th>Role</th>
+                <th>Phone</th>
+                <th>Email</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {Object.entries(categories).flatMap(([role, emps]) =>
+                emps.map((emp) => (
+                  <tr key={emp.id}>
+                    <td className="max-w-[200px] truncate" title={emp.name}>{emp.name}</td>
+                    <td className="whitespace-nowrap">@{emp.username}</td>
+                    <td className="whitespace-nowrap capitalize">{role.replace("_", " ").toLowerCase()}</td>
+                    <td className="whitespace-nowrap">{emp.phone || "—"}</td>
+                    <td className="max-w-[220px] truncate" title={emp.email}>{emp.email || "—"}</td>
+                    <td className="whitespace-nowrap">{emp.status}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
       )}
     </div>

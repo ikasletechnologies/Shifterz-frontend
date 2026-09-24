@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { Plus, Trash2, Search, Download, X, Pencil, Car, User, Phone, Mail, Wrench, Tag, ArrowRight } from "lucide-react";
+import { Plus, Trash2, Search, Download, X, Pencil } from "lucide-react";
 import AddCustomerDialog from "../components/AddCustomerDialog";
 import EditCustomerDialog from "../components/EditCustomerDialog";
 import VehicleCheckInDialog from "@/modules/vehicle-checkin/components/VehicleCheckInDialog";
@@ -402,112 +402,49 @@ export function CustomerPage() {
         </div>
       </div>
 
-      {/* Cards Grid */}
+      {/* Customer List */}
       {filteredCustomers.length === 0 ? (
-        <div className="bg-white border border-gray-100 rounded-2xl p-12 flex flex-col items-center justify-center text-center shadow-sm">
-          <div className="w-16 h-16 bg-yellow-50 text-yellow-500 rounded-full flex items-center justify-center mb-4">
-            <User className="w-8 h-8" />
-          </div>
-          <h3 className="text-xl font-bold text-gray-900 mb-2">No customers found</h3>
-        </div>
+        <div className="bg-white border border-slate-200 rounded-lg p-12 text-center text-slate-500">No customers found</div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredCustomers.map((customer) => (
-            <div
-              key={customer.id}
-              className="bg-white rounded-xl border border-slate-200/90 shadow-sm hover:shadow-md transition-all p-5 flex flex-col justify-between"
-            >
-              <div>
-                {/* Header: Customer ID Badge & Action Buttons */}
-                <div className="flex items-center justify-between gap-2 pb-3 mb-3 border-b border-slate-100">
-                  {/* Customer ID Badge */}
-                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50/90 text-amber-800 border border-amber-200/70 font-mono text-xs font-bold tracking-wide">
-                    <Tag className="w-3.5 h-3.5 text-amber-600" />
-                    <span>{customer.id}</span>
-                  </div>
-
-                  {/* Action Buttons */}
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <button
-                      onClick={() => handleOpenCheckIn(customer)}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-gray-950 bg-yellow-400 hover:bg-yellow-500 rounded-lg transition-all cursor-pointer shadow-2xs active:scale-95"
-                      title="Convert to Car Check-In"
-                    >
-                      <Car className="w-3.5 h-3.5 text-gray-950 stroke-[2.2]" />
-                      <span>Convert to Check-In</span>
-                      <ArrowRight className="w-3.5 h-3.5 text-gray-950 stroke-[2.2]" />
-                    </button>
-
-                    <button
-                      onClick={() => handleEditCustomer(customer)}
-                      className="p-2 text-slate-700 bg-slate-100/90 hover:bg-slate-200 rounded-lg transition-all cursor-pointer"
-                      title="Edit Customer"
-                    >
-                      <Pencil className="w-3.5 h-3.5" />
-                    </button>
-
-                    <button
-                      onClick={() => confirmDelete(customer)}
-                      className="p-2 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-all cursor-pointer"
-                      title="Delete Customer"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Customer Info (Avatar & Name) */}
-                <div className="py-2 flex items-center gap-3.5">
-                  <div className="w-12 h-12 rounded-full bg-amber-100/80 text-amber-800 font-bold text-sm flex items-center justify-center shrink-0">
-                    {customer.name?.slice(0, 2).toUpperCase() || "CU"}
-                  </div>
-                  <div className="min-w-0">
-                    <h3 className="text-lg font-black text-slate-900 tracking-tight truncate">
-                      {customer.name || "—"}
-                    </h3>
-                    {(customer.model || customer.carModel) && (
-                      <p className="text-xs font-medium text-slate-500 truncate flex items-center gap-1 mt-0.5">
-                        <Wrench className="w-3 h-3 text-slate-400 shrink-0" />
-                        <span>{customer.model || customer.carModel}</span>
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Contact & Vehicle Details List */}
-                <div className="pt-3 mt-3 border-t border-slate-100 space-y-2.5 text-xs">
-                  {customer.vehicle && (
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-blue-50/90 text-blue-600 flex items-center justify-center shrink-0">
-                        <Car className="w-4 h-4" />
-                      </div>
-                      <span className="font-mono font-bold text-slate-900 bg-slate-100/90 px-3 py-1 rounded-lg text-xs uppercase tracking-wider">
-                        {customer.vehicle}
-                      </span>
+        <div className="bg-white border border-slate-200 rounded-lg overflow-x-auto">
+          <table className="data-table w-full min-w-[1000px] text-left">
+            <thead>
+              <tr>
+                <th>Customer ID</th>
+                <th>Customer Name</th>
+                <th>Vehicle Number</th>
+                <th>Model</th>
+                <th>Mobile</th>
+                <th>Email</th>
+                <th className="text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredCustomers.map((customer) => (
+                <tr key={customer.id}>
+                  <td className="whitespace-nowrap">{customer.id}</td>
+                  <td className="max-w-[200px] truncate">{customer.name || "—"}</td>
+                  <td className="whitespace-nowrap uppercase">{customer.vehicle || "—"}</td>
+                  <td className="max-w-[160px] truncate">{customer.model || customer.carModel || "—"}</td>
+                  <td className="whitespace-nowrap">{customer.phone || "—"}</td>
+                  <td className="max-w-[220px] truncate">{customer.email || "—"}</td>
+                  <td className="whitespace-nowrap">
+                    <div className="flex items-center justify-end gap-3">
+                      <button onClick={() => handleOpenCheckIn(customer)} title="Convert to Car Check-In">
+                        Convert to Check-In
+                      </button>
+                      <button onClick={() => handleEditCustomer(customer)} className="p-1.5" title="Edit Customer">
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                      <button onClick={() => confirmDelete(customer)} className="p-1.5" title="Delete Customer">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
-                  )}
-
-                  {customer.phone && (
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-slate-100/90 text-slate-600 flex items-center justify-center shrink-0">
-                        <Phone className="w-4 h-4" />
-                      </div>
-                      <span className="font-mono font-medium text-slate-900 text-sm">{customer.phone}</span>
-                    </div>
-                  )}
-
-                  {customer.email && (
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-8 h-8 rounded-lg bg-slate-100/90 text-slate-600 flex items-center justify-center shrink-0">
-                        <Mail className="w-4 h-4" />
-                      </div>
-                      <span className="font-medium text-slate-700 text-sm truncate">{customer.email}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          ))}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
 

@@ -68,7 +68,7 @@ export default function LoginPage() {
             <div className="mb-3">
               <Image src="/logo.svg" alt="Shifterz Logo" width={180} height={50} className="h-14 w-auto object-contain" priority />
             </div>
-            <h1 className="text-4xl font-black text-yellow-500 font-['Outfit'] tracking-wide mb-1">SHIFTERZ</h1>
+            <h1 className="text-4xl font-black text-yellow-500 tracking-wide mb-1">SHIFTERZ</h1>
 
           </div>
 

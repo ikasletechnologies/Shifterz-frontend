@@ -330,7 +330,7 @@ export default function PurchaseManagementPage() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
+              <table className="data-table w-full text-left border-collapse">
                 <thead>
                   <tr className="border-b border-gray-200 bg-gray-50 text-xs text-gray-500 font-bold uppercase tracking-wider">
                     <th className="py-3.5 px-4">Order Number</th>
@@ -459,7 +459,7 @@ export default function PurchaseManagementPage() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
+              <table className="data-table w-full text-left border-collapse">
                 <thead>
                   <tr className="border-b border-gray-200 bg-gray-50 text-xs text-gray-500 font-bold uppercase tracking-wider">
                     <th className="py-3.5 px-4">Vendor Code</th>

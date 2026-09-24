@@ -181,7 +181,7 @@ export default function BillingDashboard() {
             <div className="text-xs font-bold text-gray-500 uppercase tracking-wider">Total: <span className="text-amber-600">₹{totalOutstanding.toLocaleString("en-IN")}</span></div>
           </div>
           <div className="bg-white border border-gray-100 shadow-sm rounded-xl overflow-hidden">
-            <table className="w-full text-sm">
+            <table className="data-table w-full text-sm">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-100 text-gray-500 text-[11px]">
                   <th className="px-4 py-3 text-left font-bold uppercase tracking-wider">Customer</th>
@@ -232,7 +232,7 @@ export default function BillingDashboard() {
             </h2>
           </div>
           <div className="bg-white border border-gray-100 shadow-sm rounded-xl overflow-hidden">
-            <table className="w-full text-sm">
+            <table className="data-table w-full text-sm">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-100 text-gray-500 text-[11px]">
                   <th className="px-4 py-3 text-left font-bold uppercase tracking-wider">Receipt</th>

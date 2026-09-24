@@ -355,7 +355,7 @@ export default function MastersPage() {
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
+                <table className="data-table w-full text-left border-collapse">
                   <thead>
                     <tr className="border-b border-gray-200 bg-gray-50/75 text-xs font-bold text-gray-500 uppercase tracking-wider">
                       <th className="py-3.5 px-6">Name</th>

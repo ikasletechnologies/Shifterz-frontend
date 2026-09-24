@@ -3,22 +3,6 @@
 import { QCJob, QCInspection } from "../types/qc.types";
 import { QC_STATUS_COLORS } from "../constants/qc.constants";
 import { getCurrentUser, isHQRole } from "@/lib/franchise-scope";
-import {
-  ClipboardCheck,
-  Camera,
-  MessageSquare,
-  CheckCircle2,
-  XCircle,
-  PlayCircle,
-  Car,
-  Wrench,
-  User,
-  Phone,
-  Calendar,
-  FileText,
-  History,
-  Lock,
-} from "lucide-react";
 
 interface QCTableProps {
   jobs: QCJob[];
@@ -116,253 +100,145 @@ export function QCTable({
 
   if (jobs.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-16 text-gray-400 bg-white rounded-2xl border border-gray-100 shadow-sm">
-        <ClipboardCheck className="w-12 h-12 mb-3 opacity-30 text-yellow-500" />
-        <p className="font-semibold text-gray-700">No jobs in QC queue</p>
-      </div>
+      <div className="py-16 text-center text-slate-500 bg-white rounded-lg border border-slate-200">No jobs in QC queue</div>
     );
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {jobs.map((job) => {
-        const open = hasOpenInspection(job.id);
-        const current = getCurrentInspection(job.id);
-        const priorAttempts = current ? current.attemptNumber - 1 : 0;
-        // A missing currentUserId (couldn't resolve the session) never locks
-        // the UI — the backend remains the real gate either way. Superadmin/HQ
-        // can take over any inspector's attempt (management override).
-        const isOwner = isManagementOverride || !current?.inspectorId || !currentUserId || current.inspectorId === currentUserId;
+    <div className="bg-white border border-slate-200 rounded-lg overflow-x-auto">
+      <table className="data-table w-full min-w-[1400px] text-left">
+        <thead>
+          <tr>
+            <th>Job ID</th>
+            <th>Vehicle Number</th>
+            <th>Customer</th>
+            <th>Mobile</th>
+            <th>Fault</th>
+            <th>Technician</th>
+            <th>Status</th>
+            <th>Priority</th>
+            <th>Attempt</th>
+            <th>Received On</th>
+            <th>Est. Completion</th>
+            <th>Notes</th>
+            <th className="text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {jobs.map((job) => {
+            const open = hasOpenInspection(job.id);
+            const current = getCurrentInspection(job.id);
+            const priorAttempts = current ? current.attemptNumber - 1 : 0;
+            // A missing currentUserId (couldn't resolve the session) never locks
+            // the UI — the backend remains the real gate either way. Superadmin/HQ
+            // can take over any inspector's attempt (management override).
+            const isOwner = isManagementOverride || !current?.inspectorId || !currentUserId || current.inspectorId === currentUserId;
+            const notOwnerTitle = "Only the assigned inspector can edit this attempt";
 
-        return (
-          <div
-            key={job.id}
-            className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow p-6 flex flex-col justify-between"
-          >
-            <div className="space-y-4">
-              <div className="flex items-start justify-between">
-                <div>
-                  <h3 className="text-xl font-bold font-mono text-gray-900 tracking-tight">{job.id}</h3>
-                  <div className="flex items-center gap-2 mt-1 flex-wrap">
-                    <StatusBadge status={job.status} />
-                    <PriorityBadge priority={job.priority} />
-                    {open && current && (
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-700">
-                        Attempt {current.attemptNumber}
-                      </span>
-                    )}
-                    {open && current && !isOwner && (
-                      <span
-                        className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-gray-100 text-gray-500"
-                        title="Only the assigned inspector can edit this attempt"
-                      >
-                        <Lock className="w-2.5 h-2.5" />
-                        Owned by {current.inspectorName || "another inspector"}
-                      </span>
-                    )}
-                  </div>
-                  {priorAttempts > 0 && (
-                    <div className="flex items-center gap-1 mt-1.5 text-[10px] text-gray-400 font-medium">
-                      <History className="w-3 h-3" />
-                      <span>{priorAttempts} prior attempt{priorAttempts !== 1 ? "s" : ""} on record</span>
-                    </div>
+            return (
+              <tr key={job.id}>
+                <td className="whitespace-nowrap">{job.id}</td>
+                <td className="whitespace-nowrap uppercase">{job.vehicle}</td>
+                <td className="max-w-[180px] truncate">{job.customer}</td>
+                <td className="whitespace-nowrap">{(job as any).phone || "—"}</td>
+                <td className="max-w-[180px] truncate" title={job.service}>{job.service}</td>
+                <td className="max-w-[160px] truncate">
+                  {job.technician || <span className="text-slate-400">Unassigned</span>}
+                </td>
+                <td className="whitespace-nowrap">
+                  <StatusBadge status={job.status} />
+                </td>
+                <td className="whitespace-nowrap">
+                  <PriorityBadge priority={job.priority} />
+                </td>
+                <td className="whitespace-nowrap">
+                  {open && current ? (
+                    <>
+                      <span>Attempt {current.attemptNumber}</span>
+                      {!isOwner && (
+                        <span className="block text-xs text-slate-400" title={notOwnerTitle}>
+                          Owned by {current.inspectorName || "another inspector"}
+                        </span>
+                      )}
+                    </>
+                  ) : priorAttempts > 0 ? (
+                    <span className="text-slate-500">
+                      {priorAttempts} prior attempt{priorAttempts !== 1 ? "s" : ""}
+                    </span>
+                  ) : (
+                    <span className="text-slate-400">—</span>
                   )}
-                </div>
-              </div>
+                </td>
+                <td className="whitespace-nowrap">{formatDateTime(job.receivedAt)}</td>
+                <td className="whitespace-nowrap">{formatDate(job.estCompletion || job.receivedAt)}</td>
+                <td className="max-w-[200px] truncate" title={job.qcNotes || job.notes}>
+                  {job.qcNotes || job.notes || <span className="text-slate-400">—</span>}
+                </td>
+                <td className="whitespace-nowrap">
+                  <div className="flex items-center justify-end gap-3">
+                    {/* No open attempt yet: begin (or resume/re-start after rework) inspection */}
+                    {!open && STARTABLE_STATUSES.includes(job.status as string) && (
+                      <button type="button" onClick={() => onInspect(job)}>
+                        {priorAttempts > 0 || job.status === "Rework Required" ? "Start Next Attempt" : "Start Inspection"}
+                      </button>
+                    )}
 
-              {/* Vehicle Section */}
-              <div className="flex items-center gap-3 pt-1">
-                <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl shrink-0">
-                  <Car className="w-6 h-6" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-0.5">Vehicle No</p>
-                  <p className="text-base font-bold font-mono text-slate-900 tracking-wider uppercase">
-                    {job.vehicle}
-                  </p>
-                </div>
-              </div>
+                    {/* Open attempt in progress: checklist + photos + remarks + pass/fail */}
+                    {open && (
+                      <>
+                        <button
+                          type="button"
+                          disabled={!isOwner}
+                          onClick={() => onOpenChecklist(job)}
+                          title={!isOwner ? notOwnerTitle : undefined}
+                          className="disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                          Checklist
+                        </button>
+                        <button
+                          type="button"
+                          disabled={!isOwner}
+                          onClick={() => onOpenPhotos(job)}
+                          title={!isOwner ? notOwnerTitle : "Upload QC Photos"}
+                          className="disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                          Photos
+                        </button>
+                        <button type="button" onClick={() => onOpenRemarks(job)} title="Add Remarks">
+                          Remarks
+                        </button>
+                        <button
+                          type="button"
+                          disabled={!isOwner}
+                          onClick={() => onPass(job)}
+                          title={!isOwner ? "Only the assigned inspector can record a decision" : undefined}
+                          className="disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                          Pass QC
+                        </button>
+                        <button
+                          type="button"
+                          disabled={!isOwner}
+                          onClick={() => onFail(job)}
+                          title={!isOwner ? "Only the assigned inspector can record a decision" : undefined}
+                          className="disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                          Fail QC
+                        </button>
+                      </>
+                    )}
 
-              <hr className="border-gray-100" />
-
-              {/* Row 1: Fault + Assigned Technician */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <div className="flex items-center gap-1.5 text-gray-400 text-xs font-medium mb-1">
-                    <Wrench className="w-3.5 h-3.5" />
-                    <span>Fault</span>
+                    {/* Terminal states: read-only */}
+                    {!open && TERMINAL_STATUSES.includes(job.status as string) && (
+                      <span className="text-slate-400">QC Completed</span>
+                    )}
                   </div>
-                  <p className="text-sm font-bold text-gray-900 line-clamp-1">
-                    {job.service}
-                  </p>
-                </div>
-
-                <div>
-                  <div className="flex items-center gap-1.5 text-gray-400 text-xs font-medium mb-1">
-                    <User className="w-3.5 h-3.5" />
-                    <span>Assigned Technician</span>
-                  </div>
-                  <span className="inline-block px-3 py-0.5 bg-emerald-50 text-emerald-700 text-xs font-semibold rounded-full border border-emerald-100">
-                    {job.technician || "Unassigned"}
-                  </span>
-                </div>
-              </div>
-
-              <hr className="border-gray-100" />
-
-              {/* Row 2: Customer + Mobile */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <div className="flex items-center gap-1.5 text-gray-400 text-xs font-medium mb-1">
-                    <User className="w-3.5 h-3.5" />
-                    <span>Customer</span>
-                  </div>
-                  <p className="text-sm font-bold text-gray-900 line-clamp-1">{job.customer}</p>
-                </div>
-
-                <div>
-                  <div className="flex items-center gap-1.5 text-gray-400 text-xs font-medium mb-1">
-                    <Phone className="w-3.5 h-3.5" />
-                    <span>Mobile</span>
-                  </div>
-                  <p className="text-sm font-bold text-blue-600">
-                    {(job as any).phone || "—"}
-                  </p>
-                </div>
-              </div>
-
-              <hr className="border-gray-100" />
-
-              {/* Row 3: Started + Estimation */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <div className="flex items-center gap-1.5 text-gray-400 text-xs font-medium mb-1">
-                    <Calendar className="w-3.5 h-3.5" />
-                    <span>Started</span>
-                  </div>
-                  <p className="text-sm font-bold text-gray-900">
-                    {formatDate(job.receivedAt)}
-                  </p>
-                </div>
-
-                <div>
-                  <div className="flex items-center gap-1.5 text-gray-400 text-xs font-medium mb-1">
-                    <Calendar className="w-3.5 h-3.5" />
-                    <span>Estimation</span>
-                  </div>
-                  <p className="text-sm font-bold text-gray-900">
-                    {formatDate(job.estCompletion || job.receivedAt)}
-                  </p>
-                </div>
-              </div>
-
-              <hr className="border-gray-100" />
-
-              {/* Row 4: Notes */}
-              <div>
-                <div className="flex items-center gap-1.5 text-gray-400 text-xs font-medium mb-1">
-                  <FileText className="w-3.5 h-3.5" />
-                  <span>Notes</span>
-                </div>
-                <p className="text-xs text-gray-600 font-medium">
-                  {job.qcNotes || job.notes || "—"}
-                </p>
-              </div>
-
-              {/* Bottom Mint Banner: RECEIVED ON */}
-              <div className="bg-emerald-50/80 border border-emerald-200/60 rounded-xl p-3 flex items-center gap-3">
-                <div className="p-2 bg-emerald-100 text-emerald-600 rounded-lg">
-                  <Calendar className="w-4 h-4" />
-                </div>
-                <div>
-                  <p className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">
-                    RECEIVED ON
-                  </p>
-                  <p className="text-xs font-bold text-emerald-950">
-                    {formatDateTime(job.receivedAt)}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Action Buttons Section */}
-            <div className="pt-4 border-t border-gray-100 mt-4 flex items-center gap-2 flex-wrap">
-              {/* No open attempt yet: begin (or resume/re-start after rework) inspection */}
-              {!open && STARTABLE_STATUSES.includes(job.status as string) && (
-                <button
-                  type="button"
-                  onClick={() => onInspect(job)}
-                  className="w-full flex items-center justify-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-colors shadow-sm cursor-pointer"
-                >
-                  <PlayCircle className="w-4 h-4" />
-                  {priorAttempts > 0 || job.status === "Rework Required" ? "Start Next Attempt" : "Start Inspection"}
-                </button>
-              )}
-
-              {/* Open attempt in progress: checklist + photos + remarks + pass/fail */}
-              {open && (
-                <div className="w-full space-y-2">
-                  <div className="grid grid-cols-3 gap-1.5">
-                    <button
-                      type="button"
-                      disabled={!isOwner}
-                      onClick={() => onOpenChecklist(job)}
-                      title={!isOwner ? "Only the assigned inspector can edit this attempt" : undefined}
-                      className="flex items-center justify-center gap-1 px-2.5 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-200 text-xs font-bold rounded-lg transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-gray-100"
-                    >
-                      <ClipboardCheck className="w-3.5 h-3.5" /> Checklist
-                    </button>
-                    <button
-                      type="button"
-                      disabled={!isOwner}
-                      onClick={() => onOpenPhotos(job)}
-                      title={!isOwner ? "Only the assigned inspector can edit this attempt" : "Upload QC Photos"}
-                      className="flex items-center justify-center gap-1 px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-xs font-bold rounded-lg transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-emerald-50"
-                    >
-                      <Camera className="w-3.5 h-3.5" /> Photos
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => onOpenRemarks(job)}
-                      className="flex items-center justify-center gap-1 px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs font-bold rounded-lg transition-colors cursor-pointer"
-                      title="Add Remarks"
-                    >
-                      <MessageSquare className="w-3.5 h-3.5" /> Remarks
-                    </button>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      disabled={!isOwner}
-                      onClick={() => onPass(job)}
-                      title={!isOwner ? "Only the assigned inspector can record a decision" : undefined}
-                      className="flex items-center justify-center gap-1 px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-xs font-bold rounded-xl transition-colors shadow-sm cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-green-600"
-                    >
-                      <CheckCircle2 className="w-4 h-4" /> Pass QC
-                    </button>
-                    <button
-                      type="button"
-                      disabled={!isOwner}
-                      onClick={() => onFail(job)}
-                      title={!isOwner ? "Only the assigned inspector can record a decision" : undefined}
-                      className="flex items-center justify-center gap-1 px-3 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl transition-colors shadow-sm cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-red-600"
-                    >
-                      <XCircle className="w-4 h-4" /> Fail QC
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Terminal states: read-only */}
-              {!open && TERMINAL_STATUSES.includes(job.status as string) && (
-                <div className="w-full py-1.5 text-center text-xs text-gray-500 font-semibold bg-gray-50 rounded-lg border border-gray-100">
-                  QC Completed
-                </div>
-              )}
-            </div>
-          </div>
-        );
-      })}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
     </div>
   );
 }

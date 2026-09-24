@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { apiCall } from "@/lib/api";
-import { Loader2, Car, Calendar, CheckCircle2, Clock, MapPin, Search, X, User, Phone, Wrench } from "lucide-react";
-import { PriorityBadge } from "@/modules/job-card/components/PriorityBadge";
+import { Loader2, Car, Search, X } from "lucide-react";
 import JobActionDialog from "./JobActionDialog";
 import { toast } from "react-hot-toast";
 
@@ -65,19 +64,6 @@ export default function EmployeeDashboard() {
   useEffect(() => {
     fetchJobs();
   }, []);
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "Pending":
-        return "bg-yellow-100 text-yellow-800 border-yellow-200";
-      case "In Progress":
-        return "bg-blue-100 text-blue-800 border-blue-200";
-      case "Completed":
-        return "bg-green-100 text-green-800 border-green-200";
-      default:
-        return "bg-gray-100 text-gray-800 border-gray-200";
-    }
-  };
 
   const userRole = (() => {
     try {
@@ -306,130 +292,51 @@ export default function EmployeeDashboard() {
           <Loader2 className="w-8 h-8 animate-spin text-yellow-500" />
         </div>
       ) : filteredJobs.length === 0 ? (
-        <div className="bg-white rounded-2xl shadow-sm border p-12 text-center">
-          <Car className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-gray-900">No jobs assigned</h3>
-        </div>
+        <div className="bg-white rounded-lg border border-slate-200 p-12 text-center text-slate-500">No jobs assigned</div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredJobs.map((job) => {
-            const isCompleted =
-              job.status === "Completed" ||
-              job.status === "QC Passed" ||
-              job.status === "Delivered" ||
-              job.status === "Ready For Billing" ||
-              job.status === "Out";
-
-            return (
-              <div
-                key={job.id}
-                onClick={() => setSelectedJob(job)}
-                className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow cursor-pointer group relative overflow-hidden"
-              >
-                {isCompleted && (
-                  <div className="absolute top-0 right-0 bg-green-500 text-white text-[10px] font-bold px-3 py-1 rounded-bl-lg z-10">
-                    Completed
-                  </div>
-                )}
-
-                {/* Header Section */}
-                <div className="flex items-center justify-between mb-4">
-                  <span className="font-mono font-black text-amber-600 tracking-wider">
-                    {job.id}
-                  </span>
-                  {!isCompleted && (
-                    <span className={`px-2.5 py-1 text-xs font-semibold rounded-full border ${getStatusColor(job.status)}`}>
-                      {job.status}
-                    </span>
-                  )}
-                </div>
-
-                <div className="space-y-3 text-xs px-1">
-                  {/* Vehicle */}
-                  <div className="grid grid-cols-[120px_20px_1fr] items-center py-1">
-                    <div className="flex items-center gap-2 text-gray-500 font-medium shrink-0">
-                      <Car className="w-4 h-4 text-gray-400 shrink-0" />
-                      <span>Vehicle No</span>
-                    </div>
-                    <span className="text-gray-300 font-bold text-center mt-0.5">:</span>
-                    <p className="font-bold text-gray-900 uppercase tracking-wide text-left truncate">{job.vehicle}</p>
-                  </div>
-
-                  {/* Service */}
-                  <div className="grid grid-cols-[120px_20px_1fr] items-center py-1">
-                    <div className="flex items-center gap-2 text-gray-500 font-medium shrink-0">
-                      <Wrench className="w-4 h-4 text-gray-400 shrink-0" />
-                      <span>Service</span>
-                    </div>
-                    <span className="text-gray-300 font-bold text-center mt-0.5">:</span>
-                    <p className="font-bold text-gray-900 text-left truncate">{job.service}</p>
-                  </div>
-
-                  {/* Priority */}
-                  <div className="grid grid-cols-[120px_20px_1fr] items-center py-1">
-                    <div className="flex items-center gap-2 text-gray-500 font-medium shrink-0">
-                      <CheckCircle2 className="w-4 h-4 text-gray-400 shrink-0" />
-                      <span>Priority</span>
-                    </div>
-                    <span className="text-gray-300 font-bold text-center mt-0.5">:</span>
-                    <div className="text-left">
-                      {job.priority ? <PriorityBadge priority={job.priority} /> : <span className="font-bold text-gray-900">—</span>}
-                    </div>
-                  </div>
-
-                  {/* Technician */}
-                  <div className="grid grid-cols-[120px_20px_1fr] items-center py-1">
-                    <div className="flex items-center gap-2 text-gray-500 font-medium shrink-0">
-                      <User className="w-4 h-4 text-gray-400 shrink-0" />
-                      <span>Technician</span>
-                    </div>
-                    <span className="text-gray-300 font-bold text-center mt-0.5">:</span>
-                    <p className="font-bold text-gray-900 text-left truncate">{job.technician || "Unassigned"}</p>
-                  </div>
-
-                  {/* Customer */}
-                  <div className="grid grid-cols-[120px_20px_1fr] items-center py-1">
-                    <div className="flex items-center gap-2 text-gray-500 font-medium shrink-0">
-                      <User className="w-4 h-4 text-gray-400 shrink-0" />
-                      <span>Customer</span>
-                    </div>
-                    <span className="text-gray-300 font-bold text-center mt-0.5">:</span>
-                    <p className="font-bold text-gray-900 text-left truncate">{job.customer || "Walk-in"}</p>
-                  </div>
-
-                  {/* Phone */}
-                  <div className="grid grid-cols-[120px_20px_1fr] items-center py-1">
-                    <div className="flex items-center gap-2 text-gray-500 font-medium shrink-0">
-                      <Phone className="w-4 h-4 text-gray-400 shrink-0" />
-                      <span>Phone</span>
-                    </div>
-                    <span className="text-gray-300 font-bold text-center mt-0.5">:</span>
-                    <p className="font-bold text-blue-600 font-mono tracking-wider text-left truncate">{job.phone || job.customerPhone || "—"}</p>
-                  </div>
-
-                  {/* Started Date */}
-                  <div className="grid grid-cols-[120px_20px_1fr] items-center py-1">
-                    <div className="flex items-center gap-2 text-gray-500 font-medium shrink-0">
-                      <Calendar className="w-4 h-4 text-gray-400 shrink-0" />
-                      <span>Started</span>
-                    </div>
-                    <span className="text-gray-300 font-bold text-center mt-0.5">:</span>
-                    <p className="font-bold text-gray-900 text-left truncate">{new Date(job.startDate).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}</p>
-                  </div>
-
-                  {/* Est. Completion */}
-                  <div className="grid grid-cols-[120px_20px_1fr] items-center py-1">
-                    <div className="flex items-center gap-2 text-gray-500 font-medium shrink-0">
-                      <Clock className="w-4 h-4 text-gray-400 shrink-0" />
-                      <span>Est. Comp.</span>
-                    </div>
-                    <span className="text-gray-300 font-bold text-center mt-0.5">:</span>
-                    <p className="font-bold text-gray-900 text-left truncate">{new Date(job.estCompletion).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}</p>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+        <div className="bg-white border border-slate-200 rounded-lg overflow-x-auto">
+          <table className="data-table w-full min-w-[1100px] text-left">
+            <thead>
+              <tr>
+                <th>Job ID</th>
+                <th>Vehicle No</th>
+                <th>Service</th>
+                <th>Priority</th>
+                <th>Technician</th>
+                <th>Customer</th>
+                <th>Phone</th>
+                <th>Started</th>
+                <th>Est. Completion</th>
+                <th>Status</th>
+                <th className="text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredJobs.map((job) => (
+                <tr key={job.id} onClick={() => setSelectedJob(job)} className="cursor-pointer">
+                  <td className="whitespace-nowrap">{job.id}</td>
+                  <td className="whitespace-nowrap uppercase">{job.vehicle}</td>
+                  <td className="max-w-[180px] truncate">{job.service}</td>
+                  <td className="whitespace-nowrap">{job.priority || "—"}</td>
+                  <td className="max-w-[160px] truncate">{job.technician || "Unassigned"}</td>
+                  <td className="max-w-[180px] truncate">{job.customer || "Walk-in"}</td>
+                  <td className="whitespace-nowrap">{job.phone || job.customerPhone || "—"}</td>
+                  <td className="whitespace-nowrap">
+                    {new Date(job.startDate).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
+                  </td>
+                  <td className="whitespace-nowrap">
+                    {new Date(job.estCompletion).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
+                  </td>
+                  <td className="whitespace-nowrap">{job.status}</td>
+                  <td className="whitespace-nowrap text-right">
+                    <button type="button" onClick={(e) => { e.stopPropagation(); setSelectedJob(job); }}>
+                      Open
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
 

@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import {
-  Plus, Eye, Pencil, Trash2, Ban, Search, Receipt, ArrowRight, History, X,
-  Car, Phone, Printer, MoreHorizontal, Download,
-  SlidersHorizontal, FileText, Wallet, Clock, AlertTriangle, CreditCard, Ticket
+  Plus, Eye, Pencil, Ban, Search, Receipt, ArrowRight, History, X,
+  Printer, MoreHorizontal, Download,
+  FileText, Wallet, Clock, AlertTriangle
 } from "lucide-react";
 import { createOutPass } from "@/lib/api";
 import { toast } from "react-hot-toast";
@@ -39,30 +40,57 @@ function CardMoreDropdown({
   onDownload?: () => void;
 }) {
   const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [menuPos, setMenuPos] = useState({ top: 0, right: 0 });
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Rendered in a portal at a fixed position (like ShareInvoiceMenu) so the
+  // scrolling document table doesn't clip it.
+  const handleToggle = () => {
+    if (!isOpen && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setMenuPos({ top: rect.bottom + 4, right: window.innerWidth - rect.right });
+    }
+    setIsOpen((v) => !v);
+  };
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        menuRef.current && !menuRef.current.contains(event.target as Node) &&
+        buttonRef.current && !buttonRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false);
       }
     };
-    if (isOpen) document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    const handleScroll = () => setIsOpen(false);
+    if (isOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      document.addEventListener("scroll", handleScroll, true);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("scroll", handleScroll, true);
+    };
   }, [isOpen]);
 
   return (
-    <div className="relative" ref={dropdownRef}>
+    <div className="relative">
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        ref={buttonRef}
+        onClick={handleToggle}
         className="p-1.5 text-xs font-bold text-gray-400 hover:text-gray-900 transition-colors flex items-center justify-center"
         title="More Actions"
       >
         <MoreHorizontal className="w-4 h-4" />
       </button>
 
-      {isOpen && (
-        <div className="absolute right-0 top-full mt-2 w-48 rounded-xl shadow-lg bg-white border border-gray-100 py-1 z-50 animate-in fade-in duration-150">
+      {isOpen && createPortal(
+        <div
+          ref={menuRef}
+          style={{ position: "fixed", top: menuPos.top, right: menuPos.right, zIndex: 9999 }}
+          className="w-48 rounded-xl shadow-lg bg-white border border-gray-100 py-1 animate-in fade-in duration-150"
+        >
           {onConvert && (
             <button
               onClick={() => { setIsOpen(false); onConvert(); }}
@@ -112,7 +140,8 @@ function CardMoreDropdown({
             </button>
           )}
 
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
@@ -473,190 +502,113 @@ export function BillingPage() {
         </div>
       </div>
 
-          {/* Cards Grid (2 Columns on Desktop) */}
+          {/* Documents Table */}
           {filteredDocs.length === 0 ? (
-            <div className="bg-white border border-gray-100 rounded-2xl p-12 flex flex-col items-center justify-center text-center shadow-xs">
-              <div className="w-16 h-16 bg-amber-50 text-amber-500 rounded-full flex items-center justify-center mb-4">
-                <Receipt className="w-8 h-8" />
-              </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">No documents found</h3>
-            </div>
+            <div className="bg-white border border-slate-200 rounded-lg p-12 text-center text-slate-500">No documents found</div>
           ) : (
-            <div className="grid grid-cols-1 gap-6">
-              {filteredDocs.map((doc) => {
-                const totalAmount = (doc.amount || 0) + (doc.gst || 0) - (doc.discount || 0);
-                const rawPaidAmount = doc.paidAmount || 0;
-                const paidAmount = (rawPaidAmount === 0 && (doc.status === "Paid" || doc.status === "Completed"))
-                  ? totalAmount
-                  : rawPaidAmount;
-                const remainingAmount = Math.max(0, totalAmount - paidAmount);
+            <div className="bg-white border border-slate-200 rounded-lg overflow-x-auto">
+              <table className="data-table w-full min-w-[1400px] text-left">
+                <thead>
+                  <tr>
+                    <th>Document No</th>
+                    <th>Type</th>
+                    <th>Date</th>
+                    <th>Vehicle Number</th>
+                    <th>Customer Name</th>
+                    <th>Phone</th>
+                    <th>Service</th>
+                    <th>Status</th>
+                    <th className="text-right">Total</th>
+                    <th className="text-right">Paid</th>
+                    <th className="text-right">Pending</th>
+                    <th className="text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredDocs.map((doc) => {
+                    const totalAmount = (doc.amount || 0) + (doc.gst || 0) - (doc.discount || 0);
+                    const rawPaidAmount = doc.paidAmount || 0;
+                    const paidAmount = (rawPaidAmount === 0 && (doc.status === "Paid" || doc.status === "Completed"))
+                      ? totalAmount
+                      : rawPaidAmount;
+                    const remainingAmount = Math.max(0, totalAmount - paidAmount);
 
-                const formattedDate = doc.date
-                  ? (() => {
-                    const d = new Date(doc.date);
-                    return isNaN(d.getTime()) ? doc.date : d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
-                  })()
-                  : "—";
+                    const formattedDate = doc.date
+                      ? (() => {
+                        const d = new Date(doc.date);
+                        return isNaN(d.getTime()) ? doc.date : d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+                      })()
+                      : "—";
 
-                return (
-                  <div
-                    key={doc.id}
-                    className="bg-white rounded-2xl border border-gray-200/90 p-5 shadow-xs hover:shadow-md transition-all flex flex-col justify-between space-y-4"
-                  >
-                    <div>
-                      {/* Card Top Bar: Doc ID, Type Badge, Vehicle Badge, and Action Buttons */}
-                      <div className="flex items-center justify-between gap-3 mb-4 pb-3 border-b border-gray-100 flex-wrap">
-                        <div className="flex items-center gap-2 min-w-0 flex-wrap">
-                          <div className={`p-2 rounded-xl shrink-0 ${doc.type === "Invoice" ? "bg-purple-100 text-purple-600" :
-                            doc.type === "Quotation" ? "bg-blue-100 text-blue-600" :
-                              "bg-emerald-100 text-emerald-600"
-                            }`}>
-                            <FileText className="w-4 h-4" />
+                    const serviceLabel = doc.service && doc.service !== "—" && doc.service !== "-"
+                      ? doc.service
+                      : (doc.serviceCategory || (doc.items && doc.items.find((i: any) => i.desc && i.desc.trim())?.desc) || "General Service");
+
+                    const awaitingConversion =
+                      (doc.type === "Estimate" || doc.type === "Quotation") && doc.status !== "Converted" && doc.status !== "Cancelled";
+
+                    return (
+                      <tr key={doc.id}>
+                        <td className="whitespace-nowrap">{doc.id}</td>
+                        <td className="whitespace-nowrap">{doc.type}</td>
+                        <td className="whitespace-nowrap">{formattedDate}</td>
+                        <td className="whitespace-nowrap uppercase">{doc.vehicle || "—"}</td>
+                        <td className="max-w-[180px] truncate">{doc.client || "—"}</td>
+                        <td className="whitespace-nowrap">{doc.phone || "—"}</td>
+                        <td className="max-w-[180px] truncate" title={serviceLabel}>{serviceLabel}</td>
+                        <td className="whitespace-nowrap">{doc.status || "—"}</td>
+                        <td className="whitespace-nowrap text-right">₹{totalAmount.toLocaleString("en-IN")}</td>
+                        <td className="whitespace-nowrap text-right">₹{paidAmount.toLocaleString("en-IN")}</td>
+                        <td className="whitespace-nowrap text-right">₹{remainingAmount.toLocaleString("en-IN")}</td>
+                        <td className="whitespace-nowrap">
+                          <div className="flex items-center justify-end gap-2">
+                            {(doc.status === "Paid" || doc.status === "Completed") && !hasOutPass(doc) && (
+                              <button onClick={() => handleGenerateOutPass(doc)}>Generate Out Pass</button>
+                            )}
+                            {doc.type === "Invoice" && doc.status !== "Paid" && doc.status !== "Cancelled" && (
+                              <button onClick={() => handleMarkAsPaid(doc.id)}>Add Payment</button>
+                            )}
+                            {awaitingConversion && (
+                              <span className="text-xs text-slate-400" title="Convert to Invoice to accept payment">
+                                Convert to invoice to accept payment
+                              </span>
+                            )}
+                            <button
+                              onClick={() => { setSelectedDocument(doc); setIsPreviewOpen(true); }}
+                              className="p-1.5"
+                              title="View"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </button>
+                            {doc.status !== "Converted" && doc.status !== "Cancelled" && (
+                              <button
+                                onClick={() => {
+                                  setEditingDocument(doc);
+                                  setIsDialogOpen(true);
+                                }}
+                                className="p-1.5"
+                                title="Edit"
+                              >
+                                <Pencil className="w-4 h-4" />
+                              </button>
+                            )}
+                            <ShareInvoiceMenu doc={doc} onLogShare={handleShareDocument} />
+                            <CardMoreDropdown
+                              doc={doc}
+                              onViewHistory={() => { setDocumentForPaymentHistory(doc); setIsPaymentHistoryOpen(true); }}
+                              onViewReceipt={() => { setSelectedPaymentDocument(doc); setIsPaymentReceiptOpen(true); }}
+                              onCancel={() => { setDocumentToCancel(doc); setIsCancelOpen(true); }}
+                              onConvert={(doc.type === "Estimate" || doc.type === "Quotation") && doc.status !== "Paid" && doc.status !== "Converted" ? () => { setDocumentToConvert(doc); setIsConvertOpen(true); } : undefined}
+                              onPrint={() => { setSelectedDocument(doc); setIsPreviewOpen(true); }}
+                              onDownload={() => downloadInvoicePdf(doc)}
+                            />
                           </div>
-                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold shrink-0 ${doc.type === "Invoice" ? "bg-purple-50 text-purple-700" :
-                            doc.type === "Quotation" ? "bg-blue-50 text-blue-700" :
-                              "bg-emerald-50 text-emerald-700"
-                            }`}>
-                            {doc.type}
-                          </span>
-                          <h3 className="text-sm font-black text-gray-900 tracking-tight font-mono truncate">
-                            {doc.id}
-                          </h3>
-                        </div>
-
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        onClick={() => { setSelectedDocument(doc); setIsPreviewOpen(true); }}
-                        className="p-1.5 text-xs font-bold text-gray-400 hover:text-gray-900 transition-colors flex items-center justify-center"
-                        title="View"
-                      >
-                        <Eye className="w-4 h-4" />
-                      </button>
-                      {doc.status !== "Converted" && doc.status !== "Cancelled" && (
-                        <button
-                          onClick={() => {
-                            setEditingDocument(doc);
-                            setIsDialogOpen(true);
-                          }}
-                          className="p-1.5 text-xs font-bold text-gray-400 hover:text-gray-900 transition-colors flex items-center justify-center"
-                          title="Edit"
-                        >
-                          <Pencil className="w-4 h-4" />
-                        </button>
-                      )}
-                      <ShareInvoiceMenu doc={doc} onLogShare={handleShareDocument} />
-                      <CardMoreDropdown
-                        doc={doc}
-                        onViewHistory={() => { setDocumentForPaymentHistory(doc); setIsPaymentHistoryOpen(true); }}
-                        onViewReceipt={() => { setSelectedPaymentDocument(doc); setIsPaymentReceiptOpen(true); }}
-                        onCancel={() => { setDocumentToCancel(doc); setIsCancelOpen(true); }}
-                        onConvert={(doc.type === "Estimate" || doc.type === "Quotation") && doc.status !== "Paid" && doc.status !== "Converted" ? () => { setDocumentToConvert(doc); setIsConvertOpen(true); } : undefined}
-                        onPrint={() => { setSelectedDocument(doc); setIsPreviewOpen(true); }}
-                        onDownload={() => downloadInvoicePdf(doc)}
-                      />
-                    </div>
-                  </div>
-
-                      {/* 2-Column Aligned Details Grid (4 Left, 4 Right) */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 lg:gap-16 text-sm px-2 pb-2">
-                        {/* Left Column (4 Fields) */}
-                        <div className="space-y-3">
-                          <div className="grid grid-cols-[140px_20px_1fr] items-center">
-                            <span className="font-semibold text-gray-600">Vehicle No</span>
-                            <span className="text-gray-300 font-bold text-center">:</span>
-                            <span className="font-bold text-slate-900 font-mono text-sm tracking-wider uppercase">
-                              {doc.vehicle || "—"}
-                            </span>
-                          </div>
-
-                          <div className="grid grid-cols-[140px_20px_1fr] items-center">
-                            <span className="font-medium text-gray-500">Customer Name</span>
-                            <span className="text-gray-300 font-bold text-center">:</span>
-                            <span className="font-bold text-gray-900 whitespace-nowrap">{doc.client || "—"}</span>
-                          </div>
-
-                          <div className="grid grid-cols-[140px_20px_1fr] items-center">
-                            <span className="font-medium text-gray-500">Service</span>
-                            <span className="text-gray-300 font-bold text-center">:</span>
-                            <span className="font-bold text-gray-900 whitespace-nowrap">
-                              {doc.service && doc.service !== "—" && doc.service !== "-"
-                                ? doc.service
-                                : (doc.serviceCategory || (doc.items && doc.items.find((i: any) => i.desc && i.desc.trim())?.desc) || "General Service")}
-                            </span>
-                          </div>
-
-                          <div className="grid grid-cols-[140px_20px_1fr] items-center">
-                            <span className="font-medium text-gray-500">Phone</span>
-                            <span className="text-gray-300 font-bold text-center">:</span>
-                            <span className="font-bold text-blue-600 font-mono whitespace-nowrap">{doc.phone || "—"}</span>
-                          </div>
-                        </div>
-
-                        {/* Right Column (4 Fields) */}
-                        <div className="space-y-3">
-                          <div className="grid grid-cols-[140px_20px_1fr] items-center">
-                            <span className="font-medium text-gray-500">Date</span>
-                            <span className="text-gray-300 font-bold text-center">:</span>
-                            <span className="font-bold text-gray-900 whitespace-nowrap">{formattedDate}</span>
-                          </div>
-
-                          <div className="grid grid-cols-[140px_20px_1fr] items-center">
-                            <span className="font-medium text-gray-500">Total Amount</span>
-                            <span className="text-gray-300 font-bold text-center">:</span>
-                            <span className="font-bold text-gray-900 whitespace-nowrap">₹{totalAmount.toLocaleString("en-IN")}</span>
-                          </div>
-
-                          <div className="grid grid-cols-[140px_20px_1fr] items-center">
-                            <span className="font-medium text-gray-500">Paid Amount</span>
-                            <span className="text-gray-300 font-bold text-center">:</span>
-                            <span className="font-bold text-emerald-600 whitespace-nowrap">₹{paidAmount.toLocaleString("en-IN")}</span>
-                          </div>
-
-                          <div className="grid grid-cols-[140px_20px_1fr] items-center">
-                            <span className="font-medium text-gray-500">Pending Amount</span>
-                            <span className="text-gray-300 font-bold text-center">:</span>
-                            <span className={`font-bold whitespace-nowrap ${remainingAmount > 0 ? "text-red-600" : "text-emerald-600"}`}>
-                              ₹{remainingAmount.toLocaleString("en-IN")}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                {/* Add Payment / Go to Out Pass Button (Footer) */}
-                <div className="flex justify-between items-center gap-2 pt-4 border-t border-gray-50 mt-4">
-                  {/* Estimate/Quotation: payment not allowed — show conversion hint */}
-                  {(doc.type === "Estimate" || doc.type === "Quotation") && doc.status !== "Converted" && doc.status !== "Cancelled" && (
-                    <div className="flex items-center gap-1.5 text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5">
-                      <CreditCard className="w-3.5 h-3.5 shrink-0" />
-                      <span>Convert to Invoice to accept payment</span>
-                    </div>
-                  )}
-                  <div className="flex items-center gap-2 ml-auto">
-                    {(doc.status === "Paid" || doc.status === "Completed") && !hasOutPass(doc) && (
-                      <button
-                        onClick={() => handleGenerateOutPass(doc)}
-                        className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-bold rounded-xl transition-colors shadow-sm flex items-center gap-2"
-                      >
-                        <Ticket className="w-4 h-4" />
-                        Generate Out Pass
-                      </button>
-                    )}
-                    {doc.type === "Invoice" && doc.status !== "Paid" && doc.status !== "Cancelled" && (
-                      <button
-                        onClick={() => handleMarkAsPaid(doc.id)}
-                        className="px-4 py-2 bg-emerald-600 text-white text-sm font-bold rounded-xl hover:bg-emerald-700 transition-colors shadow-sm flex items-center gap-2"
-                      >
-                        <CreditCard className="w-4 h-4" />
-                        Add Payment
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                  </div>
-                );
-              })}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           )}
         </>

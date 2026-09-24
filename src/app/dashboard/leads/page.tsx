@@ -2,7 +2,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { useState, useEffect, useRef } from "react";
-import { Plus, ChevronDown, Trash2, Pencil, Search, X, Car, User, Phone, Wrench, Tag, Calendar, UserCheck, Mail, CheckCircle } from "lucide-react";
+import { createPortal } from "react-dom";
+import { Plus, ChevronDown, Trash2, Pencil, Search, X, CheckCircle } from "lucide-react";
 import AddLeadDialog, { LEAD_DRAFT_STORAGE_KEY } from "@/components/leads/AddLeadDialog";
 import EditLeadDialog from "@/components/leads/EditLeadDialog";
 import { getLeads, createLead, deleteLead, updateLead, getSettings } from "@/lib/api";
@@ -39,19 +40,48 @@ const getStatusColor = (status: string) => {
 };
 
 
-const StatusDropdown = ({ lead, handleStatusChange, dropUp }: { lead: Lead, handleStatusChange: (id: string, newStatus: string, lead: Lead) => void, dropUp?: boolean }) => {
+const STATUS_MENU_HEIGHT = 160;
+
+const StatusDropdown = ({ lead, handleStatusChange }: { lead: Lead, handleStatusChange: (id: string, newStatus: string, lead: Lead) => void }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [menuPos, setMenuPos] = useState<{ left: number; top?: number; bottom?: number }>({ left: 0 });
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Rendered in a portal at a fixed position so the scrolling leads table
+  // doesn't clip it; opens upward when there isn't room below the button.
+  const handleToggle = () => {
+    if (!isOpen && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      const openUp = window.innerHeight - rect.bottom < STATUS_MENU_HEIGHT;
+      setMenuPos(
+        openUp
+          ? { left: rect.left, bottom: window.innerHeight - rect.top + 4 }
+          : { left: rect.left, top: rect.bottom + 4 }
+      );
+    }
+    setIsOpen((v) => !v);
+  };
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        menuRef.current && !menuRef.current.contains(event.target as Node) &&
+        buttonRef.current && !buttonRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false);
       }
     };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+    const handleScroll = () => setIsOpen(false);
+    if (isOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      document.addEventListener("scroll", handleScroll, true);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("scroll", handleScroll, true);
+    };
+  }, [isOpen]);
 
   // For Converted leads, display fixed permanent badge
   if (lead.status === "Converted") {
@@ -76,20 +106,23 @@ const StatusDropdown = ({ lead, handleStatusChange, dropUp }: { lead: Lead, hand
   };
 
   return (
-    <div className="relative inline-block text-left" ref={dropdownRef}>
+    <div className="relative inline-block text-left">
       <button
+        ref={buttonRef}
         type="button"
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={handleToggle}
         className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-between w-[110px] transition-all shadow-2xs border border-transparent hover:border-slate-200 cursor-pointer ${getStatusColor(lead.status)}`}
       >
         <span>{lead.status}</span>
         <ChevronDown className={`w-3 h-3 transition-transform ${isOpen ? "rotate-180" : ""}`} />
       </button>
 
-      {isOpen && (
-        <div className={`absolute z-50 w-36 rounded-xl shadow-xl bg-white border border-slate-200 py-1.5 overflow-hidden -left-2 animate-in fade-in duration-150 ${
-          dropUp ? "bottom-full mb-2 slide-in-from-bottom-2" : "mt-2 slide-in-from-top-2"
-        }`}>
+      {isOpen && createPortal(
+        <div
+          ref={menuRef}
+          style={{ position: "fixed", zIndex: 9999, ...menuPos }}
+          className="w-36 rounded-xl shadow-xl bg-white border border-slate-200 py-1.5 overflow-hidden animate-in fade-in duration-150"
+        >
           {statuses.map((status) => (
             <button
               key={status}
@@ -106,7 +139,8 @@ const StatusDropdown = ({ lead, handleStatusChange, dropUp }: { lead: Lead, hand
               {status}
             </button>
           ))}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
@@ -414,147 +448,70 @@ export default function LeadsPage() {
         </div>
       </div>
 
-      {/* Cards Grid */}
+      {/* Leads Table */}
       {filteredLeads.length === 0 ? (
-        <div className="bg-white border border-gray-100 rounded-2xl p-12 flex flex-col items-center justify-center text-center shadow-sm">
-          <div className="w-16 h-16 bg-yellow-50 text-yellow-500 rounded-full flex items-center justify-center mb-4">
-            <User className="w-8 h-8" />
-          </div>
-          <h3 className="text-xl font-bold text-gray-900 mb-2">No leads found</h3>
-        </div>
+        <div className="bg-white border border-slate-200 rounded-lg p-12 text-center text-slate-500">No leads found</div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredLeads.map((lead, index) => (
-            <div
-              key={lead.id}
-              className="bg-white rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-md transition-all p-5 flex flex-col justify-between space-y-4"
-            >
-              <div>
-                {/* Header: Lead ID (Left) & Status Dropdown + Actions (Right) */}
-                <div className="flex items-center justify-between gap-3 mb-4">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <h3 className="text-base font-black text-slate-900 tracking-tight font-mono truncate" style={{ color: "#F0B100" }}>
-                      {lead.id}
-                    </h3>
-                  </div>
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <StatusDropdown lead={lead} handleStatusChange={handleStatusChange} dropUp={index >= filteredLeads.length - 2} />
-                    <button
-                      onClick={() => {
-                        setLeadToEdit(lead);
-                        setIsEditDialogOpen(true);
-                      }}
-                      className="p-1.5 text-slate-400 hover:text-blue-600 transition-colors cursor-pointer"
-                      title="Edit Lead"
-                    >
-                      <Pencil className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => handleDeleteLead(lead.id)}
-                      className="p-1.5 text-slate-400 hover:text-red-600 transition-colors cursor-pointer"
-                      title="Delete Lead"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Details List (Grid Layout) */}
-                <div className="space-y-3 text-xs px-1">
-                  {/* Name */}
-                  <div className="grid grid-cols-[100px_20px_1fr] items-start py-1 border-b border-slate-50">
-                    <div className="flex items-center gap-2 text-slate-500 font-medium shrink-0">
-                      <User className="w-4 h-4 text-slate-400 shrink-0" />
-                      <span>Name</span>
-                    </div>
-                    <span className="text-slate-300 font-bold text-center mt-0.5">:</span>
-                    <p className="font-bold text-slate-900 text-left truncate">{lead.name || "—"}</p>
-                  </div>
-
-                  {/* Phone */}
-                  <div className="grid grid-cols-[100px_20px_1fr] items-center py-1 border-b border-slate-50">
-                    <div className="flex items-center gap-2 text-slate-500 font-medium shrink-0">
-                      <Phone className="w-4 h-4 text-slate-400 shrink-0" />
-                      <span>Phone</span>
-                    </div>
-                    <span className="text-slate-300 font-bold text-center">:</span>
-                    <p className="font-bold text-blue-600 font-mono tracking-wider text-left truncate">{lead.phone || "—"}</p>
-                  </div>
-
-                  {/* Vehicle */}
-                  <div className="grid grid-cols-[100px_20px_1fr] items-center py-1 border-b border-slate-50">
-                    <div className="flex items-center gap-2 text-slate-500 font-medium shrink-0">
-                      <Car className="w-4 h-4 text-blue-600 shrink-0" />
-                      <span>Vehicle</span>
-                    </div>
-                    <span className="text-slate-300 font-bold text-center">:</span>
-                    <p className="font-bold text-slate-900 uppercase font-mono tracking-wider text-left truncate">{lead.vehicle || "—"}</p>
-                  </div>
-
-                  {/* Source */}
-                  <div className="grid grid-cols-[100px_20px_1fr] items-center py-1 border-b border-slate-50">
-                    <div className="flex items-center gap-2 text-slate-500 font-medium shrink-0">
-                      <Tag className="w-4 h-4 text-slate-400 shrink-0" />
-                      <span>Source</span>
-                    </div>
-                    <span className="text-slate-300 font-bold text-center">:</span>
-                    <p className="font-bold text-slate-900 text-left truncate">{lead.source || "—"}</p>
-                  </div>
-
-                  {/* Service */}
-                  <div className="grid grid-cols-[100px_20px_1fr] items-center py-1 border-b border-slate-50">
-                    <div className="flex items-center gap-2 text-slate-500 font-medium shrink-0">
-                      <Wrench className="w-4 h-4 text-slate-400 shrink-0" />
-                      <span>Service</span>
-                    </div>
-                    <span className="text-slate-300 font-bold text-center">:</span>
-                    <p className="font-bold text-slate-900 text-left truncate">{lead.service || "—"}</p>
-                  </div>
-
-                  {/* Email */}
-                  <div className="grid grid-cols-[100px_20px_1fr] items-center py-1 border-b border-slate-50">
-                    <div className="flex items-center gap-2 text-slate-500 font-medium shrink-0">
-                      <Mail className="w-4 h-4 text-slate-400 shrink-0" />
-                      <span>Email</span>
-                    </div>
-                    <span className="text-slate-300 font-bold text-center">:</span>
-                    <p className="font-bold text-slate-900 text-left truncate">{lead.email || "—"}</p>
-                  </div>
-
-                  {/* Date (if present) */}
-                  {lead.date && (
-                    <div className="grid grid-cols-[100px_20px_1fr] items-center py-1 border-b border-slate-50">
-                      <div className="flex items-center gap-2 text-slate-500 font-medium shrink-0">
-                        <Calendar className="w-4 h-4 text-slate-400 shrink-0" />
-                        <span>Date</span>
-                      </div>
-                      <span className="text-slate-300 font-bold text-center">:</span>
-                      <p className="font-bold text-slate-900 text-left truncate">
-                        {(() => {
+        <div className="bg-white border border-slate-200 rounded-lg overflow-x-auto">
+          <table className="data-table w-full min-w-[1200px] text-left">
+            <thead>
+              <tr>
+                <th>Lead ID</th>
+                <th>Name</th>
+                <th>Phone</th>
+                <th>Vehicle</th>
+                <th>Source</th>
+                <th>Service</th>
+                <th>Email</th>
+                <th>Date</th>
+                <th>Assigned To</th>
+                <th>Status</th>
+                <th className="text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredLeads.map((lead) => (
+                <tr key={lead.id}>
+                  <td className="whitespace-nowrap">{lead.id}</td>
+                  <td className="max-w-[180px] truncate">{lead.name || "—"}</td>
+                  <td className="whitespace-nowrap">{lead.phone || "—"}</td>
+                  <td className="whitespace-nowrap uppercase">{lead.vehicle || "—"}</td>
+                  <td className="whitespace-nowrap">{lead.source || "—"}</td>
+                  <td className="max-w-[160px] truncate">{lead.service || "—"}</td>
+                  <td className="max-w-[200px] truncate">{lead.email || "—"}</td>
+                  <td className="whitespace-nowrap">
+                    {lead.date
+                      ? (() => {
                           const d = new Date(lead.date);
                           return isNaN(d.getTime()) ? lead.date : d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
-                        })()}
-                      </p>
+                        })()
+                      : "—"}
+                  </td>
+                  <td className="max-w-[160px] truncate">{lead.assignedTo || "—"}</td>
+                  <td className="whitespace-nowrap">
+                    <StatusDropdown lead={lead} handleStatusChange={handleStatusChange} />
+                  </td>
+                  <td className="whitespace-nowrap">
+                    <div className="flex items-center justify-end gap-1">
+                      <button
+                        onClick={() => {
+                          setLeadToEdit(lead);
+                          setIsEditDialogOpen(true);
+                        }}
+                        className="p-1.5"
+                        title="Edit Lead"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                      <button onClick={() => handleDeleteLead(lead.id)} className="p-1.5" title="Delete Lead">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
-                  )}
-
-                  {/* Assigned To (if present) */}
-                  {lead.assignedTo && (
-                    <div className="grid grid-cols-[100px_20px_1fr] items-center py-1">
-                      <div className="flex items-center gap-2 text-slate-500 font-medium shrink-0">
-                        <UserCheck className="w-4 h-4 text-slate-400 shrink-0" />
-                        <span>Assigned To</span>
-                      </div>
-                      <span className="text-slate-300 font-bold text-center">:</span>
-                      <p className="font-bold text-slate-900 text-left truncate">{lead.assignedTo}</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-
-            </div>
-          ))}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
 

@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import {
   Plus,
   Eye,
-  Circle,
   Edit,
   Download,
   Check,
@@ -15,16 +14,8 @@ import {
   X,
   Car,
   Wrench,
-  CheckCircle,
-  LogOut,
-  Calendar,
-  Clock,
   Phone,
-  User,
-  LayoutGrid,
-  List,
   ChevronDown,
-  ChevronRight,
   FileSpreadsheet,
   FileText,
   ShieldCheck,
@@ -112,10 +103,8 @@ export function VehicleCheckinPage() {
   const [selectedCar, setSelectedCar] = useState<CarEntry | null>(null);
   const [successCar, setSuccessCar] = useState<CarEntry | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [viewMode, setViewMode] = useState<"cards" | "table">("cards");
   const [statusFilter, setStatusFilter] = useState<"All" | "In Workshop" | "Delivered">("All");
   const [isDownloadOpen, setIsDownloadOpen] = useState(false);
-  const [activeCardDownloadId, setActiveCardDownloadId] = useState<string | null>(null);
 
   const handleCheckInSubmit = async (carData: any) => {
     if (selectedCar && isDialogOpen) {
@@ -200,19 +189,6 @@ export function VehicleCheckinPage() {
   const allCount = cars.length;
   const inWorkshopCount = cars.filter((c) => c.status !== "Out" && c.status !== "Delivered").length;
   const deliveredCount = cars.filter((c) => c.status === "Out" || c.status === "Delivered").length;
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "Ongoing":
-      case "In Workshop":
-        return "bg-emerald-100 text-emerald-700";
-      case "Out":
-      case "Delivered":
-        return "bg-red-100 text-red-700";
-      default:
-        return "bg-gray-100 text-gray-700";
-    }
-  };
 
   const downloadReport = () => {
     try {
@@ -486,13 +462,6 @@ export function VehicleCheckinPage() {
     return statusMatch && searchMatch && dateMatch;
   });
 
-  const inWorkshopCars = filteredCars.filter(
-    (c) => c.status !== "Out" && c.status !== "Delivered"
-  );
-  const deliveredCars = filteredCars.filter(
-    (c) => c.status === "Out" || c.status === "Delivered"
-  );
-
   if (isLoading) return <div className="p-8 text-center text-gray-500">Loading vehicle check-ins...</div>;
 
   return (
@@ -627,27 +596,6 @@ export function VehicleCheckinPage() {
             )}
           </div>
 
-          {/* View toggle — Table view is the only place with a checkout ("→ Out")
-              action; without this the checkout flow had no way to be reached. */}
-          <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1 shrink-0">
-            <button
-              type="button"
-              onClick={() => setViewMode("cards")}
-              title="Card view"
-              className={`p-1.5 rounded-md transition-colors cursor-pointer ${viewMode === "cards" ? "bg-white text-gray-900 shadow-xs" : "text-gray-500 hover:text-gray-700"}`}
-            >
-              <LayoutGrid className="w-4 h-4" />
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMode("table")}
-              title="Table view"
-              className={`p-1.5 rounded-md transition-colors cursor-pointer ${viewMode === "table" ? "bg-white text-gray-900 shadow-xs" : "text-gray-500 hover:text-gray-700"}`}
-            >
-              <List className="w-4 h-4" />
-            </button>
-          </div>
-
           {/* Vehicle Check-In */}
           <button
             onClick={() => { setSelectedCar(null); setIsDialogOpen(true); }}
@@ -659,394 +607,87 @@ export function VehicleCheckinPage() {
         </div>
       </div>
 
-      {/* Main Display Area (Cards / Table) */}
-      {viewMode === "cards" ? (
-        <div className="space-y-6">
-          {/* Vehicles In Workshop */}
-          {inWorkshopCars.length > 0 && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {inWorkshopCars.map((entry) => (
-                <div
-                  key={entry.id}
-                  className="bg-white border border-emerald-200 hover:border-emerald-400 rounded-2xl p-4 shadow-xs transition-all flex flex-col justify-between"
-                >
-                  <div>
-                    {/* Card Header */}
-                    <div className="flex items-start justify-between gap-3 mb-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
-                          <Car className="w-5 h-5" />
-                        </div>
-                        <div>
-                          <h3 className="text-base font-black text-gray-900 tracking-tight">
-                            {entry.vehicleNo || entry.vehicle || entry.vehicleNumber || "—"}
-                          </h3>
-                          <p className="text-xs text-gray-500 font-medium">
-                            {entry.model || "—"}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="relative">
-                          <button
-                            type="button"
-                            onClick={() => setActiveCardDownloadId(activeCardDownloadId === entry.id ? null : entry.id)}
-                            className="p-1.5 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors text-gray-600 cursor-pointer flex items-center justify-center"
-                            title="Download vehicle record"
-                          >
-                            <Download className="w-3.5 h-3.5" />
-                          </button>
-
-                          {activeCardDownloadId === entry.id && (
-                            <>
-                              <div className="fixed inset-0 z-40" onClick={() => setActiveCardDownloadId(null)} />
-                              <div className="absolute right-0 mt-1.5 w-44 bg-white rounded-xl shadow-xl border border-gray-200 py-1.5 z-50 animate-in fade-in zoom-in-95 duration-150 text-left">
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    downloadSingleCarExcel(entry);
-                                    setActiveCardDownloadId(null);
-                                  }}
-                                  className="w-full px-3.5 py-2 text-left text-xs font-bold text-gray-700 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 transition-colors cursor-pointer"
-                                >
-                                  <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
-                                  Download as CSV
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    downloadSingleCarPDF(entry);
-                                    setActiveCardDownloadId(null);
-                                  }}
-                                  className="w-full px-3.5 py-2 text-left text-xs font-bold text-gray-700 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 transition-colors cursor-pointer"
-                                >
-                                  <FileText className="w-3.5 h-3.5 text-red-500" />
-                                  Download as PDF
-                                </button>
-                              </div>
-                            </>
-                          )}
-                        </div>
-
-                        <button
-                          type="button"
-                          onClick={() => handleEditClick(entry)}
-                          className="bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-semibold px-3 py-1 rounded-full whitespace-nowrap shadow-2xs transition-colors cursor-pointer"
-                        >
-                          View
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="border-t border-gray-100 my-3" />
-
-                    {/* Card Body Details */}
-                    <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
-                      <div>
-                        <p className="text-[10px] uppercase font-bold text-gray-400">Entry ID</p>
-                        <span className="font-bold text-amber-700 font-mono text-xs bg-amber-50 border border-amber-200/80 px-2 py-0.5 rounded-md inline-block tracking-wider mt-0.5">
-                          {formatCarId(entry.id, entry.entryId)}
-                        </span>
-                      </div>
-                      <div>
-                        <p className="text-[10px] uppercase font-semibold text-gray-400">Service</p>
-                        <p className="font-bold text-gray-900 mt-0.5">{entry.service || "—"}</p>
-                      </div>
-
-                      <div>
-                        <p className="text-[10px] uppercase font-semibold text-gray-400">Customer</p>
-                        <p className="font-bold text-gray-900 mt-0.5">{entry.customer || "—"}</p>
-                      </div>
-                      <div>
-                        <p className="text-[10px] uppercase font-semibold text-gray-400">Check-In Date</p>
-                        <p className="font-medium text-gray-700 mt-0.5 flex items-center gap-1">
-                          <Calendar className="w-3.5 h-3.5 text-gray-400" />
-                          {formatDate(entry.inTime)}
-                        </p>
-                      </div>
-
-                      <div>
-                        <p className="text-[10px] uppercase font-semibold text-gray-400">Mobile</p>
-                        <p className="font-medium text-gray-700 mt-0.5 flex items-center gap-1">
-                          <Phone className="w-3.5 h-3.5 text-gray-400" />
-                          {entry.phone || "—"}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-[10px] uppercase font-semibold text-gray-400">Check-In Time</p>
-                        <p className="font-medium text-gray-700 mt-0.5 flex items-center gap-1">
-                          <Clock className="w-3.5 h-3.5 text-gray-400" />
-                          {formatTime(entry.inTime)}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="border-t border-gray-100 my-3" />
-
-                    {/* Go to Job Card button */}
-                    <button
-                      type="button"
-                      onClick={() => router.push(`/dashboard/jobs?search=${encodeURIComponent(entry.vehicleNo || entry.vehicle || entry.vehicleNumber || "")}`)}
-                      className="w-full flex items-center justify-center gap-2 text-xs font-bold px-4 py-2.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200/80 shadow-2xs transition-all cursor-pointer"
-                    >
-                      <Briefcase className="w-4 h-4 text-amber-700" />
-                      <span>Go to Job Card</span>
-                      <ChevronRight className="w-3.5 h-3.5 text-amber-700" />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Vehicles Delivered */}
-          {deliveredCars.length > 0 && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {deliveredCars.map((entry) => (
-                <div
-                  key={entry.id}
-                  className="bg-red-50/20 border border-red-200 hover:border-red-300 rounded-2xl p-4 shadow-xs transition-all flex flex-col justify-between"
-                >
-                  <div>
-                    {/* Card Header */}
-                    <div className="flex items-start justify-between gap-3 mb-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-red-100 text-red-600 flex items-center justify-center shrink-0">
-                          <Car className="w-5 h-5" />
-                        </div>
-                        <div>
-                          <h3 className="text-base font-black text-gray-900 tracking-tight">
-                            {entry.vehicleNo || entry.vehicle || entry.vehicleNumber || "—"}
-                          </h3>
-                          <p className="text-xs text-gray-500 font-medium">
-                            {entry.model || "—"}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="relative">
-                          <button
-                            type="button"
-                            onClick={() => setActiveCardDownloadId(activeCardDownloadId === entry.id ? null : entry.id)}
-                            className="p-1.5 bg-red-100/70 hover:bg-red-200/80 rounded-full transition-colors text-red-700 cursor-pointer flex items-center justify-center"
-                            title="Download vehicle record"
-                          >
-                            <Download className="w-3.5 h-3.5" />
-                          </button>
-
-                          {activeCardDownloadId === entry.id && (
-                            <>
-                              <div className="fixed inset-0 z-40" onClick={() => setActiveCardDownloadId(null)} />
-                              <div className="absolute right-0 mt-1.5 w-44 bg-white rounded-xl shadow-xl border border-gray-200 py-1.5 z-50 animate-in fade-in zoom-in-95 duration-150 text-left">
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    downloadSingleCarExcel(entry);
-                                    setActiveCardDownloadId(null);
-                                  }}
-                                  className="w-full px-3.5 py-2 text-left text-xs font-bold text-gray-700 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 transition-colors cursor-pointer"
-                                >
-                                  <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
-                                  Download as CSV
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    downloadSingleCarPDF(entry);
-                                    setActiveCardDownloadId(null);
-                                  }}
-                                  className="w-full px-3.5 py-2 text-left text-xs font-bold text-gray-700 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 transition-colors cursor-pointer"
-                                >
-                                  <FileText className="w-3.5 h-3.5 text-red-500" />
-                                  Download as PDF
-                                </button>
-                              </div>
-                            </>
-                          )}
-                        </div>
-
-                        <button
-                          type="button"
-                          onClick={() => handleViewDetailsClick(entry)}
-                          className="bg-red-600 hover:bg-red-700 text-white text-[11px] font-semibold px-3 py-1 rounded-full whitespace-nowrap shadow-2xs transition-colors cursor-pointer"
-                        >
-                          View
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="border-t border-red-100/70 my-3" />
-
-                    {/* Card Body Details - 3 Columns (Beside Service Section) */}
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-4 gap-y-2 text-xs">
-                      {/* Column 1: Core Details */}
-                      <div className="space-y-2">
-                        <div>
-                          <p className="text-[10px] uppercase font-bold text-gray-400">Entry ID</p>
-                          <span className="font-bold text-amber-700 font-mono text-xs bg-amber-50 border border-amber-200/80 px-2 py-0.5 rounded-md inline-block tracking-wider mt-0.5">
-                            {formatCarId(entry.id, entry.entryId)}
-                          </span>
-                        </div>
-                        <div>
-                          <p className="text-[10px] uppercase font-semibold text-gray-400">Customer</p>
-                          <p className="font-bold text-gray-900 mt-0.5">{entry.customer || "—"}</p>
-                        </div>
-                        <div>
-                          <p className="text-[10px] uppercase font-semibold text-gray-400">Mobile</p>
-                          <p className="font-medium text-gray-700 mt-0.5 flex items-center gap-1">
-                            <Phone className="w-3.5 h-3.5 text-gray-400" />
-                            {entry.phone || "—"}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Column 2: Service & Check-In */}
-                      <div className="space-y-2">
-                        <div>
-                          <p className="text-[10px] uppercase font-semibold text-gray-400">Service</p>
-                          <p className="font-bold text-gray-900 mt-0.5">{entry.service || "—"}</p>
-                        </div>
-                        <div>
-                          <p className="text-[10px] uppercase font-semibold text-gray-400">Check-In Date</p>
-                          <p className="font-medium text-gray-700 mt-0.5 flex items-center gap-1">
-                            <Calendar className="w-3.5 h-3.5 text-gray-400" />
-                            {formatDate(entry.inTime)}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-[10px] uppercase font-semibold text-gray-400">Check-In Time</p>
-                          <p className="font-medium text-gray-700 mt-0.5 flex items-center gap-1">
-                            <Clock className="w-3.5 h-3.5 text-gray-400" />
-                            {formatTime(entry.inTime)}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Column 3: Beside Service Section (Technician & Check-Out) */}
-                      <div className="space-y-2 sm:border-l sm:border-red-100/80 sm:pl-3.5 pl-2">
-                        <div>
-                          <p className="text-[9.5px] uppercase font-semibold text-gray-400 flex items-center gap-1 whitespace-nowrap tracking-tight">
-                            <User className="w-3 h-3 text-gray-400 shrink-0" />
-                            <span className="whitespace-nowrap">{entry.technician && entry.technician.trim() !== "" && entry.technician !== "Unassigned" ? "Assigned Technician" : "Unassigned Technician"}</span>
-                          </p>
-                          <p className="font-bold text-emerald-700 mt-0.5">
-                            {entry.technician && entry.technician.trim() !== "" && entry.technician !== "Unassigned" ? entry.technician : "Unassigned"}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-[10px] uppercase font-semibold text-gray-400">Checkout Date</p>
-                          <p className="font-bold text-red-700 mt-0.5 flex items-center gap-1">
-                            <Calendar className="w-3.5 h-3.5 text-red-500 shrink-0" />
-                            {entry.outTime ? formatDate(entry.outTime) : "—"}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-[10px] uppercase font-semibold text-gray-400">Checkout Time</p>
-                          <p className="font-bold text-red-700 mt-0.5 flex items-center gap-1">
-                            <Clock className="w-3.5 h-3.5 text-red-500 shrink-0" />
-                            {entry.outTime ? formatTime(entry.outTime) : "—"}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {inWorkshopCars.length === 0 && deliveredCars.length === 0 && (
-            <div className="bg-white border border-dashed border-gray-300 rounded-2xl p-10 text-center text-gray-500 text-sm">
-              <div className="w-10 h-10 rounded-full bg-gray-100 text-gray-400 flex items-center justify-center mx-auto mb-3">
-                <Search className="w-5 h-5" />
-              </div>
-
-              <p className="font-bold text-gray-800 text-base mb-1">
-                {searchQuery
-                  ? `No vehicle record matching "${searchQuery}" was found.`
-                  : "No vehicle check-in records available"}
-              </p>
-            </div>
-          )}
+      {/* Vehicle Check-In Register */}
+      {filteredCars.length === 0 ? (
+        <div className="bg-white border border-slate-200 rounded-lg p-10 text-center text-slate-500 text-sm">
+          {searchQuery
+            ? `No vehicle record matching "${searchQuery}" was found.`
+            : "No vehicle check-in records available"}
         </div>
       ) : (
-        /* Table View */
-        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-200 bg-gray-50/75">
-                  {["Entry ID", "Vehicle No.", "Model", "Customer", "Mobile No.", "Service", "In Date", "In Time", "Out Date", "Out Time", "Duration", "Status", "Actions"].map((h) => (
-                    <th key={h} className="px-6 py-4 text-left text-xs font-bold text-gray-800 uppercase tracking-wider whitespace-nowrap">
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {filteredCars.map((entry) => (
-                  <tr key={entry.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 text-xs font-mono font-bold">
-                      <span className="px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200/80 font-bold inline-block tracking-wider">
-                        {formatCarId(entry.id, entry.entryId)}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-xs font-semibold text-gray-900 whitespace-nowrap">
-                      {entry.vehicleNo || entry.vehicle || entry.vehicleNumber || ""}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-700">{entry.model}</td>
-                    <td className="px-6 py-4 text-sm font-semibold text-gray-900 whitespace-nowrap">{entry.customer}</td>
-                    <td className="px-6 py-4 text-sm text-gray-600 whitespace-nowrap">{entry.phone || "—"}</td>
-                    <td className="px-6 py-4 text-sm text-gray-700">{entry.service}</td>
-                    <td className="px-6 py-4 text-sm text-gray-700 whitespace-nowrap">{formatDate(entry.inTime)}</td>
-                    <td className="px-6 py-4 text-sm font-semibold text-gray-700 whitespace-nowrap">{formatTime(entry.inTime)}</td>
-                    <td className="px-6 py-4 text-sm text-gray-700 whitespace-nowrap">{entry.outTime ? formatDate(entry.outTime) : "—"}</td>
-                    <td className="px-6 py-4 text-sm font-semibold text-gray-700 whitespace-nowrap">{entry.outTime ? formatTime(entry.outTime) : "—"}</td>
-                    <td className="px-6 py-4 text-sm font-semibold text-emerald-600">{entry.outTime ? calculateDuration(entry.inTime, entry.outTime) : "—"}</td>
-                    <td className="px-6 py-4 text-sm">
-                      <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(entry.status)}`}>
-                        <Circle className="w-3 h-3 fill-current" /> {entry.status === "Ongoing" ? "In Workshop" : entry.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-sm">
-                      <div className="flex items-center gap-2">
-                        {(entry.status === "Ongoing" || entry.status === "In Workshop") && (
-                          <button
-                            onClick={() => handleInspectionClick(entry)}
-                            className={`p-1.5 rounded transition-colors ${hasCompletedInspection(entry) ? "text-emerald-600 hover:bg-emerald-50" : "text-amber-600 hover:bg-amber-50"
-                              }`}
-                            title={hasCompletedInspection(entry) ? "Inspection Complete" : "Complete Inspection (required for QC)"}
-                          >
-                            {hasCompletedInspection(entry) ? <ShieldCheck className="w-4 h-4" /> : <ShieldAlert className="w-4 h-4" />}
-                          </button>
+        <div className="bg-white border border-slate-200 rounded-lg overflow-x-auto">
+          <table className="data-table w-full min-w-[1500px] text-left">
+            <thead>
+              <tr>
+                {["Entry ID", "Vehicle No.", "Model", "Customer", "Mobile No.", "Service", "In Date", "In Time", "Out Date", "Out Time", "Duration", "Status"].map((h) => (
+                  <th key={h}>{h}</th>
+                ))}
+                <th className="text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredCars.map((entry) => {
+                const inWorkshop = entry.status === "Ongoing" || entry.status === "In Workshop";
+                const vehicleNo = entry.vehicleNo || entry.vehicle || entry.vehicleNumber || "";
+
+                return (
+                  <tr key={entry.id}>
+                    <td className="whitespace-nowrap">{formatCarId(entry.id, entry.entryId)}</td>
+                    <td className="whitespace-nowrap uppercase">{vehicleNo}</td>
+                    <td className="max-w-[140px] truncate">{entry.model || "—"}</td>
+                    <td className="max-w-[180px] truncate">{entry.customer}</td>
+                    <td className="whitespace-nowrap">{entry.phone || "—"}</td>
+                    <td className="max-w-[160px] truncate">{entry.service || "—"}</td>
+                    <td className="whitespace-nowrap">{formatDate(entry.inTime)}</td>
+                    <td className="whitespace-nowrap">{formatTime(entry.inTime)}</td>
+                    <td className="whitespace-nowrap">{entry.outTime ? formatDate(entry.outTime) : "—"}</td>
+                    <td className="whitespace-nowrap">{entry.outTime ? formatTime(entry.outTime) : "—"}</td>
+                    <td className="whitespace-nowrap">{entry.outTime ? calculateDuration(entry.inTime, entry.outTime) : "—"}</td>
+                    <td className="whitespace-nowrap">{entry.status === "Ongoing" ? "In Workshop" : entry.status}</td>
+                    <td className="whitespace-nowrap">
+                      <div className="flex items-center justify-end gap-1">
+                        {inWorkshop && (
+                          <>
+                            <button onClick={() => handleDeliveryClick(entry)} className="px-1" title="Check Out Vehicle">
+                              Check Out
+                            </button>
+                            <button
+                              onClick={() => router.push(`/dashboard/jobs?search=${encodeURIComponent(vehicleNo)}`)}
+                              className="px-1"
+                            >
+                              Job Card
+                            </button>
+                            <button
+                              onClick={() => handleInspectionClick(entry)}
+                              className="p-1.5"
+                              title={hasCompletedInspection(entry) ? "Inspection Complete" : "Complete Inspection (required for QC)"}
+                            >
+                              {hasCompletedInspection(entry) ? <ShieldCheck className="w-4 h-4" /> : <ShieldAlert className="w-4 h-4" />}
+                            </button>
+                          </>
                         )}
-                        {(entry.status === "Ongoing" || entry.status === "In Workshop") ? (
-                          <button
-                            onClick={() => handleDeliveryClick(entry)}
-                            className="bg-emerald-100 text-emerald-700 hover:bg-emerald-200 px-3 py-1 rounded font-semibold text-xs transition-colors flex items-center gap-1 w-[58px] justify-center"
-                            title="Check Out Vehicle"
-                          >
-                            → Out
-                          </button>
-                        ) : (
-                          <div className="w-[58px]" />
-                        )}
-                        <button onClick={() => handleEditClick(entry)} className="p-1.5 hover:bg-blue-50 rounded transition-colors text-blue-500" title="Edit">
+                        <button onClick={() => handleViewDetailsClick(entry)} className="p-1.5" title="View Details">
+                          <Eye className="w-4 h-4" />
+                        </button>
+                        <button onClick={() => handleEditClick(entry)} className="p-1.5" title="Edit">
                           <Edit className="w-4 h-4" />
                         </button>
-                        <button onClick={() => handleViewDetailsClick(entry)} className="p-1.5 hover:bg-gray-100 rounded transition-colors" title="View Details">
-                          <Eye className="w-4 h-4 text-gray-600" />
+                        <button onClick={() => downloadSingleCarExcel(entry)} className="p-1.5" title="Download as CSV">
+                          <FileSpreadsheet className="w-4 h-4" />
                         </button>
-                        <button onClick={() => handleDeleteClick(entry)} className="p-1.5 hover:bg-red-50 rounded transition-colors text-red-400" title="Delete">
+                        <button onClick={() => downloadSingleCarPDF(entry)} className="p-1.5" title="Download as PDF">
+                          <FileText className="w-4 h-4" />
+                        </button>
+                        <button onClick={() => handleDeleteClick(entry)} className="p-1.5" title="Delete">
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                     </td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       )}
 

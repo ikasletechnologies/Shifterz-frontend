@@ -410,10 +410,11 @@ export default function ReportsPage() {
       xmlns:w="urn:schemas-microsoft-com:office:word"
       xmlns="http://www.w3.org/TR/REC-html40">
 <head>
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,700&display=swap" rel="stylesheet">
 <meta charset="utf-8">
 <title>${title}</title>
 <style>
-  body { font-family: 'Segoe UI', Arial, sans-serif; margin: 30pt; color: #1e293b; }
+  body { font-family: 'Poppins', sans-serif; margin: 30pt; color: #1e293b; }
   h1 { color: #1e3a8a; font-size: 18pt; margin-bottom: 6pt; border-bottom: 2.5pt solid #2563eb; padding-bottom: 6pt; }
   .meta { color: #475569; font-size: 9.5pt; margin-bottom: 18pt; line-height: 1.5; }
   table { width: 100%; border-collapse: collapse; margin-top: 12pt; }
@@ -689,7 +690,7 @@ export default function ReportsPage() {
         ) : activeCategory === "financial" && subReport === "invoices" ? (
           // Invoice Register Table Display
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+            <table className="data-table w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50/75 text-slate-600 text-xs font-semibold uppercase tracking-wider">
                   <th className="py-3.5 px-4">Invoice No</th>
@@ -742,7 +743,7 @@ export default function ReportsPage() {
                 No report records found for the selected filters.
               </div>
             ) : (
-              <table className="w-full text-left border-collapse">
+              <table className="data-table w-full text-left border-collapse">
                 <thead>
                   <tr className="border-b border-slate-200 bg-slate-50/75 text-slate-600 text-xs font-semibold uppercase tracking-wider">
                     {Object.keys(filteredTableRows[0] || {}).map((col, idx) => (

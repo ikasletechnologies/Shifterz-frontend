@@ -378,7 +378,7 @@ export default function PaymentsPage() {
       {/* Payments Data Table */}
       <div className="bg-white rounded-2xl border border-gray-200/90 overflow-hidden shadow-xs">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
+          <table className="data-table w-full text-left text-xs">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50/70 text-[11px] font-bold text-gray-500 uppercase tracking-wider">
                 <th className="py-3.5 px-4">Receipt No.</th>

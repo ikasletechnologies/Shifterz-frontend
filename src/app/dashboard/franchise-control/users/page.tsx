@@ -488,7 +488,7 @@ export default function UserManagementPage() {
         ) : filtered.length === 0 ? (
           <div className="p-12 text-center text-gray-400 text-sm">No users found.</div>
         ) : (
-          <table className="w-full">
+          <table className="data-table w-full">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50">
                 <th className="text-center px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">User</th>
@@ -502,22 +502,11 @@ export default function UserManagementPage() {
             </thead>
             <tbody className="divide-y divide-gray-50">
               {filtered.map((u) => {
-                const r = ROLES.find((x) => x.value === u.role);
                 return (
                   <tr key={u.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-5 py-3.5">
-                      <div className="flex items-center gap-3">
-                        <div
-                          className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm shrink-0"
-                          style={{ background: r?.color ?? "#6b7280" }}
-                        >
-                          {u.name.charAt(0).toUpperCase()}
-                        </div>
-                        <div>
-                          <p className="text-sm font-semibold text-gray-900">{u.name}</p>
-                          <p className="text-xs text-gray-400">{u.username}</p>
-                        </div>
-                      </div>
+                      <p className="text-sm font-semibold text-gray-900">{u.name}</p>
+                      <p className="text-xs text-gray-400">{u.username}</p>
                     </td>
                     <td className="px-5 py-3.5 text-center"><RoleBadge role={u.role} /></td>
                     <td className="px-5 py-3.5 text-center hidden md:table-cell">

@@ -538,7 +538,7 @@ export default function InventoryPage() {
         {/* Data Table Card */}
         <div className="bg-white rounded-2xl border border-slate-200/90 overflow-hidden shadow-2xs">
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
+            <table className="data-table w-full text-left text-xs">
               <thead>
                 <tr className="border-b border-slate-100 bg-slate-50/70 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                   <th className="py-3.5 px-4">ITEM NAME</th>
@@ -562,17 +562,10 @@ export default function InventoryPage() {
                     <tr key={item.id || idx} className="hover:bg-slate-50/60 transition-colors">
                       {/* Item Name */}
                       <td className="py-3.5 px-4 font-bold text-slate-900 whitespace-nowrap">
-                        <div className="flex items-center gap-2.5">
-                          <div className="p-2 rounded-xl bg-amber-50 text-amber-600 shrink-0">
-                            <Package className="w-4 h-4" />
-                          </div>
-                          <div>
-                            <span>{item.name}</span>
-                            {item.location && (
-                              <p className="text-[10px] text-slate-400 font-normal">Loc: {item.location}</p>
-                            )}
-                          </div>
-                        </div>
+                        <span>{item.name}</span>
+                        {item.location && (
+                          <p className="text-[10px] text-slate-400 font-normal">Loc: {item.location}</p>
+                        )}
                       </td>
 
                       {/* Category */}

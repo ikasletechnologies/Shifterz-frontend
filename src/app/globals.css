@@ -1,22 +1,5 @@
 @import "tailwindcss";
 
-/* Import local Switzer fonts */
-@font-face {
-  font-family: 'Switzer';
-  src: url('/fonts/Switzer-Variable.ttf') format('truetype');
-  font-weight: 100 900;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Switzer';
-  src: url('/fonts/Switzer-VariableItalic.ttf') format('truetype');
-  font-weight: 100 900;
-  font-style: italic;
-  font-display: swap;
-}
-
 :root {
   --background: #ffffff;
   --foreground: #0f172a;
@@ -25,10 +8,11 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: 'Switzer', var(--font-plus-jakarta), var(--font-inter), system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-  /* Southern-Gothic style display font (Rye) for headings & brand text */
-  --font-heading: var(--font-rye), 'Switzer', var(--font-plus-jakarta), var(--font-inter), serif;
+  /* Poppins is the only font used across the app (sans, mono, serif and headings) */
+  --font-sans: var(--font-poppins), 'Poppins', sans-serif;
+  --font-mono: var(--font-poppins), 'Poppins', sans-serif;
+  --font-serif: var(--font-poppins), 'Poppins', sans-serif;
+  --font-heading: var(--font-poppins), 'Poppins', sans-serif;
 }
 
 /* Global Smooth Text & Antialiased High-Legibility Typography Rules */
@@ -41,16 +25,15 @@
 html, body {
   background: var(--background);
   color: var(--foreground);
-  font-family: 'Switzer', var(--font-plus-jakarta), var(--font-inter), system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--font-poppins), 'Poppins', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
-  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11', 'calt', 'liga';
   font-optical-sizing: auto;
   -webkit-tap-highlight-color: transparent;
 }
 
-/* Southern-Gothic display font for headings & brand text project-wide */
+/* Headings & brand text use Poppins too */
 h1, h2, h3, h4, h5, h6,
 .font-heading,
 [data-brand] {
@@ -79,3 +62,112 @@ html {
   display: none;               /* Chrome / Safari / WebKit */
 }
 
+/*
+ * Classic data table — the shared look for every list table in the app
+ * (plain dark uppercase headers, normal-weight text, thin row dividers,
+ * no coloured pills). Add `data-table` to a <table> to opt in.
+ *
+ * These rules are deliberately unlayered so they win over the Tailwind
+ * utility classes already sitting on each table's cells, badges and buttons.
+ * Add `keep-color` to an element inside a cell to keep its own styling.
+ */
+.data-table {
+  border-collapse: collapse;
+}
+
+.data-table thead,
+.data-table thead tr {
+  background: transparent;
+  border: 0;
+}
+
+.data-table th {
+  padding: 14px 16px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.25rem;
+  letter-spacing: 0.025em;
+  text-transform: uppercase;
+  color: #1e293b;
+  background: transparent;
+  border-bottom: 1px solid #e2e8f0;
+  white-space: nowrap;
+}
+
+.data-table td {
+  padding: 16px;
+  font-size: 14px;
+  font-weight: 400;
+  color: #334155;
+  vertical-align: middle;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.data-table tbody tr {
+  background: transparent;
+  border: 0;
+  transition: background-color 150ms;
+}
+
+.data-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.data-table tbody tr:hover {
+  background: rgb(248 250 252 / 0.6);
+}
+
+/* Plain-weight text throughout the body (buttons keep their own weight). */
+.data-table td :not(button, button *, .keep-color, .keep-color *) {
+  font-weight: 400;
+}
+
+/* Accent-coloured text → the same neutral text colour. */
+.data-table td :is(
+    [class*="text-blue-"], [class*="text-sky-"], [class*="text-cyan-"], [class*="text-teal-"],
+    [class*="text-green-"], [class*="text-emerald-"], [class*="text-lime-"],
+    [class*="text-yellow-"], [class*="text-amber-"], [class*="text-orange-"],
+    [class*="text-red-"], [class*="text-rose-"], [class*="text-pink-"],
+    [class*="text-purple-"], [class*="text-violet-"], [class*="text-indigo-"], [class*="text-fuchsia-"]
+  ):not(button, button *, .keep-color, .keep-color *) {
+  color: #334155;
+}
+
+/* Status / priority / type pills → plain text. */
+.data-table td :is(span, div)[class*="rounded"][class*="bg-"][class*="px-"]:not(.keep-color, .keep-color *) {
+  padding-left: 0;
+  padding-right: 0;
+  font-size: inherit;
+  color: #334155;
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+/* Icons inside cells are quiet grey; icons inside buttons follow the button. */
+.data-table td svg:not(button svg, .keep-color svg) {
+  color: #94a3b8;
+}
+
+/* Action buttons: plain text links, no fill, border or shadow. */
+.data-table td button:not(.keep-color),
+.data-table td a[class*="bg-"]:not(.keep-color) {
+  color: #475569;
+  font-size: 13px;
+  font-weight: 500;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
+.data-table td :is(button, a)[class*="px-"]:not(.keep-color) {
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+.data-table td :is(button, a[class*="bg-"]):not(.keep-color):hover {
+  color: #0f172a;
+  background: transparent;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}

@@ -203,7 +203,7 @@ function ServicesPageContent() {
         <div className="text-center py-12 text-gray-500 bg-white rounded-xl border border-gray-100">No services found</div>
       ) : (
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-          <table className="w-full text-sm text-left">
+          <table className="data-table w-full text-sm text-left">
             <thead className="bg-gray-50/50 border-b border-gray-100 text-xs text-gray-700 uppercase font-bold tracking-wider">
               <tr>
                 <th className="px-5 py-4">Service Code</th>

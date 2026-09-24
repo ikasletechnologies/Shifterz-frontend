@@ -13,8 +13,6 @@ import {
   Users,
   Search,
   Building2,
-  Phone,
-  HardHat,
   AlertCircle,
   CheckSquare,
   X,
@@ -485,36 +483,29 @@ export default function QCInspectionPage() {
             <p className="text-xs text-gray-400">There are no personnel assigned to the selected branch.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredQcInspectors.map((inspector) => (
-              <div
-                key={inspector.id}
-                className="bg-white p-5 rounded-2xl border border-gray-100 shadow-2xs hover:shadow-sm transition-shadow flex items-start gap-3.5"
-              >
-                <div className="p-3 rounded-xl bg-purple-100 text-purple-700 font-bold shrink-0">
-                  <HardHat className="w-5 h-5" />
-                </div>
-                <div className="space-y-1 min-w-0 flex-1">
-                  <div className="flex items-center justify-between gap-2">
-                    <h3 className="font-bold text-gray-900 text-sm truncate">{inspector.name}</h3>
-                    <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] font-bold rounded-md shrink-0">
-                      {inspector.status}
-                    </span>
-                  </div>
-                  <p className="text-xs text-purple-600 font-medium">{inspector.role}</p>
-                  <div className="flex items-center gap-3 text-xs text-gray-500 pt-1 flex-wrap">
-                    <span className="flex items-center gap-1">
-                      <Phone className="w-3 h-3 text-gray-400" />
-                      {inspector.phone}
-                    </span>
-                    <span className="flex items-center gap-1 truncate">
-                      <Building2 className="w-3 h-3 text-gray-400" />
-                      {inspector.branch}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            ))}
+          <div className="bg-white border border-slate-200 rounded-lg overflow-x-auto">
+            <table className="data-table w-full min-w-[700px] text-left">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Role</th>
+                  <th>Phone</th>
+                  <th>Branch</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredQcInspectors.map((inspector) => (
+                  <tr key={inspector.id}>
+                    <td className="whitespace-nowrap">{inspector.name}</td>
+                    <td className="whitespace-nowrap">{inspector.role}</td>
+                    <td className="whitespace-nowrap">{inspector.phone}</td>
+                    <td className="max-w-[200px] truncate">{inspector.branch}</td>
+                    <td className="whitespace-nowrap">{inspector.status}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </div>

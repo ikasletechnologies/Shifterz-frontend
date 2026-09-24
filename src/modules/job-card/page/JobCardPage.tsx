@@ -18,7 +18,6 @@ import { PassDialog } from "@/modules/qc/components/PassDialog";
 import { FailDialog } from "@/modules/qc/components/FailDialog";
 import { ensureSentToQCAndChecklistSubmitted } from "../lib/qcQuickDecide";
 
-import { JobCardNavTabs } from "../components/JobCardNavTabs";
 
 function normalizeVehicle(v?: string | null): string {
   return (v || "").replace(/[^A-Z0-9]/gi, "").toUpperCase();
@@ -41,7 +40,6 @@ export function JobCardPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
-  const [activeTab, setActiveTab] = useState<"all" | "assign" | "unassign">("all");
   const [selectedStatus, setSelectedStatus] = useState<string>("All");
 
   const carByVehicle = useMemo(() => {
@@ -190,24 +188,6 @@ export function JobCardPage() {
 
   const handleStatusSelect = (status: string) => {
     setSelectedStatus(status);
-    if (status.toLowerCase() === "assigned") {
-      setActiveTab("assign");
-    } else if (status.toLowerCase() === "unassigned") {
-      setActiveTab("unassign");
-    } else if (status.toLowerCase() === "all") {
-      setActiveTab("all");
-    }
-  };
-
-  const handleTabChange = (tab: "all" | "assign" | "unassign") => {
-    setActiveTab(tab);
-    if (tab === "assign") {
-      setSelectedStatus("Assigned");
-    } else if (tab === "unassign") {
-      setSelectedStatus("Unassigned");
-    } else {
-      setSelectedStatus("All");
-    }
   };
 
   const handleView = (job: JobCard) => {
@@ -364,26 +344,6 @@ export function JobCardPage() {
       }
     }
 
-    // Nav Tab In-Place Filtering (All, Assigned, Unassigned)
-    if (activeTab === "assign") {
-      const isAssigned = Boolean(
-        j.technician &&
-          j.technician.trim() !== "" &&
-          j.technician.toLowerCase() !== "unassigned" &&
-          j.technician.toLowerCase() !== "none"
-      );
-      if (!isAssigned) return false;
-    }
-
-    if (activeTab === "unassign") {
-      const isUnassigned =
-        !j.technician ||
-        j.technician.trim() === "" ||
-        j.technician.toLowerCase() === "unassigned" ||
-        j.technician.toLowerCase() === "none";
-      if (!isUnassigned) return false;
-    }
-
     // Date Filtering (From Date & To Date - exact match with Car In module)
     if (fromDate) {
       const start = new Date(fromDate + "T00:00:00");
@@ -424,10 +384,6 @@ export function JobCardPage() {
         selectedStatus={selectedStatus}
         onStatusSelect={handleStatusSelect}
       />
-
-      <div className="border-b border-gray-200 pb-3">
-        <JobCardNavTabs activeTab={activeTab} onTabChange={handleTabChange} jobCards={jobCards} />
-      </div>
 
       <JobCardTable
         jobCards={filteredJobs}

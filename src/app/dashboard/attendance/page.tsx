@@ -469,7 +469,7 @@ export default function AttendancePage() {
       {/* Attendance Log Table */}
       <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+          <table className="data-table w-full text-left border-collapse">
             <thead>
               <tr className="bg-gray-50/50 border-b border-gray-100">
                 <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Date</th>
@@ -494,15 +494,8 @@ export default function AttendancePage() {
                       })}
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 font-bold text-xs">
-                          {record.employee?.name ? record.employee.name.charAt(0).toUpperCase() : <User className="w-4 h-4" />}
-                        </div>
-                        <div>
-                          <div className="text-sm font-medium text-gray-900">{record.employee?.name || "Unknown Employee"}</div>
-                          <div className="text-xs text-gray-500 capitalize">{record.employee?.role ? record.employee.role.replace(/_/g, " ").toLowerCase() : "No Role"}</div>
-                        </div>
-                      </div>
+                      <div className="text-sm font-medium text-gray-900">{record.employee?.name || "Unknown Employee"}</div>
+                      <div className="text-xs text-gray-500 capitalize">{record.employee?.role ? record.employee.role.replace(/_/g, " ").toLowerCase() : "No Role"}</div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2 text-sm text-gray-600">

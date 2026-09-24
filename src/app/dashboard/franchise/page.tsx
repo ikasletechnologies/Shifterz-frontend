@@ -122,7 +122,7 @@ export default function FranchisePage() {
       ) : (
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left min-w-[1100px]">
+            <table className="data-table w-full text-sm text-left min-w-[1100px]">
             <thead className="bg-gray-50/50 border-b border-gray-100 text-[10px] text-gray-800 uppercase font-bold tracking-wider">
               <tr>
                 <th className="px-6 py-4">ID</th>
@@ -142,7 +142,7 @@ export default function FranchisePage() {
             <tbody className="divide-y divide-gray-50">
               {franchises.map(f => (
                 <tr key={f.id} className="hover:bg-gray-50/50">
-                  <td className="px-6 py-4 font-mono text-xs font-bold" style={{ color: "#F0B100" }}>{f.id}</td>
+                  <td className="px-6 py-4 font-mono text-xs font-bold">{f.id}</td>
                   <td className="px-6 py-4 font-bold text-gray-900">{f.name}</td>
                   <td className="px-6 py-4 text-gray-600">{f.city}</td>
                   <td className="px-6 py-4 text-gray-600">{f.owner}</td>

@@ -3,7 +3,7 @@
 import { Suspense, useState, useEffect, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
-  HardHat, Search, Filter, ChevronLeft, ChevronRight, Pencil, Trash2, Plus,
+  Search, Filter, ChevronLeft, ChevronRight, Pencil, Trash2, Plus,
   Users, UserCheck2, UserX2, Briefcase, Loader2, PackageX, CheckCircle2, RefreshCw, TrendingUp, X,
   Download, ChevronDown, FileSpreadsheet, FileText, BarChart3, Wrench, Hourglass, ClipboardList, ArrowLeft,
 } from "lucide-react";
@@ -775,184 +775,67 @@ function TechniciansPageContent() {
             ) : displayedRows.length === 0 ? (
               <div className="py-12 text-center text-gray-400">No technicians found.</div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {displayedRows.map((row) => (
-                  <div
-                    key={row.id}
-                    className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow p-6 relative group"
-                  >
-                    {/* Header Title with Avatar Icon */}
-                    <div className="flex items-center gap-3.5 mb-6">
-                      <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white shrink-0 shadow-sm">
-                        <UserCheck2 className="w-5 h-5" />
-                      </div>
-                      <h3 className="font-bold text-lg text-slate-800 tracking-tight">Technician Information</h3>
-                      <div className="ml-auto flex items-center gap-1.5 shrink-0">
-                        <button
-                          onClick={() => openEdit(row)}
-                          title="Edit Technician"
-                          className="p-1.5 hover:bg-blue-50 text-blue-600 rounded-lg transition-colors cursor-pointer"
-                        >
-                          <Pencil className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(row.id)}
-                          title="Remove Technician"
-                          className="p-1.5 hover:bg-red-50 text-red-500 rounded-lg transition-colors cursor-pointer"
-                        >
-                          <Trash2 className="w-4 h-4 text-red-500" />
-                        </button>
-                      </div>
-                    </div>
+              <div className="bg-white border border-slate-200 rounded-lg overflow-x-auto">
+                <table className="data-table w-full min-w-[1000px] text-left">
+                  <thead>
+                    <tr>
+                      <th>Employee ID</th>
+                      <th>Name</th>
+                      <th>Phone Number</th>
+                      <th>Email</th>
+                      <th>Franchise Name</th>
+                      <th>Status</th>
+                      <th>Job Cards</th>
+                      <th className="text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {displayedRows.map((row) => {
+                      const jobCount = (row.jobs || []).filter((j) => {
+                        if (activeKPI === "Assigned Jobs") return j.status !== "Cancelled" && j.status !== "Canceled";
+                        if (activeKPI === "Waiting for Parts") return j.status === "Waiting for Parts" || j.status === "Waiting Material" || j.status === "Waiting Parts";
+                        if (activeKPI === "In Progress") return j.status === "In Progress" || j.status === "Assigned";
+                        if (activeKPI === "QC Pending Jobs") return j.status === "QC Pending" || j.status === "Waiting QC" || j.status === "Waiting for Quality Check" || j.status === "Review for QC";
+                        if (activeKPI === "Rework Jobs") return j.status === "Rework" || j.status === "QC Failed" || j.status === "Rework Required";
+                        if (activeKPI === "Completed Today") return j.status === "Completed" || j.status === "Ready For Billing";
+                        return true;
+                      }).length;
 
-                    {/* Details List */}
-                    <div className="space-y-4 text-sm text-slate-700">
-                      {/* Name */}
-                      <div className="flex items-center py-2.5 border-b border-gray-100">
-                        <div className="w-9 h-9 rounded-full bg-blue-50 flex items-center justify-center text-blue-500 shrink-0 mr-3">
-                          <Users className="w-4 h-4" />
-                        </div>
-                        <span className="font-medium text-slate-600 min-w-[110px]">Name</span>
-                        <span className="text-slate-400 mr-4 font-normal">:</span>
-                        <span className="font-semibold text-slate-900 truncate">{row.name}</span>
-                      </div>
-
-                      {/* Employee ID */}
-                      <div className="flex items-center py-2.5 border-b border-gray-100">
-                        <div className="w-9 h-9 rounded-full bg-blue-50 flex items-center justify-center text-blue-500 shrink-0 mr-3">
-                          <HardHat className="w-4 h-4" />
-                        </div>
-                        <span className="font-medium text-slate-600 min-w-[110px]">Employee ID</span>
-                        <span className="text-slate-400 mr-4 font-normal">:</span>
-                        <span className="font-semibold text-slate-900 uppercase">{row.id}</span>
-                      </div>
-
-                      {/* Phone Number */}
-                      <div className="flex items-center py-2.5 border-b border-gray-100">
-                        <div className="w-9 h-9 rounded-full bg-blue-50 flex items-center justify-center text-blue-500 shrink-0 mr-3">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                          </svg>
-                        </div>
-                        <span className="font-medium text-slate-600 min-w-[110px]">Phone Number</span>
-                        <span className="text-slate-400 mr-4 font-normal">:</span>
-                        <span className="font-semibold text-slate-900">{row.phone || "N/A"}</span>
-                      </div>
-
-                      {/* Email */}
-                      <div className="flex items-center py-2.5 border-b border-gray-100">
-                        <div className="w-9 h-9 rounded-full bg-blue-50 flex items-center justify-center text-blue-500 shrink-0 mr-3">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 002-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                          </svg>
-                        </div>
-                        <span className="font-medium text-slate-600 min-w-[110px]">Email</span>
-                        <span className="text-slate-400 mr-4 font-normal">:</span>
-                        <span className="font-medium text-slate-700 truncate">{row.email || "N/A"}</span>
-                      </div>
-
-                      {/* Franchise Name */}
-                      <div className="flex items-center py-2.5 border-b border-gray-100">
-                        <div className="w-9 h-9 rounded-full bg-blue-50 flex items-center justify-center text-blue-500 shrink-0 mr-3">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5m0 0h5m-5 0V9m0 4h.01M9 9h.01M9 13h.01M15 9h.01M15 13h.01" />
-                          </svg>
-                        </div>
-                        <span className="font-medium text-slate-600 min-w-[110px]">Franchise Name</span>
-                        <span className="text-slate-400 mr-4 font-normal">:</span>
-                        <span className="font-semibold text-slate-900 truncate">
-                          {franchises.find((f) => f.id === row.franchiseId)?.name || (row.branch && row.branch !== "HQ" && row.branch !== "N/A" ? row.branch : row.franchiseId ? "Assigned Branch" : "Headquarters")}
-                        </span>
-                      </div>
-
-                      {/* Status */}
-                      <div className="flex items-center py-2.5 border-b border-gray-100">
-                        <div className="w-9 h-9 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-500 shrink-0 mr-3">
-                          <div className="w-3 h-3 rounded-full bg-emerald-500" />
-                        </div>
-                        <span className="font-medium text-slate-600 min-w-[110px]">Status</span>
-                        <span className="text-slate-400 mr-4 font-normal">:</span>
-                        <div>
-                          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${row.status === "Active" ? "bg-emerald-50 text-emerald-600 border border-emerald-200" : "bg-red-50 text-red-600 border border-red-200"}`}>
-                            {row.status}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Associated Vehicles / Job Cards details for Assigned Jobs & active KPIs */}
-                      {row.jobs && row.jobs.length > 0 && (
-                        <div className="py-2.5 border-b border-gray-100 space-y-2">
-                          <div className="flex items-center justify-between text-xs font-bold text-slate-600">
-                            <span>
-                              {activeKPI === "Assigned Jobs"
-                                ? "Assigned Vehicles & Job Cards"
-                                : activeKPI === "Waiting for Parts"
-                                ? "Vehicles Waiting for Parts"
-                                : activeKPI === "Total Technicians" || activeKPI === "Active Technicians" || activeKPI === "Inactive Technicians"
-                                ? "Assigned Job Cards"
-                                : `${activeKPI} Job Cards`}
-                            </span>
-                            <span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full text-[10px] font-bold">
-                              {
-                                row.jobs.filter((j) => {
-                                  if (activeKPI === "Assigned Jobs") return j.status !== "Cancelled" && j.status !== "Canceled";
-                                  if (activeKPI === "Waiting for Parts") return j.status === "Waiting for Parts" || j.status === "Waiting Material" || j.status === "Waiting Parts";
-                                  if (activeKPI === "In Progress") return j.status === "In Progress" || j.status === "Assigned";
-                                  if (activeKPI === "QC Pending Jobs") return j.status === "QC Pending" || j.status === "Waiting QC" || j.status === "Waiting for Quality Check" || j.status === "Review for QC";
-                                  if (activeKPI === "Rework Jobs") return j.status === "Rework" || j.status === "QC Failed" || j.status === "Rework Required";
-                                  if (activeKPI === "Completed Today") return j.status === "Completed" || j.status === "Ready For Billing";
-                                  return true;
-                                }).length
-                              }
-                            </span>
-                          </div>
-                          <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
-                            {row.jobs
-                              .filter((j) => {
-                                if (activeKPI === "Assigned Jobs") return j.status !== "Cancelled" && j.status !== "Canceled";
-                                if (activeKPI === "Waiting for Parts") return j.status === "Waiting for Parts" || j.status === "Waiting Material" || j.status === "Waiting Parts";
-                                if (activeKPI === "In Progress") return j.status === "In Progress" || j.status === "Assigned";
-                                if (activeKPI === "QC Pending Jobs") return j.status === "QC Pending" || j.status === "Waiting QC" || j.status === "Waiting for Quality Check" || j.status === "Review for QC";
-                                if (activeKPI === "Rework Jobs") return j.status === "Rework" || j.status === "QC Failed" || j.status === "Rework Required";
-                                if (activeKPI === "Completed Today") return j.status === "Completed" || j.status === "Ready For Billing";
-                                return true;
-                              })
-                              .map((job) => (
-                                <div key={job.id} className="flex items-center justify-between bg-slate-50 rounded-xl p-2 text-xs border border-slate-100 hover:bg-slate-100/80 transition-colors">
-                                  <div className="truncate mr-2">
-                                    <p className="font-bold text-slate-900 truncate">{job.vehicle || job.id}</p>
-                                    <p className="text-[11px] text-slate-500 truncate">{job.id} • {job.service}{job.customer ? ` • ${job.customer}` : ""}</p>
-                                  </div>
-                                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 ${
-                                    job.status.includes("Waiting") ? "bg-amber-100 text-amber-700" :
-                                    job.status === "Completed" || job.status === "Ready For Billing" ? "bg-emerald-100 text-emerald-700" :
-                                    "bg-blue-100 text-blue-700"
-                                  }`}>
-                                    {job.status}
-                                  </span>
-                                </div>
-                              ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Details Button directly below Active Status */}
-                      <div className="pt-3">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setSelectedTechnician(row);
-                            setActiveTab("details");
-                          }}
-                          className="w-full py-2.5 px-4 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all cursor-pointer bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200"
-                        >
-                          <FileText className="w-4 h-4" />
-                          <span>Details</span>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+                      return (
+                        <tr key={row.id}>
+                          <td className="whitespace-nowrap uppercase">{row.id}</td>
+                          <td className="max-w-[180px] truncate">{row.name}</td>
+                          <td className="whitespace-nowrap">{row.phone || "—"}</td>
+                          <td className="max-w-[200px] truncate">{row.email || "—"}</td>
+                          <td className="max-w-[180px] truncate">
+                            {franchises.find((f) => f.id === row.franchiseId)?.name || (row.branch && row.branch !== "HQ" && row.branch !== "N/A" ? row.branch : row.franchiseId ? "Assigned Branch" : "Headquarters")}
+                          </td>
+                          <td className="whitespace-nowrap">{row.status}</td>
+                          <td className="whitespace-nowrap">{jobCount}</td>
+                          <td className="whitespace-nowrap">
+                            <div className="flex items-center justify-end gap-2">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSelectedTechnician(row);
+                                  setActiveTab("details");
+                                }}
+                              >
+                                Details
+                              </button>
+                              <button onClick={() => openEdit(row)} title="Edit Technician" className="p-1.5">
+                                <Pencil className="w-4 h-4" />
+                              </button>
+                              <button onClick={() => handleDelete(row.id)} title="Remove Technician" className="p-1.5">
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
             )}
           </div>
@@ -1086,22 +969,29 @@ function TechniciansPageContent() {
               {selectedTech.jobs && selectedTech.jobs.length > 0 && (
                 <div className="pt-2">
                   <h3 className="text-sm font-bold text-slate-900 mb-3">Assigned Job Cards for {selectedTech.name}</h3>
-                  <div className="space-y-2">
-                    {selectedTech.jobs.map((job) => (
-                      <div key={job.id} className="flex items-center justify-between bg-slate-50 rounded-xl p-3 text-xs border border-slate-200/80">
-                        <div>
-                          <p className="font-bold text-slate-900">{job.vehicle || job.id}</p>
-                          <p className="text-slate-500">{job.id} • {job.service} {job.customer ? `• ${job.customer}` : ""}</p>
-                        </div>
-                        <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
-                          job.status.includes("Waiting") ? "bg-amber-100 text-amber-700" :
-                          job.status === "Completed" || job.status === "Ready For Billing" ? "bg-emerald-100 text-emerald-700" :
-                          "bg-blue-100 text-blue-700"
-                        }`}>
-                          {job.status}
-                        </span>
-                      </div>
-                    ))}
+                  <div className="border border-slate-200 rounded-lg overflow-x-auto">
+                    <table className="data-table w-full min-w-[600px] text-left">
+                      <thead>
+                        <tr>
+                          <th>Job ID</th>
+                          <th>Vehicle Number</th>
+                          <th>Service</th>
+                          <th>Customer</th>
+                          <th>Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {selectedTech.jobs.map((job) => (
+                          <tr key={job.id}>
+                            <td className="whitespace-nowrap">{job.id}</td>
+                            <td className="whitespace-nowrap uppercase">{job.vehicle || "—"}</td>
+                            <td className="max-w-[200px] truncate">{job.service || "—"}</td>
+                            <td className="max-w-[180px] truncate">{job.customer || "—"}</td>
+                            <td className="whitespace-nowrap">{job.status}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
               )}
