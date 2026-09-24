@@ -18,6 +18,57 @@ const formatDate = (dateStr: string) => {
   return isNaN(d.getTime()) ? dateStr : d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
 };
 
+function resolveUploadUrl(url: string): string {
+  const uploadOrigin = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api").replace(/\/api\/?$/, "");
+  return url.startsWith("http") ? url : `${uploadOrigin}${url}`;
+}
+
+async function convertImageToPngBase64(url: string): Promise<string | null> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      try {
+        const canvas = document.createElement("canvas");
+        canvas.width = img.naturalWidth || 300;
+        canvas.height = img.naturalHeight || 100;
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          resolve(canvas.toDataURL("image/png"));
+        } else {
+          resolve(null);
+        }
+      } catch {
+        resolve(null);
+      }
+    };
+    img.onerror = () => resolve(null);
+    img.src = url;
+  });
+}
+
+async function loadLogoBase64(customLogoUrl?: string): Promise<string | null> {
+  const urlsToTry: string[] = [];
+
+  if (customLogoUrl && customLogoUrl.trim() !== "") {
+    urlsToTry.push(resolveUploadUrl(customLogoUrl));
+  }
+  urlsToTry.push("/logo.svg");
+  urlsToTry.push("/IkasleTechnologiesLogo.png");
+
+  for (const url of urlsToTry) {
+    try {
+      const base64 = await convertImageToPngBase64(url);
+      if (base64) return base64;
+    } catch {
+      // Ignore and try next
+    }
+  }
+
+  return null;
+}
+
 export async function downloadInvoicePdf(doc: BillingDocument) {
   const loadingToast = toast.loading("Generating PDF…");
   try {
@@ -37,29 +88,45 @@ export async function downloadInvoicePdf(doc: BillingDocument) {
     const total = (doc.amount || 0) + (doc.gst || 0) - (doc.discount || 0);
 
     // Header band
+    const headerHeight = 30;
     pdf.setFillColor(250, 204, 21);
-    pdf.rect(0, 0, pageWidth, 28, "F");
+    pdf.rect(0, 0, pageWidth, headerHeight, "F");
+
+    let companyTextX = margin;
+
+    // Load and render logo
+    const logoData = await loadLogoBase64((companyInfo as any)?.companyLogo || (companyInfo as any)?.logo);
+    if (logoData) {
+      try {
+        pdf.addImage(logoData, "PNG", margin, 4, 26, 22);
+        companyTextX = margin + 29;
+      } catch (err) {
+        console.warn("Failed to draw logo in PDF:", err);
+      }
+    }
+
     pdf.setTextColor(17, 24, 39);
-    pdf.setFontSize(18);
-    pdf.setFont("helvetica", "bold");
-    pdf.text(companyInfo?.name || "SHIFTERZ", margin, 12);
-    pdf.setFontSize(8);
-    pdf.setFont("helvetica", "normal");
-    if (companyInfo?.address) pdf.text(companyInfo.address, margin, 18);
-    if (companyInfo?.phone) pdf.text(companyInfo.phone, margin, 23);
     pdf.setFontSize(16);
     pdf.setFont("helvetica", "bold");
-    pdf.text(doc.type.toUpperCase(), pageWidth - margin, 12, { align: "right" });
+    pdf.text(companyInfo?.name || "SHIFTERZ", companyTextX, 13);
+    pdf.setFontSize(8);
+    pdf.setFont("helvetica", "normal");
+    if (companyInfo?.address) pdf.text(companyInfo.address, companyTextX, 19);
+    if (companyInfo?.phone) pdf.text(companyInfo.phone, companyTextX, 24);
+
+    pdf.setFontSize(16);
+    pdf.setFont("helvetica", "bold");
+    pdf.text(doc.type.toUpperCase(), pageWidth - margin, 13, { align: "right" });
     pdf.setFontSize(9);
     pdf.setFont("helvetica", "normal");
-    pdf.text(doc.id, pageWidth - margin, 18, { align: "right" });
+    pdf.text(doc.id, pageWidth - margin, 19, { align: "right" });
     if (doc.status) {
       const statusColorMap: Record<string, [number, number, number]> = { Paid: [22, 163, 74], Overdue: [220, 38, 38], Approved: [37, 99, 235] };
       const [r, g, b] = statusColorMap[doc.status] || [217, 119, 6];
       pdf.setTextColor(r, g, b);
-      pdf.setFontSize(7);
+      pdf.setFontSize(8);
       pdf.setFont("helvetica", "bold");
-      pdf.text(doc.status.toUpperCase(), pageWidth - margin, 24, { align: "right" });
+      pdf.text(doc.status.toUpperCase(), pageWidth - margin, 25, { align: "right" });
       pdf.setTextColor(17, 24, 39);
     }
 
