@@ -10,6 +10,7 @@ import {
 import { getFranchises, updateFranchise } from "@/lib/api";
 import { toast } from "react-hot-toast";
 import AddFranchiseDialog from "@/components/franchise/AddFranchiseDialog";
+import { StatusText } from "@/components/common/StatusText";
 
 export default function AllFranchisesPage() {
   const router = useRouter();
@@ -181,7 +182,7 @@ export default function AllFranchisesPage() {
                   <td className="whitespace-nowrap">{f.phone || "—"}</td>
                   <td className="max-w-[200px] truncate" title={f.email}>{f.email || "—"}</td>
                   <td className="whitespace-nowrap">{f.totalEmployees !== undefined ? f.totalEmployees : "—"}</td>
-                  <td className="whitespace-nowrap">{f.status}</td>
+                  <td className="whitespace-nowrap"><StatusText status={f.status} /></td>
                   <td className="whitespace-nowrap">
                     <div className="flex items-center justify-end gap-1">
                       <button onClick={() => router.push(`/dashboard/franchise-control/${f.id}`)} className="px-1">

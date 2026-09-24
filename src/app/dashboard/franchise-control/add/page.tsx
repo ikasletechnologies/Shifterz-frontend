@@ -16,6 +16,7 @@ import {
 import AddFranchiseDialog from "@/components/franchise/AddFranchiseDialog";
 import { getFranchises, createFranchise, updateFranchise, deleteFranchise } from "@/lib/api";
 import { toast } from "react-hot-toast";
+import { SummaryCard } from "@/components/common/SummaryCard";
 
 export default function FranchiseManagementPage() {
   const [franchises, setFranchises] = useState<any[]>([]);
@@ -118,30 +119,9 @@ export default function FranchiseManagementPage() {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        <button
-          onClick={() => setStatusFilter("ALL")}
-          className={`p-4 rounded-xl border text-left transition-all ${statusFilter === "ALL" ? "border-yellow-400 shadow-md bg-white" : "border-gray-100 bg-white hover:border-gray-200"
-            }`}
-        >
-          <p className="text-2xl font-bold text-gray-900">{totalCount}</p>
-          <p className="text-[11px] font-semibold text-gray-500 mt-0.5 leading-tight">Total Franchises</p>
-        </button>
-        <button
-          onClick={() => setStatusFilter("Active")}
-          className={`p-4 rounded-xl border text-left transition-all ${statusFilter === "Active" ? "border-yellow-400 shadow-md bg-white" : "border-gray-100 bg-white hover:border-gray-200"
-            }`}
-        >
-          <p className="text-2xl font-bold text-green-500">{activeCount}</p>
-          <p className="text-[11px] font-semibold text-gray-500 mt-0.5 leading-tight">Active Franchises</p>
-        </button>
-        <button
-          onClick={() => setStatusFilter("Inactive")}
-          className={`p-4 rounded-xl border text-left transition-all ${statusFilter === "Inactive" ? "border-yellow-400 shadow-md bg-white" : "border-gray-100 bg-white hover:border-gray-200"
-            }`}
-        >
-          <p className="text-2xl font-bold text-amber-500">{inactiveCount}</p>
-          <p className="text-[11px] font-semibold text-gray-500 mt-0.5 leading-tight">Inactive/Pending Franchises</p>
-        </button>
+        <SummaryCard label="Total Franchises" value={totalCount} active={statusFilter === "ALL"} onClick={() => setStatusFilter("ALL")} />
+        <SummaryCard tone="good" label="Active Franchises" value={activeCount} active={statusFilter === "Active"} onClick={() => setStatusFilter("Active")} />
+        <SummaryCard tone="bad" label="Inactive/Pending Franchises" value={inactiveCount} active={statusFilter === "Inactive"} onClick={() => setStatusFilter("Inactive")} />
       </div>
 
       {/* Search + filter bar */}

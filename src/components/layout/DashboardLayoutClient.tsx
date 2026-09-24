@@ -23,26 +23,28 @@ export default function DashboardLayoutClient({ children }: DashboardLayoutClien
 
   return (
     <SidebarContext.Provider value={{ isSidebarOpen, toggleSidebar }}>
-      <div className="flex h-screen bg-gray-50">
-        {/* Overlay for mobile and tablet */}
-        {isSidebarOpen && (
-          <div
-            className="fixed inset-0 bg-black/50 z-30 lg:hidden"
-            onClick={() => setIsSidebarOpen(false)}
-          />
-        )}
-
-        {/* Sidebar - Hidden on mobile/tablet by default */}
+      <div className="flex h-screen bg-gray-50 overflow-hidden">
+        {/* Overlay for mobile and tablet with ultra-smooth fade transition */}
         <div
-          className={`fixed lg:relative z-40 h-screen transition-transform duration-300 ${
-            isSidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+          className={`fixed inset-0 bg-black/60 backdrop-blur-xs z-30 lg:hidden transition-opacity duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+            isSidebarOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+          }`}
+          onClick={() => setIsSidebarOpen(false)}
+        />
+
+        {/* Sidebar wrapper with smooth spring-like slide easing */}
+        <div
+          className={`fixed lg:relative z-40 h-screen shrink-0 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+            isSidebarOpen
+              ? "translate-x-0 w-64 opacity-100"
+              : "-translate-x-full lg:w-0 lg:-translate-x-full overflow-hidden opacity-0"
           }`}
         >
           {childrenArray[0]}
         </div>
 
         {/* Main content */}
-        <div className="flex-1 flex flex-col overflow-hidden w-full">
+        <div className="flex-1 flex flex-col overflow-hidden w-full transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]">
           {childrenArray[1]}
         </div>
       </div>

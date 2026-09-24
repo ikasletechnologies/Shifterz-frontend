@@ -4,20 +4,18 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   Edit2,
-  Search,
   X,
-  Clock,
   Download,
   ChevronDown,
   FileSpreadsheet,
   FileText,
   CheckCircle,
   XCircle,
-  Truck,
-  Layers,
   ShieldAlert,
 } from "lucide-react";
 import NewOutPassDialog from "@/components/outpass/NewOutPassDialog";
+import { SummaryCard } from "@/components/common/SummaryCard";
+import { ListHeader } from "@/components/common/ListHeader";
 import PrintPassDialog from "@/components/outpass/PrintPassDialog";
 import { formatOutPassId } from "@/utils/outPassFormatter";
 import { getOutPasses, createOutPass, updateOutPass, approveOutpass, rejectOutpass } from "@/lib/api";
@@ -26,6 +24,7 @@ import { toast } from "react-hot-toast";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
+import { StatusText } from "@/components/common/StatusText";
 
 interface OutPass {
   id: string;
@@ -468,220 +467,122 @@ export default function OutPassPage() {
     <div className="p-4 sm:p-6 md:p-8">
       {/* 4 Status KPI Cards Row (Single Horizontal Row) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        {/* 1. All */}
-        <div
-          onClick={() => setStatusFilter("All")}
-          className={`bg-white rounded-2xl border p-4 shadow-2xs flex items-center justify-between cursor-pointer select-none transition-all ${statusFilter === "All"
-            ? "border-slate-800 ring-2 ring-slate-800/20 bg-slate-50/60 shadow-sm"
-            : "border-gray-200 hover:border-slate-300"
-            }`}
-        >
-          <div>
-            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">All</p>
-            <p className="text-2xl font-bold text-gray-900">{allCount}</p>
-          </div>
-          <div className="p-3 bg-slate-100 text-slate-700 rounded-2xl shrink-0">
-            <Layers className="w-5 h-5" />
-          </div>
-        </div>
-
-        {/* 2. Pending */}
-        <div
-          onClick={() => setStatusFilter("Pending")}
-          className={`bg-white rounded-2xl border p-4 shadow-2xs flex items-center justify-between cursor-pointer select-none transition-all ${statusFilter === "Pending"
-            ? "border-amber-500 ring-2 ring-amber-500/20 bg-amber-50/60 shadow-sm"
-            : "border-gray-200 hover:border-amber-200"
-            }`}
-        >
-          <div>
-            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Pending</p>
-            <p className="text-2xl font-bold text-gray-900">{pendingCount}</p>
-          </div>
-          <div className="p-3 bg-amber-100 text-amber-600 rounded-2xl shrink-0">
-            <Clock className="w-5 h-5" />
-          </div>
-        </div>
-
-        {/* 4. Rejected */}
-        <div
-          onClick={() => setStatusFilter("Rejected")}
-          className={`bg-white rounded-2xl border p-4 shadow-2xs flex items-center justify-between cursor-pointer select-none transition-all ${statusFilter === "Rejected"
-            ? "border-red-500 ring-2 ring-red-500/20 bg-red-50/60 shadow-sm"
-            : "border-gray-200 hover:border-red-200"
-            }`}
-        >
-          <div>
-            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Rejected</p>
-            <p className="text-2xl font-bold text-gray-900">{rejectedCount}</p>
-          </div>
-          <div className="p-3 bg-red-100 text-red-600 rounded-2xl shrink-0">
-            <XCircle className="w-5 h-5" />
-          </div>
-        </div>
-
-        {/* 5. Delivered */}
-        <div
-          onClick={() => setStatusFilter("Delivered")}
-          className={`bg-white rounded-2xl border p-4 shadow-2xs flex items-center justify-between cursor-pointer select-none transition-all ${statusFilter === "Delivered"
-            ? "border-blue-500 ring-2 ring-blue-500/20 bg-blue-50/60 shadow-sm"
-            : "border-gray-200 hover:border-blue-200"
-            }`}
-        >
-          <div>
-            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Delivered</p>
-            <p className="text-2xl font-bold text-gray-900">{deliveredCount}</p>
-          </div>
-          <div className="p-3 bg-blue-100 text-blue-600 rounded-2xl shrink-0">
-            <Truck className="w-5 h-5" />
-          </div>
-        </div>
+        <SummaryCard label="All" value={allCount} active={statusFilter === "All"} onClick={() => setStatusFilter("All")} />
+        <SummaryCard label="Pending" value={pendingCount} active={statusFilter === "Pending"} onClick={() => setStatusFilter("Pending")} />
+        <SummaryCard tone="bad" label="Rejected" value={rejectedCount} active={statusFilter === "Rejected"} onClick={() => setStatusFilter("Rejected")} />
+        <SummaryCard tone="good" label="Delivered" value={deliveredCount} active={statusFilter === "Delivered"} onClick={() => setStatusFilter("Delivered")} />
       </div>
 
-      {/* Toolbar: Search -> From Date -> To Date -> Download */}
-      <div className="mb-6 flex flex-nowrap items-center gap-2.5 border-b border-gray-200 pb-4 w-full">
-        {/* 1. Search Bar */}
-        <div className="relative flex-1 min-w-[140px]">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Search out passes..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-8 py-2 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400 text-sm"
-          />
-          {searchQuery && (
-            <button onClick={() => setSearchQuery("")} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors">
-              <X className="w-4 h-4" />
-            </button>
-          )}
-        </div>
-
-        {/* 2. From Date Filter */}
-        <div className="flex items-center gap-1.5 bg-white border border-gray-300 rounded-lg px-2.5 py-2 shrink-0">
-          <span className="text-xs font-semibold text-gray-500 whitespace-nowrap">From:</span>
-          <input
-            type="date"
-            value={fromDate}
-            max={getTodayISO()}
-            onChange={handleFromDateChange}
-            className="bg-transparent border-none text-xs text-gray-800 focus:outline-none cursor-pointer p-0"
-          />
-          <button
-            type="button"
-            disabled={!fromDate}
-            onClick={() => fromDate && setFromDate("")}
-            className={`p-0.5 rounded transition-colors flex items-center justify-center shrink-0 ${fromDate
-              ? "text-gray-600 hover:text-gray-900 hover:bg-gray-100 cursor-pointer"
-              : "text-gray-300 cursor-not-allowed opacity-50"
-              }`}
-            title={fromDate ? "Clear From Date" : ""}
-          >
-            <X className="w-3.5 h-3.5" />
-          </button>
-        </div>
-
-        {/* 3. To Date Filter */}
-        <div className="flex items-center gap-1.5 bg-white border border-gray-300 rounded-lg px-2.5 py-2 shrink-0">
-          <span className="text-xs font-semibold text-gray-500 whitespace-nowrap">To:</span>
-          <input
-            type="date"
-            value={toDate}
-            max={getTodayISO()}
-            onChange={handleToDateChange}
-            className="bg-transparent border-none text-xs text-gray-800 focus:outline-none cursor-pointer p-0"
-          />
-          <button
-            type="button"
-            disabled={!toDate}
-            onClick={() => toDate && setToDate("")}
-            className={`p-0.5 rounded transition-colors flex items-center justify-center shrink-0 ${toDate
-              ? "text-gray-600 hover:text-gray-900 hover:bg-gray-100 cursor-pointer"
-              : "text-gray-300 cursor-not-allowed opacity-50"
-              }`}
-            title={toDate ? "Clear To Date" : ""}
-          >
-            <X className="w-3.5 h-3.5" />
-          </button>
-        </div>
-
-        {/* 4. Download Dropdown Button */}
-        <div className="relative shrink-0">
-          <button
-            type="button"
-            onClick={() => setIsDownloadOpen((prev) => !prev)}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-3.5 py-2 rounded-lg flex items-center justify-center gap-1.5 transition-colors text-sm whitespace-nowrap cursor-pointer"
-          >
-            <Download className="w-4 h-4" />
-            <span>Download</span>
-            <ChevronDown className="w-3.5 h-3.5 opacity-80" />
-          </button>
-
-          {isDownloadOpen && (
-            <>
-              <div className="fixed inset-0 z-40" onClick={() => setIsDownloadOpen(false)} />
-              <div className="absolute right-0 mt-1.5 w-44 bg-white rounded-xl shadow-xl border border-gray-200 py-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
-                <button
-                  type="button"
-                  onClick={downloadOutPassExcel}
-                  className="w-full px-4 py-2.5 text-left text-xs font-bold text-gray-700 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2.5 transition-colors cursor-pointer"
-                >
-                  <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
-                  Download as CSV
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    downloadOutPassPDF();
-                    setIsDownloadOpen(false);
-                  }}
-                  className="w-full px-4 py-2.5 text-left text-xs font-bold text-gray-700 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2.5 transition-colors cursor-pointer"
-                >
-                  <FileText className="w-4 h-4 text-red-500" />
-                  Download as PDF
-                </button>
-              </div>
-            </>
-          )}
-        </div>
-
-      </div>
-
-      {/* Filter Buttons Below Search Bar */}
-      <div className="flex items-center gap-2 mb-6 flex-wrap">
-        {[
-          { id: "All", label: "All" },
-          { id: "Pending", label: "Pending" },
-          { id: "Rejected", label: "Rejected" },
-          { id: "Delivered", label: "Delivered" },
-        ].map((tab) => {
-          const isActive = statusFilter === tab.id;
-          return (
+      <section className="space-y-3">
+        <ListHeader
+          title="Out Passes"
+          filterLabel={statusFilter === "All" ? undefined : statusFilter}
+          count={filteredOutPasses.length}
+          hint="Approve a pending out pass to let the vehicle leave; print it for the gate."
+          searchValue={searchQuery}
+          onSearchChange={setSearchQuery}
+          searchPlaceholder="Search pass, vehicle, customer..."
+        >
+          {/* 2. From Date Filter */}
+          <div className="flex items-center gap-1.5 bg-white border border-gray-300 rounded-lg px-2.5 py-2 shrink-0">
+            <span className="text-xs font-semibold text-gray-500 whitespace-nowrap">From:</span>
+            <input
+              type="date"
+              value={fromDate}
+              max={getTodayISO()}
+              onChange={handleFromDateChange}
+              className="bg-transparent border-none text-xs text-gray-800 focus:outline-none cursor-pointer p-0"
+            />
             <button
-              key={tab.id}
               type="button"
-              onClick={() => setStatusFilter(tab.id as any)}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer shadow-2xs ${isActive
-                ? tab.id === "Pending"
-                  ? "bg-amber-600 text-white shadow-xs ring-2 ring-amber-600/20"
-                  : tab.id === "Rejected"
-                    ? "bg-red-600 text-white shadow-xs ring-2 ring-red-600/20"
-                    : tab.id === "Delivered"
-                      ? "bg-blue-600 text-white shadow-xs ring-2 ring-blue-600/20"
-                      : tab.id === "Approved"
-                        ? "bg-emerald-600 text-white shadow-xs ring-2 ring-emerald-600/20"
-                        : "bg-slate-900 text-white shadow-xs ring-2 ring-slate-900/20"
-                : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-200 hover:border-gray-300"
+              disabled={!fromDate}
+              onClick={() => fromDate && setFromDate("")}
+              className={`p-0.5 rounded transition-colors flex items-center justify-center shrink-0 ${fromDate
+                ? "text-gray-600 hover:text-gray-900 hover:bg-gray-100 cursor-pointer"
+                : "text-gray-300 cursor-not-allowed opacity-50"
                 }`}
+              title={fromDate ? "Clear From Date" : ""}
             >
-              <span>{tab.label}</span>
+              <X className="w-3.5 h-3.5" />
             </button>
-          );
-        })}
-      </div>
+          </div>
+  
+          {/* 3. To Date Filter */}
+          <div className="flex items-center gap-1.5 bg-white border border-gray-300 rounded-lg px-2.5 py-2 shrink-0">
+            <span className="text-xs font-semibold text-gray-500 whitespace-nowrap">To:</span>
+            <input
+              type="date"
+              value={toDate}
+              max={getTodayISO()}
+              onChange={handleToDateChange}
+              className="bg-transparent border-none text-xs text-gray-800 focus:outline-none cursor-pointer p-0"
+            />
+            <button
+              type="button"
+              disabled={!toDate}
+              onClick={() => toDate && setToDate("")}
+              className={`p-0.5 rounded transition-colors flex items-center justify-center shrink-0 ${toDate
+                ? "text-gray-600 hover:text-gray-900 hover:bg-gray-100 cursor-pointer"
+                : "text-gray-300 cursor-not-allowed opacity-50"
+                }`}
+              title={toDate ? "Clear To Date" : ""}
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+  
+          {/* 4. Download Dropdown Button */}
+          <div className="relative shrink-0">
+            <button
+              type="button"
+              onClick={() => setIsDownloadOpen((prev) => !prev)}
+              className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-3.5 py-2 rounded-lg flex items-center justify-center gap-1.5 transition-colors text-sm whitespace-nowrap cursor-pointer"
+            >
+              <Download className="w-4 h-4" />
+              <span>Download</span>
+              <ChevronDown className="w-3.5 h-3.5 opacity-80" />
+            </button>
+  
+            {isDownloadOpen && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setIsDownloadOpen(false)} />
+                <div className="absolute right-0 mt-1.5 w-44 bg-white rounded-xl shadow-xl border border-gray-200 py-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
+                  <button
+                    type="button"
+                    onClick={downloadOutPassExcel}
+                    className="w-full px-4 py-2.5 text-left text-xs font-bold text-gray-700 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2.5 transition-colors cursor-pointer"
+                  >
+                    <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+                    Download as CSV
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      downloadOutPassPDF();
+                      setIsDownloadOpen(false);
+                    }}
+                    className="w-full px-4 py-2.5 text-left text-xs font-bold text-gray-700 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2.5 transition-colors cursor-pointer"
+                  >
+                    <FileText className="w-4 h-4 text-red-500" />
+                    Download as PDF
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </ListHeader>
 
       {/* Out Pass Register */}
       {filteredOutPasses.length === 0 ? (
-        <div className="bg-white border border-slate-200 rounded-lg p-8 text-center text-slate-500 text-sm">No out passes registered.</div>
+        <div className="bg-white border border-slate-200 rounded-lg p-8 text-center text-slate-500 text-sm">
+          {searchQuery
+            ? `No out passes match "${searchQuery}".`
+            : statusFilter === "Pending"
+            ? "Nothing waiting for approval."
+            : statusFilter === "All"
+            ? "No out passes yet. One is created when a paid vehicle is ready to leave."
+            : `No ${statusFilter.toLowerCase()} out passes.`}
+        </div>
       ) : (
         <div className="bg-white border border-slate-200 rounded-lg overflow-x-auto">
           <table className="data-table w-full min-w-[1150px] text-left">
@@ -713,8 +614,8 @@ export default function OutPassPage() {
                     <td className="whitespace-nowrap">{pass.phone || "—"}</td>
                     <td className="whitespace-nowrap">{pass.jobCardId || "—"}</td>
                     <td className="whitespace-nowrap">{pass.invoiceId || "—"}</td>
-                    <td className="whitespace-nowrap">{pass.paymentStatus || "—"}</td>
-                    <td className="whitespace-nowrap">{pass.status || "Pending"}</td>
+                    <td className="whitespace-nowrap"><StatusText status={pass.paymentStatus} /></td>
+                    <td className="whitespace-nowrap"><StatusText status={pass.status || "Pending"} /></td>
                     <td className="whitespace-nowrap">
                       {pass.outTime ? new Date(pass.outTime).toLocaleString("en-IN", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "—"}
                     </td>
@@ -740,11 +641,17 @@ export default function OutPassPage() {
                         )}
                         {isPending && (
                           <>
-                            <button onClick={() => triggerApproveConfirm(pass)} className="p-1.5" title="Approve">
-                              <CheckCircle className="w-4 h-4" />
+                            <button
+                              onClick={() => triggerApproveConfirm(pass)}
+                              className="keep-color px-1 text-sm font-medium text-green-700 hover:underline underline-offset-2 cursor-pointer"
+                            >
+                              Approve
                             </button>
-                            <button onClick={() => triggerRejectConfirm(pass)} className="p-1.5" title="Reject">
-                              <XCircle className="w-4 h-4" />
+                            <button
+                              onClick={() => triggerRejectConfirm(pass)}
+                              className="keep-color px-1 text-sm font-medium text-red-600 hover:underline underline-offset-2 cursor-pointer"
+                            >
+                              Reject
                             </button>
                           </>
                         )}
@@ -757,6 +664,7 @@ export default function OutPassPage() {
           </table>
         </div>
       )}
+      </section>
 
       {/* Dialogs */}
       <NewOutPassDialog

@@ -134,12 +134,12 @@ export default function BillingStaffPage() {
   };
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-6">
+    <div className="p-4 sm:p-6 md:p-8 space-y-6">
       {summary && (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <StatCard title="Total Billing Staff" value={summary.total} icon={Users} color="blue" />
-          <StatCard title="Active" value={summary.active} icon={UserCheck2} color="green" />
-          <StatCard title="Inactive" value={summary.inactive} icon={UserX2} color="gray" />
+          <StatCard title="Total Billing Staff" value={summary.total} icon={Users} color="blue" onClick={() => { setStatusFilter("All"); setCurrentPage(1); }} active={statusFilter === "All"} />
+          <StatCard title="Active" value={summary.active} icon={UserCheck2} color="green" onClick={() => { setStatusFilter("Active"); setCurrentPage(1); }} active={statusFilter === "Active"} />
+          <StatCard title="Inactive" value={summary.inactive} icon={UserX2} color="gray" onClick={() => { setStatusFilter("Inactive"); setCurrentPage(1); }} active={statusFilter === "Inactive"} />
         </div>
       )}
 
@@ -187,7 +187,13 @@ export default function BillingStaffPage() {
 
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
         <div className="p-5 border-b border-gray-100">
-          <h2 className="font-bold text-gray-900">Billing Staff List</h2>
+          <h2 className="text-sm font-bold text-slate-900">
+            Billing Staff{" "}
+            <span className="font-normal text-slate-500">
+              · {statusFilter === "All" ? "All" : statusFilter} ({total})
+            </span>
+          </h2>
+          <p className="text-xs text-slate-500 mt-0.5">Billing executives raise invoices, record payments and close out paid jobs.</p>
         </div>
         <div className="overflow-x-auto">
           <table className="data-table w-full text-sm text-left min-w-[800px]">
@@ -205,7 +211,7 @@ export default function BillingStaffPage() {
               {isLoading ? (
                 <tr><td colSpan={6} className="px-6 py-10 text-center text-gray-400">Loading...</td></tr>
               ) : rows.length === 0 ? (
-                <tr><td colSpan={6} className="px-6 py-10 text-center text-gray-400">No billing staff found.</td></tr>
+                <tr><td colSpan={6} className="px-6 py-10 text-center text-gray-400">{searchTerm || statusFilter !== "All" || branchFilter !== "All" ? "No billing staff match these filters." : "No billing staff yet. Use “Add Billing Executive” to add the first one."}</td></tr>
               ) : (
                 rows.map((row) => (
                   <tr key={row.id} className="hover:bg-gray-50/50 transition-colors">

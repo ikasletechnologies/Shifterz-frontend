@@ -4,8 +4,9 @@ import { toast } from "react-hot-toast";
 import { useState, useEffect } from "react";
 import {
   Plus, Eye, Printer, MessageCircle, RotateCcw, Search, X,
-  Wallet, Banknote, CreditCard, Smartphone, ChevronLeft, ChevronRight
+  Banknote, CreditCard, Smartphone,
 } from "lucide-react";
+import { SummaryCard } from "@/components/common/SummaryCard";
 import PaymentReceiptDialog from "@/modules/payment/components/PaymentReceiptDialog";
 import RecordPaymentDialog from "@/modules/payment/components/RecordPaymentDialog";
 import PaymentHistoryDialog from "@/modules/payment/components/PaymentHistoryDialog";
@@ -114,7 +115,16 @@ export default function PaymentsPage() {
     fetchPayments();
   }, []);
 
-  const filteredPayments = payments.filter((p) => {
+  // Mode buckets used by both the summary cards and the mode filter.
+  const modeOf = (p: any): "Cash" | "UPI" | "Card" | "Other" => {
+    const m = (p.mode || "").toLowerCase();
+    if (m.includes("cash")) return "Cash";
+    if (m.includes("upi") || m.includes("online")) return "UPI";
+    if (m.includes("card") || m.includes("pos")) return "Card";
+    return "Other";
+  };
+
+  const basePayments = payments.filter((p) => {
     const matchesSearch =
       p.id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       p.invoiceId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -122,7 +132,6 @@ export default function PaymentsPage() {
       p.vehicle?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       p.phone?.includes(searchTerm);
 
-    const matchesMode = modeFilter === "All" || p.mode?.toLowerCase() === modeFilter.toLowerCase();
     const matchesReceivedBy = receivedByFilter === "All" || p.receivedBy?.toLowerCase() === receivedByFilter.toLowerCase();
     const matchesDate = (() => {
       let valid = true;
@@ -142,20 +151,21 @@ export default function PaymentsPage() {
       return valid;
     })();
 
-    return matchesSearch && matchesMode && matchesReceivedBy && matchesDate;
+    return matchesSearch && matchesReceivedBy && matchesDate;
   });
 
+  const filteredPayments = modeFilter === "All" ? basePayments : basePayments.filter((p) => modeOf(p) === modeFilter);
+
   // Calculate Summary KPI Stats
-  const totalCollected = filteredPayments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
-
-  const cashPayments = filteredPayments.filter(p => p.mode?.toLowerCase().includes("cash"));
-  const cashTotal = cashPayments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
-
-  const upiPayments = filteredPayments.filter(p => p.mode?.toLowerCase().includes("upi") || p.mode?.toLowerCase().includes("online"));
-  const upiTotal = upiPayments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
-
-  const cardPayments = filteredPayments.filter(p => p.mode?.toLowerCase().includes("card") || p.mode?.toLowerCase().includes("pos"));
-  const cardTotal = cardPayments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+  const sumOf = (list: any[]) => list.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+  const totalCollected = sumOf(basePayments);
+  const cashPayments = basePayments.filter((p) => modeOf(p) === "Cash");
+  const cashTotal = sumOf(cashPayments);
+  const upiPayments = basePayments.filter((p) => modeOf(p) === "UPI");
+  const upiTotal = sumOf(upiPayments);
+  const cardPayments = basePayments.filter((p) => modeOf(p) === "Card");
+  const cardTotal = sumOf(cardPayments);
+  const modeLabel: Record<string, string> = { All: "All modes", Cash: "Cash", UPI: "UPI / Online", Card: "Card / POS" };
 
   // Staff members list
   const staffList = Array.from(new Set(payments.map(p => p.receivedBy).filter(Boolean)));
@@ -217,58 +227,28 @@ export default function PaymentsPage() {
   if (isLoading) return <div className="p-8 text-center text-gray-500">Loading payments...</div>;
 
   return (
-    <div className="p-8 space-y-6">
+    <div className="p-4 sm:p-6 md:p-8 space-y-6">
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
           ⚠️ {error}
         </div>
       )}
 
-      {/* Top 4 Summary KPI Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Total Received */}
-        <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-xs flex items-center justify-between">
-          <div>
-            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Total Received</p>
-            <p className="text-2xl font-bold text-gray-900">₹{totalCollected.toLocaleString("en-IN")}</p>
-          </div>
-          <div className="p-3 bg-emerald-100 text-emerald-600 rounded-2xl shrink-0">
-            <Wallet className="w-6 h-6" />
-          </div>
-        </div>
+      {/* Summary — each card also filters the list by payment mode */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <SummaryCard label="Total Received" value={`₹${totalCollected.toLocaleString("en-IN")}`} note={`${basePayments.length} payment${basePayments.length === 1 ? "" : "s"}`} active={modeFilter === "All"} onClick={() => { setModeFilter("All"); setCurrentPage(1); }} />
+        <SummaryCard label="Cash" value={`₹${cashTotal.toLocaleString("en-IN")}`} note={`${cashPayments.length} payment${cashPayments.length === 1 ? "" : "s"}`} active={modeFilter === "Cash"} onClick={() => { setModeFilter("Cash"); setCurrentPage(1); }} />
+        <SummaryCard label="UPI / Online" value={`₹${upiTotal.toLocaleString("en-IN")}`} note={`${upiPayments.length} payment${upiPayments.length === 1 ? "" : "s"}`} active={modeFilter === "UPI"} onClick={() => { setModeFilter("UPI"); setCurrentPage(1); }} />
+        <SummaryCard label="Card / POS" value={`₹${cardTotal.toLocaleString("en-IN")}`} note={`${cardPayments.length} payment${cardPayments.length === 1 ? "" : "s"}`} active={modeFilter === "Card"} onClick={() => { setModeFilter("Card"); setCurrentPage(1); }} />
+      </div>
 
-        {/* Cash */}
-        <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-xs flex items-center justify-between">
-          <div>
-            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Cash</p>
-            <p className="text-2xl font-bold text-gray-900">₹{cashTotal.toLocaleString("en-IN")}</p>
-          </div>
-          <div className="p-3 bg-emerald-100 text-emerald-600 rounded-2xl shrink-0">
-            <Banknote className="w-6 h-6" />
-          </div>
-        </div>
-
-        {/* UPI / Online */}
-        <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-xs flex items-center justify-between">
-          <div>
-            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">UPI / Online</p>
-            <p className="text-2xl font-bold text-gray-900">₹{upiTotal.toLocaleString("en-IN")}</p>
-          </div>
-          <div className="p-3 bg-purple-100 text-purple-600 rounded-2xl shrink-0">
-            <Smartphone className="w-6 h-6" />
-          </div>
-        </div>
-
-        {/* Card / POS */}
-        <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-xs flex items-center justify-between">
-          <div>
-            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Card / POS</p>
-            <p className="text-2xl font-bold text-gray-900">₹{cardTotal.toLocaleString("en-IN")}</p>
-          </div>
-          <div className="p-3 bg-blue-100 text-blue-600 rounded-2xl shrink-0">
-            <CreditCard className="w-6 h-6" />
-          </div>
-        </div>
+      <div>
+        <h2 className="text-sm font-bold text-slate-900">
+          Payments <span className="font-normal text-slate-500">· {modeLabel[modeFilter]} ({filteredPayments.length})</span>
+        </h2>
+        <p className="text-xs text-slate-500 mt-0.5">
+          Every payment received against an invoice. Use the receipt to print or share it; refunds are recorded from here too.
+        </p>
       </div>
 
       {/* Filter Bar (Single Horizontal Card Container) */}
@@ -292,18 +272,6 @@ export default function PaymentsPage() {
             </button>
           )}
         </div>
-
-        {/* Mode Filter Dropdown */}
-        <select
-          value={modeFilter}
-          onChange={(e) => { setModeFilter(e.target.value); setCurrentPage(1); }}
-          className="px-3 py-2 text-xs border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white font-semibold text-gray-700 shrink-0"
-        >
-          <option value="All">All Modes</option>
-          <option value="Cash">Cash</option>
-          <option value="UPI">UPI / Online</option>
-          <option value="Card">Card / POS</option>
-        </select>
 
         {/* Staff Filter Dropdown */}
         <select
@@ -396,7 +364,9 @@ export default function PaymentsPage() {
               {filteredPayments.length === 0 ? (
                 <tr>
                   <td colSpan={9} className="py-12 text-center text-gray-400">
-                    No payment records found.
+                    {searchTerm || modeFilter !== "All" || receivedByFilter !== "All"
+                      ? "No payments match these filters."
+                      : "No payments recorded yet. Payments appear here when you record one against an invoice."}
                   </td>
                 </tr>
               ) : (

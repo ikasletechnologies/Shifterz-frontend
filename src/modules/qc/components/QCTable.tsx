@@ -1,11 +1,12 @@
 "use client";
 
 import { QCJob, QCInspection } from "../types/qc.types";
-import { QC_STATUS_COLORS } from "../constants/qc.constants";
 import { getCurrentUser, isHQRole } from "@/lib/franchise-scope";
+import { StatusText } from "@/components/common/StatusText";
 
 interface QCTableProps {
   jobs: QCJob[];
+  emptyMessage?: string;
   hasOpenInspection: (jobId: string) => boolean;
   getCurrentInspection: (jobId: string) => QCInspection | undefined;
   onInspect: (job: QCJob) => void;
@@ -30,28 +31,6 @@ const STARTABLE_STATUSES = [
 ];
 
 const TERMINAL_STATUSES = ["Ready For Billing", "QC Passed"];
-
-function StatusBadge({ status }: { status: string }) {
-  const color = QC_STATUS_COLORS[status] || "bg-gray-100 text-gray-600";
-  return (
-    <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold whitespace-nowrap ${color}`}>
-      {status}
-    </span>
-  );
-}
-
-function PriorityBadge({ priority }: { priority: string }) {
-  const map: Record<string, string> = {
-    High: "bg-red-100 text-red-700",
-    Normal: "bg-blue-100 text-blue-700",
-    Low: "bg-green-100 text-green-700",
-  };
-  return (
-    <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${map[priority] || "bg-gray-100 text-gray-600"}`}>
-      {priority}
-    </span>
-  );
-}
 
 function formatDate(dateStr?: string): string {
   if (!dateStr) return "—";
@@ -80,6 +59,7 @@ function formatDateTime(dateStr?: string): string {
 
 export function QCTable({
   jobs,
+  emptyMessage = "No jobs in QC queue",
   hasOpenInspection,
   getCurrentInspection,
   onInspect,
@@ -100,7 +80,7 @@ export function QCTable({
 
   if (jobs.length === 0) {
     return (
-      <div className="py-16 text-center text-slate-500 bg-white rounded-lg border border-slate-200">No jobs in QC queue</div>
+      <div className="py-16 text-center text-slate-500 bg-white rounded-lg border border-slate-200">{emptyMessage}</div>
     );
   }
 
@@ -146,10 +126,10 @@ export function QCTable({
                   {job.technician || <span className="text-slate-400">Unassigned</span>}
                 </td>
                 <td className="whitespace-nowrap">
-                  <StatusBadge status={job.status} />
+                  <StatusText status={job.status} />
                 </td>
                 <td className="whitespace-nowrap">
-                  <PriorityBadge priority={job.priority} />
+                  {job.priority || "—"}
                 </td>
                 <td className="whitespace-nowrap">
                   {open && current ? (

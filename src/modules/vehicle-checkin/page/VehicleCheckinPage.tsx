@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { SummaryCard } from "@/components/common/SummaryCard";
 import {
   Plus,
   Eye,
@@ -12,8 +13,6 @@ import {
   Trash2,
   Search,
   X,
-  Car,
-  Wrench,
   Phone,
   ChevronDown,
   FileSpreadsheet,
@@ -32,6 +31,8 @@ import VehicleInspectionDialog from "../components/VehicleInspectionDialog";
 import { useVehicleCheckin } from "../hooks/useVehicleCheckin";
 import { CarEntry, hasCompletedInspection } from "../types/vehicle-checkin.types";
 import { calculateDuration, formatTime, formatDate, formatDateTime, formatCarId } from "@/lib/timeUtils";
+import { useOpenOnQuery } from "@/lib/useOpenOnQuery";
+import { StatusText } from "@/components/common/StatusText";
 
 export function VehicleCheckinPage() {
   const router = useRouter();
@@ -101,6 +102,8 @@ export function VehicleCheckinPage() {
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
   const [isInspectionDialogOpen, setIsInspectionDialogOpen] = useState(false);
   const [selectedCar, setSelectedCar] = useState<CarEntry | null>(null);
+  // Dashboard "Car In" quick action links here with ?new=1.
+  useOpenOnQuery(() => { setSelectedCar(null); setIsDialogOpen(true); });
   const [successCar, setSuccessCar] = useState<CarEntry | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"All" | "In Workshop" | "Delivered">("All");
@@ -466,41 +469,10 @@ export function VehicleCheckinPage() {
 
   return (
     <div className="p-4 sm:p-6 md:p-8">
-      {/* Interactive Quick Filter Summary Cards */}
+      {/* Quick Filter Summary */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-        <button
-          type="button"
-          onClick={() => setStatusFilter("All")}
-          className={`p-4 rounded-xl border text-left flex items-center justify-between transition-all cursor-pointer ${statusFilter === "All"
-            ? "bg-amber-50/70 border-amber-400 ring-2 ring-amber-400/20 shadow-sm"
-            : "bg-white border-gray-200 hover:border-amber-300 hover:bg-gray-50/60"
-            }`}
-        >
-          <div>
-            <p className="text-xs font-bold uppercase tracking-wider text-gray-500">All Vehicles</p>
-            <p className="text-2xl font-black text-gray-900 mt-1">{allCount}</p>
-          </div>
-          <div className={`p-3 rounded-xl transition-colors ${statusFilter === "All" ? "bg-amber-400 text-gray-900 shadow-xs" : "bg-gray-100 text-gray-600"}`}>
-            <Car className="w-6 h-6" />
-          </div>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setStatusFilter("In Workshop")}
-          className={`p-4 rounded-xl border text-left flex items-center justify-between transition-all cursor-pointer ${statusFilter === "In Workshop"
-            ? "bg-emerald-50/70 border-emerald-500 ring-2 ring-emerald-500/20 shadow-sm"
-            : "bg-white border-gray-200 hover:border-emerald-300 hover:bg-gray-50/60"
-            }`}
-        >
-          <div>
-            <p className="text-xs font-bold uppercase tracking-wider text-emerald-600">In Workshop</p>
-            <p className="text-2xl font-black text-emerald-700 mt-1">{inWorkshopCount}</p>
-          </div>
-          <div className={`p-3 rounded-xl transition-colors ${statusFilter === "In Workshop" ? "bg-emerald-600 text-white shadow-xs" : "bg-emerald-50 text-emerald-600"}`}>
-            <Wrench className="w-6 h-6" />
-          </div>
-        </button>
+        <SummaryCard label="All Vehicles" value={allCount} active={statusFilter === "All"} onClick={() => setStatusFilter("All")} />
+        <SummaryCard label="In Workshop" value={inWorkshopCount} active={statusFilter === "In Workshop"} onClick={() => setStatusFilter("In Workshop")} />
       </div>
 
       {/* Toolbar */}
@@ -643,7 +615,7 @@ export function VehicleCheckinPage() {
                     <td className="whitespace-nowrap">{entry.outTime ? formatDate(entry.outTime) : "—"}</td>
                     <td className="whitespace-nowrap">{entry.outTime ? formatTime(entry.outTime) : "—"}</td>
                     <td className="whitespace-nowrap">{entry.outTime ? calculateDuration(entry.inTime, entry.outTime) : "—"}</td>
-                    <td className="whitespace-nowrap">{entry.status === "Ongoing" ? "In Workshop" : entry.status}</td>
+                    <td className="whitespace-nowrap"><StatusText status={entry.status === "Ongoing" ? "In Workshop" : entry.status} /></td>
                     <td className="whitespace-nowrap">
                       <div className="flex items-center justify-end gap-1">
                         {inWorkshop && (

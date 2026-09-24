@@ -21,6 +21,8 @@ import PaymentHistoryDialog from "@/modules/payment/components/PaymentHistoryDia
 import { useBilling } from "@/modules/billing/hooks/useBilling";
 import { BillingDocument } from "@/modules/billing/types/billing.types";
 import BillingJobCards from "../components/BillingJobCards";
+import { useOpenOnQuery } from "@/lib/useOpenOnQuery";
+import { StatusText } from "@/components/common/StatusText";
 
 function CardMoreDropdown({
   doc,
@@ -189,6 +191,8 @@ export function BillingPage() {
   const [filter, setFilter] = useState("All");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingDocument, setEditingDocument] = useState<BillingDocument | null>(null);
+  // Dashboard "New Invoice" quick action links here with ?new=1.
+  useOpenOnQuery(() => { setActiveSubTab("documents"); setEditingDocument(null); setIsDialogOpen(true); });
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isConvertOpen, setIsConvertOpen] = useState(false);
   const [isRecordPaymentOpen, setIsRecordPaymentOpen] = useState(false);
@@ -556,10 +560,10 @@ export function BillingPage() {
                         <td className="max-w-[180px] truncate">{doc.client || "—"}</td>
                         <td className="whitespace-nowrap">{doc.phone || "—"}</td>
                         <td className="max-w-[180px] truncate" title={serviceLabel}>{serviceLabel}</td>
-                        <td className="whitespace-nowrap">{doc.status || "—"}</td>
+                        <td className="whitespace-nowrap"><StatusText status={doc.status} /></td>
                         <td className="whitespace-nowrap text-right">₹{totalAmount.toLocaleString("en-IN")}</td>
                         <td className="whitespace-nowrap text-right">₹{paidAmount.toLocaleString("en-IN")}</td>
-                        <td className="whitespace-nowrap text-right">₹{remainingAmount.toLocaleString("en-IN")}</td>
+                        <td className="whitespace-nowrap text-right"><StatusText tone={remainingAmount > 0 ? "bad" : "neutral"}>₹{remainingAmount.toLocaleString("en-IN")}</StatusText></td>
                         <td className="whitespace-nowrap">
                           <div className="flex items-center justify-end gap-2">
                             {(doc.status === "Paid" || doc.status === "Completed") && !hasOutPass(doc) && (

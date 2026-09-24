@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { Clock, CheckCircle2, User, Building2, Search, Filter, Calendar, Users, CheckCircle, LogOut, X } from "lucide-react";
+import { SummaryCard } from "@/components/common/SummaryCard";
 import { getAttendance, checkIn, checkOut, getFranchises } from "@/lib/api";
 import { toast } from "react-hot-toast";
 
@@ -273,11 +274,14 @@ export default function AttendancePage() {
   }
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-6">
+    <div className="p-4 sm:p-6 md:p-8 space-y-6">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900"></h1>
+          <h2 className="text-sm font-bold text-slate-900">Staff Attendance</h2>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Check in when you arrive and check out when you leave — working hours are calculated automatically.
+          </p>
         </div>
 
         {currentUser && (
@@ -285,7 +289,7 @@ export default function AttendancePage() {
             {!isCheckedIn ? (
               <button
                 onClick={handleCheckIn}
-                className="bg-green-600 text-white px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-green-700 transition-all flex items-center gap-2 shadow-sm shadow-green-200"
+                className="bg-yellow-400 hover:bg-yellow-500 text-gray-900 px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2"
               >
                 <Clock className="w-4 h-4" />
                 Check In Now
@@ -293,7 +297,7 @@ export default function AttendancePage() {
             ) : !isCheckedOut ? (
               <button
                 onClick={handleCheckOut}
-                className="bg-red-600 text-white px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-red-700 transition-all flex items-center gap-2 shadow-sm shadow-red-200"
+                className="bg-slate-900 hover:bg-slate-800 text-white px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2"
               >
                 <LogOut className="w-4 h-4" />
                 Check Out
@@ -309,46 +313,11 @@ export default function AttendancePage() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-green-50 text-green-600 flex items-center justify-center shrink-0">
-            <CheckCircle className="w-6 h-6" />
-          </div>
-          <div>
-            <div className="text-2xl font-bold text-gray-900">{metrics.presentToday}</div>
-            <div className="text-xs font-medium text-gray-500">Present Today</div>
-          </div>
-        </div>
-
-        <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-            <Clock className="w-6 h-6" />
-          </div>
-          <div>
-            <div className="text-2xl font-bold text-gray-900">{metrics.activeNow}</div>
-            <div className="text-xs font-medium text-gray-500">On Active Duty</div>
-          </div>
-        </div>
-
-        <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
-            <LogOut className="w-6 h-6" />
-          </div>
-          <div>
-            <div className="text-2xl font-bold text-gray-900">{metrics.completedToday}</div>
-            <div className="text-xs font-medium text-gray-500">Checked Out Today</div>
-          </div>
-        </div>
-
-        <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-gray-50 text-gray-600 flex items-center justify-center shrink-0">
-            <Users className="w-6 h-6" />
-          </div>
-          <div>
-            <div className="text-2xl font-bold text-gray-900">{metrics.totalRecords}</div>
-            <div className="text-xs font-medium text-gray-500">Total Attendance Logs</div>
-          </div>
-        </div>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <SummaryCard label="Present Today" value={metrics.presentToday} tone="good" />
+        <SummaryCard label="On Duty Now" value={metrics.activeNow} />
+        <SummaryCard label="Checked Out Today" value={metrics.completedToday} />
+        <SummaryCard label="Total Attendance Logs" value={metrics.totalRecords} />
       </div>
 
       {/* Filter Bar */}
@@ -524,7 +493,7 @@ export default function AttendancePage() {
                   <td colSpan={7} className="px-6 py-12 text-center text-gray-500">
                     <div className="flex flex-col items-center justify-center gap-2">
                       <Clock className="w-8 h-8 text-gray-300" />
-                      <p className="font-medium text-gray-600">No attendance records found</p>
+                      <p className="font-medium text-gray-600">No attendance records match these filters.</p>
                     </div>
                   </td>
                 </tr>

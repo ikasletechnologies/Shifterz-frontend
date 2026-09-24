@@ -9,9 +9,10 @@ import {
 import { toast } from "react-hot-toast";
 import CreateWarrantyDialog from "@/modules/warranty/components/CreateWarrantyDialog";
 import WarrantyDetailsDialog from "@/modules/warranty/components/WarrantyDetailsDialog";
+import { SummaryCard } from "@/components/common/SummaryCard";
 import {
-  ShieldCheck, FileText, Clock, Calendar, Printer, Plus, Download,
-  Search, X, Eye, Pencil, CheckCircle2, Filter
+  Printer, Plus, Download,
+  Search, X, Eye, Pencil, Filter
 } from "lucide-react";
 
 export type CardFilterType = "ALL" | "ACTIVE" | "EXPIRING_SOON" | "EXPIRED" | "CLAIMS_RAISED" | "CLAIMS_APPROVED";
@@ -414,110 +415,27 @@ export default function WarrantyManagementPage() {
   };
 
   return (
-    <div className="p-8 space-y-6">
+    <div className="p-4 sm:p-6 md:p-8 space-y-6">
       {/* 6 Type Cards Grid (3 Cards Row 1, 3 Cards Row 2) */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* ROW 1 CARD 1: TOTAL WARRANTIES */}
-        <div
-          onClick={() => handleCardClick("ALL")}
-          className={`bg-white rounded-2xl border p-4 shadow-2xs flex items-center justify-between cursor-pointer select-none transition-all ${cardFilter === "ALL"
-              ? "border-blue-500 ring-2 ring-blue-500/20 bg-blue-50/10 shadow-sm"
-              : "border-slate-100 hover:border-blue-200"
-            }`}
-        >
-          <div>
-            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">TOTAL WARRANTIES</p>
-            <p className="text-2xl font-bold text-slate-900">{totalCount}</p>
-          </div>
-          <div className="p-3 bg-blue-500 text-white rounded-2xl shrink-0">
-            <FileText className="w-5 h-5" />
-          </div>
-        </div>
+        <SummaryCard label="Total Warranties" value={totalCount} active={cardFilter === "ALL"} onClick={() => handleCardClick("ALL")} />
+        <SummaryCard tone="good" label="Active Coverage" value={activeCount} active={cardFilter === "ACTIVE"} onClick={() => handleCardClick("ACTIVE")} />
+        <SummaryCard label="Expiring Soon" value={expiringSoonCount} active={cardFilter === "EXPIRING_SOON"} onClick={() => handleCardClick("EXPIRING_SOON")} />
+        <SummaryCard tone="bad" label="Expired" value={expiredCount} active={cardFilter === "EXPIRED"} onClick={() => handleCardClick("EXPIRED")} />
+        <SummaryCard label="Claims Raised" value={claimsRaisedCount} active={cardFilter === "CLAIMS_RAISED"} onClick={() => handleCardClick("CLAIMS_RAISED")} />
+        <SummaryCard tone="good" label="Claims Approved" value={claimsApprovedCount} active={cardFilter === "CLAIMS_APPROVED"} onClick={() => handleCardClick("CLAIMS_APPROVED")} />
+      </div>
 
-        {/* ROW 1 CARD 2: ACTIVE COVERAGE */}
-        <div
-          onClick={() => handleCardClick("ACTIVE")}
-          className={`bg-white rounded-2xl border p-4 shadow-2xs flex items-center justify-between cursor-pointer select-none transition-all ${cardFilter === "ACTIVE"
-              ? "border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-50/10 shadow-sm"
-              : "border-slate-100 hover:border-emerald-200"
-            }`}
-        >
-          <div>
-            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">ACTIVE COVERAGE</p>
-            <p className="text-2xl font-bold text-slate-900">{activeCount}</p>
-          </div>
-          <div className="p-3 bg-emerald-500 text-white rounded-2xl shrink-0">
-            <ShieldCheck className="w-5 h-5" />
-          </div>
-        </div>
-
-        {/* ROW 1 CARD 3: EXPIRING SOON */}
-        <div
-          onClick={() => handleCardClick("EXPIRING_SOON")}
-          className={`bg-white rounded-2xl border p-4 shadow-2xs flex items-center justify-between cursor-pointer select-none transition-all ${cardFilter === "EXPIRING_SOON"
-              ? "border-amber-500 ring-2 ring-amber-500/20 bg-amber-50/10 shadow-sm"
-              : "border-slate-100 hover:border-amber-200"
-            }`}
-        >
-          <div>
-            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">EXPIRING SOON</p>
-            <p className="text-2xl font-bold text-slate-900">{expiringSoonCount}</p>
-          </div>
-          <div className="p-3 bg-amber-500 text-white rounded-2xl shrink-0">
-            <Clock className="w-5 h-5" />
-          </div>
-        </div>
-
-        {/* ROW 2 CARD 1: EXPIRED */}
-        <div
-          onClick={() => handleCardClick("EXPIRED")}
-          className={`bg-white rounded-2xl border p-4 shadow-2xs flex items-center justify-between cursor-pointer select-none transition-all ${cardFilter === "EXPIRED"
-              ? "border-rose-500 ring-2 ring-rose-500/20 bg-rose-50/10 shadow-sm"
-              : "border-slate-100 hover:border-rose-200"
-            }`}
-        >
-          <div>
-            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">EXPIRED</p>
-            <p className="text-2xl font-bold text-slate-900">{expiredCount}</p>
-          </div>
-          <div className="p-3 bg-rose-500 text-white rounded-2xl shrink-0">
-            <Calendar className="w-5 h-5" />
-          </div>
-        </div>
-
-        {/* ROW 2 CARD 2: CLAIMS RAISED */}
-        <div
-          onClick={() => handleCardClick("CLAIMS_RAISED")}
-          className={`bg-white rounded-2xl border p-4 shadow-2xs flex items-center justify-between cursor-pointer select-none transition-all ${cardFilter === "CLAIMS_RAISED"
-              ? "border-purple-500 ring-2 ring-purple-500/20 bg-purple-50/10 shadow-sm"
-              : "border-slate-100 hover:border-purple-200"
-            }`}
-        >
-          <div>
-            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">CLAIMS RAISED</p>
-            <p className="text-2xl font-bold text-slate-900">{claimsRaisedCount}</p>
-          </div>
-          <div className="p-3 bg-purple-500 text-white rounded-2xl shrink-0">
-            <FileText className="w-5 h-5" />
-          </div>
-        </div>
-
-        {/* ROW 2 CARD 3: CLAIMS APPROVED */}
-        <div
-          onClick={() => handleCardClick("CLAIMS_APPROVED")}
-          className={`bg-white rounded-2xl border p-4 shadow-2xs flex items-center justify-between cursor-pointer select-none transition-all ${cardFilter === "CLAIMS_APPROVED"
-              ? "border-teal-500 ring-2 ring-teal-500/20 bg-teal-50/10 shadow-sm"
-              : "border-slate-100 hover:border-teal-200"
-            }`}
-        >
-          <div>
-            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">CLAIMS APPROVED</p>
-            <p className="text-2xl font-bold text-slate-900">{claimsApprovedCount}</p>
-          </div>
-          <div className="p-3 bg-teal-500 text-white rounded-2xl shrink-0">
-            <CheckCircle2 className="w-5 h-5" />
-          </div>
-        </div>
+      <div>
+        <h2 className="text-sm font-bold text-slate-900">
+          Warranties{" "}
+          <span className="font-normal text-slate-500">
+            · {cardFilter === "ALL" ? "All" : cardFilter.replace(/_/g, " ").toLowerCase().replace(/^w/, (c) => c.toUpperCase())} ({filteredWarranties.length})
+          </span>
+        </h2>
+        <p className="text-xs text-slate-500 mt-0.5">
+          Warranties issued on paid invoices. Watch “Expiring Soon” to remind customers, and record claims when a covered part fails.
+        </p>
       </div>
 
       {/* Filter & Actions Bar Container (Single Horizontal Row) */}
@@ -608,7 +526,7 @@ export default function WarrantyManagementPage() {
             {/* Generate Warranty Invoice */}
             <button
               onClick={() => setIsGenerateModalOpen(true)}
-              className="bg-amber-400 hover:bg-amber-500 text-slate-900 font-bold px-4 py-2.5 rounded-xl flex items-center gap-2 transition-all shadow-2xs text-xs whitespace-nowrap"
+              className="bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-medium px-4 py-2.5 rounded-lg flex items-center gap-2 transition-colors text-xs whitespace-nowrap"
             >
               <Printer className="w-4 h-4" />
               Generate Warranty Invoice
@@ -617,7 +535,7 @@ export default function WarrantyManagementPage() {
             {/* Issue Warranty */}
             <button
               onClick={() => setIsCreateOpen(true)}
-              className="bg-rose-600 hover:bg-rose-700 text-white font-bold px-4 py-2.5 rounded-xl flex items-center gap-2 transition-all shadow-2xs text-xs whitespace-nowrap"
+              className="bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-semibold px-4 py-2.5 rounded-lg flex items-center gap-2 transition-colors text-xs whitespace-nowrap"
             >
               <Plus className="w-4 h-4 stroke-3" />
               Issue Warranty
@@ -664,7 +582,9 @@ export default function WarrantyManagementPage() {
               ) : filteredWarranties.length === 0 ? (
                 <tr>
                   <td colSpan={10} className="py-12 text-center text-slate-400">
-                    No warranty records found for selected filter.
+                    {cardFilter === "ALL" && !searchQuery
+                      ? "No warranties issued yet. Use “Issue Warranty” to cover a paid invoice."
+                      : "No warranties match these filters."}
                   </td>
                 </tr>
               ) : (

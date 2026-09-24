@@ -1,8 +1,7 @@
 "use client";
 
 import { WorkshopJob } from "../types/workshop.types";
-import { WORKSHOP_STATUS_COLORS } from "../constants/workshop.constants";
-import { Play, Pause, RotateCcw, CheckCircle2, Camera, Package, FileText, Send } from "lucide-react";
+import { StatusText } from "@/components/common/StatusText";
 
 interface WorkshopTableProps {
   jobs: WorkshopJob[];
@@ -16,26 +15,24 @@ interface WorkshopTableProps {
   onSendToQC: (job: WorkshopJob) => void;
 }
 
-function StatusBadge({ status }: { status: string }) {
-  const color = WORKSHOP_STATUS_COLORS[status] || "bg-gray-100 text-gray-600";
-  return (
-    <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold whitespace-nowrap ${color}`}>
-      {status}
-    </span>
-  );
+const REWORK_STATUSES = ["QC Failed", "Rework", "Rework Required"];
+
+// The single next step for a job, shown as the one highlighted button in its row.
+const PRIMARY_BTN =
+  "keep-color bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-semibold text-xs px-3 py-1.5 rounded-md transition-colors cursor-pointer whitespace-nowrap";
+
+function formatDate(value?: string) {
+  if (!value) return "—";
+  const d = new Date(value);
+  if (isNaN(d.getTime())) return value;
+  return d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
 }
 
-function PriorityBadge({ priority }: { priority: string }) {
-  const colorMap: Record<string, string> = {
-    High: "bg-red-100 text-red-700",
-    Normal: "bg-blue-100 text-blue-700",
-    Low: "bg-green-100 text-green-700",
-  };
-  return (
-    <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${colorMap[priority] || "bg-gray-100 text-gray-600"}`}>
-      {priority}
-    </span>
-  );
+function formatDateTime(value?: string) {
+  if (!value) return "—";
+  const d = new Date(value);
+  if (isNaN(d.getTime())) return value;
+  return d.toLocaleString("en-IN", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
 }
 
 export function WorkshopTable({
@@ -49,134 +46,97 @@ export function WorkshopTable({
   onAddNotes,
   onSendToQC,
 }: WorkshopTableProps) {
-  if (jobs.length === 0) {
-    return (
-      <div className="text-center py-16 text-gray-400 bg-white rounded-xl border border-gray-100">
-        <CheckCircle2 className="w-12 h-12 mx-auto mb-3 opacity-30" />
-        <p className="font-semibold">No jobs found</p>
-      </div>
-    );
-  }
-
   return (
-    <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-      <div className="overflow-x-auto">
-        <table className="data-table w-full text-sm text-left min-w-[900px]">
-          <thead className="bg-gray-50/50 border-b border-gray-100 text-xs text-gray-800 uppercase font-bold tracking-wider">
-            <tr>
-              <th className="px-4 py-4 whitespace-nowrap">Job Card</th>
-              <th className="px-4 py-4 whitespace-nowrap">Vehicle</th>
-              <th className="px-4 py-4 whitespace-nowrap">Service</th>
-              <th className="px-4 py-4 whitespace-nowrap">Priority</th>
-              <th className="px-4 py-4 whitespace-nowrap">Status</th>
-              <th className="px-4 py-4 whitespace-nowrap">Started At</th>
-              <th className="px-4 py-4 whitespace-nowrap">Est. Finish</th>
-              <th className="px-4 py-4 whitespace-nowrap">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-50">
-            {jobs.map((job) => (
-              <tr key={job.id} className="hover:bg-gray-50/50 transition-colors">
-                <td className="px-4 py-4 font-mono text-xs font-bold whitespace-nowrap">
-                  {job.id}
-                </td>
-                <td className="px-4 py-4 font-bold text-gray-900 whitespace-nowrap">{job.vehicle}</td>
-                <td className="px-4 py-4 text-gray-600">{job.service}</td>
-                <td className="px-4 py-4">
-                  <PriorityBadge priority={job.priority} />
-                </td>
-                <td className="px-4 py-4">
-                  <StatusBadge status={job.status} />
-                </td>
-                <td className="px-4 py-4 text-gray-500 text-xs whitespace-nowrap">
-                  {job.startedAt ? new Date(job.startedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "—"}
-                </td>
-                <td className="px-4 py-4 text-gray-500 text-xs whitespace-nowrap">{job.estCompletion || "—"}</td>
-                <td className="px-4 py-4">
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    {/* Status-driven primary action button */}
-                    {job.status === "Assigned" && (
-                      <button
-                        onClick={() => onStartWork(job)}
-                        className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded transition-colors"
-                        title="Start Work"
-                      >
-                        <Play className="w-3 h-3" /> Start
-                      </button>
-                    )}
+    <div className="bg-white border border-slate-200 rounded-lg overflow-x-auto">
+      <table className="data-table w-full min-w-[1200px] text-left">
+        <thead>
+          <tr>
+            <th>Job Card</th>
+            <th>Vehicle</th>
+            <th>Customer</th>
+            <th>Service</th>
+            <th>Technician</th>
+            <th>Priority</th>
+            <th>Status</th>
+            <th>Started</th>
+            <th>Est. Finish</th>
+            <th className="text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {jobs.map((job) => {
+            const isRework = REWORK_STATUSES.includes(job.status as string);
+            const isWorking = job.status === "In Progress" || job.status === "Paused";
 
+            return (
+              <tr key={job.id}>
+                <td className="whitespace-nowrap">{job.id}</td>
+                <td className="whitespace-nowrap uppercase">{job.vehicle || "—"}</td>
+                <td className="max-w-[160px] truncate">{job.customer || "—"}</td>
+                <td className="max-w-[180px] truncate" title={job.service}>{job.service || "—"}</td>
+                <td className="max-w-[160px] truncate">{job.technician || <span className="text-slate-400">Unassigned</span>}</td>
+                <td className="whitespace-nowrap">{job.priority || "—"}</td>
+                <td className="whitespace-nowrap">
+                  <StatusText status={job.status} />
+                </td>
+                <td className="whitespace-nowrap">{formatDateTime(job.startedAt)}</td>
+                <td className="whitespace-nowrap">{formatDate(job.estCompletion)}</td>
+                <td className="whitespace-nowrap">
+                  <div className="flex items-center justify-end gap-2">
+                    {/* Secondary actions while the job is being worked on */}
+                    {isWorking && (
+                      <>
+                        <button onClick={() => onUploadPhotos(job)} className="px-1" title="Upload work photos">
+                          Photos
+                        </button>
+                        <button onClick={() => onAddMaterial(job)} className="px-1" title="Record parts / materials used">
+                          Parts
+                        </button>
+                        <button onClick={() => onAddNotes(job)} className="px-1" title="Technician notes">
+                          Notes
+                        </button>
+                      </>
+                    )}
                     {job.status === "In Progress" && (
-                      <>
-                        <button
-                          onClick={() => onPauseWork(job)}
-                          className="flex items-center gap-1 px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold rounded transition-colors"
-                          title="Pause Work"
-                        >
-                          <Pause className="w-3 h-3" /> Pause
-                        </button>
-                        <button
-                          onClick={() => onCompleteWork(job)}
-                          className="flex items-center gap-1 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-bold rounded transition-colors"
-                          title="Complete Work"
-                        >
-                          <CheckCircle2 className="w-3 h-3" /> Complete
-                        </button>
-                      </>
+                      <button onClick={() => onPauseWork(job)} className="px-1" title="Pause work">
+                        Pause
+                      </button>
                     )}
 
+                    {/* The next step */}
+                    {job.status === "Assigned" && (
+                      <button onClick={() => onStartWork(job)} className={PRIMARY_BTN}>
+                        Start Work
+                      </button>
+                    )}
+                    {isRework && (
+                      <button onClick={() => onStartWork(job)} className={PRIMARY_BTN} title="QC sent this job back — fix the issues and complete it again">
+                        Start Rework
+                      </button>
+                    )}
+                    {job.status === "In Progress" && (
+                      <button onClick={() => onCompleteWork(job)} className={PRIMARY_BTN}>
+                        Complete
+                      </button>
+                    )}
                     {job.status === "Paused" && (
-                      <button
-                        onClick={() => onResumeWork(job)}
-                        className="flex items-center gap-1 px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold rounded transition-colors"
-                        title="Resume Work"
-                      >
-                        <RotateCcw className="w-3 h-3" /> Resume
+                      <button onClick={() => onResumeWork(job)} className={PRIMARY_BTN}>
+                        Resume
                       </button>
                     )}
-
                     {job.status === "Completed" && (
-                      <button
-                        onClick={() => onSendToQC(job)}
-                        className="flex items-center gap-1 px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded transition-colors"
-                        title="Send to QC"
-                      >
-                        <Send className="w-3 h-3" /> Send to QC
+                      <button onClick={() => onSendToQC(job)} className={PRIMARY_BTN}>
+                        Send to QC
                       </button>
                     )}
-
-                    {/* Secondary actions available when In Progress */}
-                    {(job.status === "In Progress" || job.status === "Paused") && (
-                      <>
-                        <button
-                          onClick={() => onUploadPhotos(job)}
-                          className="p-1.5 hover:bg-green-50 text-green-600 rounded border border-green-100 transition-colors"
-                          title="Upload Photos"
-                        >
-                          <Camera className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={() => onAddMaterial(job)}
-                          className="p-1.5 hover:bg-yellow-50 text-yellow-600 rounded border border-yellow-100 transition-colors"
-                          title="Record Material"
-                        >
-                          <Package className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={() => onAddNotes(job)}
-                          className="p-1.5 hover:bg-blue-50 text-blue-500 rounded border border-blue-100 transition-colors"
-                          title="Technician Notes"
-                        >
-                          <FileText className="w-3.5 h-3.5" />
-                        </button>
-                      </>
-                    )}
+                    {job.status === "Waiting QC" && <span className="text-slate-400 text-sm">With QC</span>}
                   </div>
                 </td>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            );
+          })}
+        </tbody>
+      </table>
     </div>
   );
 }

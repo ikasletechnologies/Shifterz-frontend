@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { STATUS_COLORS } from "../constants/job-card.constants";
+import { StatusText } from "@/components/common/StatusText";
 
 interface JobStatusBadgeProps {
   status: string;
-  // Render as plain text (list view) instead of the coloured pill.
+  // Render as plain text (list view): green/red for good/bad states, neutral otherwise.
   neutral?: boolean;
 }
 
@@ -48,7 +49,7 @@ export function JobStatusBadge({ status, neutral = false }: JobStatusBadgeProps)
   const displayStatus = status;
 
   if (neutral) {
-    return <span className="whitespace-nowrap">{displayStatus}</span>;
+    return <StatusText status={displayStatus} />;
   }
 
   const colorClass =

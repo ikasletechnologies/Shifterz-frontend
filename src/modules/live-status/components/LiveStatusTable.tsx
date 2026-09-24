@@ -2,9 +2,8 @@
 
 import { Download, Eye, Pencil } from "lucide-react";
 import { LiveVehicleRecord } from "../types/live-status.types";
-import { StageBadge } from "./StageBadge";
-import { LivePriorityBadge } from "./LivePriorityBadge";
 import { DelayBadge } from "./DelayBadge";
+import { StatusText } from "@/components/common/StatusText";
 
 function formatTime(value?: string): string {
   if (!value) return "—";
@@ -57,10 +56,10 @@ export function LiveStatusTable({ records, onOpenJobCard, onEditJobCard, onPrint
                 {r.technician || <span className="text-slate-400">Unassigned</span>}
               </td>
               <td className="whitespace-nowrap">
-                <StageBadge stage={r.stage} />
+                <StatusText status={r.stage} />
               </td>
               <td className="whitespace-nowrap">
-                <LivePriorityBadge priority={r.priority} />
+                {r.priority || "—"}
               </td>
               <td className="whitespace-nowrap">
                 <DelayBadge isDelayed={r.isDelayed} delayMinutes={r.delayMinutes} />

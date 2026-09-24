@@ -1,24 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect, useCallback } from "react";
-import {
-  ShieldCheck,
-  UserCheck,
-  CheckCircle2,
-  Clock,
-  XCircle,
-  RefreshCw,
-  TrendingUp,
-  Award,
-  Users,
-  Search,
-  Building2,
-  AlertCircle,
-  CheckSquare,
-  X,
-  ChevronRight,
-  Plus,
-} from "lucide-react";
+import { Search, Building2, X, Plus } from "lucide-react";
 import { useQC } from "@/modules/qc/hooks/useQC";
 import { QCTable } from "@/modules/qc/components/QCTable";
 import { QCChecklistDialog } from "@/modules/qc/components/QCChecklistDialog";
@@ -30,6 +13,8 @@ import AddEmployeeDialog from "@/components/employees/AddEmployeeDialog";
 import { QCJob } from "@/modules/qc/types/qc.types";
 import { getEmployees, getFranchises, createEmployee } from "@/lib/api";
 import { toast } from "react-hot-toast";
+import { StatusText } from "@/components/common/StatusText";
+import { SummaryCard } from "@/components/common/SummaryCard";
 
 type DialogType = "checklist" | "photos" | "remarks" | "pass" | "fail" | null;
 
@@ -72,38 +57,6 @@ export default function QCInspectionPage() {
   const [loadingInspectors, setLoadingInspectors] = useState(true);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [inspectorSearch, setInspectorSearch] = useState("");
-  const [inspectorFromDate, setInspectorFromDate] = useState("");
-  const [inspectorToDate, setInspectorToDate] = useState("");
-
-  const getTodayISO = () => {
-    const d = new Date();
-    const year = d.getFullYear();
-    const month = (d.getMonth() + 1).toString().padStart(2, "0");
-    const day = d.getDate().toString().padStart(2, "0");
-    return `${year}-${month}-${day}`;
-  };
-
-  const handleInspectorFromDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selected = e.target.value;
-    const today = getTodayISO();
-    if (selected && selected > today) {
-      toast.error("Future dates are not allowed. Please select today or a past date.");
-      setInspectorFromDate(today);
-      return;
-    }
-    setInspectorFromDate(selected);
-  };
-
-  const handleInspectorToDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selected = e.target.value;
-    const today = getTodayISO();
-    if (selected && selected > today) {
-      toast.error("Future dates are not allowed. Please select today or a past date.");
-      setInspectorToDate(today);
-      return;
-    }
-    setInspectorToDate(selected);
-  };
 
   // Fetch QC Personnel & Franchises
   const loadPersonnel = useCallback(async () => {
@@ -127,7 +80,7 @@ export default function QCInspectionPage() {
           );
         });
 
-        const formatted = (qcEmps.length > 0 ? qcEmps : allEmps.slice(0, 4)).map((e: any) => {
+        const formatted = qcEmps.map((e: any) => {
           const b = typeof e.branch === "string" ? e.branch : e.branch?.name || (e.franchiseId ? "Franchise Branch" : "Headquarters (HQ)");
           return {
             id: e.id,
@@ -163,15 +116,15 @@ export default function QCInspectionPage() {
         role: employeeData.role || "QUALITY_INSPECTOR",
         franchiseId: (employeeData.franchiseId && employeeData.franchiseId !== "HQ") ? employeeData.franchiseId : null
       });
-      toast.success("Technician / Inspector added successfully");
+      toast.success("QC inspector added successfully");
       setIsAddOpen(false);
       loadPersonnel();
     } catch (err: any) {
-      toast.error("Failed to add technician: " + err.message);
+      toast.error("Failed to add QC inspector: " + err.message);
     }
   };
 
-  // Filter Inspectors by Branch, Search Query & Date Range
+  // Filter Inspectors by Branch & Search Query
   const selectedQcBranchName = useMemo(() => {
     if (selectedQcBranch === "ALL") return "All Branches";
     if (selectedQcBranch === "HQ") return "Headquarters (HQ)";
@@ -212,20 +165,8 @@ export default function QCInspectionPage() {
       );
     }
 
-    // 3. Date Range Filter
-    if (inspectorFromDate || inspectorToDate) {
-      list = list.filter((i) => {
-        if (!i.createdAt) return true;
-        const iDate = i.createdAt.split("T")[0];
-        if (!iDate) return true;
-        if (inspectorFromDate && iDate < inspectorFromDate) return false;
-        if (inspectorToDate && iDate > inspectorToDate) return false;
-        return true;
-      });
-    }
-
     return list;
-  }, [qcInspectors, selectedQcBranch, franchises, inspectorSearch, inspectorFromDate, inspectorToDate]);
+  }, [qcInspectors, selectedQcBranch, franchises, inspectorSearch]);
 
   // Performance Summary calculations
   const awaitingCount = useMemo(() => {
@@ -242,7 +183,6 @@ export default function QCInspectionPage() {
 
   const totalEvaluated = passedCount + failedCount;
   const passRate = totalEvaluated > 0 ? Math.round((passedCount / totalEvaluated) * 100) : 100;
-  const failRate = totalEvaluated > 0 ? 100 - passRate : 0;
 
   // Filtered Jobs by Tab & Search
   const filteredJobs = useMemo(() => {
@@ -250,12 +190,14 @@ export default function QCInspectionPage() {
     return jobs.filter((j) => {
       let matchesTab = true;
 
-      if (activeTab === "Passed Jobs") {
+      if (activeTab === "Passed") {
         matchesTab = j.status === "Ready For Billing";
-      } else if (activeTab === "Failed / Rework") {
+      } else if (activeTab === "Rework") {
         matchesTab = j.status === "Rework Required";
       } else if (activeTab === "Inspecting") {
         matchesTab = hasOpenInspection(j.id);
+      } else if (activeTab === "Awaiting") {
+        matchesTab = !hasOpenInspection(j.id) && j.status !== "Ready For Billing";
       }
 
       const matchesSearch =
@@ -295,161 +237,130 @@ export default function QCInspectionPage() {
     setSelectedJob(null);
   };
 
+  const QUEUE_FILTERS: { id: string; label: string; count: number; tone?: "good" | "bad" }[] = [
+    { id: "All", label: "All Jobs", count: jobs.length },
+    { id: "Awaiting", label: "Awaiting Review", count: awaitingCount },
+    { id: "Inspecting", label: "Inspecting", count: stats.inspecting },
+    { id: "Passed", label: "QC Passed", count: passedCount, tone: "good" },
+    { id: "Rework", label: "Rework Required", count: failedCount, tone: "bad" },
+  ];
+  const activeFilterLabel = QUEUE_FILTERS.find((f) => f.id === activeTab)?.label ?? "All Jobs";
+
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-8">
-      {/* Module Title Header */}
-
-
-      {/* SECTION 1: QC Performance Summary */}
-      <div className="space-y-3">
-        <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
-          QC Performance Summary
-        </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-          {/* Card 1: Pass Rate % */}
-          <div className="bg-white p-5 rounded-2xl border border-emerald-100 shadow-sm flex items-center gap-4">
-            <div className="p-3 rounded-xl bg-emerald-50 text-emerald-600">
-              <Award className="w-6 h-6" />
-            </div>
-            <div>
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Pass Rate</p>
-              <div className="flex items-baseline gap-1">
-                <span className="text-2xl font-black text-emerald-600">{passRate}%</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Card 2: Jobs Awaiting QC Review */}
-          <div className="bg-white p-5 rounded-2xl border border-amber-100 shadow-sm flex items-center gap-4">
-            <div className="p-3 rounded-xl bg-amber-50 text-amber-600">
-              <Clock className="w-6 h-6" />
-            </div>
-            <div>
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Awaiting Review</p>
-              <span className="text-2xl font-black text-amber-600">{awaitingCount}</span>
-            </div>
-          </div>
-
-          {/* Card 3: QC Passed Jobs */}
-          <div className="bg-white p-5 rounded-2xl border border-teal-100 shadow-sm flex items-center gap-4">
-            <div className="p-3 rounded-xl bg-teal-50 text-teal-600">
-              <CheckCircle2 className="w-6 h-6" />
-            </div>
-            <div>
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">QC Passed</p>
-              <span className="text-2xl font-black text-teal-600">{passedCount}</span>
-            </div>
-          </div>
-
-          {/* Card 4: QC Failed / Rework Required */}
-          <div className="bg-white p-5 rounded-2xl border border-rose-100 shadow-sm flex items-center gap-4">
-            <div className="p-3 rounded-xl bg-rose-50 text-rose-600">
-              <RefreshCw className="w-6 h-6" />
-            </div>
-            <div>
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Rework Required</p>
-              <span className="text-2xl font-black text-rose-600">{failedCount}</span>
-            </div>
-          </div>
-
-          {/* Card 5: Total Inspections */}
-          <div className="bg-white p-5 rounded-2xl border border-purple-100 shadow-sm flex items-center gap-4">
-            <div className="p-3 rounded-xl bg-purple-50 text-purple-600">
-              <ShieldCheck className="w-6 h-6" />
-            </div>
-            <div>
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Total Evaluated</p>
-              <span className="text-2xl font-black text-purple-700">{totalEvaluated}</span>
-            </div>
-          </div>
-        </div>
+    <div className="p-4 sm:p-6 md:p-8 space-y-6">
+      {/* 1. Queue status — each card is also the queue filter */}
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
+        {QUEUE_FILTERS.map((f) => (
+          <SummaryCard
+            key={f.id}
+            label={f.label}
+            value={f.count}
+            tone={f.tone}
+            active={activeTab === f.id}
+            onClick={() => setActiveTab(f.id)}
+          />
+        ))}
       </div>
 
-      {/* SECTION 2: QC Personnel */}
-      <div className="space-y-3">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 bg-white p-3.5 rounded-2xl border border-gray-100 shadow-2xs">
-          {/* Title & Search Bar on Left */}
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="flex items-center gap-2">
-              <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
-                QC Personnel & Inspectors
-              </h2>
-            </div>
+      {/* 2. QC Queue — the main work area */}
+      <section className="space-y-3">
+        <div className="bg-white border border-slate-200 rounded-lg px-4 py-3 flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div>
+            <h2 className="text-sm font-bold text-slate-900">
+              QC Queue <span className="font-normal text-slate-500">· {activeFilterLabel} ({filteredJobs.length})</span>
+            </h2>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Pass rate{" "}
+              {totalEvaluated > 0 ? (
+                <span className={`font-semibold ${passRate >= 80 ? "text-green-700" : "text-red-600"}`}>{passRate}%</span>
+              ) : (
+                <span className="font-semibold text-slate-700">—</span>
+              )}{" "}
+              · {totalEvaluated} evaluated
+            </p>
+          </div>
 
-            {/* Search Bar */}
-            <div className="relative w-48 sm:w-56">
+          <div className="relative w-full md:w-80">
+            <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="Search job, vehicle, customer, service..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-9 pr-8 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
+                title="Clear search"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {isLoading ? (
+          <div className="py-16 text-center text-slate-500 bg-white rounded-lg border border-slate-200">Loading QC queue...</div>
+        ) : (
+          <QCTable
+            jobs={filteredJobs}
+            emptyMessage={
+              searchQuery
+                ? `No jobs match "${searchQuery}".`
+                : activeTab === "All"
+                ? "No jobs in the QC queue right now. Jobs appear here when a technician marks work as completed."
+                : `No jobs in "${activeFilterLabel}".`
+            }
+            hasOpenInspection={hasOpenInspection}
+            getCurrentInspection={getCurrentInspection}
+            onInspect={(job) => startInspection(job.id)}
+            onOpenChecklist={openChecklistDialog}
+            onOpenPhotos={openDialog("photos")}
+            onOpenRemarks={openDialog("remarks")}
+            onPass={openDialog("pass")}
+            onFail={openDialog("fail")}
+          />
+        )}
+      </section>
+
+      {/* 3. QC Team — the people who inspect */}
+      <section className="bg-white border border-slate-200 rounded-lg">
+        <div className="px-4 py-3 border-b border-slate-200 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+          <h2 className="text-sm font-bold text-slate-900">
+            QC Team <span className="font-normal text-slate-500">({filteredQcInspectors.length})</span>
+          </h2>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="relative w-full sm:w-56">
               <Search className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
-                placeholder="Search inspector..."
+                placeholder="Search name, phone..."
                 value={inspectorSearch}
                 onChange={(e) => setInspectorSearch(e.target.value)}
-                className="w-full pl-8 pr-7 py-1.5 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all"
+                className="w-full pl-8 pr-7 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400"
               />
               {inspectorSearch && (
                 <button
                   type="button"
                   onClick={() => setInspectorSearch("")}
                   className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
+                  title="Clear search"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
               )}
             </div>
-          </div>
 
-          {/* Date Filter & Branch Dropdown on Right Side */}
-          <div className="flex flex-wrap items-center gap-2.5">
-            {/* Date Filter (From / To) */}
-            <div className="flex items-center gap-2 flex-wrap">
-              <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-xl px-2.5 py-1.5 text-xs">
-                <span className="text-gray-500 font-medium">From:</span>
-                <input
-                  type="date"
-                  max={getTodayISO()}
-                  value={inspectorFromDate}
-                  onChange={handleInspectorFromDateChange}
-                  className="bg-transparent border-none text-xs text-gray-800 focus:outline-none cursor-pointer"
-                />
-                {inspectorFromDate && (
-                  <button
-                    type="button"
-                    onClick={() => setInspectorFromDate("")}
-                    className="text-gray-400 hover:text-gray-600 cursor-pointer"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                )}
-              </div>
-
-              <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-xl px-2.5 py-1.5 text-xs">
-                <span className="text-gray-500 font-medium">To:</span>
-                <input
-                  type="date"
-                  max={getTodayISO()}
-                  value={inspectorToDate}
-                  onChange={handleInspectorToDateChange}
-                  className="bg-transparent border-none text-xs text-gray-800 focus:outline-none cursor-pointer"
-                />
-                {inspectorToDate && (
-                  <button
-                    type="button"
-                    onClick={() => setInspectorToDate("")}
-                    className="text-gray-400 hover:text-gray-600 cursor-pointer"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Select Branch Dropdown */}
-            <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-1.5 text-xs">
+            <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm">
               <Building2 className="w-4 h-4 text-gray-400 shrink-0" />
               <select
                 value={selectedQcBranch}
                 onChange={(e) => setSelectedQcBranch(e.target.value)}
-                className="bg-transparent border-none text-xs text-gray-800 font-medium focus:outline-none cursor-pointer"
+                className="bg-transparent border-none text-sm text-gray-800 focus:outline-none cursor-pointer"
+                aria-label="Branch"
               >
                 <option value="ALL">All Branches</option>
                 <option value="HQ">Headquarters (HQ)</option>
@@ -461,29 +372,27 @@ export default function QCInspectionPage() {
               </select>
             </div>
 
-            {/* Add Technician Button */}
             <button
               type="button"
               onClick={() => setIsAddOpen(true)}
-              className="bg-amber-400 hover:bg-amber-500 text-slate-900 font-bold px-3.5 py-1.5 rounded-xl flex items-center gap-1.5 transition-all shadow-2xs text-xs shrink-0 whitespace-nowrap cursor-pointer"
+              className="bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-semibold px-3.5 py-2 rounded-lg flex items-center gap-1.5 transition-colors text-sm whitespace-nowrap cursor-pointer"
             >
-              <Plus className="w-4 h-4 stroke-3" />
-              <span>Add Technician</span>
+              <Plus className="w-4 h-4" />
+              Add QC Inspector
             </button>
           </div>
         </div>
 
         {loadingInspectors ? (
-          <div className="bg-white p-6 rounded-2xl border border-gray-100 text-center text-gray-400 text-sm">
-            Loading assigned QC Personnel...
-          </div>
+          <div className="p-8 text-center text-slate-500 text-sm">Loading QC team...</div>
         ) : filteredQcInspectors.length === 0 ? (
-          <div className="bg-white p-8 rounded-2xl border border-gray-100 text-center space-y-1">
-            <p className="text-sm font-semibold text-gray-700">No QC Inspectors found</p>
-            <p className="text-xs text-gray-400">There are no personnel assigned to the selected branch.</p>
+          <div className="p-8 text-center text-sm text-slate-500">
+            {qcInspectors.length === 0
+              ? "No QC inspectors yet. Use “Add QC Inspector” to add someone who can pass or fail jobs."
+              : `No QC inspectors in ${selectedQcBranchName}${inspectorSearch ? ` matching "${inspectorSearch}"` : ""}.`}
           </div>
         ) : (
-          <div className="bg-white border border-slate-200 rounded-lg overflow-x-auto">
+          <div className="overflow-x-auto">
             <table className="data-table w-full min-w-[700px] text-left">
               <thead>
                 <tr>
@@ -498,90 +407,17 @@ export default function QCInspectionPage() {
                 {filteredQcInspectors.map((inspector) => (
                   <tr key={inspector.id}>
                     <td className="whitespace-nowrap">{inspector.name}</td>
-                    <td className="whitespace-nowrap">{inspector.role}</td>
+                    <td className="whitespace-nowrap capitalize">{inspector.role.replace(/_/g, " ").toLowerCase()}</td>
                     <td className="whitespace-nowrap">{inspector.phone}</td>
                     <td className="max-w-[200px] truncate">{inspector.branch}</td>
-                    <td className="whitespace-nowrap">{inspector.status}</td>
+                    <td className="whitespace-nowrap"><StatusText status={inspector.status} /></td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
         )}
-      </div>
-
-      {/* SECTION 3, 4, 5: Interactive Queue Tabs & Filters */}
-      <div className="space-y-4">
-        {/* Controls Row */}
-        <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between">
-          {/* Section Filter Tabs */}
-          <div className="flex flex-wrap items-center gap-1.5">
-            {[
-              { id: "All", label: "All Jobs", count: jobs.length },
-              { id: "Inspecting", label: "Inspecting", count: stats.inspecting },
-              { id: "Passed Jobs", label: "QC Passed Jobs", count: passedCount },
-              { id: "Failed / Rework", label: "QC Failed / Rework Required", count: failedCount },
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setActiveTab(tab.id)}
-                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${activeTab === tab.id
-                  ? "bg-purple-600 text-white shadow-md shadow-purple-600/20"
-                  : "bg-gray-50 text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-                  }`}
-              >
-                {tab.label}
-                <span
-                  className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${activeTab === tab.id ? "bg-white/20 text-white" : "bg-gray-200 text-gray-700"
-                    }`}
-                >
-                  {tab.count}
-                </span>
-              </button>
-            ))}
-          </div>
-
-          {/* Left/Right Search Bar */}
-          <div className="relative w-full md:w-72 shrink-0">
-            <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              placeholder="Search vehicle, customer, service..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-9 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all"
-            />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* QC Cards Queue Table */}
-        {isLoading ? (
-          <div className="py-16 text-center text-gray-400 bg-white rounded-2xl border border-gray-100">
-            Loading QC queue...
-          </div>
-        ) : (
-          <QCTable
-            jobs={filteredJobs}
-            hasOpenInspection={hasOpenInspection}
-            getCurrentInspection={getCurrentInspection}
-            onInspect={(job) => startInspection(job.id)}
-            onOpenChecklist={openChecklistDialog}
-            onOpenPhotos={openDialog("photos")}
-            onOpenRemarks={openDialog("remarks")}
-            onPass={openDialog("pass")}
-            onFail={openDialog("fail")}
-          />
-        )}
-      </div>
+      </section>
 
       {/* Action Dialogs — all operate against the current QCInspection attempt
           for the selected job, not the legacy Job.checklist/Job.qcPhotos fields */}

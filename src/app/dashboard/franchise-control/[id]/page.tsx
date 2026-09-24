@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { getEmployees, getFranchises } from "@/lib/api";
 import { toast } from "react-hot-toast";
 import { Building2, User, Phone, Mail, ArrowLeft, ChevronLeft } from "lucide-react";
+import { StatusText } from "@/components/common/StatusText";
 
 export default function FranchiseDetailsPage() {
   const params = useParams();
@@ -131,7 +132,7 @@ export default function FranchiseDetailsPage() {
                     <td className="whitespace-nowrap capitalize">{role.replace("_", " ").toLowerCase()}</td>
                     <td className="whitespace-nowrap">{emp.phone || "—"}</td>
                     <td className="max-w-[220px] truncate" title={emp.email}>{emp.email || "—"}</td>
-                    <td className="whitespace-nowrap">{emp.status}</td>
+                    <td className="whitespace-nowrap"><StatusText status={emp.status} /></td>
                   </tr>
                 ))
               )}

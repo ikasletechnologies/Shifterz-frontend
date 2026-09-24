@@ -1,6 +1,6 @@
 "use client";
 
-import { X, Car, User, Phone, Wrench, Clock, FileText, Gauge, CalendarCheck2, Calendar, LogOut, Trash2 } from "lucide-react";
+import { X, Car, Clock, Calendar, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 
 interface CarData {
@@ -60,168 +60,121 @@ export default function CarDetailsDialog({ isOpen, onClose, carData, onDeliver, 
   const checkOutParsed = carData.outTime ? formatDateAndTime(carData.outTime) : { date: "—", time: "Pending" };
   const displayVehicleNo = carData.vehicleNo || carData.vehicle || carData.vehicleNumber || "—";
 
+  const fields: { label: string; value: string }[] = [
+    { label: "Vehicle Number", value: displayVehicleNo },
+    { label: "Car Model", value: carData.model || "—" },
+    { label: "Customer Name", value: carData.customer || "—" },
+    { label: "Phone", value: carData.phone || "—" },
+    { label: "Service", value: carData.service || "—" },
+    { label: "Odometer (KM)", value: carData.odometer || "—" },
+  ];
+
+  const canDeliver = Boolean(onDeliver) && carData.status !== "Delivered" && carData.status !== "Out";
+  // Read-only values use the same box as the Vehicle Details & Update form's disabled inputs.
+  const valueBox = "w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 bg-white min-h-[46px] break-words";
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Backdrop */}
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
       <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
-        onClick={onClose}
-      />
-
-      {/* Dialog */}
-      <div className="relative bg-gray-50 rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl animate-in fade-in zoom-in-95 duration-200">
-
-        {/* Banner Header */}
-        <div className="relative bg-white p-6 sm:p-8 text-gray-900 border-b border-gray-100 overflow-hidden">
-          <div className="absolute top-4 right-4 flex items-center gap-2 z-50">
-            <button
-              onClick={onClose}
-              className="p-2 bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-gray-900 rounded-full transition-colors cursor-pointer"
-              title="Close"
-            >
-              <X className="w-5 h-5" />
-            </button>
+        className="bg-white rounded-lg p-4 sm:p-6 md:p-8 w-full max-w-2xl shadow-xl max-h-[90vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between gap-3 mb-6 pb-4 border-b border-gray-100">
+          <div className="flex items-center gap-3 min-w-0">
+            <Car className="w-6 h-6 text-yellow-500 shrink-0" />
+            <h2 className="text-xl font-bold text-gray-900 truncate">Vehicle Details</h2>
           </div>
 
-          <div className="flex items-center gap-3.5 relative z-10">
-            {/* Standalone Car Icon */}
-            <Car className="w-6 h-6 sm:w-7 sm:h-7 text-gray-800 shrink-0" />
-
-            {/* Plain Text Info */}
-            <div>
-              {/* Vehicle Number - Reduced size */}
-              <h2 className="text-lg sm:text-sm font-bold text-gray-900 tracking-tight font-mono leading-none">
-                {displayVehicleNo}
-              </h2>
-              {/* Vehicle Model - Directly Below */}
-              <p className="text-xs sm:text-sm font-semibold text-gray-500 mt-1 leading-tight">
-                {carData.model || "Unknown Model"}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6 relative">
-
-          {/* Customer Card */}
-          <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col gap-4 hover:shadow-md transition-shadow">
-            <div className="flex items-center gap-2 text-gray-800 font-bold border-b border-gray-50 pb-3">
-              <User className="w-4 h-4 text-blue-500" /> Customer Details
-            </div>
-            <div>
-              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Name</p>
-              <p className="font-bold text-gray-900">{carData.customer}</p>
-            </div>
-            <div>
-              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Phone</p>
-              <p className="font-bold text-gray-900 flex items-center gap-1.5">
-                <Phone className="w-3 h-3 text-gray-400" />
-                {carData.phone}
-              </p>
-            </div>
-          </div>
-
-          {/* Service Card */}
-          <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col gap-4 hover:shadow-md transition-shadow">
-            <div className="flex items-center gap-2 text-gray-800 font-bold border-b border-gray-50 pb-3">
-              <Wrench className="w-4 h-4 text-orange-500" /> Service Info
-            </div>
-            <div>
-              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Service Required</p>
-              <p className="font-bold text-gray-900">{carData.service}</p>
-            </div>
-            <div>
-              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Odometer</p>
-              <p className="font-bold text-gray-900 flex items-center gap-1">
-                <Gauge className="w-3 h-3 text-gray-400" />
-                {carData.odometer || "42,500 km"}
-              </p>
-            </div>
-          </div>
-
-          {/* Check-In Date Card */}
-          <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between hover:shadow-md transition-shadow">
-            <div className="flex items-center gap-2 text-gray-800 font-bold border-b border-gray-50 pb-3 mb-1">
-              <Calendar className="w-4 h-4 text-emerald-600" /> Check-In Date
-            </div>
-            <div>
-              <p className="font-extrabold text-gray-900 text-base">{checkInParsed.date}</p>
-            </div>
-          </div>
-
-          {/* Check-In Time Card */}
-          <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between hover:shadow-md transition-shadow">
-            <div className="flex items-center gap-2 text-gray-800 font-bold border-b border-gray-50 pb-3 mb-1">
-              <Clock className="w-4 h-4 text-emerald-600" /> Check-In Time
-            </div>
-            <div>
-              <p className="font-extrabold text-gray-900 text-base font-mono">{checkInParsed.time || "—"}</p>
-            </div>
-          </div>
-
-          {/* Check-Out Date Card */}
-          <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between hover:shadow-md transition-shadow">
-            <div className="flex items-center gap-2 text-gray-800 font-bold border-b border-gray-50 pb-3 mb-1">
-              <CalendarCheck2 className="w-4 h-4 text-purple-600" /> Check-Out Date
-            </div>
-            <div>
-              <p className="font-extrabold text-gray-900 text-base">{checkOutParsed.date}</p>
-            </div>
-          </div>
-
-          {/* Check-Out Time Card */}
-          <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between hover:shadow-md transition-shadow">
-            <div className="flex items-center gap-2 text-gray-800 font-bold border-b border-gray-50 pb-3 mb-1">
-              <Clock className="w-4 h-4 text-purple-600" /> Check-Out Time
-            </div>
-            <div>
-              <p className="font-extrabold text-gray-900 text-base font-mono">{checkOutParsed.time || "—"}</p>
-            </div>
-          </div>
-
-          {/* Notes */}
-          <div className="md:col-span-2 bg-gradient-to-r from-yellow-50 to-amber-50 p-5 rounded-2xl border border-yellow-200/50 shadow-sm relative overflow-hidden">
-            {/* Background pattern */}
-            <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: 'radial-gradient(#f59e0b 1px, transparent 1px)', backgroundSize: '16px 16px' }} />
-
-            <div className="relative z-10">
-              <div className="flex items-center gap-2 text-yellow-800 font-bold mb-3">
-                <FileText className="w-4 h-4 text-yellow-600" /> Notes
-              </div>
-              <p className="text-sm font-semibold text-yellow-900 leading-relaxed">
-                {carData.notes || "No notes provided."}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Actions — onDeliver/onDelete were accepted as props but never
-            actually rendered anywhere in this dialog, so there was no way to
-            deliver or delete a vehicle from here despite the page wiring
-            real logic to both. */}
-        {(onDeliver || onDelete) && (
-          <div className="px-6 pb-6 flex items-center gap-3">
-            {onDeliver && carData.status !== "Delivered" && carData.status !== "Out" && (
-              <button
-                type="button"
-                onClick={() => onDeliver(carData)}
-                className="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-colors cursor-pointer"
-              >
-                <LogOut className="w-4 h-4" /> Deliver / Check Out
-              </button>
-            )}
+          <div className="flex items-center gap-2">
             {onDelete && (
               <button
                 type="button"
                 onClick={() => onDelete(carData)}
-                className="px-4 py-3 border border-red-200 text-red-600 hover:bg-red-50 rounded-xl font-bold transition-colors flex items-center justify-center cursor-pointer"
+                className="p-1.5 hover:bg-red-50 text-red-500 rounded-lg transition-colors cursor-pointer"
                 title="Delete Entry"
               >
-                <Trash2 className="w-4 h-4" />
+                <Trash2 className="w-5 h-5" />
               </button>
             )}
+            <button
+              onClick={onClose}
+              className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors text-gray-500 cursor-pointer"
+              title="Close"
+            >
+              <X className="w-6 h-6" />
+            </button>
           </div>
-        )}
+        </div>
+
+        <div className="space-y-6">
+          {/* Vehicle, customer and service fields */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+            {fields.map((field) => (
+              <div key={field.label}>
+                <p className="block text-sm font-semibold text-gray-700 mb-2">{field.label}</p>
+                <p className={`${valueBox} ${field.label === "Vehicle Number" ? "uppercase" : ""}`}>{field.value}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Check-In & Check-Out */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 p-4 rounded-xl border border-gray-200 text-xs">
+            <div>
+              <p className="font-bold text-gray-500 uppercase tracking-wider mb-1">Check-In Date</p>
+              <p className="font-semibold text-gray-900 flex items-center gap-1.5 text-sm">
+                <Calendar className="w-4 h-4 text-emerald-600" />
+                {checkInParsed.date}
+              </p>
+            </div>
+            <div>
+              <p className="font-bold text-gray-500 uppercase tracking-wider mb-1">Check-In Time</p>
+              <p className="font-semibold text-gray-900 flex items-center gap-1.5 text-sm">
+                <Clock className="w-4 h-4 text-emerald-600" />
+                {checkInParsed.time || "—"}
+              </p>
+            </div>
+            <div>
+              <p className="font-bold text-gray-500 uppercase tracking-wider mb-1">Check-Out Date</p>
+              <p className="font-semibold text-gray-900 flex items-center gap-1.5 text-sm">
+                <Calendar className="w-4 h-4 text-emerald-600" />
+                {checkOutParsed.date}
+              </p>
+            </div>
+            <div>
+              <p className="font-bold text-gray-500 uppercase tracking-wider mb-1">Check-Out Time</p>
+              <p className="font-semibold text-gray-900 flex items-center gap-1.5 text-sm">
+                <Clock className="w-4 h-4 text-emerald-600" />
+                {checkOutParsed.time || "—"}
+              </p>
+            </div>
+          </div>
+
+          {/* Notes */}
+          <div>
+            <p className="block text-sm font-semibold text-gray-700 mb-2">Notes / Condition</p>
+            <p className={`${valueBox} min-h-[110px] whitespace-pre-wrap`}>{carData.notes || "—"}</p>
+          </div>
+
+          {/* Action */}
+          {canDeliver && onDeliver ? (
+            <button
+              type="button"
+              onClick={() => onDeliver(carData)}
+              className="w-full bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-bold py-3.5 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-md text-base cursor-pointer"
+            >
+              Deliver / Check Out
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={onClose}
+              className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-3 rounded-lg transition-colors border border-gray-300 flex items-center justify-center gap-2 cursor-pointer"
+            >
+              Close
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

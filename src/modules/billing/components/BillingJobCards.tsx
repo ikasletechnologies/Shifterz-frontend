@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Search, X, FileText, CheckCircle2, AlertCircle, Printer, CreditCard, Ticket } from "lucide-react";
+import { FileText, AlertCircle, CreditCard, Ticket } from "lucide-react";
+import { SummaryCard } from "@/components/common/SummaryCard";
+import { ListHeader } from "@/components/common/ListHeader";
 import { getJobs, getInvoices, getPayments, createPayment, createOutPass, getOutPasses } from "@/lib/api";
 import { toast } from "react-hot-toast";
 import { useRouter } from "next/navigation";
@@ -158,74 +160,45 @@ export default function BillingJobCards({ onInvoiceGenerated }: { onInvoiceGener
   }
 
   return (
-    <div className="p-8 space-y-6">
-      <div className="flex items-center justify-between mb-2">
-        <h1 className="text-2xl font-bold text-gray-900">Ready For Billing</h1>
-      </div>
-
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-        <div className="bg-white rounded-xl border border-gray-100 border-l-4 border-l-gray-400 p-4 shadow-sm flex flex-col justify-between h-24">
-          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Waiting Billing</span>
-          <span className="text-2xl font-bold text-gray-900">{stats.waiting}</span>
-        </div>
-        <div className="bg-white rounded-xl border border-gray-100 border-l-4 border-l-blue-500 p-4 shadow-sm flex flex-col justify-between h-24">
-          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Invoice Created</span>
-          <span className="text-2xl font-bold text-blue-600">{stats.created}</span>
-        </div>
-        <div className="bg-white rounded-xl border border-gray-100 border-l-4 border-l-yellow-500 p-4 shadow-sm flex flex-col justify-between h-24">
-          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Payment Pending</span>
-          <span className="text-2xl font-bold text-amber-600">{stats.pending}</span>
-        </div>
-        <div className="bg-white rounded-xl border border-gray-100 border-l-4 border-l-green-500 p-4 shadow-sm flex flex-col justify-between h-24">
-          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Fully Paid</span>
-          <span className="text-2xl font-bold text-emerald-600">{stats.paid}</span>
-        </div>
-      </div>
-
-      {/* Filters and Search */}
-      <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-center justify-between">
-        <div className="rounded-lg px-2 py-1.5 flex items-center gap-1 w-fit" style={{ backgroundColor: "#ebebebff" }}>
-          {["All", "Waiting Billing", "Invoice Created", "Payment Pending", "Fully Paid"].map(level => (
-            <button
-              key={level}
-              onClick={() => setStatusFilter(level)}
-              className={`text-sm px-3 py-1 rounded-md transition-colors whitespace-nowrap ${statusFilter === level
-                ? 'bg-white text-gray-900 font-bold shadow-sm'
-                : 'text-gray-600 hover:text-gray-900 font-medium'
-                }`}
-            >
-              {level}
-            </button>
-          ))}
-        </div>
-        <div className="relative w-full max-w-lg">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Search by Job Card, Invoice No, Vehicle No, Customer Name..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-9 py-2 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm"
+    <div className="space-y-6 pt-2">
+      {/* Billing stages — each card also filters the list */}
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
+        {[
+          { id: "All", value: mappedJobs.length },
+          { id: "Waiting Billing", value: stats.waiting },
+          { id: "Invoice Created", value: stats.created },
+          { id: "Payment Pending", value: stats.pending },
+          { id: "Fully Paid", value: stats.paid, tone: "good" as const },
+        ].map((c) => (
+          <SummaryCard
+            key={c.id}
+            label={c.id === "All" ? "All Jobs" : c.id}
+            value={c.value}
+            tone={c.tone}
+            active={statusFilter === c.id}
+            onClick={() => setStatusFilter(c.id)}
           />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          )}
-        </div>
+        ))}
       </div>
+
+      <ListHeader
+        title="Ready for Billing"
+        filterLabel={statusFilter}
+        count={displayJobs.length}
+        hint="Jobs that passed QC. Create the invoice, record the payment, then generate the out pass so the vehicle can leave."
+        searchValue={searchQuery}
+        onSearchChange={setSearchQuery}
+        searchPlaceholder="Search job card, invoice, vehicle, customer..."
+      />
 
       {/* Table */}
       {displayJobs.length === 0 ? (
-        <div className="bg-white border border-gray-100 rounded-xl p-12 flex flex-col items-center justify-center text-center shadow-sm">
-          <div className="w-16 h-16 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center mb-4">
-            <CheckCircle2 className="w-8 h-8" />
-          </div>
-          <h3 className="text-xl font-bold text-gray-900 mb-2"> No vehicles are currently waiting for billing.</h3>
+        <div className="bg-white border border-slate-200 rounded-lg p-10 text-center text-sm text-slate-500">
+          {searchQuery
+            ? `No jobs match "${searchQuery}".`
+            : statusFilter === "All"
+            ? "No jobs are ready for billing. A job shows up here once it passes QC."
+            : `No jobs in "${statusFilter}".`}
         </div>
       ) : (
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">

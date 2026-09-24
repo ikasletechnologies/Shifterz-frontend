@@ -19,6 +19,7 @@ import { JobCardTable } from "@/modules/job-card/components/JobCardTable";
 import { ViewJobCardDialog } from "@/modules/job-card/components/ViewJobCardDialog";
 import { getJobCards } from "@/modules/job-card/services/job-card.service";
 import { JobCard } from "@/modules/job-card/types/job-card.types";
+import { StatusText } from "@/components/common/StatusText";
 
 interface JobInfo {
   id: string;
@@ -360,7 +361,7 @@ function TechniciansPageContent() {
   };
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-6">
+    <div className="p-4 sm:p-6 md:p-8 space-y-6">
 
       {returnTo && (
         <button
@@ -687,28 +688,33 @@ function TechniciansPageContent() {
           </div>
 
           {/* Main Content View (JobCardTable for Assigned Jobs, Technician Cards Grid for other KPIs) */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-            <div className="mb-6 border-b border-gray-100 pb-4 flex items-center justify-between">
-              <h2 className="text-xl font-bold text-gray-900">
-                {activeKPI === "Total Technicians" ? "Technician Information" : activeKPI}
-              </h2>
+          <div className="bg-white rounded-lg border border-slate-200 p-4 sm:p-5">
+            <div className="mb-4 border-b border-slate-100 pb-3 flex items-center justify-between">
+              <div>
+                <h2 className="text-sm font-bold text-slate-900">
+                  {activeKPI === "Total Technicians" ? "Technicians" : activeKPI}
+                </h2>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Technicians do the repair work on job cards. Click a box above to see their jobs by stage; use “Details” to see one technician’s workload.
+                </p>
+              </div>
               {activeKPI === "Assigned Jobs" && (
-                <span className="text-xs font-bold bg-blue-50 text-blue-700 px-3 py-1 rounded-full border border-blue-100">
+                <span className="text-xs text-slate-500">
                   {filteredAssignedJobs.length} Assigned Jobs
                 </span>
               )}
               {activeKPI === "Waiting for Parts" && (
-                <span className="text-xs font-bold bg-amber-50 text-amber-700 px-3 py-1 rounded-full border border-amber-100">
+                <span className="text-xs text-slate-500">
                   {filteredWaitingForPartsJobs.length} Waiting for Parts Jobs
                 </span>
               )}
               {(activeKPI === "Completed Today" || activeKPI === "Completed Jobs") && (
-                <span className="text-xs font-bold bg-green-50 text-green-700 px-3 py-1 rounded-full border border-green-100">
+                <span className="text-xs text-slate-500">
                   {filteredCompletedJobs.length} Completed Jobs
                 </span>
               )}
               {activeKPI === "Rework Jobs" && (
-                <span className="text-xs font-bold bg-red-50 text-red-700 px-3 py-1 rounded-full border border-red-100">
+                <span className="text-xs text-slate-500">
                   {filteredReworkJobs.length} Rework Jobs
                 </span>
               )}
@@ -773,7 +779,7 @@ function TechniciansPageContent() {
                 />
               )
             ) : displayedRows.length === 0 ? (
-              <div className="py-12 text-center text-gray-400">No technicians found.</div>
+              <div className="py-12 text-center text-slate-500 text-sm">No technicians match these filters. Use “Add Technician” to add one.</div>
             ) : (
               <div className="bg-white border border-slate-200 rounded-lg overflow-x-auto">
                 <table className="data-table w-full min-w-[1000px] text-left">
@@ -810,7 +816,7 @@ function TechniciansPageContent() {
                           <td className="max-w-[180px] truncate">
                             {franchises.find((f) => f.id === row.franchiseId)?.name || (row.branch && row.branch !== "HQ" && row.branch !== "N/A" ? row.branch : row.franchiseId ? "Assigned Branch" : "Headquarters")}
                           </td>
-                          <td className="whitespace-nowrap">{row.status}</td>
+                          <td className="whitespace-nowrap"><StatusText status={row.status} /></td>
                           <td className="whitespace-nowrap">{jobCount}</td>
                           <td className="whitespace-nowrap">
                             <div className="flex items-center justify-end gap-2">
@@ -987,7 +993,7 @@ function TechniciansPageContent() {
                             <td className="whitespace-nowrap uppercase">{job.vehicle || "—"}</td>
                             <td className="max-w-[200px] truncate">{job.service || "—"}</td>
                             <td className="max-w-[180px] truncate">{job.customer || "—"}</td>
-                            <td className="whitespace-nowrap">{job.status}</td>
+                            <td className="whitespace-nowrap"><StatusText status={job.status} /></td>
                           </tr>
                         ))}
                       </tbody>

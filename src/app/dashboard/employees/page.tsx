@@ -7,6 +7,8 @@ import AddEmployeeDialog from "@/components/employees/AddEmployeeDialog";
 import EditEmployeeDialog from "@/components/employees/EditEmployeeDialog";
 import { getEmployees, createEmployee, updateEmployee, deleteEmployee, getFranchises, createMemberTransfer, uploadFile, getMemberTransfers, updateMemberTransfer, deleteMemberTransfer } from "@/lib/api";
 import { toast } from "react-hot-toast";
+import { useOpenOnQuery } from "@/lib/useOpenOnQuery";
+import { SummaryCard } from "@/components/common/SummaryCard";
 
 const FRANCHISE_ASSIGNABLE_ROLES = [
   "RECEPTION_EXECUTIVE",
@@ -41,6 +43,7 @@ export default function EmployeesPage() {
   const [currentUser, setCurrentUser] = useState<any>(null);
 
   const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"All" | "Active" | "Inactive">("All");
 
   const [showPassword, setShowPassword] = useState(false);
 
@@ -243,6 +246,9 @@ export default function EmployeesPage() {
     }
   };
 
+  // Dashboard "Add Employee" quick action links here with ?new=1.
+  useOpenOnQuery(() => setIsAddOpen(true), ["SUPER_ADMIN", "HQ_USER", "FRANCHISE_ADMIN"].includes(currentUser?.role));
+
   if (isLoading) {
     return <div className="p-8 text-center text-gray-500">Loading employees...</div>;
   }
@@ -251,6 +257,7 @@ export default function EmployeesPage() {
   const isFranchiseAdmin = currentUser?.role === "FRANCHISE_ADMIN";
 
   const filteredEmployees = employees.filter((emp) => {
+    if (statusFilter !== "All" && (emp.status || "Active") !== statusFilter) return false;
     if (!searchQuery) return true;
     const q = searchQuery.toLowerCase();
     return (
@@ -275,8 +282,32 @@ export default function EmployeesPage() {
     );
   });
 
+  const activeEmployees = employees.filter((e) => (e.status || "Active") === "Active").length;
+
   return (
-    <div className="p-8">
+    <div className="p-4 sm:p-6 md:p-8">
+      {canManageEmployees && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+          <SummaryCard label="All Employees" value={employees.length} active={statusFilter === "All"} onClick={() => setStatusFilter("All")} />
+          <SummaryCard label="Active" tone="good" value={activeEmployees} active={statusFilter === "Active"} onClick={() => setStatusFilter("Active")} />
+          <SummaryCard label="Inactive" tone="bad" value={employees.length - activeEmployees} active={statusFilter === "Inactive"} onClick={() => setStatusFilter("Inactive")} />
+        </div>
+      )}
+
+      <div className="mb-3">
+        <h2 className="text-sm font-bold text-slate-900">
+          {canManageEmployees ? "Employees" : "Member Requests"}{" "}
+          <span className="font-normal text-slate-500">
+            ({canManageEmployees ? filteredEmployees.length : filteredMemberRequests.length})
+          </span>
+        </h2>
+        <p className="text-xs text-slate-500 mt-0.5">
+          {canManageEmployees
+            ? "Everyone who can log in to Shifterz. Their role decides which menus they see; inactive staff cannot log in."
+            : "Request new staff or transfers for your branch; Headquarters approves them."}
+        </p>
+      </div>
+
       <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
         {/* Search Bar Input */}
         <div className="relative min-w-[240px] max-w-md flex-1">
@@ -464,10 +495,14 @@ export default function EmployeesPage() {
                 })
               )}
 
-              {((canManageEmployees && employees.length === 0) || (!canManageEmployees && memberRequests.length === 0)) && (
+              {((canManageEmployees && filteredEmployees.length === 0) || (!canManageEmployees && filteredMemberRequests.length === 0)) && (
                 <tr>
-                  <td colSpan={canManageEmployees ? 7 : 7} className="px-6 py-8 text-center text-gray-500">
-                    No records found
+                  <td colSpan={7} className="px-6 py-8 text-center text-gray-500">
+                    {searchQuery || statusFilter !== "All"
+                      ? "No records match these filters."
+                      : canManageEmployees
+                      ? "No employees yet. Use “Add Employee” to add the first one."
+                      : "No member requests yet. Use “Request members” to ask Headquarters for staff."}
                   </td>
                 </tr>
               )}

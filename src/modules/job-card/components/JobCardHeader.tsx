@@ -186,11 +186,11 @@ export function JobCardHeader({
           className={`rounded-xl border p-4 shadow-xs flex flex-col justify-between h-24 text-left transition-all cursor-pointer ${
             isCardSelected("All")
               ? "bg-yellow-50 border-yellow-400 ring-2 ring-yellow-400 shadow-md"
-              : "bg-white border-gray-100 hover:border-yellow-300 hover:shadow-xs"
+              : "bg-white border-gray-100 hover:border-yellow-300 hover:bg-yellow-50/40 hover:shadow-xs"
           }`}
         >
-          <span className={`text-[10px] font-bold uppercase tracking-wider ${isCardSelected("All") ? "text-yellow-800" : "text-gray-400"}`}>All</span>
-          <span className="text-2xl font-bold text-yellow-600">{stats.all}</span>
+          <span className="text-[11px] font-bold text-slate-800 uppercase tracking-wide">All</span>
+          <span className="text-2xl font-semibold text-slate-900">{stats.all}</span>
         </button>
 
         {/* 2. Assigned */}
@@ -199,12 +199,12 @@ export function JobCardHeader({
           onClick={() => onStatusSelect?.("Assigned")}
           className={`rounded-xl border p-4 shadow-xs flex flex-col justify-between h-24 text-left transition-all cursor-pointer ${
             isCardSelected("Assigned")
-              ? "bg-blue-50 border-blue-500 ring-2 ring-blue-500 shadow-md"
-              : "bg-white border-gray-100 hover:border-blue-200 hover:shadow-xs"
+              ? "bg-yellow-50 border-yellow-400 ring-2 ring-yellow-400 shadow-md"
+              : "bg-white border-gray-100 hover:border-yellow-300 hover:bg-yellow-50/40 hover:shadow-xs"
           }`}
         >
-          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Assigned</span>
-          <span className="text-2xl font-bold text-blue-600">{stats.assigned}</span>
+          <span className="text-[11px] font-bold text-slate-800 uppercase tracking-wide">Assigned</span>
+          <span className="text-2xl font-semibold text-slate-900">{stats.assigned}</span>
         </button>
 
         {/* 3. Unassigned */}
@@ -213,12 +213,12 @@ export function JobCardHeader({
           onClick={() => onStatusSelect?.("Unassigned")}
           className={`rounded-xl border p-4 shadow-xs flex flex-col justify-between h-24 text-left transition-all cursor-pointer ${
             isCardSelected("Unassigned")
-              ? "bg-amber-50 border-amber-500 ring-2 ring-amber-500 shadow-md"
-              : "bg-white border-gray-100 hover:border-amber-200 hover:shadow-xs"
+              ? "bg-yellow-50 border-yellow-400 ring-2 ring-yellow-400 shadow-md"
+              : "bg-white border-gray-100 hover:border-yellow-300 hover:bg-yellow-50/40 hover:shadow-xs"
           }`}
         >
-          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Unassigned</span>
-          <span className="text-2xl font-bold text-amber-500">{stats.unassigned}</span>
+          <span className="text-[11px] font-bold text-slate-800 uppercase tracking-wide">Unassigned</span>
+          <span className="text-2xl font-semibold text-slate-900">{stats.unassigned}</span>
         </button>
 
         {/* 4. In Progress */}
@@ -227,12 +227,12 @@ export function JobCardHeader({
           onClick={() => onStatusSelect?.("In Progress")}
           className={`rounded-xl border p-4 shadow-xs flex flex-col justify-between h-24 text-left transition-all cursor-pointer ${
             isCardSelected("In Progress")
-              ? "bg-sky-50 border-sky-500 ring-2 ring-sky-500 shadow-md"
-              : "bg-white border-gray-100 hover:border-sky-200 hover:shadow-xs"
+              ? "bg-yellow-50 border-yellow-400 ring-2 ring-yellow-400 shadow-md"
+              : "bg-white border-gray-100 hover:border-yellow-300 hover:bg-yellow-50/40 hover:shadow-xs"
           }`}
         >
-          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">In Progress</span>
-          <span className="text-2xl font-bold text-sky-600">{stats.inProgress}</span>
+          <span className="text-[11px] font-bold text-slate-800 uppercase tracking-wide">In Progress</span>
+          <span className="text-2xl font-semibold text-slate-900">{stats.inProgress}</span>
         </button>
 
         {/* 5. Completed */}
@@ -241,12 +241,12 @@ export function JobCardHeader({
           onClick={() => onStatusSelect?.("Completed")}
           className={`rounded-xl border p-4 shadow-xs flex flex-col justify-between h-24 text-left transition-all cursor-pointer ${
             isCardSelected("Completed")
-              ? "bg-emerald-50 border-emerald-500 ring-2 ring-emerald-500 shadow-md"
-              : "bg-white border-gray-100 hover:border-emerald-200 hover:shadow-xs"
+              ? "bg-yellow-50 border-yellow-400 ring-2 ring-yellow-400 shadow-md"
+              : "bg-white border-gray-100 hover:border-yellow-300 hover:bg-yellow-50/40 hover:shadow-xs"
           }`}
         >
-          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Completed</span>
-          <span className="text-2xl font-bold text-emerald-500">{stats.completed}</span>
+          <span className="text-[11px] font-bold text-slate-800 uppercase tracking-wide">Completed</span>
+          <span className={`text-2xl font-semibold ${stats.completed > 0 ? "text-green-700" : "text-slate-900"}`}>{stats.completed}</span>
         </button>
 
         {/* Row 2 */}
@@ -256,12 +256,12 @@ export function JobCardHeader({
           onClick={() => onStatusSelect?.("Review for QC")}
           className={`rounded-xl border p-4 shadow-xs flex flex-col justify-between h-24 text-left transition-all cursor-pointer ${
             isCardSelected("Review for QC")
-              ? "bg-purple-50 border-purple-500 ring-2 ring-purple-500 shadow-md"
-              : "bg-white border-gray-100 hover:border-purple-200 hover:shadow-xs"
+              ? "bg-yellow-50 border-yellow-400 ring-2 ring-yellow-400 shadow-md"
+              : "bg-white border-gray-100 hover:border-yellow-300 hover:bg-yellow-50/40 hover:shadow-xs"
           }`}
         >
-          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Review for QC</span>
-          <span className="text-2xl font-bold text-purple-600">{stats.reviewForQC}</span>
+          <span className="text-[11px] font-bold text-slate-800 uppercase tracking-wide">Review for QC</span>
+          <span className="text-2xl font-semibold text-slate-900">{stats.reviewForQC}</span>
         </button>
 
         {/* 7. Rework */}
@@ -270,12 +270,12 @@ export function JobCardHeader({
           onClick={() => onStatusSelect?.("Rework")}
           className={`rounded-xl border p-4 shadow-xs flex flex-col justify-between h-24 text-left transition-all cursor-pointer ${
             isCardSelected("Rework")
-              ? "bg-rose-50 border-rose-500 ring-2 ring-rose-500 shadow-md"
-              : "bg-white border-gray-100 hover:border-rose-200 hover:shadow-xs"
+              ? "bg-yellow-50 border-yellow-400 ring-2 ring-yellow-400 shadow-md"
+              : "bg-white border-gray-100 hover:border-yellow-300 hover:bg-yellow-50/40 hover:shadow-xs"
           }`}
         >
-          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Rework</span>
-          <span className="text-2xl font-bold text-rose-500">{stats.rework}</span>
+          <span className="text-[11px] font-bold text-slate-800 uppercase tracking-wide">Rework</span>
+          <span className={`text-2xl font-semibold ${stats.rework > 0 ? "text-red-600" : "text-slate-900"}`}>{stats.rework}</span>
         </button>
 
         {/* 8. Ready for Billing */}
@@ -284,12 +284,12 @@ export function JobCardHeader({
           onClick={() => onStatusSelect?.("Ready for Billing")}
           className={`rounded-xl border p-4 shadow-xs flex flex-col justify-between h-24 text-left transition-all cursor-pointer ${
             isCardSelected("Ready for Billing")
-              ? "bg-indigo-50 border-indigo-500 ring-2 ring-indigo-500 shadow-md"
-              : "bg-white border-gray-100 hover:border-indigo-200 hover:shadow-xs"
+              ? "bg-yellow-50 border-yellow-400 ring-2 ring-yellow-400 shadow-md"
+              : "bg-white border-gray-100 hover:border-yellow-300 hover:bg-yellow-50/40 hover:shadow-xs"
           }`}
         >
-          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Ready for Billing</span>
-          <span className="text-2xl font-bold text-indigo-600">{stats.readyForBilling}</span>
+          <span className="text-[11px] font-bold text-slate-800 uppercase tracking-wide">Ready for Billing</span>
+          <span className={`text-2xl font-semibold ${stats.readyForBilling > 0 ? "text-green-700" : "text-slate-900"}`}>{stats.readyForBilling}</span>
         </button>
 
         {/* 9. Delivered */}
@@ -298,12 +298,12 @@ export function JobCardHeader({
           onClick={() => onStatusSelect?.("Delivered")}
           className={`rounded-xl border p-4 shadow-xs flex flex-col justify-between h-24 text-left transition-all cursor-pointer ${
             isCardSelected("Delivered")
-              ? "bg-teal-50 border-teal-500 ring-2 ring-teal-500 shadow-md"
-              : "bg-white border-gray-100 hover:border-teal-200 hover:shadow-xs"
+              ? "bg-yellow-50 border-yellow-400 ring-2 ring-yellow-400 shadow-md"
+              : "bg-white border-gray-100 hover:border-yellow-300 hover:bg-yellow-50/40 hover:shadow-xs"
           }`}
         >
-          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Delivered</span>
-          <span className="text-2xl font-bold text-teal-600">{stats.delivered}</span>
+          <span className="text-[11px] font-bold text-slate-800 uppercase tracking-wide">Delivered</span>
+          <span className={`text-2xl font-semibold ${stats.delivered > 0 ? "text-green-700" : "text-slate-900"}`}>{stats.delivered}</span>
         </button>
 
         {/* 10. Cancelled */}
@@ -312,12 +312,12 @@ export function JobCardHeader({
           onClick={() => onStatusSelect?.("Cancelled")}
           className={`rounded-xl border p-4 shadow-xs flex flex-col justify-between h-24 text-left transition-all cursor-pointer ${
             isCardSelected("Cancelled")
-              ? "bg-red-50 border-red-500 ring-2 ring-red-500 shadow-md"
-              : "bg-white border-gray-100 hover:border-red-200 hover:shadow-xs"
+              ? "bg-yellow-50 border-yellow-400 ring-2 ring-yellow-400 shadow-md"
+              : "bg-white border-gray-100 hover:border-yellow-300 hover:bg-yellow-50/40 hover:shadow-xs"
           }`}
         >
-          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Cancelled</span>
-          <span className="text-2xl font-bold text-red-500">{stats.cancelled}</span>
+          <span className="text-[11px] font-bold text-slate-800 uppercase tracking-wide">Cancelled</span>
+          <span className={`text-2xl font-semibold ${stats.cancelled > 0 ? "text-red-600" : "text-slate-900"}`}>{stats.cancelled}</span>
         </button>
       </div>
     </div>

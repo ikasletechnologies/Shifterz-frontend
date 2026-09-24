@@ -530,10 +530,7 @@ export default function UserManagementPage() {
                             toast.error(e.message);
                           }
                         }}
-                        className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-extrabold cursor-pointer transition-all ${u.status === "Active"
-                          ? "bg-green-100 text-green-700 hover:bg-green-200"
-                          : "bg-red-100 text-red-700 hover:bg-red-200"
-                          }`}
+                        className={`keep-color font-medium cursor-pointer hover:underline underline-offset-2 ${u.status === "Active" ? "text-green-700" : "text-red-600"}`}
                         title="Click to toggle account activation/deactivation (§17.8)"
                       >
                         {u.status}

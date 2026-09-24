@@ -170,8 +170,8 @@ export default function Header() {
           <div>
             <h1 className="text-2xl font-bold text-gray-900">{pageTitle}</h1>
             {franchiseName && (
-              <div className="flex items-center gap-1.5 text-xs font-semibold text-purple-700 bg-purple-50 border border-purple-200/80 px-2.5 py-0.5 rounded-md w-fit mt-1 shadow-2xs">
-                <Building2 className="w-3.5 h-3.5 text-purple-600 shrink-0" />
+              <div className="flex items-center gap-1.5 text-xs font-medium text-slate-500 w-fit mt-1">
+                <Building2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                 <span>Franchise: {franchiseName}</span>
               </div>
             )}

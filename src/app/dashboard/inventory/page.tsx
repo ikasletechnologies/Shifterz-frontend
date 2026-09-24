@@ -3,9 +3,11 @@
 
 import { useState, useEffect } from "react";
 import {
-  Package, IndianRupee, Store, Download, Trash2, Plus, Sliders, AlertTriangle,
+  Download, Trash2, Plus, Sliders,
   Search, X
 } from "lucide-react";
+import { SummaryCard } from "@/components/common/SummaryCard";
+import { ListHeader } from "@/components/common/ListHeader";
 import InventoryItemDialog from "@/components/inventory/InventoryItemDialog";
 import AdjustStockDialog from "@/components/inventory/AdjustStockDialog";
 import { getInventory, createInventoryItem, updateInventoryItem, deleteInventoryItem, getSettings } from "@/lib/api";
@@ -35,27 +37,10 @@ export default function InventoryPage() {
   // Search & Filter States
   const [searchQuery, setSearchQuery] = useState("");
   const [filterCategory, setFilterCategory] = useState("All Categories");
-  const [filterReportType, setFilterReportType] = useState("All Reports");
-  const [filterFranchise, setFilterFranchise] = useState("All Franchises");
-  const [fromDate, setFromDate] = useState("");
-  const [toDate, setToDate] = useState("");
-  const [compareWith, setCompareWith] = useState("Previous Period");
+  const [lowStockOnly, setLowStockOnly] = useState(false);
 
   const [dbCategories, setDbCategories] = useState<string[]>([]);
 
-  const getTodayISO = () => new Date().toISOString().split("T")[0];
-
-  const handleFromDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
-    if (val && getTodayISO() && val > getTodayISO()) return;
-    setFromDate(val);
-  };
-
-  const handleToDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
-    if (val && getTodayISO() && val > getTodayISO()) return;
-    setToDate(val);
-  };
 
   useEffect(() => {
     async function fetchInventoryAndSettings() {
@@ -97,7 +82,9 @@ export default function InventoryPage() {
     const matchesCatSelect =
       filterCategory === "All Categories" || item.category === filterCategory;
 
-    return matchesSearch && matchesCatSelect;
+    const matchesStock = !lowStockOnly || item.stock <= item.reorder;
+
+    return matchesSearch && matchesCatSelect && matchesStock;
   });
 
   const handleAddItem = async (formData: any) => {
@@ -316,224 +303,53 @@ export default function InventoryPage() {
   }
 
   return (
-    <div className="p-8 space-y-6">
+    <div className="p-4 sm:p-6 md:p-8 space-y-6">
       {error && (
         <div className="bg-rose-50 border border-rose-200 rounded-xl p-4 text-rose-700 text-xs font-semibold">
           ⚠️ {error}
         </div>
       )}
 
-      {/* Top KPI Summary Cards Grid — all figures derived directly from inventory records */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Card 1: Total Items */}
-        <div className="bg-white rounded-2xl border border-slate-100 p-4 shadow-2xs flex items-center justify-between">
-          <div>
-            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Total Items</p>
-            <p className="text-2xl font-bold text-slate-900">{totalSkus}</p>
-          </div>
-          <div className="p-3 bg-blue-100 text-blue-600 rounded-2xl shrink-0">
-            <Package className="w-5 h-5" />
-          </div>
-        </div>
-
-        {/* Card 2: Total Inventory Value */}
-        <div className="bg-white rounded-2xl border border-slate-100 p-4 shadow-2xs flex items-center justify-between">
-          <div>
-            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Total Inventory Value</p>
-            <p className="text-2xl font-bold text-slate-900">₹{totalValue.toLocaleString("en-IN")}</p>
-          </div>
-          <div className="p-3 bg-emerald-100 text-emerald-600 rounded-2xl shrink-0">
-            <IndianRupee className="w-5 h-5" />
-          </div>
-        </div>
-
-        {/* Card 3: Low Stock Items */}
-        <div className="bg-white rounded-2xl border border-slate-100 p-4 shadow-2xs flex items-center justify-between">
-          <div>
-            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Low Stock Items</p>
-            <p className="text-2xl font-bold text-slate-900">{lowStockItems.length}</p>
-          </div>
-          <div className="p-3 bg-rose-100 text-rose-600 rounded-2xl shrink-0">
-            <AlertTriangle className="w-5 h-5" />
-          </div>
-        </div>
-
-        {/* Card 4: Suppliers */}
-        <div className="bg-white rounded-2xl border border-slate-100 p-4 shadow-2xs flex items-center justify-between">
-          <div>
-            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Suppliers</p>
-            <p className="text-2xl font-bold text-slate-900">{totalSuppliers}</p>
-          </div>
-          <div className="p-3 bg-indigo-100 text-indigo-600 rounded-2xl shrink-0">
-            <Store className="w-5 h-5" />
-          </div>
-        </div>
+      {/* Summary — Low Stock doubles as a filter */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <SummaryCard label="Total Items" value={totalSkus} active={!lowStockOnly} onClick={() => setLowStockOnly(false)} />
+        <SummaryCard
+          label="Low Stock Items"
+          value={lowStockItems.length}
+          tone="bad"
+          note={lowStockItems.length > 0 ? "At or below reorder level" : undefined}
+          active={lowStockOnly}
+          onClick={() => setLowStockOnly(true)}
+        />
+        <SummaryCard label="Total Inventory Value" value={`₹${totalValue.toLocaleString("en-IN")}`} />
+        <SummaryCard label="Suppliers" value={totalSuppliers} />
       </div>
 
-      {/* Low Stock Banner Alert if low stock items exist */}
-      {lowStockItems.length > 0 && (
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-3.5 flex items-center justify-between text-xs text-amber-900">
-          <div className="flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
-            <span className="font-bold">Low Stock Alert ({lowStockItems.length} items):</span>
-            <span className="truncate">{lowStockItems.map((item) => `${item.name} (${item.stock} ${item.unit})`).join(" · ")}</span>
-          </div>
+      <div className="space-y-3">
+        <ListHeader
+          title="Inventory Items"
+          filterLabel={lowStockOnly ? "Low Stock" : "All"}
+          count={filteredItems.length}
+          hint="Parts and materials in stock. An item turns low-stock when its quantity reaches its reorder level — restock it before jobs run short."
+          searchValue={searchQuery}
+          onSearchChange={setSearchQuery}
+          searchPlaceholder="Search item, category, supplier, location..."
+        >
+          <button
+            onClick={downloadPDF}
+            className="px-3.5 py-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 text-sm font-medium rounded-lg flex items-center gap-1.5 transition-colors"
+          >
+            <Download className="w-4 h-4" />
+            PDF Report
+          </button>
           <button
             onClick={() => setIsDialogOpen(true)}
-            className="px-3 py-1 bg-amber-400 hover:bg-amber-500 font-bold text-slate-900 rounded-lg shrink-0 text-xs shadow-2xs transition-colors"
+            className="px-3.5 py-2 text-sm font-semibold text-gray-900 bg-yellow-400 hover:bg-yellow-500 rounded-lg transition-colors flex items-center gap-1.5 whitespace-nowrap"
           >
-            + Restock Item
+            <Plus className="w-4 h-4" />
+            Add Item
           </button>
-        </div>
-      )}
-
-      {/* Filter Bar Card Row */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs space-y-3">
-        {/* Search Bar Input (Top) */}
-        <div className="relative">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input
-            type="text"
-            placeholder="Search Inventory Items, Category, Supplier, Location..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-9 py-2.5 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
-          />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          )}
-        </div>
-
-        {/* Filter Section (Below Search Bar) */}
-        <div className="flex flex-wrap items-end gap-3">
-          {/* Report Type */}
-          <div className="flex-1 min-w-[140px]">
-            <label className="block text-[11px] font-bold text-slate-500 mb-1">Report Type</label>
-            <select
-              value={filterReportType}
-              onChange={(e) => setFilterReportType(e.target.value)}
-              className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white font-semibold text-slate-700 h-[36px]"
-            >
-              <option value="All Reports">All Reports</option>
-              <option value="Inventory Reports">Inventory Reports</option>
-              <option value="Sales Reports">Sales Reports</option>
-            </select>
-          </div>
-
-          {/* Franchise */}
-          <div className="flex-1 min-w-[140px]">
-            <label className="block text-[11px] font-bold text-slate-500 mb-1">Franchise</label>
-            <select
-              value={filterFranchise}
-              onChange={(e) => setFilterFranchise(e.target.value)}
-              className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white font-semibold text-slate-700 h-[36px]"
-            >
-              <option value="All Franchises">All Franchises</option>
-              <option value="Headquarters">Headquarters</option>
-            </select>
-          </div>
-
-          {/* From Date Filter */}
-          <div>
-            <label className="block text-[11px] font-bold text-slate-500 mb-1">From Date</label>
-            <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-xl px-2.5 py-2 shrink-0 h-[36px]">
-              <span className="text-xs font-semibold text-slate-500 whitespace-nowrap">From:</span>
-              <input
-                type="date"
-                value={fromDate}
-                max={getTodayISO()}
-                onChange={handleFromDateChange}
-                className="bg-transparent border-none text-xs text-slate-800 focus:outline-none cursor-pointer p-0"
-              />
-              <button
-                type="button"
-                disabled={!fromDate}
-                onClick={() => fromDate && setFromDate("")}
-                className={`p-0.5 rounded transition-colors flex items-center justify-center shrink-0 ${
-                  fromDate
-                    ? "text-slate-600 hover:text-slate-900 hover:bg-slate-100 cursor-pointer"
-                    : "text-slate-300 cursor-not-allowed opacity-50"
-                }`}
-                title={fromDate ? "Clear From Date" : ""}
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          </div>
-
-          {/* To Date Filter */}
-          <div>
-            <label className="block text-[11px] font-bold text-slate-500 mb-1">To Date</label>
-            <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-xl px-2.5 py-2 shrink-0 h-[36px]">
-              <span className="text-xs font-semibold text-slate-500 whitespace-nowrap">To:</span>
-              <input
-                type="date"
-                value={toDate}
-                max={getTodayISO()}
-                onChange={handleToDateChange}
-                className="bg-transparent border-none text-xs text-slate-800 focus:outline-none cursor-pointer p-0"
-              />
-              <button
-                type="button"
-                disabled={!toDate}
-                onClick={() => toDate && setToDate("")}
-                className={`p-0.5 rounded transition-colors flex items-center justify-center shrink-0 ${
-                  toDate
-                    ? "text-slate-600 hover:text-slate-900 hover:bg-slate-100 cursor-pointer"
-                    : "text-slate-300 cursor-not-allowed opacity-50"
-                }`}
-                title={toDate ? "Clear To Date" : ""}
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          </div>
-
-          {/* Compare With */}
-          <div className="flex-1 min-w-[140px]">
-            <label className="block text-[11px] font-bold text-slate-500 mb-1">Compare With</label>
-            <select
-              value={compareWith}
-              onChange={(e) => setCompareWith(e.target.value)}
-              className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white font-semibold text-slate-700 h-[36px]"
-            >
-              <option value="Previous Period">Previous Period</option>
-              <option value="Previous Year">Previous Year</option>
-            </select>
-          </div>
-
-          {/* Add Item Button */}
-          <div className="shrink-0">
-            <button
-              onClick={() => setIsDialogOpen(true)}
-              className="px-4 py-2 text-xs font-bold text-slate-900 bg-amber-400 hover:bg-amber-500 rounded-xl transition-all shadow-2xs flex items-center justify-center gap-1.5 whitespace-nowrap h-[36px]"
-            >
-              <Plus className="w-3.5 h-3.5 stroke-3 shrink-0" />
-              Add Item
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Reports / Inventory Overview Section */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-bold text-slate-900">Inventory Items ({filteredItems.length})</h2>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={downloadPDF}
-              className="px-3.5 py-2 bg-amber-400 hover:bg-amber-500 text-slate-900 text-xs font-bold rounded-xl flex items-center gap-1.5 transition-colors shadow-2xs"
-            >
-              <Download className="w-3.5 h-3.5" />
-              PDF Report
-            </button>
-          </div>
-        </div>
+        </ListHeader>
 
         {/* Data Table Card */}
         <div className="bg-white rounded-2xl border border-slate-200/90 overflow-hidden shadow-2xs">
@@ -554,7 +370,11 @@ export default function InventoryPage() {
                 {filteredItems.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="py-12 text-center text-slate-400 font-medium">
-                      No inventory items found matching your filters.
+                      {searchQuery
+                        ? `No items match "${searchQuery}".`
+                        : lowStockOnly
+                        ? "Nothing is low on stock."
+                        : "No items in inventory yet. Use “Add Item” to add parts and materials."}
                     </td>
                   </tr>
                 ) : (

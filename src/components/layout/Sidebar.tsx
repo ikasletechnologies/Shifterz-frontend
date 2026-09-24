@@ -303,6 +303,9 @@ export const receptionistSidebarSections: NavSection[] = [
 // Matches href exactly, or as a path segment (so "/dashboard/inventory" doesn't
 // falsely match "/dashboard/inventory-staff").
 function isPathActive(pathname: string, href: string) {
+  if (href === "/dashboard" || href === "/technician") {
+    return pathname === href;
+  }
   return pathname === href || pathname.startsWith(href + "/");
 }
 
@@ -310,11 +313,9 @@ function isPathActive(pathname: string, href: string) {
 function NavLink({
   item,
   pathname,
-  depth = 0,
 }: {
   item: NavItem;
   pathname: string;
-  depth?: number;
 }) {
   const hasChildren = item.children && item.children.length > 0;
 
@@ -324,97 +325,81 @@ function NavLink({
 
   const [open, setOpen] = useState(anyChildActive ?? false);
 
-  const isActive =
-    item.href === "/dashboard" || item.href === "/technician"
-      ? pathname === item.href
-      : isPathActive(pathname, item.href) && !hasChildren;
+  useEffect(() => {
+    if (anyChildActive) {
+      setOpen(true);
+    }
+  }, [anyChildActive]);
+
+  const isActive = !hasChildren && isPathActive(pathname, item.href);
 
   const Icon = item.icon;
-  const Chevron = open ? ChevronDown : ChevronRight;
-
-  const activeStyle = {
-    background: "linear-gradient(90deg, rgba(250,204,21,0.18) 0%, rgba(250,204,21,0.06) 100%)",
-    borderLeft: "3px solid #facc15",
-    color: "#facc15",
-  };
-  const inactiveStyle = {
-    borderLeft: "3px solid transparent",
-    color: "rgba(255,255,255,0.6)",
-  };
-  const parentOpenStyle = {
-    borderLeft: "3px solid rgba(250,204,21,0.4)",
-    color: "rgba(255,255,255,0.85)",
-  };
-
-  const paddingLeft = depth === 0 ? "12px" : "20px";
 
   if (hasChildren) {
     return (
-      <div>
+      <div className="space-y-1">
         <button
+          type="button"
           onClick={() => setOpen((v) => !v)}
-          style={{
-            ...(open ? parentOpenStyle : inactiveStyle),
-            paddingLeft,
-            width: "100%",
-            display: "flex",
-            alignItems: "center",
-            gap: "12px",
-            paddingTop: "10px",
-            paddingBottom: "10px",
-            paddingRight: "12px",
-            borderRadius: "0 8px 8px 0",
-            fontSize: "14px",
-            fontWeight: 500,
-            cursor: "pointer",
-            background: open ? "rgba(250,204,21,0.06)" : "transparent",
-            transition: "all 150ms",
-          }}
-          className="hover:bg-white/5 hover:text-white"
+          className={`
+            w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium
+            transition-all duration-250 ease-[cubic-bezier(0.16,1,0.3,1)] select-none group active:scale-[0.98]
+            ${open || anyChildActive
+              ? "bg-[#162032] text-white shadow-xs"
+              : "text-slate-400 hover:bg-[#162032]/80 hover:text-white"
+            }
+          `}
         >
-          <span className="flex-1 text-left">{item.label}</span>
-          <Chevron className="w-3.5 h-3.5 shrink-0 opacity-60" />
+          {Icon && (
+            <Icon
+              className={`w-5 h-5 shrink-0 transition-transform duration-250 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-110 ${anyChildActive || open ? "text-slate-300" : "text-slate-400 group-hover:text-slate-200"
+                }`}
+            />
+          )}
+          <span className="flex-1 text-left truncate">{item.label}</span>
+          <ChevronDown
+            className={`w-4 h-4 shrink-0 text-slate-400 group-hover:text-slate-200 transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${open ? "rotate-180 text-slate-300" : ""
+              }`}
+          />
         </button>
 
         <div
-          style={{
-            overflow: "hidden",
-            maxHeight: open ? `${item.children!.length * 44}px` : "0px",
-            transition: "max-height 280ms cubic-bezier(0.4,0,0.2,1)",
-            borderLeft: "2px solid rgba(250,204,21,0.15)",
-            marginLeft: "23px",
-          }}
+          className={`grid transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${open ? "grid-rows-[1fr] opacity-100 mt-1" : "grid-rows-[0fr] opacity-0 pointer-events-none"
+            }`}
         >
-          {item.children!.map((child) => {
-            const childActive = isPathActive(pathname, child.href);
-            return (
-              <Link
-                key={child.href}
-                href={child.href}
-                style={
-                  childActive
-                    ? {
-                      background: "linear-gradient(90deg, rgba(250,204,21,0.14) 0%, rgba(250,204,21,0.04) 100%)",
-                      borderLeft: "2px solid #facc15",
-                      color: "#facc15",
-                      marginLeft: "-2px",
+          <div className="overflow-hidden space-y-1 pl-4 border-l border-slate-800/80 ml-3.5">
+            {item.children!.map((child) => {
+              const childActive = isPathActive(pathname, child.href);
+              const ChildIcon = child.icon;
+              return (
+                <Link
+                  key={child.href}
+                  href={child.href}
+                  className={`
+                    flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium
+                    transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] group active:scale-[0.98]
+                    ${childActive
+                      ? "bg-[#182235] text-white font-semibold border border-slate-700/60 shadow-sm"
+                      : "text-slate-400 hover:bg-[#162032]/80 hover:text-white"
                     }
-                    : {
-                      borderLeft: "2px solid transparent",
-                      color: "rgba(255,255,255,0.5)",
-                      marginLeft: "-2px",
-                    }
-                }
-                className={`
-                  flex items-center gap-2.5 px-3 py-2 rounded-r-lg
-                  text-xs font-medium transition-all duration-150
-                  ${!childActive ? "hover:bg-white/5 hover:text-white" : ""}
-                `}
-              >
-                <span>{child.label}</span>
-              </Link>
-            );
-          })}
+                  `}
+                >
+                  {ChildIcon ? (
+                    <ChildIcon
+                      className={`w-4 h-4 shrink-0 transition-transform duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-110 ${childActive ? "text-slate-300" : "text-slate-400 group-hover:text-slate-200"
+                        }`}
+                    />
+                  ) : (
+                    <div
+                      className={`w-1.5 h-1.5 rounded-full shrink-0 transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] ${childActive ? "bg-slate-300 scale-125" : "bg-slate-500 group-hover:bg-slate-300"
+                        }`}
+                    />
+                  )}
+                  <span className="truncate">{child.label}</span>
+                </Link>
+              );
+            })}
+          </div>
         </div>
       </div>
     );
@@ -423,14 +408,24 @@ function NavLink({
   return (
     <Link
       href={item.href}
-      style={{ ...(isActive ? activeStyle : inactiveStyle), paddingLeft }}
       className={`
-        flex items-center gap-3 py-2.5 pr-3 rounded-r-lg rounded-l-none
-        text-sm font-medium transition-all duration-150
-        ${!isActive ? "hover:bg-white/5 hover:text-white" : ""}
+        flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium
+        transition-all duration-250 ease-[cubic-bezier(0.16,1,0.3,1)] group select-none active:scale-[0.98]
+        ${isActive
+          ? "bg-[#182235] text-white font-semibold border border-slate-700/60 shadow-sm"
+          : "text-slate-400 hover:bg-[#162032]/80 hover:text-white"
+        }
       `}
     >
-      <span>{item.label}</span>
+      {Icon && (
+        <Icon
+          className={`w-5 h-5 shrink-0 transition-transform duration-250 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-110 ${isActive
+              ? "text-slate-300"
+              : "text-slate-400 group-hover:text-slate-200"
+            }`}
+        />
+      )}
+      <span className="truncate">{item.label}</span>
     </Link>
   );
 }
@@ -497,18 +492,9 @@ export default function Sidebar() {
     .filter((sec) => sec.items.length > 0);
 
   return (
-    <aside
-      style={{
-        background: "linear-gradient(180deg, #0f172a 0%, #1e293b 60%, #0f172a 100%)",
-        borderRight: "1px solid rgba(255,255,255,0.07)",
-      }}
-      className="w-64 h-screen flex flex-col select-none"
-    >
+    <aside className="w-64 h-screen bg-[#0B0E17] border-r border-slate-800/70 flex flex-col select-none">
       {/* ── Logo ── */}
-      <div
-        style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}
-        className="p-5 flex items-center justify-between min-h-[76px]"
-      >
+      <div className="p-4 border-b border-slate-800/60 flex items-center justify-between min-h-[72px] shrink-0">
         <div className="flex items-center gap-2">
           <Image
             src="/logo.svg"
@@ -518,7 +504,7 @@ export default function Sidebar() {
             className="h-10 w-auto"
             priority
           />
-          <span className="font-outfit font-black text-lg text-yellow-500 tracking-wide">
+          <span className="font-outfit font-bold text-lg text-white tracking-wide">
             SHIFTERS ERP
           </span>
         </div>
@@ -526,8 +512,7 @@ export default function Sidebar() {
         {/* Close button – mobile only */}
         <button
           onClick={toggleSidebar}
-          className="lg:hidden p-1.5 rounded-lg transition-colors"
-          style={{ color: "rgba(255,255,255,0.4)" }}
+          className="lg:hidden p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/80 transition-colors duration-200"
           title="Close sidebar"
         >
           <X className="w-5 h-5" />
@@ -535,20 +520,21 @@ export default function Sidebar() {
       </div>
 
       {/* ── Navigation ── */}
-      <nav className="flex-1 px-3 py-5 overflow-y-auto scrollbar-hidden">
+      <nav className="flex-1 px-3.5 py-4 overflow-y-auto space-y-5 scrollbar-hidden">
         {sections.map((section, idx) => (
-          <div key={idx} className="mb-2">
+          <div key={idx} className={idx > 0 ? "pt-4 border-t border-slate-800/60" : ""}>
             {/* Section heading */}
-            <p
-              style={{ color: "rgba(255,255,255,0.25)", letterSpacing: "0.12em" }}
-              className="px-3 text-[10px] font-bold uppercase mb-1 mt-4 first:mt-0"
-            >
-              {section.label}
-            </p>
+            {section.label && (
+              <p className="px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">
+                {section.label}
+              </p>
+            )}
 
-            {section.items.map((item) => (
-              <NavLink key={item.href} item={item} pathname={pathname} />
-            ))}
+            <div className="space-y-1">
+              {section.items.map((item) => (
+                <NavLink key={item.href} item={item} pathname={pathname} />
+              ))}
+            </div>
           </div>
         ))}
       </nav>

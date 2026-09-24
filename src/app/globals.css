@@ -171,3 +171,36 @@ html {
   text-decoration: underline;
   text-underline-offset: 3px;
 }
+
+/* Icon-only action buttons: a coloured hover (blue; red for delete/remove). */
+.data-table td button:has(> svg:only-child):not(.keep-color) {
+  border-radius: 6px;
+  transition: color 150ms, background-color 150ms;
+}
+
+.data-table td button:has(> svg:only-child):not(.keep-color):hover:not(:disabled) {
+  color: #2563eb;
+  background: #eff6ff;
+}
+
+.data-table td button:is([title*="Delete" i], [title*="Remove" i]):has(> svg:only-child):not(.keep-color):hover:not(:disabled) {
+  color: #dc2626;
+  background: #fef2f2;
+}
+
+/*
+ * Status colour: green = good (paid, completed, approved, active...), red = bad
+ * (rejected, cancelled, failed, overdue...). Any green/emerald or red/rose text
+ * in a table cell - including status pills flattened to text above - is shown
+ * in the one app green or red. !important because the pill rule above is more
+ * specific and would otherwise grey it out.
+ */
+.data-table td :is([class*="text-green-"], [class*="text-emerald-"]):not(button, button *, .keep-color, .keep-color *) {
+  color: #15803d !important;
+  font-weight: 500 !important;
+}
+
+.data-table td :is([class*="text-red-"], [class*="text-rose-"]):not(button, button *, .keep-color, .keep-color *) {
+  color: #dc2626 !important;
+  font-weight: 500 !important;
+}

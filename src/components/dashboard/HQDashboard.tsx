@@ -1,17 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import {
-  Building2, DollarSign, Briefcase, AlertTriangle, Users,
-  TrendingUp, Clock, CheckCircle2, UserCheck, Package, Flame
-} from "lucide-react";
 import { getHQDashboardData } from "@/lib/api";
-import { StatCard } from "./StatCard";
+import { StatusTone, TONE_TEXT } from "@/lib/statusTone";
+import { DashboardToolbar, PeriodOverview, rangeForPreset, DateRange } from "./DashboardInsights";
 
 export function HQDashboard({ allowedModules }: { allowedModules?: string[] | null }) {
   const [data, setData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [range, setRange] = useState<DateRange>(() => rangeForPreset("7d"));
 
   useEffect(() => {
     async function fetchData() {
@@ -37,105 +35,73 @@ export function HQDashboard({ allowedModules }: { allowedModules?: string[] | nu
   const ws = data?.workshopSummary || {};
   const inv = data?.inventorySummary || {};
 
+  const inr = (n?: number) => `₹${(n || 0).toLocaleString("en-IN")}`;
+
   return (
-    <div className="space-y-10">
-      {/* 1. BUSINESS SUMMARY (§16.3) */}
-      <section>
-        <h2 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
-          Business Summary
-        </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          <StatCard title="Total Franchises" value={bs.totalFranchises || 0} icon={Building2} color="blue" />
-          <StatCard title="Total Employees" value={bs.totalEmployees || 0} icon={Users} color="indigo" />
-          <StatCard title="Total Customers" value={bs.totalCustomers || 0} icon={UserCheck} color="purple" />
-          <StatCard title="Active Job Cards" value={bs.activeJobCards || 0} icon={Briefcase} color="amber" />
-        </div>
-      </section>
+    <div className="space-y-6">
+      {/* Date filter + quick actions, then figures and charts for the chosen period */}
+      <DashboardToolbar range={range} onRangeChange={setRange} />
+      <PeriodOverview range={range} />
 
-      {/* 2. REVENUE SUMMARY (§16.3) */}
-      <section className="bg-white rounded-2xl p-6 text-gray-900 shadow-sm ">
-        <h2 className="text-xl font-bold mb-6 flex items-center gap-2 text-gray-900">
-          Revenue & Financial Summary
-        </h2>
+      <h2 className="pt-2 text-[11px] font-bold uppercase tracking-wide text-slate-500">Overall</h2>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-          <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
-            <p className="text-sm text-gray-700 font-medium">
-              Today&apos;s Revenue
-            </p>
-            <p className="text-2xl font-bold text-gray-900">
-              ₹{(rev.todayRevenue || 0).toLocaleString("en-IN")}
-            </p>
-          </div>
+      {/* 1. BUSINESS SUMMARY (§16.3) — headline numbers across the full width */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <Metric label="Total Franchises" value={bs.totalFranchises || 0} boxed />
+        <Metric label="Total Employees" value={bs.totalEmployees || 0} boxed />
+        <Metric label="Total Customers" value={bs.totalCustomers || 0} boxed />
+        <Metric label="Active Job Cards" value={bs.activeJobCards || 0} boxed />
+      </div>
 
-          <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
-            <p className="text-sm text-gray-700 font-medium">
-              Monthly Revenue
-            </p>
-            <p className="text-2xl font-bold text-gray-900">
-              ₹{(rev.monthlyRevenue || 0).toLocaleString("en-IN")}
-            </p>
-          </div>
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
+        {/* 2. REVENUE SUMMARY (§16.3) */}
+        <Panel title="Revenue & Financial Summary" className="xl:col-span-7" cols="sm:grid-cols-3">
+          <Metric label="Today's Revenue" value={inr(rev.todayRevenue)} />
+          <Metric label="Monthly Revenue" value={inr(rev.monthlyRevenue)} />
+          <Metric label="Outstanding Payments" value={inr(rev.outstandingPayments)} tone={(rev.outstandingPayments || 0) > 0 ? "bad" : "neutral"} />
+        </Panel>
 
-          <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
-            <p className="text-sm text-gray-700 font-medium">
-              Outstanding Payments
-            </p>
-            <p className="text-2xl font-bold text-gray-900">
-              ₹{(rev.outstandingPayments || 0).toLocaleString("en-IN")}
-            </p>
-          </div>
-        </div>
-      </section>
+        {/* 5. INVENTORY OVERVIEW (§16.3) */}
+        <Panel title="Inventory Summary" className="xl:col-span-5" cols="sm:grid-cols-2">
+          <Metric label="Low Stock Alerts" value={inv.lowStock || 0} tone={(inv.lowStock || 0) > 0 ? "bad" : "neutral"} />
+          <Metric label="Inventory Valuation" value={inr(inv.inventoryValuation)} />
+        </Panel>
 
-      {/* 3. WORKSHOP & OPERATIONAL SUMMARY (§16.3) */}
-      <section>
-        <h2 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
-          Workshop Operations
-        </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          <StatCard title="Vehicles In Progress" value={ws.vehiclesInProgress || 0} icon={TrendingUp} color="blue" />
-          <StatCard title="QC Pending" value={ws.qcPending || 0} icon={Clock} color="amber" />
-          <StatCard title="Ready For Delivery" value={ws.readyForDelivery || 0} icon={CheckCircle2} color="green" />
-          <StatCard title="Delayed Vehicles" value={ws.delayedVehicles || 0} icon={AlertTriangle} color="red" />
-        </div>
-      </section>
+        {/* 3. WORKSHOP & OPERATIONAL SUMMARY (§16.3) */}
+        <Panel title="Workshop Operations" className="xl:col-span-6" cols="grid-cols-2 sm:grid-cols-4">
+          <Metric label="In Progress" value={ws.vehiclesInProgress || 0} />
+          <Metric label="QC Pending" value={ws.qcPending || 0} />
+          <Metric label="Ready For Delivery" value={ws.readyForDelivery || 0} tone={(ws.readyForDelivery || 0) > 0 ? "good" : "neutral"} />
+          <Metric label="Delayed" value={ws.delayedVehicles || 0} tone={(ws.delayedVehicles || 0) > 0 ? "bad" : "neutral"} />
+        </Panel>
 
-      {/* 4. CRM & LEAD SUMMARY (§16.3) */}
-      <section className="bg-slate-50 border border-slate-200 rounded-2xl p-6">
-        <h2 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
-          Lead Summary & Conversion
-        </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">New Leads</p>
-            <p className="text-2xl font-bold text-slate-900 mt-1">{leads.newLeads || 0}</p>
-          </div>
-          <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Converted Leads</p>
-            <p className="text-2xl font-bold text-emerald-600 mt-1">{leads.convertedLeads || 0}</p>
-          </div>
-          <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Pending Follow-ups</p>
-            <p className="text-2xl font-bold text-amber-600 mt-1">{leads.pendingFollowups || 0}</p>
-          </div>
-          <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Lost Leads</p>
-            <p className="text-2xl font-bold text-red-600 mt-1">{leads.lostLeads || 0}</p>
-          </div>
-        </div>
-      </section>
+        {/* 4. CRM & LEAD SUMMARY (§16.3) */}
+        <Panel title="Lead Summary & Conversion" className="xl:col-span-6" cols="grid-cols-2 sm:grid-cols-4">
+          <Metric label="New Leads" value={leads.newLeads || 0} />
+          <Metric label="Converted" value={leads.convertedLeads || 0} tone={(leads.convertedLeads || 0) > 0 ? "good" : "neutral"} />
+          <Metric label="Pending Follow-ups" value={leads.pendingFollowups || 0} />
+          <Metric label="Lost Leads" value={leads.lostLeads || 0} tone={(leads.lostLeads || 0) > 0 ? "bad" : "neutral"} />
+        </Panel>
+      </div>
+    </div>
+  );
+}
 
-      {/* 5. INVENTORY OVERVIEW (§16.3) */}
-      <section>
-        <h2 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
-          Inventory Summary
-        </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-          <StatCard title="Low Stock Alerts" value={inv.lowStock || 0} icon={AlertTriangle} color="red" />
-          <StatCard title="Total Inventory Valuation" value={`₹${(inv.inventoryValuation || 0).toLocaleString("en-IN")}`} icon={Package} color="purple" />
-        </div>
-      </section>
+// A titled white panel whose metrics sit side by side, separated by thin dividers.
+function Panel({ title, className = "", cols, children }: { title: string; className?: string; cols: string; children: React.ReactNode }) {
+  return (
+    <section className={`bg-white border border-slate-200 rounded-lg ${className}`}>
+      <h2 className="px-5 py-3.5 text-sm font-bold text-slate-900 border-b border-slate-200">{title}</h2>
+      <div className={`grid ${cols} sm:divide-x divide-slate-100`}>{children}</div>
+    </section>
+  );
+}
+
+function Metric({ label, value, boxed = false, tone = "neutral" }: { label: string; value: React.ReactNode; boxed?: boolean; tone?: StatusTone }) {
+  return (
+    <div className={boxed ? "bg-white border border-slate-200 rounded-lg px-5 py-4" : "px-5 py-4"}>
+      <p className="text-[11px] font-bold uppercase tracking-wide text-slate-800">{label}</p>
+      <p className={`text-2xl font-semibold mt-1.5 ${tone === "neutral" ? "text-slate-900" : TONE_TEXT[tone]}`}>{value}</p>
     </div>
   );
 }

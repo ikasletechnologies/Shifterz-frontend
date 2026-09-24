@@ -173,12 +173,12 @@ export default function ServiceAdvisorsPage() {
   };
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-6">
+    <div className="p-4 sm:p-6 md:p-8 space-y-6">
       {summary && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <StatCard title="Total Advisors" value={summary.total} icon={Users} color="blue" />
-          <StatCard title="Active Advisors" value={summary.active} icon={UserCheck2} color="green" />
-          <StatCard title="Inactive Advisors" value={summary.inactive} icon={UserX2} color="gray" />
+          <StatCard title="Total Advisors" value={summary.total} icon={Users} color="blue" onClick={() => { setStatusFilter("All"); setCurrentPage(1); }} active={statusFilter === "All"} />
+          <StatCard title="Active Advisors" value={summary.active} icon={UserCheck2} color="green" onClick={() => { setStatusFilter("Active"); setCurrentPage(1); }} active={statusFilter === "Active"} />
+          <StatCard title="Inactive Advisors" value={summary.inactive} icon={UserX2} color="gray" onClick={() => { setStatusFilter("Inactive"); setCurrentPage(1); }} active={statusFilter === "Inactive"} />
           <StatCard title="Assigned Jobs" value={summary.assignedJobs} icon={Briefcase} color="purple" />
         </div>
       )}
@@ -227,7 +227,13 @@ export default function ServiceAdvisorsPage() {
 
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
         <div className="p-5 border-b border-gray-100">
-          <h2 className="font-bold text-gray-900">Service Advisor List</h2>
+          <h2 className="text-sm font-bold text-slate-900">
+            Service Advisors{" "}
+            <span className="font-normal text-slate-500">
+              · {statusFilter === "All" ? "All" : statusFilter} ({total})
+            </span>
+          </h2>
+          <p className="text-xs text-slate-500 mt-0.5">Service advisors talk to customers, open job cards and assign technicians.</p>
         </div>
         <div className="overflow-x-auto">
           <table className="data-table w-full text-sm text-left min-w-[800px]">
@@ -247,7 +253,7 @@ export default function ServiceAdvisorsPage() {
               {isLoading ? (
                 <tr><td colSpan={8} className="px-6 py-10 text-center text-gray-400">Loading...</td></tr>
               ) : rows.length === 0 ? (
-                <tr><td colSpan={8} className="px-6 py-10 text-center text-gray-400">No service advisors found.</td></tr>
+                <tr><td colSpan={8} className="px-6 py-10 text-center text-gray-400">{searchTerm || statusFilter !== "All" || branchFilter !== "All" ? "No service advisors match these filters." : "No service advisors yet. Use “Add Advisor” to add the first one."}</td></tr>
               ) : (
                 rows.map((row) => (
                   <tr key={row.id} className="hover:bg-gray-50/50 transition-colors">
