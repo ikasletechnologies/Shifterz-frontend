@@ -7,26 +7,11 @@ import { toast } from "react-hot-toast";
 import { JobCard } from "../types/job-card.types";
 import { JobStatusBadge } from "./JobStatusBadge";
 import { READY_FOR_BILLING_STATUSES } from "../constants/job-card.constants";
-import { QC_QUICK_DECIDE_STATUSES } from "../lib/qcQuickDecide";
 import { getInvoices, getOutPasses, createPayment, createOutPass } from "@/lib/api";
 import RecordPaymentDialog from "@/modules/payment/components/RecordPaymentDialog";
 import NewOutPassDialog from "@/components/outpass/NewOutPassDialog";
 
-// Statuses from technician-marked-Completed through the QC queue, before a
-// Pass/Fail decision has been recorded — a Service Advisor should assign a
-// QC Inspector to the job sometime in this window.
-const QC_ASSIGNABLE_STATUSES = new Set([
-  "Completed",
-  "Work Completed",
-  "Complete",
-  "Waiting for Quality Check",
-  "Waiting QC",
-  "QC Pending",
-  "Review for QC",
-  "Inspecting",
-  "In QC",
-]);
-
+// QC (assign inspector / pass / fail) is handled on the QC page, not here.
 interface JobCardTableProps {
   jobCards: JobCard[];
   onView?: (job: JobCard) => void;
@@ -34,9 +19,6 @@ interface JobCardTableProps {
   onDelete: (id: string) => void;
   isInspectionPending?: (job: JobCard) => boolean;
   onInspect?: (job: JobCard) => void;
-  onAssignQC?: (job: JobCard) => void;
-  onQuickPass?: (job: JobCard) => void;
-  onQuickFail?: (job: JobCard) => void;
 }
 
 function formatDateStr(input?: string): string {
@@ -50,9 +32,8 @@ function formatDateStr(input?: string): string {
   return `${day} ${month} ${year}`;
 }
 
-export function JobCardTable({ jobCards, onView, onEdit, onDelete, isInspectionPending, onInspect, onAssignQC, onQuickPass, onQuickFail }: JobCardTableProps) {
+export function JobCardTable({ jobCards, onView, onEdit, onDelete, isInspectionPending, onInspect }: JobCardTableProps) {
   const router = useRouter();
-  const [userRole, setUserRole] = useState<string>("");
 
   const [invoices, setInvoices] = useState<any[]>([]);
   const [outPasses, setOutPasses] = useState<any[]>([]);
@@ -77,17 +58,6 @@ export function JobCardTable({ jobCards, onView, onEdit, onDelete, isInspectionP
   useEffect(() => {
     fetchBillingAndOutPasses();
   }, [fetchBillingAndOutPasses]);
-
-  useEffect(() => {
-    try {
-      const u = localStorage.getItem("user");
-      if (u) setUserRole((JSON.parse(u).role || "").toUpperCase().replace(/[\s_]+/g, "_"));
-    } catch {
-      // Ignore
-    }
-  }, []);
-
-  const isSuperAdmin = userRole === "SUPER_ADMIN" || userRole === "SUPERADMIN";
 
   const handleCopyId = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -161,11 +131,6 @@ export function JobCardTable({ jobCards, onView, onEdit, onDelete, isInspectionP
     );
 
     const inspectionPending = !isAssigned && Boolean(isInspectionPending && isInspectionPending(j));
-    const hasQCInspector = Boolean(j.qcInspector && j.qcInspector.trim() !== "");
-    const needsQCAssignment =
-      isAssigned && !hasQCInspector && QC_ASSIGNABLE_STATUSES.has(j.status) && Boolean(onAssignQC);
-    const canQuickDecideQC =
-      isSuperAdmin && Boolean(onQuickPass) && Boolean(onQuickFail) && QC_QUICK_DECIDE_STATUSES.has(j.status);
     const needsBilling = READY_FOR_BILLING_STATUSES.has(j.status);
 
     const normVeh = (j.vehicle || "").replace(/[^A-Z0-9]/g, "").toUpperCase();
@@ -176,58 +141,55 @@ export function JobCardTable({ jobCards, onView, onEdit, onDelete, isInspectionP
       ))
       .sort((a, b) => new Date(b.createdAt || b.date).getTime() - new Date(a.createdAt || a.date).getTime())[0] || null;
 
-    const hasOutPass = outPasses.some(op => {
+    const outPass = outPasses.find(op => {
       if ((op.status || "").toLowerCase() === "rejected") return false;
       if (matchedInv?.id && op.invoiceId === matchedInv.id) return true;
       if (op.jobCardId && op.jobCardId === j.id) return true;
       if (normVeh && op.vehicle && op.vehicle.replace(/[^A-Z0-9]/g, "").toUpperCase() === normVeh) return true;
       return false;
     });
+    const hasOutPass = Boolean(outPass);
 
-    return { isAssigned, inspectionPending, hasQCInspector, needsQCAssignment, canQuickDecideQC, needsBilling, matchedInv, hasOutPass };
+    // The job only moves to "Delivered" once its out pass is approved, so a
+    // generated-but-unapproved out pass would otherwise still read "Ready For Billing".
+    const outPassApproved = Boolean(outPass && (outPass.issued || outPass.status === "Delivered" || outPass.status === "Approved"));
+    const displayStatus =
+      needsBilling && hasOutPass ? (outPassApproved ? "Delivered" : "Out Pass Pending") : j.status;
+
+    return { isAssigned, inspectionPending, needsBilling, matchedInv, hasOutPass, outPassApproved, displayStatus };
   };
 
+  // Plain text actions like the QC queue, underlined so they read as clickable.
+  const actionLink =
+    "keep-color text-[13px] font-semibold text-slate-900 underline decoration-slate-300 underline-offset-4 hover:decoration-slate-900 transition-colors cursor-pointer";
 
-  // The next lifecycle action for a job, as plain text links.
+  // The next lifecycle action for a job.
   const renderActions = (j: JobCard, m: ReturnType<typeof getJobMeta>) => (
     <>
-      {m.isAssigned && m.needsQCAssignment ? (
-        <button type="button" onClick={() => onAssignQC && onAssignQC(j)} title="Assign a QC Inspector for this completed job">
-          Assign QC
-        </button>
-      ) : m.inspectionPending ? (
+      {m.inspectionPending ? (
         <button
           type="button"
+          className={actionLink}
           onClick={() => onInspect && onInspect(j)}
           title="Vehicle inspection must be completed before a technician can be assigned"
         >
           Complete Inspection
         </button>
       ) : !m.isAssigned && !m.needsBilling ? (
-        <button type="button" onClick={() => onEdit(j)}>
+        <button type="button" className={actionLink} onClick={() => onEdit(j)}>
           Assign Job
         </button>
       ) : null}
 
-      {m.canQuickDecideQC && (
-        <>
-          <button type="button" onClick={() => onQuickPass && onQuickPass(j)}>
-            Pass QC
-          </button>
-          <button type="button" onClick={() => onQuickFail && onQuickFail(j)}>
-            Fail QC
-          </button>
-        </>
-      )}
-
       {m.needsBilling &&
         (!m.matchedInv ? (
-          <button type="button" onClick={() => router.push("/dashboard/billing")}>
+          <button type="button" className={actionLink} onClick={() => router.push("/dashboard/billing")}>
             Go to Billing
           </button>
         ) : m.matchedInv.status !== "Paid" && m.matchedInv.status !== "Completed" ? (
           <button
             type="button"
+            className={actionLink}
             onClick={() => {
               setSelectedInvoiceForPayment(m.matchedInv);
               setIsRecordPaymentOpen(true);
@@ -236,10 +198,22 @@ export function JobCardTable({ jobCards, onView, onEdit, onDelete, isInspectionP
             Record Payment
           </button>
         ) : m.hasOutPass ? (
-          <span className="text-slate-400">Out Pass Generated</span>
+          m.outPassApproved ? (
+            <span className="text-slate-400">Completed</span>
+          ) : (
+            <button
+              type="button"
+              className={actionLink}
+              onClick={() => router.push("/dashboard/outpass")}
+              title="Out pass generated — waiting for approval"
+            >
+              View Out Pass
+            </button>
+          )
         ) : (
           <button
             type="button"
+            className={actionLink}
             onClick={() => {
               setOutPassContext({ ...j, invoice: m.matchedInv });
               setIsNewOutPassOpen(true);
@@ -275,7 +249,7 @@ export function JobCardTable({ jobCards, onView, onEdit, onDelete, isInspectionP
           {m.isAssigned ? j.technician : <span className="text-slate-400">Unassigned</span>}
         </td>
         <td className="whitespace-nowrap">
-          <JobStatusBadge status={j.status} neutral />
+          <JobStatusBadge status={m.displayStatus} neutral />
         </td>
         <td className="whitespace-nowrap">{j.priority && j.priority.trim() !== "" ? j.priority : empty}</td>
         <td className="whitespace-nowrap">{formatDateStr(j.startDate)}</td>
@@ -287,7 +261,11 @@ export function JobCardTable({ jobCards, onView, onEdit, onDelete, isInspectionP
           <div className="flex items-center justify-end gap-3">
             {renderActions(j, m)}
             {onView && (
-              <button type="button" onClick={() => onView(j)} title="View Details">
+              <button
+                type="button"
+                onClick={() => onView(j)}
+                title="View Details"
+              >
                 <Eye className="w-4 h-4" />
               </button>
             )}

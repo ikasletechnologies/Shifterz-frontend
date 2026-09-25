@@ -15,6 +15,9 @@ interface QCTableProps {
   onOpenRemarks: (job: QCJob) => void;
   onPass: (job: QCJob) => void;
   onFail: (job: QCJob) => void;
+  // Management (Super Admin etc.) can assign an inspector or decide directly.
+  canManage?: boolean;
+  onAssign?: (job: QCJob) => void;
 }
 
 // Statuses from which a job can be lazy-started/re-started into a QC attempt.
@@ -68,6 +71,8 @@ export function QCTable({
   onOpenRemarks,
   onPass,
   onFail,
+  canManage = false,
+  onAssign,
 }: QCTableProps) {
   // Phase 4B-3-B — QC Inspector Ownership. UX-only: the backend is the
   // authoritative enforcement point (QcService.assertInspectionOwner), this
@@ -135,11 +140,13 @@ export function QCTable({
                   {open && current ? (
                     <>
                       <span>Attempt {current.attemptNumber}</span>
-                      {!isOwner && (
+                      {!isOwner ? (
                         <span className="block text-xs text-slate-400" title={notOwnerTitle}>
                           Owned by {current.inspectorName || "another inspector"}
                         </span>
-                      )}
+                      ) : canManage && current.inspectorName ? (
+                        <span className="block text-xs text-slate-400">{current.inspectorName}</span>
+                      ) : null}
                     </>
                   ) : priorAttempts > 0 ? (
                     <span className="text-slate-500">
@@ -156,8 +163,25 @@ export function QCTable({
                 </td>
                 <td className="whitespace-nowrap">
                   <div className="flex items-center justify-end gap-3">
+                    {/* Management: assign an inspector, or pass/fail straight away */}
+                    {!open && canManage && STARTABLE_STATUSES.includes(job.status as string) && (
+                      <>
+                        {onAssign && (
+                          <button type="button" onClick={() => onAssign(job)}>
+                            Assign Inspector
+                          </button>
+                        )}
+                        <button type="button" onClick={() => onPass(job)}>
+                          Pass QC
+                        </button>
+                        <button type="button" onClick={() => onFail(job)}>
+                          Fail QC
+                        </button>
+                      </>
+                    )}
+
                     {/* No open attempt yet: begin (or resume/re-start after rework) inspection */}
-                    {!open && STARTABLE_STATUSES.includes(job.status as string) && (
+                    {!open && !canManage && STARTABLE_STATUSES.includes(job.status as string) && (
                       <button type="button" onClick={() => onInspect(job)}>
                         {priorAttempts > 0 || job.status === "Rework Required" ? "Start Next Attempt" : "Start Inspection"}
                       </button>

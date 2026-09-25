@@ -7,15 +7,11 @@ import { JobCard } from "../types/job-card.types";
 import { JobStatusBadge } from "./JobStatusBadge";
 import { PriorityBadge } from "./PriorityBadge";
 import { CarEntry } from "@/modules/vehicle-checkin/types/vehicle-checkin.types";
-import { getInspections, passQC, failQC } from "@/modules/qc/services/qc.service";
+import { getInspections } from "@/modules/qc/services/qc.service";
 import { QCInspection } from "@/modules/qc/types/qc.types";
-import { PassDialog } from "@/modules/qc/components/PassDialog";
-import { FailDialog } from "@/modules/qc/components/FailDialog";
 import { getInvoices } from "@/modules/billing/services/billing.service";
 import { BillingDocument } from "@/modules/billing/types/billing.types";
-import { toast } from "react-hot-toast";
 import { READY_FOR_BILLING_STATUSES } from "../constants/job-card.constants";
-import { QC_QUICK_DECIDE_STATUSES, ensureSentToQCAndChecklistSubmitted } from "../lib/qcQuickDecide";
 
 interface ViewJobCardDialogProps {
   isOpen: boolean;
@@ -26,9 +22,6 @@ interface ViewJobCardDialogProps {
   // The vehicle check-in record matched to this job's vehicle, if any — carries
   // the inspection details/photos recorded before the technician was assigned.
   inspectionCar?: CarEntry | null;
-  // Called after a Super Admin uses the Pass QC shortcut, so the parent can
-  // refetch the job list (this dialog holds its own snapshot of `job`).
-  onRefresh?: () => void;
 }
 
 const INSPECTION_PHOTO_SLOTS: { key: keyof CarEntry; label: string }[] = [
@@ -93,14 +86,12 @@ function formatTimeOnly(dateStr?: string) {
   });
 }
 
-export function ViewJobCardDialog({ isOpen, onClose, job, onEdit, onDelete, inspectionCar, onRefresh }: ViewJobCardDialogProps) {
+export function ViewJobCardDialog({ isOpen, onClose, job, onEdit, onDelete, inspectionCar }: ViewJobCardDialogProps) {
   const router = useRouter();
   const [history, setHistory] = useState<any[]>([]);
   const [activeSubTab, setActiveSubTab] = useState<'details' | 'timeline'>('details');
   const [qcInspections, setQcInspections] = useState<QCInspection[]>([]);
   const [invoices, setInvoices] = useState<BillingDocument[]>([]);
-  const [showPassDialog, setShowPassDialog] = useState(false);
-  const [showFailDialog, setShowFailDialog] = useState(false);
 
   // Load chronological timeline history from backend
   useEffect(() => {
@@ -187,36 +178,6 @@ export function ViewJobCardDialog({ isOpen, onClose, job, onEdit, onDelete, insp
 
   const userRole = (currentUser?.role || "").toUpperCase().replace(/[\s_]+/g, "_");
   const isManagement = ['SUPER_ADMIN', 'HQ_USER', 'FRANCHISE_ADMIN', 'BRANCH_MANAGER'].includes(userRole);
-  const isSuperAdmin = userRole === "SUPER_ADMIN" || userRole === "SUPERADMIN";
-  const canDecideQC = isSuperAdmin && QC_QUICK_DECIDE_STATUSES.has(job.status);
-
-  const handleConfirmPassQC = async (notes?: string) => {
-    try {
-      await ensureSentToQCAndChecklistSubmitted(job);
-      await passQC(job.id, notes);
-      toast.success("QC passed — job moved to Ready For Billing");
-      onRefresh?.();
-      onClose();
-      return true;
-    } catch (err: any) {
-      toast.error(err.message || "Failed to pass QC");
-      return false;
-    }
-  };
-
-  const handleConfirmFailQC = async (notes: string) => {
-    try {
-      await ensureSentToQCAndChecklistSubmitted(job);
-      await failQC(job.id, notes);
-      toast.error("QC failed — job requires rework");
-      onRefresh?.();
-      onClose();
-      return true;
-    } catch (err: any) {
-      toast.error(err.message || "Failed to record QC failure");
-      return false;
-    }
-  };
 
   return (
     <>
@@ -489,10 +450,10 @@ export function ViewJobCardDialog({ isOpen, onClose, job, onEdit, onDelete, insp
 
                 {/* QC Check — the job's QCInspection attempts (src/modules/qc), keyed by
                   jobId === job.id (strict link, unlike billing below), plus the Service
-                  Advisor's qcInspector assignment (a separate, earlier field — see
-                  AssignQCDialog). Rendered once QC has started OR an inspector has been
-                  assigned OR a Super Admin can use the Pass/Fail override. */}
-                {(latestQC || job.qcInspector || canDecideQC) && (
+                  Advisor's qcInspector assignment (a separate, earlier field — assigned
+                  from the QC page). Rendered once QC has started OR an inspector has been
+                  assigned. Pass/Fail happens on the QC page. */}
+                {(latestQC || job.qcInspector) && (
                   <div className="bg-purple-50/50 p-4 rounded-xl border border-purple-100 space-y-3">
                     <div className="flex items-center justify-between gap-2 flex-wrap">
                       <span className="text-xs font-bold text-purple-800 uppercase tracking-wider flex items-center gap-1.5">
@@ -560,29 +521,6 @@ export function ViewJobCardDialog({ isOpen, onClose, job, onEdit, onDelete, insp
                       </div>
                     )}
 
-                    {/* Super Admin override — bypasses Send to QC + the checklist and
-                      records the decision directly, without needing to open
-                      /dashboard/qc or click through a separate Send to QC step. */}
-                    {canDecideQC && (
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setShowPassDialog(true)}
-                          className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2.5 rounded-lg flex items-center justify-center gap-1.5 transition-colors"
-                        >
-                          <ClipboardCheck className="w-3.5 h-3.5" />
-                          Pass QC (Super Admin)
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setShowFailDialog(true)}
-                          className="flex-1 bg-red-600 hover:bg-red-700 text-white text-xs font-bold py-2.5 rounded-lg flex items-center justify-center gap-1.5 transition-colors"
-                        >
-                          <X className="w-3.5 h-3.5" />
-                          Fail QC (Super Admin)
-                        </button>
-                      </div>
-                    )}
                   </div>
                 )}
 
@@ -738,23 +676,6 @@ export function ViewJobCardDialog({ isOpen, onClose, job, onEdit, onDelete, insp
           </div>
         </div>
       </div>
-
-      <PassDialog
-        job={job}
-        checklist={latestQC?.checklist}
-        checklistDefinition={latestQC?.checklistDefinition}
-        isOpen={showPassDialog}
-        onClose={() => setShowPassDialog(false)}
-        onPass={handleConfirmPassQC}
-      />
-
-      <FailDialog
-        job={job}
-        checklist={latestQC?.checklist}
-        isOpen={showFailDialog}
-        onClose={() => setShowFailDialog(false)}
-        onFail={handleConfirmFailQC}
-      />
     </>
   );
 }

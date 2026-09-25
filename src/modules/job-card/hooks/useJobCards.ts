@@ -59,18 +59,6 @@ export function useJobCards() {
     }
   };
 
-  const handleAssignQC = async (id: string, inspector: { id: string; name: string }) => {
-    try {
-      await updateJobCard(id, { qcInspectorId: inspector.id, qcInspector: inspector.name });
-      toast.success(`QC Inspector ${inspector.name} assigned`);
-      await fetchJobCards();
-      return true;
-    } catch (err: any) {
-      toast.error("Failed to assign QC inspector: " + err.message);
-      return false;
-    }
-  };
-
   const handleDeleteJobCard = async (id: string) => {
     try {
       await deleteJobCard(id);
@@ -145,7 +133,6 @@ export function useJobCards() {
     stats,
     fetchJobCards,
     handleSaveJobCard,
-    handleAssignQC,
     handleDeleteJobCard,
   };
 }

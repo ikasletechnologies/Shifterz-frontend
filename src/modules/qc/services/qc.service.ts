@@ -55,6 +55,45 @@ export async function submitChecklist(
 }
 
 /**
+ * Assign a Quality Inspector (management only). Opens the job's QC attempt
+ * owned by that inspector.
+ */
+export async function assignInspector(jobId: string, inspectorId: string): Promise<QCInspection> {
+  return apiCall(`/qc/${jobId}/assign`, {
+    method: "POST",
+    body: JSON.stringify({ inspectorId }),
+  });
+}
+
+/**
+ * Management shortcut: make sure the job has an open attempt with every
+ * checklist item answered, so a Pass/Fail can be recorded straight away.
+ * Items the inspector already answered keep their result; the rest are
+ * marked Passed.
+ */
+export async function prepareForDecision(jobId: string): Promise<void> {
+  const attempt = await startInspection(jobId);
+  const existing = new Map((attempt.checklist || []).map((item) => [item.id, item]));
+  const ids = Array.from(new Set([
+    ...(attempt.checklistDefinition || []).map((item) => item.id),
+    ...existing.keys(),
+  ]));
+  const isAnswered = (id: string) => {
+    const r = existing.get(id)?.result;
+    return r === "Passed" || r === "Failed";
+  };
+  if (ids.length === 0 || ids.every(isAnswered)) return;
+
+  const filled: ChecklistResult[] = ids.map((id) => {
+    const item = existing.get(id);
+    return item && isAnswered(id)
+      ? { id, result: item.result, remark: item.remark ?? undefined }
+      : { id, result: "Passed" };
+  });
+  await submitChecklist(jobId, filled);
+}
+
+/**
  * Mark QC as Passed → job moves to "Ready For Billing".
  */
 export async function passQC(jobId: string, notes?: string): Promise<QCJob> {

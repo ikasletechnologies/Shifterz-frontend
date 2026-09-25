@@ -12,7 +12,6 @@ interface WorkshopTableProps {
   onUploadPhotos: (job: WorkshopJob) => void;
   onAddMaterial: (job: WorkshopJob) => void;
   onAddNotes: (job: WorkshopJob) => void;
-  onSendToQC: (job: WorkshopJob) => void;
 }
 
 const REWORK_STATUSES = ["QC Failed", "Rework", "Rework Required"];
@@ -44,7 +43,6 @@ export function WorkshopTable({
   onUploadPhotos,
   onAddMaterial,
   onAddNotes,
-  onSendToQC,
 }: WorkshopTableProps) {
   return (
     <div className="bg-white border border-slate-200 rounded-lg overflow-x-auto">
@@ -124,12 +122,8 @@ export function WorkshopTable({
                         Resume
                       </button>
                     )}
-                    {job.status === "Completed" && (
-                      <button onClick={() => onSendToQC(job)} className={PRIMARY_BTN}>
-                        Send to QC
-                      </button>
-                    )}
-                    {job.status === "Waiting QC" && <span className="text-slate-400 text-sm">With QC</span>}
+                    {/* A completed job goes straight into the QC queue. */}
+                    {(job.status === "Completed" || job.status === "Waiting QC") && <span className="text-slate-400 text-sm">With QC</span>}
                   </div>
                 </td>
               </tr>

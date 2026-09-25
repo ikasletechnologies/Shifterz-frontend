@@ -10,7 +10,6 @@ import { UploadPhotosDialog } from "../components/UploadPhotosDialog";
 import { MaterialUsageDialog } from "../components/MaterialUsageDialog";
 import { TechnicianNotesDialog } from "../components/TechnicianNotesDialog";
 import { CompleteWorkDialog } from "../components/CompleteWorkDialog";
-import { SendToQCDialog } from "../components/SendToQCDialog";
 import { SummaryCard } from "@/components/common/SummaryCard";
 import { ListHeader } from "@/components/common/ListHeader";
 
@@ -64,7 +63,6 @@ export function WorkshopPage() {
     completeWork,
     uploadPhotos,
     recordMaterial,
-    sendToQC,
     updateProgress,
   } = useWorkshop();
 
@@ -80,7 +78,7 @@ export function WorkshopPage() {
   // Dialog state — one selected job for each dialog type
   const [activeJob, setActiveJob] = useState<WorkshopJob | null>(null);
   const [openDialog, setOpenDialog] = useState<
-    "photos" | "material" | "notes" | "complete" | "qc" | null
+    "photos" | "material" | "notes" | "complete" | null
   >(null);
 
   const openFor = (dialog: typeof openDialog, job: WorkshopJob) => {
@@ -157,7 +155,6 @@ export function WorkshopPage() {
             onUploadPhotos={(job) => openFor("photos", job)}
             onAddMaterial={(job) => openFor("material", job)}
             onAddNotes={(job) => openFor("notes", job)}
-            onSendToQC={(job) => openFor("qc", job)}
           />
         )}
       </section>
@@ -189,13 +186,6 @@ export function WorkshopPage() {
         isOpen={openDialog === "complete"}
         onClose={closeDialog}
         onComplete={(data) => completeWork(activeJob!.id, data)}
-      />
-
-      <SendToQCDialog
-        job={activeJob}
-        isOpen={openDialog === "qc"}
-        onClose={closeDialog}
-        onSend={(notes) => sendToQC(activeJob!.id, notes)}
       />
     </div>
   );

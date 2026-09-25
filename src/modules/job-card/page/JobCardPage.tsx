@@ -9,14 +9,9 @@ import { JobCardHeader } from "../components/JobCardHeader";
 import { JobCardTable } from "../components/JobCardTable";
 import { CreateJobCardDialog, JOB_CARD_DRAFT_STORAGE_KEY } from "../components/CreateJobCardDialog";
 import { ViewJobCardDialog } from "../components/ViewJobCardDialog";
-import { AssignQCDialog } from "../components/AssignQCDialog";
 import { useVehicleCheckin } from "@/modules/vehicle-checkin/hooks/useVehicleCheckin";
 import VehicleInspectionDialog from "@/modules/vehicle-checkin/components/VehicleInspectionDialog";
 import { CarEntry, hasCompletedInspection } from "@/modules/vehicle-checkin/types/vehicle-checkin.types";
-import { passQC, failQC } from "@/modules/qc/services/qc.service";
-import { PassDialog } from "@/modules/qc/components/PassDialog";
-import { FailDialog } from "@/modules/qc/components/FailDialog";
-import { ensureSentToQCAndChecklistSubmitted } from "../lib/qcQuickDecide";
 
 
 function normalizeVehicle(v?: string | null): string {
@@ -26,17 +21,13 @@ function normalizeVehicle(v?: string | null): string {
 export function JobCardPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { jobCards, isLoading, error, stats, handleSaveJobCard, handleAssignQC, handleDeleteJobCard, fetchJobCards } = useJobCards();
+  const { jobCards, isLoading, error, stats, handleSaveJobCard, handleDeleteJobCard, fetchJobCards } = useJobCards();
   const { cars, handleUpdateVehicleCheckIn } = useVehicleCheckin();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedJob, setSelectedJob] = useState<JobCard | null>(null);
   const [viewingJob, setViewingJob] = useState<JobCard | null>(null);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [inspectingCar, setInspectingCar] = useState<CarEntry | null>(null);
-  const [assigningQCJob, setAssigningQCJob] = useState<JobCard | null>(null);
-  const [quickQCJob, setQuickQCJob] = useState<JobCard | null>(null);
-  const [showQuickPassDialog, setShowQuickPassDialog] = useState(false);
-  const [showQuickFailDialog, setShowQuickFailDialog] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
@@ -52,7 +43,7 @@ export function JobCardPage() {
   }, [cars]);
 
   // Keep an already-open View dialog in sync with refetched data (e.g. after
-  // Send to QC / Pass / Fail from inside it) instead of holding the stale
+  // an edit from inside it) instead of holding the stale
   // snapshot from when it was opened — without this, a status change made via
   // onRefresh wouldn't be visible until the dialog was closed and reopened.
   useEffect(() => {
@@ -151,41 +142,6 @@ export function JobCardPage() {
     setInspectingCar(car);
   };
 
-  const handleAssignQCInspector = async (inspector: { id: string; name: string }) => {
-    if (!assigningQCJob) return false;
-    return handleAssignQC(assigningQCJob.id, inspector);
-  };
-
-  // Super Admin quick Pass/Fail on the Job Card board itself, so it's
-  // available without opening the detail view.
-  const handleConfirmQuickPass = async (notes?: string) => {
-    if (!quickQCJob) return false;
-    try {
-      await ensureSentToQCAndChecklistSubmitted(quickQCJob);
-      await passQC(quickQCJob.id, notes);
-      toast.success("QC passed — job moved to Ready For Billing");
-      await fetchJobCards();
-      return true;
-    } catch (err: any) {
-      toast.error(err.message || "Failed to pass QC");
-      return false;
-    }
-  };
-
-  const handleConfirmQuickFail = async (notes: string) => {
-    if (!quickQCJob) return false;
-    try {
-      await ensureSentToQCAndChecklistSubmitted(quickQCJob);
-      await failQC(quickQCJob.id, notes);
-      toast.error("QC failed — job requires rework");
-      await fetchJobCards();
-      return true;
-    } catch (err: any) {
-      toast.error(err.message || "Failed to record QC failure");
-      return false;
-    }
-  };
-
   const handleStatusSelect = (status: string) => {
     setSelectedStatus(status);
   };
@@ -250,15 +206,6 @@ export function JobCardPage() {
 
   const isBillingExecutive =
     userRole.includes("BILLING") || userRole.includes("ACCOUNTANT");
-
-  // Assigning a QC Inspector is specifically a Super Admin / Service Advisor
-  // action — other roles (Technician, QC Inspector, Billing, and also
-  // Franchise Admin/Branch Manager/HQ User/Reception) view this board but
-  // don't perform the assignment themselves (a QC Inspector in particular
-  // should be going to /dashboard/qc to do the inspection, not assigning it).
-  const isSuperAdminRole = userRole === "SUPER_ADMIN" || userRole === "SUPERADMIN";
-  const isServiceAdvisor = userRole === "SERVICE_ADVISOR";
-  const canAssignQC = isSuperAdminRole || isServiceAdvisor;
 
   const filteredJobs = jobCards.filter((j) => {
     if (isTechnician && currentUser) {
@@ -392,9 +339,6 @@ export function JobCardPage() {
         onDelete={handleDelete}
         isInspectionPending={isInspectionPending}
         onInspect={handleInspect}
-        onAssignQC={canAssignQC ? setAssigningQCJob : undefined}
-        onQuickPass={isSuperAdminRole ? (job) => { setQuickQCJob(job); setShowQuickPassDialog(true); } : undefined}
-        onQuickFail={isSuperAdminRole ? (job) => { setQuickQCJob(job); setShowQuickFailDialog(true); } : undefined}
       />
 
       <CreateJobCardDialog
@@ -411,33 +355,11 @@ export function JobCardPage() {
         onSubmit={handleUpdateVehicleCheckIn}
       />
 
-      <AssignQCDialog
-        isOpen={!!assigningQCJob}
-        job={assigningQCJob}
-        onClose={() => setAssigningQCJob(null)}
-        onAssign={handleAssignQCInspector}
-      />
-
-      <PassDialog
-        job={quickQCJob}
-        isOpen={showQuickPassDialog}
-        onClose={() => { setShowQuickPassDialog(false); setQuickQCJob(null); }}
-        onPass={handleConfirmQuickPass}
-      />
-
-      <FailDialog
-        job={quickQCJob}
-        isOpen={showQuickFailDialog}
-        onClose={() => { setShowQuickFailDialog(false); setQuickQCJob(null); }}
-        onFail={handleConfirmQuickFail}
-      />
-
       <ViewJobCardDialog
         isOpen={isViewDialogOpen}
         onClose={() => { setIsViewDialogOpen(false); setViewingJob(null); }}
         job={viewingJob}
         inspectionCar={viewingJob ? findCarForJob(viewingJob) : null}
-        onRefresh={fetchJobCards}
         onEdit={(job) => {
           setIsViewDialogOpen(false);
           setViewingJob(null);

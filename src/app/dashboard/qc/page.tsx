@@ -9,14 +9,19 @@ import { QCPhotosDialog } from "@/modules/qc/components/QCPhotosDialog";
 import { QCRemarksDialog } from "@/modules/qc/components/QCRemarksDialog";
 import { PassDialog } from "@/modules/qc/components/PassDialog";
 import { FailDialog } from "@/modules/qc/components/FailDialog";
+import { AssignInspectorDialog } from "@/modules/qc/components/AssignInspectorDialog";
 import AddEmployeeDialog from "@/components/employees/AddEmployeeDialog";
+import { getCurrentUser } from "@/lib/franchise-scope";
 import { QCJob } from "@/modules/qc/types/qc.types";
 import { getEmployees, getFranchises, createEmployee } from "@/lib/api";
 import { toast } from "react-hot-toast";
 import { StatusText } from "@/components/common/StatusText";
 import { SummaryCard } from "@/components/common/SummaryCard";
 
-type DialogType = "checklist" | "photos" | "remarks" | "pass" | "fail" | null;
+type DialogType = "checklist" | "photos" | "remarks" | "pass" | "fail" | "assign" | null;
+
+// Roles that may assign a QC inspector or record Pass/Fail directly.
+const MANAGEMENT_ROLES = ["SUPER_ADMIN", "SUPERADMIN", "HQ_USER", "FRANCHISE_ADMIN", "BRANCH_MANAGER"];
 
 interface QCInspector {
   id: string;
@@ -45,7 +50,14 @@ export default function QCInspectionPage() {
     failQC,
     uploadPhotos,
     addRemarks,
+    assignInspector,
   } = useQC();
+
+  const [canManage, setCanManage] = useState(false);
+  useEffect(() => {
+    const role = (getCurrentUser()?.role || "").toUpperCase().replace(/[s_]+/g, "_");
+    setCanManage(MANAGEMENT_ROLES.includes(role));
+  }, []);
 
   const [activeTab, setActiveTab] = useState<string>("All");
   const [searchQuery, setSearchQuery] = useState("");
@@ -321,6 +333,8 @@ export default function QCInspectionPage() {
             onOpenRemarks={openDialog("remarks")}
             onPass={openDialog("pass")}
             onFail={openDialog("fail")}
+            canManage={canManage}
+            onAssign={openDialog("assign")}
           />
         )}
       </section>
@@ -447,14 +461,20 @@ export default function QCInspectionPage() {
         checklistDefinition={selectedJob ? getCurrentInspection(selectedJob.id)?.checklistDefinition : null}
         isOpen={activeDialog === "pass"}
         onClose={closeDialog}
-        onPass={(notes) => passQC(selectedJob!.id, notes)}
+        onPass={(notes) => passQC(selectedJob!.id, notes, { quick: canManage })}
       />
       <FailDialog
         job={selectedJob}
         checklist={selectedJob ? getCurrentInspection(selectedJob.id)?.checklist : null}
         isOpen={activeDialog === "fail"}
         onClose={closeDialog}
-        onFail={(notes) => failQC(selectedJob!.id, notes)}
+        onFail={(notes) => failQC(selectedJob!.id, notes, { quick: canManage })}
+      />
+      <AssignInspectorDialog
+        job={selectedJob}
+        isOpen={activeDialog === "assign"}
+        onClose={closeDialog}
+        onAssign={(inspector) => assignInspector(selectedJob!.id, inspector)}
       />
 
       {isAddOpen && (

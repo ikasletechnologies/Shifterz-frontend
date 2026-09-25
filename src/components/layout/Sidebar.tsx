@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { useContext, useEffect, useState } from "react";
+import { useCallback, useContext, useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   Car,
   Ticket,
@@ -375,11 +375,13 @@ function NavLink({
                 <Link
                   key={child.href}
                   href={child.href}
+                  data-nav-link
+                  data-active={childActive || undefined}
                   className={`
-                    flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium
-                    transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] group active:scale-[0.98]
+                    relative z-10 flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium border border-transparent
+                    transition-colors duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] group active:scale-[0.98]
                     ${childActive
-                      ? "bg-[#182235] text-white font-semibold border border-slate-700/60 shadow-sm"
+                      ? "text-white font-semibold"
                       : "text-slate-400 hover:bg-[#162032]/80 hover:text-white"
                     }
                   `}
@@ -408,11 +410,13 @@ function NavLink({
   return (
     <Link
       href={item.href}
+      data-nav-link
+      data-active={isActive || undefined}
       className={`
-        flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium
-        transition-all duration-250 ease-[cubic-bezier(0.16,1,0.3,1)] group select-none active:scale-[0.98]
+        relative z-10 flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium border border-transparent
+        transition-colors duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] group select-none active:scale-[0.98]
         ${isActive
-          ? "bg-[#182235] text-white font-semibold border border-slate-700/60 shadow-sm"
+          ? "text-white font-semibold"
           : "text-slate-400 hover:bg-[#162032]/80 hover:text-white"
         }
       `}
@@ -491,6 +495,70 @@ export default function Sidebar() {
     })
     .filter((sec) => sec.items.length > 0);
 
+  // ── Sliding active indicator ──
+  // One highlight pill that glides between links instead of each link
+  // toggling its own background.
+  const navRef = useRef<HTMLElement>(null);
+  const navContentRef = useRef<HTMLDivElement>(null);
+  const [indicator, setIndicator] = useState<{
+    top: number;
+    left: number;
+    width: number;
+    height: number;
+  } | null>(null);
+  const [animateIndicator, setAnimateIndicator] = useState(false);
+
+  const moveIndicatorTo = useCallback((el: HTMLElement | null) => {
+    const nav = navRef.current;
+    // Hidden (e.g. inside a collapsed group) → no indicator.
+    if (!nav || !el || el.offsetHeight === 0) {
+      setIndicator(null);
+      return;
+    }
+    const navRect = nav.getBoundingClientRect();
+    const rect = el.getBoundingClientRect();
+    setIndicator({
+      top: rect.top - navRect.top + nav.scrollTop,
+      left: rect.left - navRect.left + nav.scrollLeft,
+      width: rect.width,
+      height: rect.height,
+    });
+  }, []);
+
+  const syncIndicator = useCallback(() => {
+    moveIndicatorTo(
+      navRef.current?.querySelector<HTMLElement>('[data-nav-link][data-active="true"]') ?? null
+    );
+  }, [moveIndicatorTo]);
+
+  useLayoutEffect(() => {
+    syncIndicator();
+  }, [pathname, userRole, userPermissions, syncIndicator]);
+
+  // Enable the transition only after the first placement, so it doesn't slide in from the top on load.
+  useEffect(() => {
+    if (indicator && !animateIndicator) {
+      const id = requestAnimationFrame(() => setAnimateIndicator(true));
+      return () => cancelAnimationFrame(id);
+    }
+  }, [indicator, animateIndicator]);
+
+  // Re-measure when layout shifts (collapsible groups opening, window resize).
+  useEffect(() => {
+    const content = navContentRef.current;
+    if (!content) return;
+    const ro = new ResizeObserver(() => syncIndicator());
+    ro.observe(content);
+    return () => ro.disconnect();
+  }, [syncIndicator]);
+
+  // Start sliding immediately on click, without waiting for the route to load.
+  const handleNavClick = (e: React.MouseEvent) => {
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+    const link = (e.target as HTMLElement).closest<HTMLElement>("[data-nav-link]");
+    if (link) moveIndicatorTo(link);
+  };
+
   return (
     <aside className="w-64 h-screen bg-[#0B0E17] border-r border-slate-800/70 flex flex-col select-none">
       {/* ── Logo ── */}
@@ -520,7 +588,25 @@ export default function Sidebar() {
       </div>
 
       {/* ── Navigation ── */}
-      <nav className="flex-1 px-3.5 py-4 overflow-y-auto space-y-5 scrollbar-hidden">
+      <nav
+        ref={navRef}
+        onClickCapture={handleNavClick}
+        className="relative flex-1 px-3.5 py-4 overflow-y-auto scrollbar-hidden"
+      >
+        <div
+          aria-hidden
+          className={`absolute top-0 left-0 z-0 rounded-lg bg-[#182235] border border-slate-700/60 shadow-sm pointer-events-none will-change-transform ${animateIndicator
+              ? "transition-[transform,width,height,opacity] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none"
+              : ""
+            }`}
+          style={{
+            transform: `translate(${indicator?.left ?? 0}px, ${indicator?.top ?? 0}px)`,
+            width: indicator?.width ?? 0,
+            height: indicator?.height ?? 0,
+            opacity: indicator ? 1 : 0,
+          }}
+        />
+        <div ref={navContentRef} className="space-y-5">
         {sections.map((section, idx) => (
           <div key={idx} className={idx > 0 ? "pt-4 border-t border-slate-800/60" : ""}>
             {/* Section heading */}
@@ -537,6 +623,7 @@ export default function Sidebar() {
             </div>
           </div>
         ))}
+        </div>
       </nav>
     </aside>
   );

@@ -9,6 +9,8 @@ import {
   failQC as failQCSvc,
   uploadQCPhotos as uploadQCPhotosSvc,
   addRemarks as addRemarksSvc,
+  assignInspector as assignInspectorSvc,
+  prepareForDecision,
 } from "../services/qc.service";
 import { toast } from "react-hot-toast";
 
@@ -25,9 +27,15 @@ export function useQC() {
   const fetchJobs = useCallback(async () => {
     try {
       setIsLoading(true);
-      const data = await getPendingQC();
-      setJobs(data || []);
+      const data: QCJob[] = (await getPendingQC()) || [];
+      setJobs(data);
       setError(null);
+      // Load every queued job's attempts up front so jobs already assigned to
+      // an inspector (or mid-inspection) show that state on first render.
+      const entries = await Promise.all(
+        data.map(async (j) => [j.id, await getInspectionsSvc(j.id).catch(() => [])] as const)
+      );
+      setInspectionsByJob(Object.fromEntries(entries));
     } catch (err: any) {
       setError("Failed to load QC queue: " + err.message);
       console.error(err);
@@ -83,8 +91,11 @@ export function useQC() {
     }
   };
 
-  const passQC = async (jobId: string, notes?: string) => {
+  // `quick` — management decides directly: any unanswered checklist items
+  // are filled in as Passed first (see prepareForDecision).
+  const passQC = async (jobId: string, notes?: string, opts?: { quick?: boolean }) => {
     try {
+      if (opts?.quick) await prepareForDecision(jobId);
       await passQCSvc(jobId, notes);
       setInspectionsByJob((prev) => {
         const next = { ...prev };
@@ -100,8 +111,9 @@ export function useQC() {
     }
   };
 
-  const failQC = async (jobId: string, notes: string) => {
+  const failQC = async (jobId: string, notes: string, opts?: { quick?: boolean }) => {
     try {
+      if (opts?.quick) await prepareForDecision(jobId);
       await failQCSvc(jobId, notes);
       setInspectionsByJob((prev) => {
         const next = { ...prev };
@@ -113,6 +125,18 @@ export function useQC() {
       return true;
     } catch (err: any) {
       toast.error("Failed to record QC failure: " + err.message);
+      return false;
+    }
+  };
+
+  const assignInspector = async (jobId: string, inspector: { id: string; name: string }) => {
+    try {
+      await assignInspectorSvc(jobId, inspector.id);
+      await refreshInspections(jobId);
+      toast.success(`QC Inspector ${inspector.name} assigned`);
+      return true;
+    } catch (err: any) {
+      toast.error("Failed to assign QC inspector: " + err.message);
       return false;
     }
   };
@@ -159,7 +183,7 @@ export function useQC() {
   const stats: QCStats = useMemo(() => {
     const openCount = jobs.filter((j) => hasOpenInspection(j.id)).length;
     return {
-      waitingQC: jobs.filter((j) => j.status === "Waiting for Quality Check" && !hasOpenInspection(j.id)).length,
+      waitingQC: jobs.filter((j) => ["Completed", "Work Completed", "Waiting for Quality Check"].includes(j.status) && !hasOpenInspection(j.id)).length,
       inspecting: openCount,
       readyForBilling: jobs.filter((j) => j.status === "Ready For Billing").length,
       rework: jobs.filter((j) => j.status === "Rework Required").length,
@@ -182,6 +206,7 @@ export function useQC() {
     submitChecklist,
     passQC,
     failQC,
+    assignInspector,
     uploadPhotos,
     addRemarks,
   };

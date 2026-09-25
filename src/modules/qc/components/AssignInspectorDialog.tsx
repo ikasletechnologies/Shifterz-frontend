@@ -3,21 +3,20 @@
 import { X, ClipboardCheck, Check } from "lucide-react";
 import { useEffect, useState } from "react";
 import { apiCall } from "@/services/api.client";
-import { JobCard } from "../types/job-card.types";
 
-interface QCInspectorOption {
+export interface QCInspectorOption {
   id: string;
   name: string;
 }
 
-interface AssignQCDialogProps {
+interface AssignInspectorDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  job: JobCard | null;
+  job: { id: string; vehicle?: string } | null;
   onAssign: (inspector: QCInspectorOption) => Promise<boolean>;
 }
 
-export function AssignQCDialog({ isOpen, onClose, job, onAssign }: AssignQCDialogProps) {
+export function AssignInspectorDialog({ isOpen, onClose, job, onAssign }: AssignInspectorDialogProps) {
   const [inspectors, setInspectors] = useState<QCInspectorOption[]>([]);
   const [selectedId, setSelectedId] = useState("");
   const [saving, setSaving] = useState(false);
@@ -42,8 +41,8 @@ export function AssignQCDialog({ isOpen, onClose, job, onAssign }: AssignQCDialo
   }, [isOpen]);
 
   useEffect(() => {
-    if (isOpen) setSelectedId(job?.qcInspectorId || "");
-  }, [isOpen, job?.qcInspectorId]);
+    if (isOpen) setSelectedId("");
+  }, [isOpen, job?.id]);
 
   if (!isOpen || !job) return null;
 
@@ -63,7 +62,7 @@ export function AssignQCDialog({ isOpen, onClose, job, onAssign }: AssignQCDialo
       <div className="relative bg-white rounded-xl w-full max-w-md shadow-2xl">
         <div className="flex items-center justify-between p-6 pb-4 border-b border-gray-100">
           <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-            <ClipboardCheck className="w-6 h-6 text-purple-500" />
+            <ClipboardCheck className="w-6 h-6 text-yellow-500" />
             Assign QC Inspector — {job.vehicle}
           </h2>
           <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg transition-colors border border-gray-200">
@@ -78,7 +77,7 @@ export function AssignQCDialog({ isOpen, onClose, job, onAssign }: AssignQCDialo
               required
               value={selectedId}
               onChange={(e) => setSelectedId(e.target.value)}
-              className="w-full px-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 focus:bg-white"
+              className="w-full px-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:bg-white"
             >
               <option value="">Select QC Inspector</option>
               {inspectors.map((i) => (
@@ -93,7 +92,7 @@ export function AssignQCDialog({ isOpen, onClose, job, onAssign }: AssignQCDialo
           <button
             type="submit"
             disabled={saving || !selectedId}
-            className="w-full bg-purple-500 hover:bg-purple-600 disabled:opacity-50 text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2 transition-colors shadow-sm"
+            className="w-full bg-yellow-400 hover:bg-yellow-500 disabled:opacity-50 text-gray-900 font-bold py-3 rounded-lg flex items-center justify-center gap-2 transition-colors shadow-sm"
           >
             <Check className="w-5 h-5" />
             {saving ? "Assigning..." : "Assign QC Inspector"}
