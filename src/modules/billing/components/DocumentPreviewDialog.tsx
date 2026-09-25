@@ -14,6 +14,9 @@ interface DocumentPreviewDialogProps {
     client: string;
     phone: string;
     vehicle: string;
+    model?: string;
+    billingAddress?: string;
+    buyerState?: string | null;
     service: string;
     base: string;
     gst: string;
@@ -280,7 +283,9 @@ export default function DocumentPreviewDialog({
                     <div class="section-title">Bill To</div>
                     <h3>${document.client}</h3>
                     <p>${document.phone}</p>
-                    <p>${document.vehicle}</p>
+                    <p>${document.vehicle}${document.model ? ` · ${document.model}` : ""}</p>
+                    ${document.billingAddress ? `<p>${document.billingAddress}</p>` : ""}
+                    ${document.buyerState ? `<p><strong>State:</strong> ${document.buyerState}</p>` : ""}
                   </div>
                   <div class="bill-to-right">
                     <div class="section-title">Details</div>
@@ -459,7 +464,16 @@ export default function DocumentPreviewDialog({
                     {document.client}
                   </h3>
                   <p className="text-xs sm:text-sm text-gray-600 mb-1">{document.phone}</p>
-                  <p className="text-xs sm:text-sm text-gray-600 font-medium">{document.vehicle}</p>
+                  <p className="text-xs sm:text-sm text-gray-600 font-medium">
+                    {document.vehicle}
+                    {document.model && ` · ${document.model}`}
+                  </p>
+                  {document.billingAddress && (
+                    <p className="text-xs sm:text-sm text-gray-600 mt-1">{document.billingAddress}</p>
+                  )}
+                  {document.buyerState && (
+                    <p className="text-xs sm:text-sm text-gray-600 mt-1">State: {document.buyerState}</p>
+                  )}
                 </div>
                 <div className="text-left sm:text-right">
                   <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">

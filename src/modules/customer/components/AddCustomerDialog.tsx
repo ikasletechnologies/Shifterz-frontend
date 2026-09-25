@@ -34,6 +34,9 @@ export default function AddCustomerDialog({
     email: "",
     vehicle: "",
     carModel: "",
+    gstNumber: "",
+    address: "",
+    state: "",
   });
 
   const handleChange = (
@@ -42,6 +45,8 @@ export default function AddCustomerDialog({
     const { name, value } = e.target;
     if (name === "phone") {
       setFormData((prev) => ({ ...prev, [name]: value.replace(/\D/g, "").slice(0, 10) }));
+    } else if (name === "gstNumber") {
+      setFormData((prev) => ({ ...prev, [name]: value.toUpperCase().replace(/s/g, "").slice(0, 15) }));
     } else if (name === "vehicle") {
       setFormData((prev) => ({ ...prev, [name]: formatVehicleNumber(value) }));
     } else {
@@ -95,6 +100,9 @@ export default function AddCustomerDialog({
       email: "",
       vehicle: "",
       carModel: "",
+      gstNumber: "",
+      address: "",
+      state: "",
     });
     onClose();
   };
@@ -194,6 +202,50 @@ export default function AddCustomerDialog({
               placeholder="Toyota Fortuner"
               className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent bg-gray-50"
               required
+            />
+          </div>
+
+          {/* Billing details (optional) — used on estimates and invoices */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+            <div>
+              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">
+                GSTIN
+              </label>
+              <input
+                type="text"
+                name="gstNumber"
+                value={formData.gstNumber}
+                onChange={handleChange}
+                placeholder="33ABCDE1234F1Z5"
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent bg-gray-50 uppercase"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">
+                State
+              </label>
+              <input
+                type="text"
+                name="state"
+                value={formData.state}
+                onChange={handleChange}
+                placeholder="Tamil Nadu"
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent bg-gray-50"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">
+              Billing Address
+            </label>
+            <input
+              type="text"
+              name="address"
+              value={formData.address}
+              onChange={handleChange}
+              placeholder="Street, area, city"
+              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent bg-gray-50"
             />
           </div>
 

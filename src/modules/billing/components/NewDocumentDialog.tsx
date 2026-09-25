@@ -11,6 +11,9 @@ import { fetchVehicleDetails, getServices } from "@/lib/api";
 import { getJobCards } from "@/modules/job-card/services/job-card.service";
 import { JobCard } from "@/modules/job-card/types/job-card.types";
 import { getVehicleType, formatVehicleNumber } from "@/utils/vehicleNumber";
+import AddCustomerDialog from "@/modules/customer/components/AddCustomerDialog";
+import { createCustomer, getCustomers } from "@/modules/customer/services/customer.service";
+import { Customer } from "@/modules/customer/types/customer.types";
 
 const BILLING_ELIGIBLE_JOB_STATUSES = ["Ready For Billing", "QC Passed", "Delivered", "Out"];
 
@@ -103,6 +106,62 @@ export default function NewDocumentDialog({
   const [eligibleJobs, setEligibleJobs] = useState<JobCard[]>([]);
   const [isLoadingJobs, setIsLoadingJobs] = useState(false);
   const [jobId, setJobId] = useState<string>("");
+  const [isAddCustomerOpen, setIsAddCustomerOpen] = useState(false);
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [showCustomerList, setShowCustomerList] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    getCustomers()
+      .then((list) => setCustomers(Array.isArray(list) ? list : []))
+      .catch(() => setCustomers([]));
+  }, [isOpen]);
+
+  // Saved customers matching what's typed in Customer (name, phone or vehicle).
+  const customerMatches = useMemo(() => {
+    const q = formData.client.trim().toLowerCase();
+    const qDigits = q.replace(/D/g, "");
+    const qVehicle = q.replace(/[^a-z0-9]/g, "");
+    return customers
+      .filter((c) => {
+        if (!q) return true;
+        return (
+          (c.name || "").toLowerCase().includes(q) ||
+          (qDigits.length >= 3 && (c.phone || "").includes(qDigits)) ||
+          (qVehicle.length >= 3 && (c.vehicle || "").toLowerCase().replace(/[^a-z0-9]/g, "").includes(qVehicle))
+        );
+      })
+      .slice(0, 8);
+  }, [customers, formData.client]);
+
+  // Fill the customer, vehicle and GST fields from a saved customer record.
+  const applyCustomer = (c: Partial<Customer> & { carModel?: string }) => {
+    setFormData((prev) => ({
+      ...prev,
+      client: c.name || prev.client,
+      phone: c.phone || prev.phone,
+      vehicle: c.vehicle ? formatVehicleNumber(c.vehicle) : prev.vehicle,
+      model: c.model || c.carModel || prev.model,
+      gstNumber: c.gstNumber || "",
+      billingAddress: c.address || "",
+      customerState: c.state || "",
+    }));
+    setShowCustomerList(false);
+  };
+
+  // "+ New" customer: saves the customer, then fills this document with them.
+  const handleAddCustomer = async (customer: any) => {
+    try {
+      const created = await createCustomer(customer);
+      setCustomers((prev) => [created, ...prev.filter((c) => c.id !== created.id)]);
+      // The API returns the existing record when the phone is already on
+      // file, so fall back to what was typed for anything it lacks.
+      applyCustomer({ ...customer, ...created, gstNumber: created.gstNumber || customer.gstNumber, address: created.address || customer.address, state: created.state || customer.state });
+      toast.success(`Customer ${created.name || customer.name} added`);
+    } catch (err: any) {
+      toast.error("Failed to add customer: " + (err.message || "Error"));
+    }
+  };
   const customerStateInputRef = useRef<HTMLInputElement | null>(null);
 
   // GET /vehicle/:vehicleNo also returns `model` (from the matched Customer's
@@ -759,17 +818,42 @@ export default function NewDocumentDialog({
                         Customer <span className="text-red-500">*</span>
                       </label>
                       <div className="flex items-center gap-2">
-                        <input
-                          type="text"
-                          name="client"
-                          value={formData.client}
-                          onChange={handleChange}
-                          placeholder="Hari (8825972129)"
-                          className="flex-1 px-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
-                          required
-                        />
+                        <div className="relative flex-1">
+                          <input
+                            type="text"
+                            name="client"
+                            value={formData.client}
+                            onChange={(e) => { handleChange(e); setShowCustomerList(true); }}
+                            onFocus={() => setShowCustomerList(true)}
+                            onBlur={() => setShowCustomerList(false)}
+                            placeholder="Search name, phone or vehicle"
+                            autoComplete="off"
+                            className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+                            required
+                          />
+                          {showCustomerList && customerMatches.length > 0 && (
+                            <ul className="absolute z-30 left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-64 overflow-y-auto py-1">
+                              {customerMatches.map((c) => (
+                                <li key={c.id}>
+                                  <button
+                                    type="button"
+                                    // mouseDown fires before the input's blur closes the list
+                                    onMouseDown={(e) => { e.preventDefault(); applyCustomer(c); }}
+                                    className="w-full text-left px-3 py-2 hover:bg-blue-50 transition-colors"
+                                  >
+                                    <p className="text-xs font-semibold text-slate-900">{c.name}</p>
+                                    <p className="text-[11px] text-slate-500">
+                                      {[c.phone, c.vehicle, c.model].filter(Boolean).join(" · ") || "No phone or vehicle on file"}
+                                    </p>
+                                  </button>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
                         <button
                           type="button"
+                          onClick={() => setIsAddCustomerOpen(true)}
                           className="px-3 py-2 bg-blue-50 text-blue-600 font-bold text-xs rounded-xl hover:bg-blue-100 border border-blue-100 transition-colors flex items-center gap-1 shrink-0"
                         >
                           <Plus className="w-3.5 h-3.5" /> New
@@ -1345,6 +1429,13 @@ export default function NewDocumentDialog({
         </div>
 
       </div>
+
+      {/* Outside the document <form> — a nested form would submit the document. */}
+      <AddCustomerDialog
+        isOpen={isAddCustomerOpen}
+        onClose={() => setIsAddCustomerOpen(false)}
+        onSubmit={handleAddCustomer}
+      />
     </div>
   );
 }

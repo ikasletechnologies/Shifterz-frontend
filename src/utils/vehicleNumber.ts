@@ -10,9 +10,11 @@ export function getVehicleType(value: string): string {
   // BH series: BH 12 AB 1234 => BH12AB1234
   const bhRegex = /^BH\d{2}[A-Z]{2}\d{4}$/;
 
-  // Normal Indian vehicle number:
-  // TN01AB1234, KA05MN9999, DL08C1234, etc.
-  const normalRegex = /^[A-Z]{2}\d{2}[A-Z]{1,2}\d{4}$/;
+  // Normal Indian vehicle number: state + RTO (1-2 digits) + series (1-3
+  // letters) + number (1-4 digits). Covers TN01AB1234, KA05MN9999,
+  // DL08C1234, and 1-digit-RTO plates with a category letter such as
+  // DL3CAB1234 / TN6CXL2028.
+  const normalRegex = /^[A-Z]{2}\d{1,2}[A-Z]{1,3}\d{1,4}$/;
 
   // 1975-style vintage number:
   // MAA1025, MDS4578, etc.
@@ -60,16 +62,25 @@ export function formatVehicleNumber(value: string): string {
   // leading-letters run (the series) and trailing-digits run (the number) —
   // this self-corrects live as the user types, the moment a digit follows
   // the series letters.
+  // The RTO code is 1-2 digits; a 1-digit RTO followed by 3 letters is shown
+  // with its category letter attached, e.g. "DL 3C AB 1234" / "TN 6C XL 2028".
   let out = v.slice(0, 2);
   if (v.length <= 2) return out;
-  out += " " + v.slice(2, 4);
-  if (v.length <= 4) return out;
 
-  const rest = v.slice(4);
-  const series = rest.match(/^[A-Z]{0,2}/)?.[0] || "";
-  const number = rest.slice(series.length, series.length + 4);
+  const afterState = v.slice(2);
+  let rto = afterState.match(/^\d{0,2}/)?.[0] || "";
+  if (!rto) return `${out} ${afterState}`;
+  let rest = afterState.slice(rto.length);
+  let letters = rest.match(/^[A-Z]{0,3}/)?.[0] || "";
+  if (rto.length === 1 && letters.length === 3) {
+    rto += letters[0];
+    letters = letters.slice(1);
+    rest = rest.slice(1);
+  }
+  const number = rest.slice(letters.length).match(/^\d{0,4}/)?.[0] || "";
 
-  if (series) out += " " + series;
+  out += " " + rto;
+  if (letters) out += " " + letters;
   if (number) out += " " + number;
   return out;
 }
