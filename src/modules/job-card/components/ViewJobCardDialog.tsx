@@ -6,6 +6,9 @@ import { X, ClipboardList, Calendar, Clock, User, Wrench, AlertCircle, FileText,
 import { JobCard } from "../types/job-card.types";
 import { JobStatusBadge } from "./JobStatusBadge";
 import { PriorityBadge } from "./PriorityBadge";
+import { JobProgressTracker } from "./JobProgressTracker";
+import { JobStageDef } from "../lib/jobStage";
+import { StatusText } from "@/components/common/StatusText";
 import { CarEntry } from "@/modules/vehicle-checkin/types/vehicle-checkin.types";
 import { getInspections } from "@/modules/qc/services/qc.service";
 import { QCInspection } from "@/modules/qc/types/qc.types";
@@ -22,6 +25,8 @@ interface ViewJobCardDialogProps {
   // The vehicle check-in record matched to this job's vehicle, if any — carries
   // the inspection details/photos recorded before the technician was assigned.
   inspectionCar?: CarEntry | null;
+  // Current car-in → car-out stage (see lib/jobStage), shown as a tracker.
+  stage?: JobStageDef;
 }
 
 const INSPECTION_PHOTO_SLOTS: { key: keyof CarEntry; label: string }[] = [
@@ -86,7 +91,7 @@ function formatTimeOnly(dateStr?: string) {
   });
 }
 
-export function ViewJobCardDialog({ isOpen, onClose, job, onEdit, onDelete, inspectionCar }: ViewJobCardDialogProps) {
+export function ViewJobCardDialog({ isOpen, onClose, job, onEdit, onDelete, inspectionCar, stage }: ViewJobCardDialogProps) {
   const router = useRouter();
   const [history, setHistory] = useState<any[]>([]);
   const [activeSubTab, setActiveSubTab] = useState<'details' | 'timeline'>('details');
@@ -193,7 +198,7 @@ export function ViewJobCardDialog({ isOpen, onClose, job, onEdit, onDelete, insp
               <div>
                 <div className="flex items-center gap-2">
                   <span className="font-mono text-sm font-bold text-yellow-600">{job.id}</span>
-                  <JobStatusBadge status={job.status} />
+                  {stage ? <StatusText status={stage.label} tone={stage.tone} /> : <JobStatusBadge status={job.status} />}
                 </div>
                 <h2 className="text-xl font-bold text-gray-900 mt-0.5">{job.vehicle}</h2>
               </div>
@@ -241,6 +246,16 @@ export function ViewJobCardDialog({ isOpen, onClose, job, onEdit, onDelete, insp
               </button>
             </div>
           </div>
+
+          {stage && (
+            <div className="px-6 pt-4">
+              <JobProgressTracker
+                stage={stage}
+                onNavigate={onClose}
+                onEdit={onEdit ? () => { onClose(); onEdit(job); } : undefined}
+              />
+            </div>
+          )}
 
           {/* Tab Selector */}
           <div className="flex border-b border-gray-100 px-6">

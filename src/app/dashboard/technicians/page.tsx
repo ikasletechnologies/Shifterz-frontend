@@ -733,7 +733,6 @@ function TechniciansPageContent() {
                     setIsViewDialogOpen(true);
                   }}
                   onEdit={() => {}}
-                  onDelete={() => {}}
                 />
               )
             ) : activeKPI === "Waiting for Parts" ? (
@@ -747,7 +746,6 @@ function TechniciansPageContent() {
                     setIsViewDialogOpen(true);
                   }}
                   onEdit={() => {}}
-                  onDelete={() => {}}
                 />
               )
             ) : (activeKPI === "Completed Today" || activeKPI === "Completed Jobs") ? (
@@ -761,7 +759,6 @@ function TechniciansPageContent() {
                     setIsViewDialogOpen(true);
                   }}
                   onEdit={() => {}}
-                  onDelete={() => {}}
                 />
               )
             ) : activeKPI === "Rework Jobs" ? (
@@ -775,7 +772,6 @@ function TechniciansPageContent() {
                     setIsViewDialogOpen(true);
                   }}
                   onEdit={() => {}}
-                  onDelete={() => {}}
                 />
               )
             ) : displayedRows.length === 0 ? (

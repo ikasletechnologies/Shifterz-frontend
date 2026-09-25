@@ -34,7 +34,7 @@ export function ListHeader({
         <h2 className="text-sm font-bold text-slate-900">
           {title}{" "}
           <span className="font-normal text-slate-500">
-            · {filterLabel ? `${filterLabel} ` : ""}({count})
+            {filterLabel ? `· ${filterLabel} ` : ""}({count})
           </span>
         </h2>
         {hint && <p className="text-xs text-slate-500 mt-0.5">{hint}</p>}

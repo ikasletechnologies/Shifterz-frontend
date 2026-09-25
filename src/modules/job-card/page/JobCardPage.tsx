@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { toast } from "react-hot-toast";
 import { useJobCards } from "../hooks/useJobCards";
 import { JobCard, JobCardFormData } from "../types/job-card.types";
 import { JobCardHeader } from "../components/JobCardHeader";
@@ -10,7 +9,8 @@ import { JobCardTable } from "../components/JobCardTable";
 import { CreateJobCardDialog, JOB_CARD_DRAFT_STORAGE_KEY } from "../components/CreateJobCardDialog";
 import { ViewJobCardDialog } from "../components/ViewJobCardDialog";
 import { useVehicleCheckin } from "@/modules/vehicle-checkin/hooks/useVehicleCheckin";
-import VehicleInspectionDialog from "@/modules/vehicle-checkin/components/VehicleInspectionDialog";
+import { useJobTracking } from "../hooks/useJobTracking";
+import { STAGE_FILTERS } from "../lib/jobStage";
 import { CarEntry, hasCompletedInspection } from "@/modules/vehicle-checkin/types/vehicle-checkin.types";
 
 
@@ -21,13 +21,12 @@ function normalizeVehicle(v?: string | null): string {
 export function JobCardPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { jobCards, isLoading, error, stats, handleSaveJobCard, handleDeleteJobCard, fetchJobCards } = useJobCards();
-  const { cars, handleUpdateVehicleCheckIn } = useVehicleCheckin();
+  const { jobCards, isLoading, error, handleSaveJobCard, handleDeleteJobCard, fetchJobCards } = useJobCards();
+  const { cars } = useVehicleCheckin();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedJob, setSelectedJob] = useState<JobCard | null>(null);
   const [viewingJob, setViewingJob] = useState<JobCard | null>(null);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
-  const [inspectingCar, setInspectingCar] = useState<CarEntry | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
@@ -121,26 +120,23 @@ export function JobCardPage() {
     }
   }, []);
 
-  const findCarForJob = (job: JobCard): CarEntry | undefined =>
-    carByVehicle.get(normalizeVehicle(job.vehicle));
+  const findCarForJob = useCallback(
+    (job: JobCard): CarEntry | undefined => carByVehicle.get(normalizeVehicle(job.vehicle)),
+    [carByVehicle]
+  );
 
   // Only block assignment when we can positively confirm a matched check-in's
   // inspection is incomplete — a job card with no matched check-in (e.g. legacy
   // data) falls back to the old always-assignable behavior rather than getting stuck.
-  const isInspectionPending = (job: JobCard): boolean => {
-    const car = findCarForJob(job);
-    if (!car) return false;
-    return !hasCompletedInspection(car);
-  };
+  const isInspectionPending = useCallback(
+    (job: JobCard): boolean => {
+      const car = findCarForJob(job);
+      return car ? !hasCompletedInspection(car) : false;
+    },
+    [findCarForJob]
+  );
 
-  const handleInspect = (job: JobCard) => {
-    const car = findCarForJob(job);
-    if (!car) {
-      toast.error("No matching vehicle check-in found for this job card's vehicle.");
-      return;
-    }
-    setInspectingCar(car);
-  };
+  const { trackingFor } = useJobTracking(jobCards, isInspectionPending);
 
   const handleStatusSelect = (status: string) => {
     setSelectedStatus(status);
@@ -207,7 +203,8 @@ export function JobCardPage() {
   const isBillingExecutive =
     userRole.includes("BILLING") || userRole.includes("ACCOUNTANT");
 
-  const filteredJobs = jobCards.filter((j) => {
+  // Role scope + date + search. Stage cards count within this set.
+  const visibleJobs = jobCards.filter((j) => {
     if (isTechnician && currentUser) {
       const isAssigned =
         (j.technicianId && currentUser.id && j.technicianId === currentUser.id) ||
@@ -242,55 +239,6 @@ export function JobCardPage() {
       if (!isQCStatus) return false;
     }
 
-    // Status KPI Card Filtering
-    if (selectedStatus && selectedStatus.toLowerCase() !== "all") {
-      const s = selectedStatus.toLowerCase();
-      if (s === "assigned") {
-        const isAssigned = Boolean(
-          j.technician &&
-            j.technician.trim() !== "" &&
-            j.technician.toLowerCase() !== "unassigned" &&
-            j.technician.toLowerCase() !== "none"
-        );
-        if (!isAssigned) return false;
-      } else if (s === "unassigned") {
-        const isUnassigned =
-          !j.technician ||
-          j.technician.trim() === "" ||
-          j.technician.toLowerCase() === "unassigned" ||
-          j.technician.toLowerCase() === "none";
-        if (!isUnassigned) return false;
-      } else if (s === "in progress") {
-        const isMatch = j.status === "In Progress" || j.status === "Ongoing";
-        if (!isMatch) return false;
-      } else if (s === "completed") {
-        const isMatch = j.status === "Completed" || j.status === "Complete";
-        if (!isMatch) return false;
-      } else if (s === "review for qc") {
-        const isMatch =
-          j.status === "Review for QC" ||
-          j.status === "Waiting QC" ||
-          j.status === "Waiting for Quality Check" ||
-          j.status === "Inspecting" ||
-          j.status === "In QC";
-        if (!isMatch) return false;
-      } else if (s === "rework") {
-        const isMatch = j.status === "Rework" || j.status === "QC Failed";
-        if (!isMatch) return false;
-      } else if (s === "ready for billing") {
-        const isMatch = j.status === "Ready For Billing" || j.status === "QC Passed";
-        if (!isMatch) return false;
-      } else if (s === "delivered") {
-        const isMatch = j.status === "Delivered" || j.status === "Out" || j.status === "Delivery";
-        if (!isMatch) return false;
-      } else if (s === "cancelled") {
-        const isMatch = j.status === "Cancelled" || j.status === "Canceled";
-        if (!isMatch) return false;
-      } else {
-        if (j.status.toLowerCase() !== s) return false;
-      }
-    }
-
     // Date Filtering (From Date & To Date - exact match with Car In module)
     if (fromDate) {
       const start = new Date(fromDate + "T00:00:00");
@@ -314,13 +262,27 @@ export function JobCardPage() {
     );
   });
 
+  const stageCards = [
+    { id: "All", label: "All", count: visibleJobs.length },
+    ...STAGE_FILTERS.map((f) => ({
+      id: f.id,
+      label: f.label,
+      tone: f.tone,
+      count: visibleJobs.filter((j) => f.stages.includes(trackingFor(j).stage.key)).length,
+    })),
+  ];
+  const activeFilter = STAGE_FILTERS.find((f) => f.id === selectedStatus);
+  const filteredJobs = activeFilter
+    ? visibleJobs.filter((j) => activeFilter.stages.includes(trackingFor(j).stage.key))
+    : visibleJobs;
+
   if (isLoading) return <div className="p-8 text-center text-gray-500">Loading job cards...</div>;
   if (error) return <div className="p-8 text-center text-red-500">Error: {error}</div>;
 
   return (
     <div className="p-8 space-y-6">
       <JobCardHeader
-        stats={stats}
+        cards={stageCards}
         onNewJobCard={() => { setSelectedJob(null); setIsDialogOpen(true); }}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
@@ -336,9 +298,7 @@ export function JobCardPage() {
         jobCards={filteredJobs}
         onView={handleView}
         onEdit={handleEdit}
-        onDelete={handleDelete}
-        isInspectionPending={isInspectionPending}
-        onInspect={handleInspect}
+        trackingFor={trackingFor}
       />
 
       <CreateJobCardDialog
@@ -348,18 +308,12 @@ export function JobCardPage() {
         initialData={selectedJob}
       />
 
-      <VehicleInspectionDialog
-        isOpen={!!inspectingCar}
-        car={inspectingCar}
-        onClose={() => setInspectingCar(null)}
-        onSubmit={handleUpdateVehicleCheckIn}
-      />
-
       <ViewJobCardDialog
         isOpen={isViewDialogOpen}
         onClose={() => { setIsViewDialogOpen(false); setViewingJob(null); }}
         job={viewingJob}
         inspectionCar={viewingJob ? findCarForJob(viewingJob) : null}
+        stage={viewingJob ? trackingFor(viewingJob)?.stage : undefined}
         onEdit={(job) => {
           setIsViewDialogOpen(false);
           setViewingJob(null);

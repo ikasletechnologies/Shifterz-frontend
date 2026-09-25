@@ -50,7 +50,6 @@ export function VehicleInspectionPage() {
     { id: "Pending", label: "Inspection Pending", count: pendingCount },
     { id: "Complete", label: "Inspection Complete", count: completeCount, tone: "good" as const },
   ] as const;
-  const filterLabel = FILTERS.find((f) => f.id === statusFilter)?.label;
 
   return (
     <div className="p-4 sm:p-6 md:p-8 space-y-6">
@@ -71,9 +70,8 @@ export function VehicleInspectionPage() {
       <section className="space-y-3">
         <ListHeader
           title="Vehicle Inspection"
-          filterLabel={filterLabel}
           count={filtered.length}
-          hint="Every checked-in vehicle needs an inspection before its job can go to QC."
+          hint=""
           searchValue={searchQuery}
           onSearchChange={setSearchQuery}
           searchPlaceholder="Search vehicle, customer, phone..."
@@ -84,60 +82,60 @@ export function VehicleInspectionPage() {
             {query
               ? `No vehicles match "${searchQuery}".`
               : statusFilter === "Pending"
-              ? "All caught up — no vehicles are waiting for inspection."
-              : statusFilter === "Complete"
-              ? "No inspections have been completed yet."
-              : "No checked-in vehicles yet."}
+                ? "All caught up — no vehicles are waiting for inspection."
+                : statusFilter === "Complete"
+                  ? "No inspections have been completed yet."
+                  : "No checked-in vehicles yet."}
           </div>
         ) : (
-        <div className="bg-white border border-slate-200 rounded-lg overflow-x-auto">
-          <table className="data-table w-full min-w-[950px] text-left">
-            <thead>
-              <tr>
-                <th>Vehicle Number</th>
-                <th>Model</th>
-                <th>Customer</th>
-                <th>Mobile</th>
-                <th>Service</th>
-                <th>Check-In</th>
-                <th>Inspection</th>
-                <th className="text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((car) => {
-                const complete = hasCompletedInspection(car);
-                return (
-                  <tr key={car.id}>
-                    <td className="whitespace-nowrap uppercase">{car.vehicleNo || car.vehicle || car.vehicleNumber || "—"}</td>
-                    <td className="max-w-[140px] truncate">{car.model || "—"}</td>
-                    <td className="max-w-[180px] truncate">{car.customer || "—"}</td>
-                    <td className="whitespace-nowrap">{car.phone || "—"}</td>
-                    <td className="max-w-[160px] truncate">{car.service || "—"}</td>
-                    <td className="whitespace-nowrap">{formatDate(car.inTime)} {formatTime(car.inTime)}</td>
-                    <td className="whitespace-nowrap"><StatusText status={complete ? "Complete" : "Pending"} /></td>
-                    <td className="whitespace-nowrap text-right">
-                      {complete ? (
-                        <button type="button" onClick={() => openInspection(car)}>
-                          View / Edit
-                        </button>
-                      ) : (
-                        // The one thing to do on this page — make it stand out.
-                        <button
-                          type="button"
-                          onClick={() => openInspection(car)}
-                          className="keep-color bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-semibold text-xs px-3 py-1.5 rounded-md transition-colors cursor-pointer"
-                        >
-                          Complete Inspection
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+          <div className="bg-white border border-slate-200 rounded-lg overflow-x-auto">
+            <table className="data-table w-full min-w-[950px] text-left">
+              <thead>
+                <tr>
+                  <th>Vehicle Number</th>
+                  <th>Model</th>
+                  <th>Customer</th>
+                  <th>Mobile</th>
+                  <th>Service</th>
+                  <th>Check-In</th>
+                  <th>Inspection</th>
+                  <th className="text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((car) => {
+                  const complete = hasCompletedInspection(car);
+                  return (
+                    <tr key={car.id}>
+                      <td className="whitespace-nowrap uppercase">{car.vehicleNo || car.vehicle || car.vehicleNumber || "—"}</td>
+                      <td className="max-w-[140px] truncate">{car.model || "—"}</td>
+                      <td className="max-w-[180px] truncate">{car.customer || "—"}</td>
+                      <td className="whitespace-nowrap">{car.phone || "—"}</td>
+                      <td className="max-w-[160px] truncate">{car.service || "—"}</td>
+                      <td className="whitespace-nowrap">{formatDate(car.inTime)} {formatTime(car.inTime)}</td>
+                      <td className="whitespace-nowrap"><StatusText status={complete ? "Complete" : "Pending"} /></td>
+                      <td className="whitespace-nowrap text-right">
+                        {complete ? (
+                          <button type="button" onClick={() => openInspection(car)}>
+                            View / Edit
+                          </button>
+                        ) : (
+                          // The one thing to do on this page — make it stand out.
+                          <button
+                            type="button"
+                            onClick={() => openInspection(car)}
+                            className="keep-color bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-semibold text-xs px-3 py-1.5 rounded-md transition-colors cursor-pointer"
+                          >
+                            Complete Inspection
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
       </section>
 

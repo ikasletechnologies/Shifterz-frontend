@@ -78,7 +78,6 @@ export function UnassignJobPage() {
       </div>
 
       <JobCardHeader
-        stats={stats}
         onNewJobCard={() => { setSelectedJob(null); setIsDialogOpen(true); }}
       />
 
@@ -93,7 +92,6 @@ export function UnassignJobPage() {
         jobCards={unassignedJobs}
         onView={handleView}
         onEdit={handleEdit}
-        onDelete={handleDelete}
       />
 
       <CreateJobCardDialog

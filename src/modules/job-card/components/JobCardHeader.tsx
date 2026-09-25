@@ -3,10 +3,19 @@
 import { useEffect, useState } from "react";
 import { Search, X } from "lucide-react";
 import { toast } from "react-hot-toast";
-import { JobCardStats } from "../types/job-card.types";
+import { SummaryCard } from "@/components/common/SummaryCard";
+import { StatusTone } from "@/lib/statusTone";
+
+export interface JobCardFilterCard {
+  id: string;
+  label: string;
+  count: number;
+  tone?: StatusTone;
+}
 
 interface JobCardHeaderProps {
-  stats: JobCardStats;
+  /** Clickable summary cards; each filters the list by its id. */
+  cards?: JobCardFilterCard[];
   onNewJobCard: () => void;
   searchQuery?: string;
   onSearchChange?: (val: string) => void;
@@ -19,7 +28,7 @@ interface JobCardHeaderProps {
 }
 
 export function JobCardHeader({
-  stats,
+  cards = [],
   onNewJobCard,
   searchQuery,
   onSearchChange,
@@ -177,149 +186,20 @@ export function JobCardHeader({
         </div>
       </div>
 
-      {/* Status KPI Cards - 2 Rows of 5 Cards Each */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
-        {/* 1. All */}
-        <button
-          type="button"
-          onClick={() => onStatusSelect?.("All")}
-          className={`rounded-xl border p-4 shadow-xs flex flex-col justify-between h-24 text-left transition-all cursor-pointer ${
-            isCardSelected("All")
-              ? "bg-yellow-50 border-yellow-400 ring-2 ring-yellow-400 shadow-md"
-              : "bg-white border-gray-100 hover:border-yellow-300 hover:bg-yellow-50/40 hover:shadow-xs"
-          }`}
-        >
-          <span className="text-[11px] font-bold text-slate-800 uppercase tracking-wide">All</span>
-          <span className="text-2xl font-semibold text-slate-900">{stats.all}</span>
-        </button>
-
-        {/* 2. Assigned */}
-        <button
-          type="button"
-          onClick={() => onStatusSelect?.("Assigned")}
-          className={`rounded-xl border p-4 shadow-xs flex flex-col justify-between h-24 text-left transition-all cursor-pointer ${
-            isCardSelected("Assigned")
-              ? "bg-yellow-50 border-yellow-400 ring-2 ring-yellow-400 shadow-md"
-              : "bg-white border-gray-100 hover:border-yellow-300 hover:bg-yellow-50/40 hover:shadow-xs"
-          }`}
-        >
-          <span className="text-[11px] font-bold text-slate-800 uppercase tracking-wide">Assigned</span>
-          <span className="text-2xl font-semibold text-slate-900">{stats.assigned}</span>
-        </button>
-
-        {/* 3. Unassigned */}
-        <button
-          type="button"
-          onClick={() => onStatusSelect?.("Unassigned")}
-          className={`rounded-xl border p-4 shadow-xs flex flex-col justify-between h-24 text-left transition-all cursor-pointer ${
-            isCardSelected("Unassigned")
-              ? "bg-yellow-50 border-yellow-400 ring-2 ring-yellow-400 shadow-md"
-              : "bg-white border-gray-100 hover:border-yellow-300 hover:bg-yellow-50/40 hover:shadow-xs"
-          }`}
-        >
-          <span className="text-[11px] font-bold text-slate-800 uppercase tracking-wide">Unassigned</span>
-          <span className="text-2xl font-semibold text-slate-900">{stats.unassigned}</span>
-        </button>
-
-        {/* 4. In Progress */}
-        <button
-          type="button"
-          onClick={() => onStatusSelect?.("In Progress")}
-          className={`rounded-xl border p-4 shadow-xs flex flex-col justify-between h-24 text-left transition-all cursor-pointer ${
-            isCardSelected("In Progress")
-              ? "bg-yellow-50 border-yellow-400 ring-2 ring-yellow-400 shadow-md"
-              : "bg-white border-gray-100 hover:border-yellow-300 hover:bg-yellow-50/40 hover:shadow-xs"
-          }`}
-        >
-          <span className="text-[11px] font-bold text-slate-800 uppercase tracking-wide">In Progress</span>
-          <span className="text-2xl font-semibold text-slate-900">{stats.inProgress}</span>
-        </button>
-
-        {/* 5. Completed */}
-        <button
-          type="button"
-          onClick={() => onStatusSelect?.("Completed")}
-          className={`rounded-xl border p-4 shadow-xs flex flex-col justify-between h-24 text-left transition-all cursor-pointer ${
-            isCardSelected("Completed")
-              ? "bg-yellow-50 border-yellow-400 ring-2 ring-yellow-400 shadow-md"
-              : "bg-white border-gray-100 hover:border-yellow-300 hover:bg-yellow-50/40 hover:shadow-xs"
-          }`}
-        >
-          <span className="text-[11px] font-bold text-slate-800 uppercase tracking-wide">Completed</span>
-          <span className={`text-2xl font-semibold ${stats.completed > 0 ? "text-green-700" : "text-slate-900"}`}>{stats.completed}</span>
-        </button>
-
-        {/* Row 2 */}
-        {/* 6. Review for QC */}
-        <button
-          type="button"
-          onClick={() => onStatusSelect?.("Review for QC")}
-          className={`rounded-xl border p-4 shadow-xs flex flex-col justify-between h-24 text-left transition-all cursor-pointer ${
-            isCardSelected("Review for QC")
-              ? "bg-yellow-50 border-yellow-400 ring-2 ring-yellow-400 shadow-md"
-              : "bg-white border-gray-100 hover:border-yellow-300 hover:bg-yellow-50/40 hover:shadow-xs"
-          }`}
-        >
-          <span className="text-[11px] font-bold text-slate-800 uppercase tracking-wide">Review for QC</span>
-          <span className="text-2xl font-semibold text-slate-900">{stats.reviewForQC}</span>
-        </button>
-
-        {/* 7. Rework */}
-        <button
-          type="button"
-          onClick={() => onStatusSelect?.("Rework")}
-          className={`rounded-xl border p-4 shadow-xs flex flex-col justify-between h-24 text-left transition-all cursor-pointer ${
-            isCardSelected("Rework")
-              ? "bg-yellow-50 border-yellow-400 ring-2 ring-yellow-400 shadow-md"
-              : "bg-white border-gray-100 hover:border-yellow-300 hover:bg-yellow-50/40 hover:shadow-xs"
-          }`}
-        >
-          <span className="text-[11px] font-bold text-slate-800 uppercase tracking-wide">Rework</span>
-          <span className={`text-2xl font-semibold ${stats.rework > 0 ? "text-red-600" : "text-slate-900"}`}>{stats.rework}</span>
-        </button>
-
-        {/* 8. Ready for Billing */}
-        <button
-          type="button"
-          onClick={() => onStatusSelect?.("Ready for Billing")}
-          className={`rounded-xl border p-4 shadow-xs flex flex-col justify-between h-24 text-left transition-all cursor-pointer ${
-            isCardSelected("Ready for Billing")
-              ? "bg-yellow-50 border-yellow-400 ring-2 ring-yellow-400 shadow-md"
-              : "bg-white border-gray-100 hover:border-yellow-300 hover:bg-yellow-50/40 hover:shadow-xs"
-          }`}
-        >
-          <span className="text-[11px] font-bold text-slate-800 uppercase tracking-wide">Ready for Billing</span>
-          <span className={`text-2xl font-semibold ${stats.readyForBilling > 0 ? "text-green-700" : "text-slate-900"}`}>{stats.readyForBilling}</span>
-        </button>
-
-        {/* 9. Delivered */}
-        <button
-          type="button"
-          onClick={() => onStatusSelect?.("Delivered")}
-          className={`rounded-xl border p-4 shadow-xs flex flex-col justify-between h-24 text-left transition-all cursor-pointer ${
-            isCardSelected("Delivered")
-              ? "bg-yellow-50 border-yellow-400 ring-2 ring-yellow-400 shadow-md"
-              : "bg-white border-gray-100 hover:border-yellow-300 hover:bg-yellow-50/40 hover:shadow-xs"
-          }`}
-        >
-          <span className="text-[11px] font-bold text-slate-800 uppercase tracking-wide">Delivered</span>
-          <span className={`text-2xl font-semibold ${stats.delivered > 0 ? "text-green-700" : "text-slate-900"}`}>{stats.delivered}</span>
-        </button>
-
-        {/* 10. Cancelled */}
-        <button
-          type="button"
-          onClick={() => onStatusSelect?.("Cancelled")}
-          className={`rounded-xl border p-4 shadow-xs flex flex-col justify-between h-24 text-left transition-all cursor-pointer ${
-            isCardSelected("Cancelled")
-              ? "bg-yellow-50 border-yellow-400 ring-2 ring-yellow-400 shadow-md"
-              : "bg-white border-gray-100 hover:border-yellow-300 hover:bg-yellow-50/40 hover:shadow-xs"
-          }`}
-        >
-          <span className="text-[11px] font-bold text-slate-800 uppercase tracking-wide">Cancelled</span>
-          <span className={`text-2xl font-semibold ${stats.cancelled > 0 ? "text-red-600" : "text-slate-900"}`}>{stats.cancelled}</span>
-        </button>
-      </div>
+      {cards.length > 0 && (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+          {cards.map((c) => (
+            <SummaryCard
+              key={c.id}
+              label={c.label}
+              value={c.count}
+              tone={c.tone}
+              active={isCardSelected(c.id)}
+              onClick={onStatusSelect ? () => onStatusSelect(c.id) : undefined}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
