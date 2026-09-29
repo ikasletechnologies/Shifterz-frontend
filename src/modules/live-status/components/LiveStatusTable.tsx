@@ -25,6 +25,7 @@ interface LiveStatusTableProps {
 }
 
 export function LiveStatusTable({ records, onOpenJobCard, onEditJobCard, onPrintJobCard }: LiveStatusTableProps) {
+  const showFranchiseColumn = records.some((r) => r.franchiseName || r.franchiseId);
   if (records.length === 0) {
     return <div className="p-10 text-center text-slate-500 bg-white rounded-lg border border-slate-200">No active vehicles match these filters.</div>;
   }
@@ -37,6 +38,7 @@ export function LiveStatusTable({ records, onOpenJobCard, onEditJobCard, onPrint
             <th>Vehicle Number</th>
             <th>Customer</th>
             <th>Job Card #</th>
+            {showFranchiseColumn && <th>Franchise / Branch</th>}
             <th>Assigned To</th>
             <th>Stage</th>
             <th>Priority</th>
@@ -52,6 +54,13 @@ export function LiveStatusTable({ records, onOpenJobCard, onEditJobCard, onPrint
               <td className="whitespace-nowrap uppercase">{r.vehicle || "—"}</td>
               <td className="max-w-[180px] truncate">{r.customer || "Walk-in"}</td>
               <td className="whitespace-nowrap">{r.jobCardId || "—"}</td>
+              {showFranchiseColumn && (
+                <td className="whitespace-nowrap">
+                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200">
+                    {r.franchiseName || r.franchiseId || "Head Office"}
+                  </span>
+                </td>
+              )}
               <td className="max-w-[160px] truncate">
                 {r.technician || <span className="text-slate-400">Unassigned</span>}
               </td>

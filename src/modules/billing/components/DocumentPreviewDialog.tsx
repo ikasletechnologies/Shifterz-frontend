@@ -59,7 +59,14 @@ export default function DocumentPreviewDialog({
 
   const renderItemsHtml = () => {
     if (document.items && document.items.length > 0) {
-      return document.items.map(item => {
+      const services = document.items.filter(
+        (it) => it.type === "SERVICE" || (!it.type && !it.itemId)
+      );
+      const items = document.items.filter(
+        (it) => it.type === "ITEM" || Boolean(it.itemId)
+      );
+
+      const renderRow = (item: any) => {
         const itemAmount = item.amount || (item.qty * item.price) || 0;
         const lineDiscAmt = item.discountPercent ? (itemAmount * item.discountPercent / 100) : 0;
         const lineGstAmt = ((itemAmount - lineDiscAmt) * (item.gstPercent ?? 18)) / 100;
@@ -75,7 +82,33 @@ export default function DocumentPreviewDialog({
           <td style="text-align:center">${item.warranty || '-'}</td>
           <td class="amount">₹${Number(itemAmount).toLocaleString("en-IN")}</td>
         </tr>
-      `}).join("");
+      `;
+      };
+
+      let html = "";
+      if (services.length > 0) {
+        if (items.length > 0) {
+          html += `
+          <tr style="background: #eff6ff; font-weight: bold; color: #1e40af;">
+            <td colspan="9" style="font-size: 11px; text-transform: uppercase; letter-spacing: 1px; padding: 6px 8px;">SERVICES</td>
+          </tr>
+          `;
+        }
+        html += services.map(renderRow).join("");
+      }
+
+      if (items.length > 0) {
+        if (services.length > 0) {
+          html += `
+          <tr style="background: #ecfdf5; font-weight: bold; color: #065f46;">
+            <td colspan="9" style="font-size: 11px; text-transform: uppercase; letter-spacing: 1px; padding: 6px 8px;">ITEMS / SPARE PARTS</td>
+          </tr>
+          `;
+        }
+        html += items.map(renderRow).join("");
+      }
+
+      return html;
     }
     return `
       <tr>
@@ -213,18 +246,7 @@ export default function DocumentPreviewDialog({
                 margin-top: 30px;
                 font-size: 12px;
               }
-              .terms-left {
-                flex: 2;
-                padding-right: 20px;
-              }
-              .terms-block {
-                margin-bottom: 12px;
-              }
-              .terms-block strong {
-                display: block;
-                margin-bottom: 4px;
-                color: #555;
-              }
+              
               .sign-block {
                 flex: 1;
                 text-align: right;
@@ -266,7 +288,7 @@ export default function DocumentPreviewDialog({
                 <div class="header-right">
                   <h2>${document.type}</h2>
                   <p>${document.docNo}</p>
-                  ${document.status ? `
+                  ${document.status && document.status.trim().toLowerCase() !== 'pending' ? `
                   <p style="margin-top: 8px; font-weight: bold; text-transform: uppercase;">
                     <span style="
                       color: ${document.status === 'Paid' ? '#16a34a' : document.status === 'Overdue' ? '#dc2626' : document.status === 'Approved' ? '#2563eb' : '#d97706'};
@@ -340,12 +362,7 @@ export default function DocumentPreviewDialog({
                   <strong>Warranty:</strong> ${document.warranty}
                 </div>` : ''}
 
-                <div class="terms-section">
-                  <div class="terms-left">
-                    ${document.paymentTerms ? `<div class="terms-block"><strong>Payment Terms:</strong>${document.paymentTerms.replace(/\n/g, '<br/>')}</div>` : ''}
-                    ${document.deliveryTerms ? `<div class="terms-block"><strong>Delivery Terms:</strong>${document.deliveryTerms.replace(/\n/g, '<br/>')}</div>` : ''}
-                    ${document.bankDetails ? `<div class="terms-block"><strong>Bank Details:</strong>${document.bankDetails.replace(/\n/g, '<br/>')}</div>` : ''}
-                  </div>
+                <div class="terms-section" style="justify-content: flex-end;">
                   <div class="sign-block">
                     <div>
                       <span class="sign-line">${document.authorizedSignatory || "Authorized Signatory"}</span>
@@ -437,7 +454,7 @@ export default function DocumentPreviewDialog({
               <div className="text-right">
                 <h2 className="text-3xl font-bold mb-1 uppercase tracking-tight">{document.type}</h2>
                 <p className="text-sm font-medium">{document.docNo}</p>
-                {document.status && (
+                {document.status && document.status.trim().toLowerCase() !== "pending" && (
                   <div className="mt-2">
                     <span className={`inline-block px-3 py-1 rounded text-xs font-bold uppercase tracking-wider ${
                       document.status === 'Paid' ? 'bg-green-100 text-green-700' :
@@ -542,25 +559,64 @@ export default function DocumentPreviewDialog({
                   </thead>
                   <tbody className="divide-y divide-gray-200">
                     {document.items && document.items.length > 0 ? (
-                      document.items.map((item, idx) => {
-                        const itemAmount = item.amount || (item.qty * item.price) || 0;
-                        const lineDiscAmt = item.discountPercent ? (itemAmount * item.discountPercent / 100) : 0;
-                        const lineGstAmt = ((itemAmount - lineDiscAmt) * (item.gstPercent ?? 18)) / 100;
+                      (() => {
+                        const services = document.items.filter(
+                          (it) => it.type === "SERVICE" || (!it.type && !it.itemId)
+                        );
+                        const items = document.items.filter(
+                          (it) => it.type === "ITEM" || Boolean(it.itemId)
+                        );
+
+                        const renderLine = (item: any, idx: number, badgeColor: string) => {
+                          const itemAmount = item.amount || (item.qty * item.price) || 0;
+                          const lineDiscAmt = item.discountPercent ? (itemAmount * item.discountPercent / 100) : 0;
+                          const lineGstAmt = ((itemAmount - lineDiscAmt) * (item.gstPercent ?? 18)) / 100;
+                          return (
+                            <tr key={idx} className="bg-white hover:bg-slate-50/50">
+                              <td className="px-2 sm:px-4 md:px-6 py-2 sm:py-3 text-gray-900 font-medium">
+                                <div className="flex items-center gap-2">
+                                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${badgeColor}`}>
+                                    {item.type === "ITEM" || item.itemId ? "ITEM" : "SERVICE"}
+                                  </span>
+                                  <span className="truncate">{item.desc}</span>
+                                </div>
+                              </td>
+                              <td className="px-2 sm:px-4 md:px-6 py-2 sm:py-3 text-center text-gray-600">{item.qty}</td>
+                              <td className="px-2 sm:px-4 md:px-6 py-2 sm:py-3 text-right text-gray-600 font-mono">₹{Number(item.price || 0).toLocaleString("en-IN")}</td>
+                              <td className="px-2 sm:px-4 md:px-6 py-2 sm:py-3 text-center text-gray-600">{item.discountPercent ? `${item.discountPercent}%` : "-"}</td>
+                              <td className="px-2 sm:px-4 md:px-6 py-2 sm:py-3 text-right text-gray-600 font-mono">₹{Number(lineDiscAmt).toLocaleString("en-IN")}</td>
+                              <td className="px-2 sm:px-4 md:px-6 py-2 sm:py-3 text-center text-gray-600">{item.gstPercent ?? 18}%</td>
+                              <td className="px-2 sm:px-4 md:px-6 py-2 sm:py-3 text-right text-gray-600 font-mono">₹{Number(lineGstAmt).toLocaleString("en-IN")}</td>
+                              <td className="px-2 sm:px-4 md:px-6 py-2 sm:py-3 text-center text-gray-600">{item.warranty || "-"}</td>
+                              <td className="px-2 sm:px-4 md:px-6 py-2 sm:py-3 text-right text-gray-900 font-semibold font-mono">
+                                ₹{Number(itemAmount).toLocaleString("en-IN")}
+                              </td>
+                            </tr>
+                          );
+                        };
+
                         return (
-                        <tr key={idx} className="bg-white">
-                          <td className="px-2 sm:px-4 md:px-6 py-2 sm:py-4 text-gray-900 font-medium truncate">{item.desc}</td>
-                          <td className="px-2 sm:px-4 md:px-6 py-2 sm:py-4 text-center text-gray-600">{item.qty}</td>
-                          <td className="px-2 sm:px-4 md:px-6 py-2 sm:py-4 text-right text-gray-600">₹{Number(item.price || 0).toLocaleString("en-IN")}</td>
-                          <td className="px-2 sm:px-4 md:px-6 py-2 sm:py-4 text-center text-gray-600">{item.discountPercent ? `${item.discountPercent}%` : "-"}</td>
-                          <td className="px-2 sm:px-4 md:px-6 py-2 sm:py-4 text-right text-gray-600">₹{Number(lineDiscAmt).toLocaleString("en-IN")}</td>
-                          <td className="px-2 sm:px-4 md:px-6 py-2 sm:py-4 text-center text-gray-600">{item.gstPercent ?? 18}%</td>
-                          <td className="px-2 sm:px-4 md:px-6 py-2 sm:py-4 text-right text-gray-600">₹{Number(lineGstAmt).toLocaleString("en-IN")}</td>
-                          <td className="px-2 sm:px-4 md:px-6 py-2 sm:py-4 text-center text-gray-600">{item.warranty || "-"}</td>
-                          <td className="px-2 sm:px-4 md:px-6 py-2 sm:py-4 text-right text-gray-900 font-semibold">
-                            ₹{Number(itemAmount).toLocaleString("en-IN")}
-                          </td>
-                        </tr>
-                      )})
+                          <>
+                            {services.length > 0 && items.length > 0 && (
+                              <tr className="bg-blue-50/70">
+                                <td colSpan={9} className="px-4 py-1.5 text-[11px] font-extrabold text-blue-800 uppercase tracking-wider">
+                                  SERVICES ({services.length})
+                                </td>
+                              </tr>
+                            )}
+                            {services.map((item, idx) => renderLine(item, idx, "bg-blue-100 text-blue-700"))}
+
+                            {items.length > 0 && services.length > 0 && (
+                              <tr className="bg-emerald-50/70 border-t border-gray-200">
+                                <td colSpan={9} className="px-4 py-1.5 text-[11px] font-extrabold text-emerald-800 uppercase tracking-wider">
+                                  ITEMS / SPARE PARTS ({items.length})
+                                </td>
+                              </tr>
+                            )}
+                            {items.map((item, idx) => renderLine(item, services.length + idx, "bg-emerald-100 text-emerald-700"))}
+                          </>
+                        );
+                      })()
                     ) : (
                       <tr className="bg-white">
                         <td className="px-2 sm:px-4 md:px-6 py-2 sm:py-4 text-gray-900 font-medium">{document.service}</td>
@@ -621,33 +677,11 @@ export default function DocumentPreviewDialog({
                 </div>
               )}
 
-              {/* Terms & Signatory */}
-              <div className="flex flex-col md:flex-row justify-between gap-6 mt-6 sm:mt-8 md:mt-10 text-xs sm:text-sm">
-                <div className="flex-1 md:flex-[2] md:pr-12 space-y-3 sm:space-y-4 md:space-y-6">
-                  {document.paymentTerms && (
-                    <div>
-                      <h4 className="font-bold text-gray-900 mb-2 uppercase tracking-wide text-xs">Payment Terms</h4>
-                      <p className="text-gray-600 leading-relaxed whitespace-pre-wrap">{document.paymentTerms}</p>
-                    </div>
-                  )}
-                  {document.deliveryTerms && (
-                    <div>
-                      <h4 className="font-bold text-gray-900 mb-2 uppercase tracking-wide text-xs">Delivery Terms</h4>
-                      <p className="text-gray-600 leading-relaxed whitespace-pre-wrap">{document.deliveryTerms}</p>
-                    </div>
-                  )}
-                  {document.bankDetails && (
-                    <div>
-                      <h4 className="font-bold text-gray-900 mb-2 uppercase tracking-wide text-xs">Bank Details</h4>
-                      <p className="text-gray-600 leading-relaxed whitespace-pre-wrap">{document.bankDetails}</p>
-                    </div>
-                  )}
-                </div>
-                <div className="flex-1 flex flex-col justify-end items-end">
-                  <div className="mt-12 text-center">
-                    <div className="w-48 border-t-2 border-gray-800 pt-2 font-bold text-gray-900">
-                      {document.authorizedSignatory || "Authorized Signatory"}
-                    </div>
+              {/* Signatory */}
+              <div className="flex justify-end mt-8 sm:mt-12 text-xs sm:text-sm">
+                <div className="text-center">
+                  <div className="w-48 border-t-2 border-gray-800 pt-2 font-bold text-gray-900">
+                    {document.authorizedSignatory || "Authorized Signatory"}
                   </div>
                 </div>
               </div>

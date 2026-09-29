@@ -6,12 +6,14 @@ import { useWorkshop } from "../hooks/useWorkshop";
 import { getCurrentUser } from "@/lib/franchise-scope";
 import { WorkshopJob } from "../types/workshop.types";
 import { WorkshopTable } from "../components/WorkshopTable";
+import { WorkshopTabsView } from "../components/WorkshopTabsView";
 import { UploadPhotosDialog } from "../components/UploadPhotosDialog";
 import { MaterialUsageDialog } from "../components/MaterialUsageDialog";
 import { TechnicianNotesDialog } from "../components/TechnicianNotesDialog";
 import { CompleteWorkDialog } from "../components/CompleteWorkDialog";
 import { SummaryCard } from "@/components/common/SummaryCard";
 import { ListHeader } from "@/components/common/ListHeader";
+import { LayoutGrid, Table } from "lucide-react";
 
 const REWORK_STATUSES = ["QC Failed", "Rework", "Rework Required"];
 
@@ -68,6 +70,7 @@ export function WorkshopPage() {
 
   const [stageFilter, setStageFilter] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
+  const [viewMode, setViewMode] = useState<"tabs" | "table">("tabs");
   const [isTechnician, setIsTechnician] = useState(true);
 
   useEffect(() => {
@@ -143,11 +146,53 @@ export function WorkshopPage() {
           searchPlaceholder="Search job, vehicle, customer, technician..."
         />
 
+        {/* View Switcher: Tabs vs Table */}
+        <div className="flex items-center justify-end">
+          <div className="inline-flex items-center bg-white border border-slate-200 rounded-lg p-1 shadow-2xs">
+            <button
+              type="button"
+              onClick={() => setViewMode("tabs")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all cursor-pointer ${
+                viewMode === "tabs"
+                  ? "bg-yellow-400 text-gray-950 font-bold shadow-2xs"
+                  : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+              }`}
+            >
+              <LayoutGrid className="w-3.5 h-3.5" />
+              <span>Tabs</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode("table")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all cursor-pointer ${
+                viewMode === "table"
+                  ? "bg-yellow-400 text-gray-950 font-bold shadow-2xs"
+                  : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+              }`}
+            >
+              <Table className="w-3.5 h-3.5" />
+              <span>Table</span>
+            </button>
+          </div>
+        </div>
+
         {filteredJobs.length === 0 ? (
           <div className="bg-white border border-slate-200 rounded-lg p-10 text-center text-slate-500 text-sm">{emptyMessage}</div>
-        ) : (
+        ) : viewMode === "table" ? (
           <WorkshopTable
             jobs={filteredJobs}
+            onStartWork={(job) => startWork(job.id)}
+            onPauseWork={(job) => pauseWork(job.id)}
+            onResumeWork={(job) => resumeWork(job.id)}
+            onCompleteWork={(job) => openFor("complete", job)}
+            onUploadPhotos={(job) => openFor("photos", job)}
+            onAddMaterial={(job) => openFor("material", job)}
+            onAddNotes={(job) => openFor("notes", job)}
+          />
+        ) : (
+          <WorkshopTabsView
+            jobs={filteredJobs}
+            activeStage={stageFilter}
             onStartWork={(job) => startWork(job.id)}
             onPauseWork={(job) => pauseWork(job.id)}
             onResumeWork={(job) => resumeWork(job.id)}

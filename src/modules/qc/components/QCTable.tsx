@@ -1,5 +1,7 @@
 "use client";
 
+import { Copy, ClipboardList, CheckCircle2, XCircle, UserCheck, Play, Camera, ListChecks, MessageSquare } from "lucide-react";
+import { toast } from "react-hot-toast";
 import { QCJob, QCInspection } from "../types/qc.types";
 import { getCurrentUser, isHQRole } from "@/lib/franchise-scope";
 import { StatusText } from "@/components/common/StatusText";
@@ -32,7 +34,6 @@ const STARTABLE_STATUSES = [
   "Work Completed",
   "QC Pending",
 ];
-
 const TERMINAL_STATUSES = ["Ready For Billing", "QC Passed"];
 
 function formatDate(dateStr?: string): string {
@@ -83,30 +84,46 @@ export function QCTable({
   const currentUserId = currentUser?.id;
   const isManagementOverride = isHQRole(currentUser?.role);
 
+  const handleCopyId = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(id);
+    toast.success(`Copied Job ID: ${id}`);
+  };
+
+  const getPriorityBadgeClass = (priority?: string) => {
+    const p = (priority || "").toLowerCase();
+    if (p === "high") return "bg-red-100 text-red-700";
+    if (p === "low") return "bg-green-100 text-green-700";
+    return "bg-blue-100 text-blue-700";
+  };
+
   if (jobs.length === 0) {
     return (
-      <div className="py-16 text-center text-slate-500 bg-white rounded-lg border border-slate-200">{emptyMessage}</div>
+      <div className="py-16 text-center text-slate-500 bg-white rounded-xl border border-slate-200 shadow-xs">
+        <ClipboardList className="w-10 h-10 mx-auto text-slate-300 mb-3" />
+        <p className="text-sm font-medium text-slate-700">{emptyMessage}</p>
+      </div>
     );
   }
 
   return (
-    <div className="bg-white border border-slate-200 rounded-lg overflow-x-auto">
-      <table className="data-table w-full min-w-[1400px] text-left">
+    <div className="bg-white border border-slate-200/90 rounded-xl shadow-xs overflow-x-auto">
+      <table className="data-table w-full min-w-[1400px] text-left text-xs">
         <thead>
-          <tr>
-            <th>Job ID</th>
-            <th>Vehicle Number</th>
-            <th>Customer</th>
-            <th>Mobile</th>
-            <th>Fault</th>
-            <th>Technician</th>
-            <th>Status</th>
-            <th>Priority</th>
-            <th>Attempt</th>
-            <th>Received On</th>
-            <th>Est. Completion</th>
-            <th>Notes</th>
-            <th className="text-right">Actions</th>
+          <tr className="bg-slate-50/80 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider text-[11px]">
+            <th className="px-4 py-3">Job ID</th>
+            <th className="px-4 py-3">Vehicle Number</th>
+            <th className="px-4 py-3">Customer</th>
+            <th className="px-4 py-3">Mobile</th>
+            <th className="px-4 py-3">Fault</th>
+            <th className="px-4 py-3">Technician</th>
+            <th className="px-4 py-3">Status</th>
+            <th className="px-4 py-3">Priority</th>
+            <th className="px-4 py-3">Attempt</th>
+            <th className="px-4 py-3">Received On</th>
+            <th className="px-4 py-3">Est. Completion</th>
+            <th className="px-4 py-3">Notes</th>
+            <th className="px-4 py-3 text-right">Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -121,69 +138,117 @@ export function QCTable({
             const notOwnerTitle = "Only the assigned inspector can edit this attempt";
 
             return (
-              <tr key={job.id}>
-                <td className="whitespace-nowrap">{job.id}</td>
-                <td className="whitespace-nowrap uppercase">{job.vehicle}</td>
-                <td className="max-w-[180px] truncate">{job.customer}</td>
-                <td className="whitespace-nowrap">{(job as any).phone || "—"}</td>
-                <td className="max-w-[180px] truncate" title={job.service}>{job.service}</td>
-                <td className="max-w-[160px] truncate">
-                  {job.technician || <span className="text-slate-400">Unassigned</span>}
+              <tr key={job.id} className="hover:bg-slate-50/80 transition-colors border-b border-slate-100 last:border-b-0">
+                <td className="whitespace-nowrap px-4 py-3.5">
+                  <button
+                    type="button"
+                    onClick={(e) => handleCopyId(job.id, e)}
+                    className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-100 hover:bg-yellow-100 text-slate-800 text-xs font-mono font-bold transition-colors cursor-pointer group"
+                    title="Click to copy Job ID"
+                  >
+                    <span>{job.id}</span>
+                    <Copy className="w-3 h-3 text-slate-400 group-hover:text-slate-700 transition-colors" />
+                  </button>
                 </td>
-                <td className="whitespace-nowrap">
+                <td className="whitespace-nowrap px-4 py-3.5">
+                  <span className="font-bold text-xs uppercase tracking-wider text-slate-900 bg-slate-50 border border-slate-200/80 px-2 py-0.5 rounded">
+                    {job.vehicle}
+                  </span>
+                </td>
+                <td className="max-w-[180px] truncate px-4 py-3.5 font-medium text-slate-800">{job.customer}</td>
+                <td className="whitespace-nowrap px-4 py-3.5 text-slate-600">{(job as any).phone || "—"}</td>
+                <td className="max-w-[180px] truncate px-4 py-3.5 font-medium text-slate-800" title={job.service}>{job.service}</td>
+                <td className="max-w-[160px] truncate px-4 py-3.5 text-slate-600">
+                  {job.technician ? (
+                    <span className="font-medium text-slate-800 bg-slate-50 px-2 py-0.5 rounded border border-slate-200/60" title={job.technician}>
+                      {job.technician}
+                    </span>
+                  ) : (
+                    <span className="text-slate-400">Unassigned</span>
+                  )}
+                </td>
+                <td className="whitespace-nowrap px-4 py-3.5">
                   <StatusText status={job.status} />
                 </td>
-                <td className="whitespace-nowrap">
-                  {job.priority || "—"}
-                </td>
-                <td className="whitespace-nowrap">
-                  {open && current ? (
-                    <>
-                      <span>Attempt {current.attemptNumber}</span>
-                      {!isOwner ? (
-                        <span className="block text-xs text-slate-400" title={notOwnerTitle}>
-                          Owned by {current.inspectorName || "another inspector"}
-                        </span>
-                      ) : canManage && current.inspectorName ? (
-                        <span className="block text-xs text-slate-400">{current.inspectorName}</span>
-                      ) : null}
-                    </>
-                  ) : priorAttempts > 0 ? (
-                    <span className="text-slate-500">
-                      {priorAttempts} prior attempt{priorAttempts !== 1 ? "s" : ""}
+                <td className="whitespace-nowrap px-4 py-3.5">
+                  {job.priority ? (
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${getPriorityBadgeClass(job.priority)}`}>
+                      {job.priority}
                     </span>
                   ) : (
                     <span className="text-slate-400">—</span>
                   )}
                 </td>
-                <td className="whitespace-nowrap">{formatDateTime(job.receivedAt)}</td>
-                <td className="whitespace-nowrap">{formatDate(job.estCompletion || job.receivedAt)}</td>
-                <td className="max-w-[200px] truncate" title={job.qcNotes || job.notes}>
+                <td className="whitespace-nowrap px-4 py-3.5">
+                  {open && current ? (
+                    <div>
+                      <span className="font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200 text-[11px]">
+                        Attempt {current.attemptNumber}
+                      </span>
+                      {!isOwner ? (
+                        <span className="block text-[11px] text-slate-400 mt-0.5" title={notOwnerTitle}>
+                          Owned by {current.inspectorName || "another inspector"}
+                        </span>
+                      ) : canManage && current.inspectorName ? (
+                        <span className="block text-[11px] text-slate-400 mt-0.5">{current.inspectorName}</span>
+                      ) : null}
+                    </div>
+                  ) : priorAttempts > 0 ? (
+                    <span className="text-slate-500 font-medium">
+                      {priorAttempts} prior attempt{priorAttempts !== 1 ? "s" : ""}
+                    </span>
+                  ) : (
+                    <span className="text-slate-400">Attempt 1</span>
+                  )}
+                </td>
+                <td className="whitespace-nowrap px-4 py-3.5 text-slate-600">{formatDateTime(job.receivedAt)}</td>
+                <td className="whitespace-nowrap px-4 py-3.5 text-slate-600">{formatDate(job.estCompletion || job.receivedAt)}</td>
+                <td className="max-w-[200px] truncate px-4 py-3.5 text-slate-500 italic" title={job.qcNotes || job.notes}>
                   {job.qcNotes || job.notes || <span className="text-slate-400">—</span>}
                 </td>
-                <td className="whitespace-nowrap">
-                  <div className="flex items-center justify-end gap-3">
+                <td className="whitespace-nowrap px-4 py-3.5 text-right">
+                  <div className="flex items-center justify-end gap-2 flex-wrap">
                     {/* Management: assign an inspector, or pass/fail straight away */}
                     {!open && canManage && STARTABLE_STATUSES.includes(job.status as string) && (
                       <>
                         {onAssign && (
-                          <button type="button" onClick={() => onAssign(job)}>
-                            Assign Inspector
+                          <button
+                            type="button"
+                            onClick={() => onAssign(job)}
+                            className="px-2.5 py-1.5 rounded-lg bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-bold text-xs shadow-xs transition-colors cursor-pointer flex items-center gap-1"
+                          >
+                            <UserCheck className="w-3.5 h-3.5" />
+                            <span>Assign</span>
                           </button>
                         )}
-                        <button type="button" onClick={() => onPass(job)}>
-                          Pass QC
+                        <button
+                          type="button"
+                          onClick={() => onPass(job)}
+                          className="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs shadow-xs transition-colors cursor-pointer flex items-center gap-1"
+                        >
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          <span>Pass QC</span>
                         </button>
-                        <button type="button" onClick={() => onFail(job)}>
-                          Fail QC
+                        <button
+                          type="button"
+                          onClick={() => onFail(job)}
+                          className="px-2.5 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-semibold text-xs transition-colors cursor-pointer flex items-center gap-1"
+                        >
+                          <XCircle className="w-3.5 h-3.5" />
+                          <span>Fail QC</span>
                         </button>
                       </>
                     )}
 
                     {/* No open attempt yet: begin (or resume/re-start after rework) inspection */}
                     {!open && !canManage && STARTABLE_STATUSES.includes(job.status as string) && (
-                      <button type="button" onClick={() => onInspect(job)}>
-                        {priorAttempts > 0 || job.status === "Rework Required" ? "Start Next Attempt" : "Start Inspection"}
+                      <button
+                        type="button"
+                        onClick={() => onInspect(job)}
+                        className="px-3 py-1.5 rounded-lg bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-bold text-xs shadow-xs transition-colors cursor-pointer flex items-center gap-1.5"
+                      >
+                        <Play className="w-3.5 h-3.5 fill-current" />
+                        <span>{priorAttempts > 0 || job.status === "Rework Required" ? "Start Next Attempt" : "Start Inspection"}</span>
                       </button>
                     )}
 
@@ -195,46 +260,56 @@ export function QCTable({
                           disabled={!isOwner}
                           onClick={() => onOpenChecklist(job)}
                           title={!isOwner ? notOwnerTitle : undefined}
-                          className="disabled:opacity-40 disabled:cursor-not-allowed"
+                          className="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-medium text-xs transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1"
                         >
-                          Checklist
+                          <ListChecks className="w-3.5 h-3.5" />
+                          <span>Checklist</span>
                         </button>
                         <button
                           type="button"
                           disabled={!isOwner}
                           onClick={() => onOpenPhotos(job)}
                           title={!isOwner ? notOwnerTitle : "Upload QC Photos"}
-                          className="disabled:opacity-40 disabled:cursor-not-allowed"
+                          className="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-medium text-xs transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1"
                         >
-                          Photos
+                          <Camera className="w-3.5 h-3.5" />
+                          <span>Photos</span>
                         </button>
-                        <button type="button" onClick={() => onOpenRemarks(job)} title="Add Remarks">
-                          Remarks
+                        <button
+                          type="button"
+                          onClick={() => onOpenRemarks(job)}
+                          title="Add Remarks"
+                          className="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-medium text-xs transition-colors cursor-pointer flex items-center gap-1"
+                        >
+                          <MessageSquare className="w-3.5 h-3.5" />
+                          <span>Remarks</span>
                         </button>
                         <button
                           type="button"
                           disabled={!isOwner}
                           onClick={() => onPass(job)}
                           title={!isOwner ? "Only the assigned inspector can record a decision" : undefined}
-                          className="disabled:opacity-40 disabled:cursor-not-allowed"
+                          className="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs shadow-xs transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1"
                         >
-                          Pass QC
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          <span>Pass QC</span>
                         </button>
                         <button
                           type="button"
                           disabled={!isOwner}
                           onClick={() => onFail(job)}
                           title={!isOwner ? "Only the assigned inspector can record a decision" : undefined}
-                          className="disabled:opacity-40 disabled:cursor-not-allowed"
+                          className="px-2.5 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-semibold text-xs transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1"
                         >
-                          Fail QC
+                          <XCircle className="w-3.5 h-3.5" />
+                          <span>Fail QC</span>
                         </button>
                       </>
                     )}
 
                     {/* Terminal states: read-only */}
                     {!open && TERMINAL_STATUSES.includes(job.status as string) && (
-                      <span className="text-slate-400">QC Completed</span>
+                      <span className="text-slate-400 text-xs italic">QC Completed</span>
                     )}
                   </div>
                 </td>

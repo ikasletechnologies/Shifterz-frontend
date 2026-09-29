@@ -6,6 +6,8 @@ import { useJobCards } from "../hooks/useJobCards";
 import { JobCard, JobCardFormData } from "../types/job-card.types";
 import { JobCardHeader } from "../components/JobCardHeader";
 import { JobCardTable } from "../components/JobCardTable";
+import { JobCardTabs } from "../components/JobCardTabs";
+import { LayoutGrid, Table } from "lucide-react";
 import { CreateJobCardDialog, JOB_CARD_DRAFT_STORAGE_KEY } from "../components/CreateJobCardDialog";
 import { ViewJobCardDialog } from "../components/ViewJobCardDialog";
 import { useVehicleCheckin } from "@/modules/vehicle-checkin/hooks/useVehicleCheckin";
@@ -31,6 +33,20 @@ export function JobCardPage() {
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [selectedStatus, setSelectedStatus] = useState<string>("All");
+  const [viewMode, setViewMode] = useState<"tabs" | "table">(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("jobCards_viewMode");
+      if (saved === "table" || saved === "tabs") return saved;
+    }
+    return "tabs";
+  });
+
+  const handleViewModeChange = (mode: "tabs" | "table") => {
+    setViewMode(mode);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("jobCards_viewMode", mode);
+    }
+  };
 
   const carByVehicle = useMemo(() => {
     const map = new Map<string, CarEntry>();
@@ -294,12 +310,82 @@ export function JobCardPage() {
         onStatusSelect={handleStatusSelect}
       />
 
-      <JobCardTable
-        jobCards={filteredJobs}
-        onView={handleView}
-        onEdit={handleEdit}
-        trackingFor={trackingFor}
-      />
+      {/* View Switcher Bar */}
+      <div className="bg-white px-4 py-2.5 rounded-xl border border-gray-200/80 shadow-xs flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5">
+          <span className="text-xs font-bold text-gray-500 uppercase tracking-wider hidden sm:inline-block">
+            View:
+          </span>
+          <div className="inline-flex p-1 bg-gray-100 rounded-lg border border-gray-200/60" role="tablist" aria-label="View switcher">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={viewMode === "tabs"}
+              onClick={() => handleViewModeChange("tabs")}
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
+                viewMode === "tabs"
+                  ? "bg-yellow-400 text-gray-900 shadow-xs font-bold"
+                  : "text-gray-600 hover:text-gray-900 hover:bg-gray-200/60"
+              }`}
+            >
+              <LayoutGrid className="w-4 h-4" />
+              <span>Tabs View</span>
+            </button>
+
+            <button
+              type="button"
+              role="tab"
+              aria-selected={viewMode === "table"}
+              onClick={() => handleViewModeChange("table")}
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
+                viewMode === "table"
+                  ? "bg-yellow-400 text-gray-900 shadow-xs font-bold"
+                  : "text-gray-600 hover:text-gray-900 hover:bg-gray-200/60"
+              }`}
+            >
+              <Table className="w-4 h-4" />
+              <span>Table View</span>
+            </button>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 text-xs text-gray-500 font-medium">
+          <span>
+            Showing <strong className="text-gray-900">{filteredJobs.length}</strong>{" "}
+            {filteredJobs.length === 1 ? "job card" : "job cards"}
+          </span>
+          {selectedStatus !== "All" && (
+            <button
+              type="button"
+              onClick={() => handleStatusSelect("All")}
+              className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-yellow-50 text-yellow-800 text-[11px] font-semibold border border-yellow-200 hover:bg-yellow-100 transition-colors cursor-pointer"
+              title="Click to show all stages"
+            >
+              Filter: {stageCards.find((c) => c.id === selectedStatus)?.label || selectedStatus}
+              <span className="text-yellow-700 font-bold text-xs ml-0.5">×</span>
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Main Content: Tabs View or Table View */}
+      {viewMode === "tabs" ? (
+        <JobCardTabs
+          jobCards={filteredJobs}
+          onView={handleView}
+          onEdit={handleEdit}
+          trackingFor={trackingFor}
+          selectedStatus={selectedStatus}
+          onStatusSelect={handleStatusSelect}
+        />
+      ) : (
+        <JobCardTable
+          jobCards={filteredJobs}
+          onView={handleView}
+          onEdit={handleEdit}
+          trackingFor={trackingFor}
+        />
+      )}
 
       <CreateJobCardDialog
         isOpen={isDialogOpen}

@@ -4,7 +4,7 @@
 import { X, Check, ClipboardList } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
-import { getEmployees } from "@/lib/api";
+import { getEmployees, getServices } from "@/lib/api";
 
 interface JobData {
   id?: string;
@@ -41,7 +41,7 @@ export default function NewJobCardDialog({ isOpen, onClose, onSave, initialData 
   const [formData, setFormData] = useState<JobData>({
     vehicle: "",
     customer: "",
-    service: "PPF Full Body",
+    service: "",
     technician: "Arjun",
     priority: "Normal",
     status: "Pending",
@@ -50,6 +50,8 @@ export default function NewJobCardDialog({ isOpen, onClose, onSave, initialData 
     actualCompletion: "",
     notes: "",
   });
+
+  const [serviceCatalog, setServiceCatalog] = useState<{ id: string; name: string }[]>([]);
 
   useEffect(() => {
     const loadTechnicians = async () => {
@@ -74,8 +76,28 @@ export default function NewJobCardDialog({ isOpen, onClose, onSave, initialData 
       }
     };
 
+    const loadServices = async () => {
+      try {
+        const services = await getServices();
+        const activeServices = (services || []).filter((s: any) => (s.status || "Active") === "Active");
+        setServiceCatalog(activeServices);
+        setFormData((prev) => {
+          if (prev.service && activeServices.some((s: any) => s.name === prev.service)) {
+            return prev;
+          }
+          if (activeServices.length > 0) {
+            return { ...prev, service: activeServices[0].name };
+          }
+          return { ...prev, service: "" };
+        });
+      } catch (err) {
+        console.error("Failed to load services:", err);
+      }
+    };
+
     if (isOpen) {
       loadTechnicians();
+      loadServices();
     }
   }, [isOpen]);
 
@@ -91,7 +113,7 @@ export default function NewJobCardDialog({ isOpen, onClose, onSave, initialData 
         setFormData({
           vehicle: "",
           customer: "",
-          service: "PPF Full Body",
+          service: "",
           technician: "Arjun",
           priority: "Normal",
           status: "Pending",
@@ -187,9 +209,13 @@ export default function NewJobCardDialog({ isOpen, onClose, onSave, initialData 
                 onChange={e => setFormData({ ...formData, service: e.target.value })}
                 className="w-full px-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm text-[#334155] focus:outline-none focus:ring-2 focus:ring-[#f59e0b] focus:bg-white transition-colors"
               >
-                <option value="PPF Full Body">PPF Full Body</option>
-                <option value="C3 Coating">C3 Coating</option>
-                <option value="Interior Detailing">Interior Detailing</option>
+                {serviceCatalog.length > 0 ? (
+                  serviceCatalog.map((svc) => (
+                    <option key={svc.id} value={svc.name}>{svc.name}</option>
+                  ))
+                ) : (
+                  <option value="">No services configured in database</option>
+                )}
               </select>
             </div>
 

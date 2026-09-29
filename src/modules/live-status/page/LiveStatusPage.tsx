@@ -35,7 +35,8 @@ function timeAgo(date: Date | null): string {
 }
 
 export function LiveStatusPage() {
-  const { records, allJobCards, isLoading, error, lastUpdated, refetch } = useLiveStatus();
+  const [franchiseFilter, setFranchiseFilter] = useState("All");
+  const { records, allJobCards, isLoading, error, lastUpdated, refetch } = useLiveStatus(franchiseFilter);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [stageFilter, setStageFilter] = useState<LiveStage | "All">("All");
@@ -43,7 +44,6 @@ export function LiveStatusPage() {
   const [technicianFilter, setTechnicianFilter] = useState("All");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
-  const [franchiseFilter, setFranchiseFilter] = useState("All");
   const [franchises, setFranchises] = useState<{ id: string; name: string }[]>([]);
 
   const [viewingRecord, setViewingRecord] = useState<LiveVehicleRecord | null>(null);
@@ -54,7 +54,7 @@ export function LiveStatusPage() {
   const isHQ = userRole === "SUPER_ADMIN" || userRole === "SUPERADMIN" || userRole === "HQ" || userRole === "HQ_USER";
 
   const hasFranchiseData = useMemo(() => records.some((r) => r.franchiseId || r.franchiseName), [records]);
-  const showFranchiseFilter = isHQ && hasFranchiseData;
+  const showFranchiseFilter = isHQ;
 
   useEffect(() => {
     if (!showFranchiseFilter) return;

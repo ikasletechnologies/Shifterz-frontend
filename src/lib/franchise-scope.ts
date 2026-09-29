@@ -45,10 +45,11 @@ function getRecordFranchiseId(record: object): string | undefined {
  * a branch admin never sees another branch's — or HQ's — records.
  */
 export function scopeToFranchise<T extends object>(records: T[], user: ScopedUser | null = getCurrentUser()): T[] {
-  const franchiseId = getScopedFranchiseId(user);
-  if (!franchiseId) return records;
+  if (!user || isHQRole(user.role)) return records;
+  const franchiseId = user.franchiseId;
+  if (!franchiseId) return [];
   return records.filter((r) => {
     const rid = getRecordFranchiseId(r);
-    return !rid || rid === franchiseId;
+    return rid === franchiseId;
   });
 }

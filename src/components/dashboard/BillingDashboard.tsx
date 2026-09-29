@@ -10,9 +10,13 @@ import NewDocumentDialog from "@/modules/billing/components/NewDocumentDialog";
 import RecordPaymentDialog from "@/modules/payment/components/RecordPaymentDialog";
 import PaymentHistoryDialog from "@/modules/payment/components/PaymentHistoryDialog";
 import { useRouter } from "next/navigation";
+import { usePermissions } from "@/lib/permissions";
 
 export default function BillingDashboard() {
   const router = useRouter();
+  const { canAccess } = usePermissions();
+  const hasBilling = canAccess("billing");
+  const hasPayments = canAccess("payments");
   const [invoices, setInvoices] = useState<any[]>([]);
   const [payments, setPayments] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -29,10 +33,20 @@ export default function BillingDashboard() {
     async function loadData() {
       try {
         setIsLoading(true);
-        const [invData, payData] = await Promise.all([
-          getInvoices(),
-          getPayments()
-        ]);
+        const promises = [];
+        if (hasBilling) {
+          promises.push(getInvoices().catch(() => []));
+        } else {
+          promises.push(Promise.resolve([]));
+        }
+
+        if (hasPayments) {
+          promises.push(getPayments().catch(() => []));
+        } else {
+          promises.push(Promise.resolve([]));
+        }
+
+        const [invData, payData] = await Promise.all(promises);
         setInvoices(invData || []);
         setPayments(payData || []);
       } catch (err) {
@@ -42,7 +56,7 @@ export default function BillingDashboard() {
       }
     }
     loadData();
-  }, []);
+  }, [hasBilling, hasPayments]);
 
   const isToday = (dateVal?: any) => {
     if (!dateVal) return false;
@@ -157,109 +171,119 @@ export default function BillingDashboard() {
             <Clock className="w-5 h-5 text-blue-500" /> Today's Billing
           </h2>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm flex flex-col justify-center">
-              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Invoices Created</p>
-              <p className="text-2xl font-black text-gray-900">{invoicesCreatedToday}</p>
-            </div>
-            <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm flex flex-col justify-center">
-              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Payments Collected</p>
-              <p className="text-2xl font-black text-emerald-600">₹{paymentsCollectedToday.toLocaleString("en-IN")}</p>
-            </div>
-            <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm flex flex-col justify-center">
-              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Pending Collections</p>
-              <p className="text-2xl font-black text-amber-600">{pendingCollectionsCount}</p>
-            </div>
+            {hasBilling && (
+              <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm flex flex-col justify-center">
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Invoices Created</p>
+                <p className="text-2xl font-black text-gray-900">{invoicesCreatedToday}</p>
+              </div>
+            )}
+            {hasPayments && (
+              <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm flex flex-col justify-center">
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Payments Collected</p>
+                <p className="text-2xl font-black text-emerald-600">₹{paymentsCollectedToday.toLocaleString("en-IN")}</p>
+              </div>
+            )}
+            {hasBilling && (
+              <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm flex flex-col justify-center">
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Pending Collections</p>
+                <p className="text-2xl font-black text-amber-600">{pendingCollectionsCount}</p>
+              </div>
+            )}
           </div>
         </section>
 
         {/* 2. Outstanding Payments */}
-        <section>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-              <Wallet className="w-5 h-5 text-amber-500" /> Outstanding Payments
-            </h2>
-            <div className="text-xs font-bold text-gray-500 uppercase tracking-wider">Total: <span className="text-amber-600">₹{totalOutstanding.toLocaleString("en-IN")}</span></div>
-          </div>
-          <div className="bg-white border border-gray-100 shadow-sm rounded-xl overflow-hidden">
-            <table className="data-table w-full text-sm">
-              <thead>
-                <tr className="bg-gray-50 border-b border-gray-100 text-gray-500 text-[11px]">
-                  <th className="px-4 py-3 text-left font-bold uppercase tracking-wider">Customer</th>
-                  <th className="px-4 py-3 text-left font-bold uppercase tracking-wider">Invoice</th>
-                  <th className="px-4 py-3 text-right font-bold uppercase tracking-wider">Outstanding</th>
-                  <th className="px-4 py-3 text-center font-bold uppercase tracking-wider">Days</th>
-                  <th className="px-4 py-3 text-right font-bold uppercase tracking-wider">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {outstandingList.length === 0 ? (
-                  <tr><td colSpan={5} className="p-8 text-center text-gray-400 text-xs font-medium">No outstanding payments</td></tr>
-                ) : (
-                  outstandingList.map((item) => (
-                    <tr key={item.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-4 py-3 font-semibold text-gray-900">{item.client}</td>
-                      <td className="px-4 py-3 font-mono font-bold text-blue-600 text-xs">{item.id}</td>
-                      <td className="px-4 py-3 font-bold text-red-600 text-right">₹{item.outstanding.toLocaleString("en-IN")}</td>
-                      <td className="px-4 py-3 text-center">
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${item.diffDays > 30 ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700'}`}>
-                          {item.diffDays} Days
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <button 
-                          onClick={() => {
-                            setSelectedInvoice(item);
-                            setIsRecordPaymentOpen(true);
-                          }}
-                          className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded shadow-sm transition-colors whitespace-nowrap"
-                        >
-                          Receive Payment
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </section>
+        {hasPayments && (
+          <section>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                <Wallet className="w-5 h-5 text-amber-500" /> Outstanding Payments
+              </h2>
+              <div className="text-xs font-bold text-gray-500 uppercase tracking-wider">Total: <span className="text-amber-600">₹{totalOutstanding.toLocaleString("en-IN")}</span></div>
+            </div>
+            <div className="bg-white border border-gray-100 shadow-sm rounded-xl overflow-hidden">
+              <table className="data-table w-full text-sm">
+                <thead>
+                  <tr className="bg-gray-50 border-b border-gray-100 text-gray-500 text-[11px]">
+                    <th className="px-4 py-3 text-left font-bold uppercase tracking-wider">Customer</th>
+                    <th className="px-4 py-3 text-left font-bold uppercase tracking-wider">Invoice</th>
+                    <th className="px-4 py-3 text-right font-bold uppercase tracking-wider">Outstanding</th>
+                    <th className="px-4 py-3 text-center font-bold uppercase tracking-wider">Days</th>
+                    <th className="px-4 py-3 text-right font-bold uppercase tracking-wider">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {outstandingList.length === 0 ? (
+                    <tr><td colSpan={5} className="p-8 text-center text-gray-400 text-xs font-medium">No outstanding payments</td></tr>
+                  ) : (
+                    outstandingList.map((item) => (
+                      <tr key={item.id} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-4 py-3 font-semibold text-gray-900">{item.client}</td>
+                        <td className="px-4 py-3 font-mono font-bold text-blue-600 text-xs">{item.id}</td>
+                        <td className="px-4 py-3 font-bold text-red-600 text-right">₹{item.outstanding.toLocaleString("en-IN")}</td>
+                        <td className="px-4 py-3 text-center">
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${item.diffDays > 30 ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700'}`}>
+                            {item.diffDays} Days
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <button 
+                            onClick={() => {
+                              setSelectedInvoice(item);
+                              setIsRecordPaymentOpen(true);
+                            }}
+                            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded shadow-sm transition-colors whitespace-nowrap"
+                          >
+                            Receive Payment
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )}
 
         {/* 3. Recent Payments */}
-        <section>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-              <CheckCircle2 className="w-5 h-5 text-emerald-500" /> Recent Payments
-            </h2>
-          </div>
-          <div className="bg-white border border-gray-100 shadow-sm rounded-xl overflow-hidden">
-            <table className="data-table w-full text-sm">
-              <thead>
-                <tr className="bg-gray-50 border-b border-gray-100 text-gray-500 text-[11px]">
-                  <th className="px-4 py-3 text-left font-bold uppercase tracking-wider">Receipt</th>
-                  <th className="px-4 py-3 text-left font-bold uppercase tracking-wider">Customer</th>
-                  <th className="px-4 py-3 text-right font-bold uppercase tracking-wider">Amount</th>
-                  <th className="px-4 py-3 text-center font-bold uppercase tracking-wider">Mode</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {recentPayments.length === 0 ? (
-                  <tr><td colSpan={4} className="p-8 text-center text-gray-400 text-xs font-medium">No recent payments</td></tr>
-                ) : (
-                  recentPayments.map((item) => (
-                    <tr key={item.id} className="hover:bg-gray-50 transition-colors cursor-pointer" onClick={() => setIsPrintReceiptOpen(true)}>
-                      <td className="px-4 py-3 font-mono font-bold text-blue-600 text-xs">{item.id}</td>
-                      <td className="px-4 py-3 font-semibold text-gray-900">{item.client}</td>
-                      <td className="px-4 py-3 font-bold text-emerald-600 text-right">₹{Number(item.amount).toLocaleString("en-IN")}</td>
-                      <td className="px-4 py-3 text-center">
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-700 uppercase">{item.mode}</span>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </section>
+        {hasPayments && (
+          <section>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                <CheckCircle2 className="w-5 h-5 text-emerald-500" /> Recent Payments
+              </h2>
+            </div>
+            <div className="bg-white border border-gray-100 shadow-sm rounded-xl overflow-hidden">
+              <table className="data-table w-full text-sm">
+                <thead>
+                  <tr className="bg-gray-50 border-b border-gray-100 text-gray-500 text-[11px]">
+                    <th className="px-4 py-3 text-left font-bold uppercase tracking-wider">Receipt</th>
+                    <th className="px-4 py-3 text-left font-bold uppercase tracking-wider">Customer</th>
+                    <th className="px-4 py-3 text-right font-bold uppercase tracking-wider">Amount</th>
+                    <th className="px-4 py-3 text-center font-bold uppercase tracking-wider">Mode</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {recentPayments.length === 0 ? (
+                    <tr><td colSpan={4} className="p-8 text-center text-gray-400 text-xs font-medium">No recent payments</td></tr>
+                  ) : (
+                    recentPayments.map((item) => (
+                      <tr key={item.id} className="hover:bg-gray-50 transition-colors cursor-pointer" onClick={() => setIsPrintReceiptOpen(true)}>
+                        <td className="px-4 py-3 font-mono font-bold text-blue-600 text-xs">{item.id}</td>
+                        <td className="px-4 py-3 font-semibold text-gray-900">{item.client}</td>
+                        <td className="px-4 py-3 font-bold text-emerald-600 text-right">₹{Number(item.amount).toLocaleString("en-IN")}</td>
+                        <td className="px-4 py-3 text-center">
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-700 uppercase">{item.mode}</span>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )}
       </div>
 
       {/* RIGHT COLUMN - QUICK ACTIONS & TIMELINE */}
@@ -269,46 +293,54 @@ export default function BillingDashboard() {
         <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-5">
           <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-4">Quick Actions</h3>
           <div className="space-y-3">
-            <button 
-              onClick={() => setIsNewDocOpen(true)}
-              className="w-full flex items-center justify-between p-3 rounded-xl border border-gray-200 hover:border-blue-500 hover:bg-blue-50 transition-colors group"
-            >
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-blue-100 text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors"><Plus className="w-4 h-4" /></div>
-                <span className="text-sm font-bold text-gray-800">New Invoice</span>
-              </div>
-              <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-blue-500" />
-            </button>
-            <button 
-              onClick={() => setIsRecordPaymentOpen(true)}
-              className="w-full flex items-center justify-between p-3 rounded-xl border border-gray-200 hover:border-emerald-500 hover:bg-emerald-50 transition-colors group"
-            >
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-emerald-100 text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-colors"><CreditCard className="w-4 h-4" /></div>
-                <span className="text-sm font-bold text-gray-800">Record Payment</span>
-              </div>
-              <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-emerald-500" />
-            </button>
-            <button 
-              onClick={() => setIsPrintReceiptOpen(true)}
-              className="w-full flex items-center justify-between p-3 rounded-xl border border-gray-200 hover:border-purple-500 hover:bg-purple-50 transition-colors group"
-            >
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-purple-100 text-purple-600 group-hover:bg-purple-600 group-hover:text-white transition-colors"><Printer className="w-4 h-4" /></div>
-                <span className="text-sm font-bold text-gray-800">Print Receipt</span>
-              </div>
-              <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-purple-500" />
-            </button>
-            <button 
-              onClick={() => router.push('/dashboard/billing')}
-              className="w-full flex items-center justify-between p-3 rounded-xl border border-gray-200 hover:border-gray-500 hover:bg-gray-50 transition-colors group"
-            >
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-gray-100 text-gray-600 group-hover:bg-gray-600 group-hover:text-white transition-colors"><Search className="w-4 h-4" /></div>
-                <span className="text-sm font-bold text-gray-800">Search Invoice</span>
-              </div>
-              <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-gray-500" />
-            </button>
+            {hasBilling && (
+              <button 
+                onClick={() => setIsNewDocOpen(true)}
+                className="w-full flex items-center justify-between p-3 rounded-xl border border-gray-200 hover:border-blue-500 hover:bg-blue-50 transition-colors group"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-blue-100 text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors"><Plus className="w-4 h-4" /></div>
+                  <span className="text-sm font-bold text-gray-800">New Invoice</span>
+                </div>
+                <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-blue-500" />
+              </button>
+            )}
+            {hasPayments && (
+              <button 
+                onClick={() => setIsRecordPaymentOpen(true)}
+                className="w-full flex items-center justify-between p-3 rounded-xl border border-gray-200 hover:border-emerald-500 hover:bg-emerald-50 transition-colors group"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-emerald-100 text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-colors"><CreditCard className="w-4 h-4" /></div>
+                  <span className="text-sm font-bold text-gray-800">Record Payment</span>
+                </div>
+                <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-emerald-500" />
+              </button>
+            )}
+            {hasPayments && (
+              <button 
+                onClick={() => setIsPrintReceiptOpen(true)}
+                className="w-full flex items-center justify-between p-3 rounded-xl border border-gray-200 hover:border-purple-500 hover:bg-purple-50 transition-colors group"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-purple-100 text-purple-600 group-hover:bg-purple-600 group-hover:text-white transition-colors"><Printer className="w-4 h-4" /></div>
+                  <span className="text-sm font-bold text-gray-800">Print Receipt</span>
+                </div>
+                <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-purple-500" />
+              </button>
+            )}
+            {hasBilling && (
+              <button 
+                onClick={() => router.push('/dashboard/billing')}
+                className="w-full flex items-center justify-between p-3 rounded-xl border border-gray-200 hover:border-gray-500 hover:bg-gray-50 transition-colors group"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-gray-100 text-gray-600 group-hover:bg-gray-600 group-hover:text-white transition-colors"><Search className="w-4 h-4" /></div>
+                  <span className="text-sm font-bold text-gray-800">Search Invoice</span>
+                </div>
+                <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-gray-500" />
+              </button>
+            )}
           </div>
         </div>
 

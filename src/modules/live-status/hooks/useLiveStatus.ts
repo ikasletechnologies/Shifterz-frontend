@@ -21,7 +21,7 @@ async function safeFetch<T>(fn: () => Promise<T[]>, label: string): Promise<T[]>
   }
 }
 
-export function useLiveStatus() {
+export function useLiveStatus(selectedFranchiseId?: string) {
   const [records, setRecords] = useState<LiveVehicleRecord[]>([]);
   const [allJobCards, setAllJobCards] = useState<JobCard[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -32,7 +32,7 @@ export function useLiveStatus() {
   const fetchAll = useCallback(async () => {
     try {
       if (isFirstLoad.current) setIsLoading(true);
-      const franchiseId = getScopedFranchiseId();
+      const franchiseId = getScopedFranchiseId() || (selectedFranchiseId && selectedFranchiseId !== "All" ? selectedFranchiseId : undefined);
       const [jobCards, checkIns, outPasses, invoices] = await Promise.all([
         safeFetch(() => getJobCards(franchiseId), "job cards"),
         safeFetch(() => getVehicleCheckIns(franchiseId), "vehicle check-ins"),
@@ -54,7 +54,7 @@ export function useLiveStatus() {
         isFirstLoad.current = false;
       }
     }
-  }, []);
+  }, [selectedFranchiseId]);
 
   useEffect(() => {
     fetchAll();

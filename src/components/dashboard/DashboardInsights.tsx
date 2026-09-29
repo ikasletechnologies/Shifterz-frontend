@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Receipt, Car, UserPlus } from "lucide-react";
 import { getPayments, getInvoices, getCarInRecords, getJobs } from "@/lib/api";
+import { usePermissions } from "@/lib/permissions";
 
 // ─── Date range ────────────────────────────────────────────────────────────────
 
@@ -55,6 +56,7 @@ export function rangeForPreset(preset: RangePreset, current?: DateRange): DateRa
 // ─── Toolbar: date filter (left) + quick actions (right) ──────────────────────
 
 export function DashboardToolbar({ range, onRangeChange }: { range: DateRange; onRangeChange: (r: DateRange) => void }) {
+  const { canAccess } = usePermissions();
   const todayKey = toKey(new Date());
 
   return (
@@ -100,9 +102,15 @@ export function DashboardToolbar({ range, onRangeChange }: { range: DateRange; o
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        <QuickAction href="/dashboard/billing?new=1" icon={Receipt} label="New Invoice" />
-        <QuickAction href="/dashboard/carin?new=1" icon={Car} label="Car In" />
-        <QuickAction href="/dashboard/employees?new=1" icon={UserPlus} label="Add Employee" />
+        {canAccess("billing") && (
+          <QuickAction href="/dashboard/billing?new=1" icon={Receipt} label="New Invoice" />
+        )}
+        {canAccess("carin") && (
+          <QuickAction href="/dashboard/carin?new=1" icon={Car} label="Car In" />
+        )}
+        {canAccess("employees") && (
+          <QuickAction href="/dashboard/employees?new=1" icon={UserPlus} label="Add Employee" />
+        )}
       </div>
     </div>
   );

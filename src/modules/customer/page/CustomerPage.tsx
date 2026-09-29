@@ -1,6 +1,8 @@
 "use client";
-import { useState } from "react";
-import { Plus, Trash2, Search, Download, X, Pencil } from "lucide-react";
+import { useState, useEffect } from "react";
+import { getFranchises } from "@/lib/api";
+import { useRouter } from "next/navigation";
+import { Plus, Trash2, Search, Download, X, Pencil, Car } from "lucide-react";
 import AddCustomerDialog from "../components/AddCustomerDialog";
 import EditCustomerDialog from "../components/EditCustomerDialog";
 import VehicleCheckInDialog from "@/modules/vehicle-checkin/components/VehicleCheckInDialog";
@@ -9,9 +11,29 @@ import { useCustomer } from "@/modules/customer/hooks/useCustomer";
 import { Customer } from "@/modules/customer/types/customer.types";
 import { updateCustomer } from "@/lib/api";
 import { toast } from "react-hot-toast";
+import { usePermissions } from "@/lib/permissions";
 
 export function CustomerPage() {
-  const { customers, isLoading, error, handleAddCustomer, handleDeleteCustomer, fetchCustomers } = useCustomer();
+  const router = useRouter();
+  const [franchiseFilter, setFranchiseFilter] = useState("All");
+  const [franchises, setFranchises] = useState<{ id: string; name: string }[]>([]);
+
+  const currentUser = typeof window !== "undefined" ? (() => {
+    try { const u = localStorage.getItem("user"); return u ? JSON.parse(u) : null; } catch { return null; }
+  })() : null;
+  const userRole = (currentUser?.role || "").toUpperCase().replace(/[\s_]+/g, "_");
+  const isHQ = userRole === "SUPER_ADMIN" || userRole === "SUPERADMIN" || userRole === "HQ" || userRole === "HQ_USER";
+
+  useEffect(() => {
+    if (!isHQ) return;
+    getFranchises()
+      .then((data: any[]) => setFranchises((data || []).map((f: any) => ({ id: f.id, name: f.name || f.franchiseName || f.id }))))
+      .catch((err) => console.error("Customers: failed to load franchises", err));
+  }, [isHQ]);
+
+  const { customers, isLoading, error, handleAddCustomer, handleDeleteCustomer, fetchCustomers } = useCustomer(franchiseFilter);
+
+  const showFranchiseColumn = isHQ || customers.some((c) => c.franchiseName || c.franchiseId);
   const [searchQuery, setSearchQuery] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -36,6 +58,7 @@ export function CustomerPage() {
       toast.success("Car checked in successfully!");
       setIsCheckInOpen(false);
       setCustomerToCheckIn(null);
+      fetchCustomers();
     } catch (err: any) {
       toast.error("Failed to check in car: " + (err.message || "Unknown error"));
     }
@@ -429,14 +452,19 @@ export function CustomerPage() {
                   <td className="whitespace-nowrap">{customer.phone || "—"}</td>
                   <td className="max-w-[220px] truncate">{customer.email || "—"}</td>
                   <td className="whitespace-nowrap">
-                    <div className="flex items-center justify-end gap-3">
-                      <button onClick={() => handleOpenCheckIn(customer)} title="Convert to Car Check-In">
-                        Convert to Check-In
+                    <div className="flex items-center justify-end gap-2.5">
+                      <button
+                        onClick={() => handleOpenCheckIn(customer)}
+                        className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-yellow-400 hover:bg-yellow-500 text-gray-950 transition-colors shadow-2xs flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
+                        title="Convert to Car Check-In"
+                      >
+                        <Car className="w-3.5 h-3.5" />
+                        <span>Convert to Check-In</span>
                       </button>
-                      <button onClick={() => handleEditCustomer(customer)} className="p-1.5" title="Edit Customer">
+                      <button onClick={() => handleEditCustomer(customer)} className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-600 transition-colors" title="Edit Customer">
                         <Pencil className="w-4 h-4" />
                       </button>
-                      <button onClick={() => confirmDelete(customer)} className="p-1.5" title="Delete Customer">
+                      <button onClick={() => confirmDelete(customer)} className="p-1.5 hover:bg-red-50 rounded-lg text-red-600 transition-colors" title="Delete Customer">
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
@@ -474,6 +502,12 @@ export function CustomerPage() {
           setCustomerToCheckIn(null);
         }}
         onSubmit={handleCheckInSubmit}
+        onViewExistingRecord={(record) => {
+          setIsCheckInOpen(false);
+          setCustomerToCheckIn(null);
+          const v = record?.vehicleNo || record?.vehicle || customerToCheckIn?.vehicle || "";
+          router.push(`/dashboard/carin?search=${encodeURIComponent(v)}`);
+        }}
         initialData={customerToCheckIn}
         isPrefillOnly
       />

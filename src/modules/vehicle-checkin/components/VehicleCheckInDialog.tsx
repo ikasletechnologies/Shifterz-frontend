@@ -2,6 +2,7 @@
 
 import { PhoneInput } from "@/components/common/PhoneInput";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { X, Car, Clock, Calendar, Plus, AlertTriangle, Trash2, Eye, Home } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { apiCall } from "@/services/api.client";
@@ -36,6 +37,7 @@ export default function VehicleCheckInDialog({
   cars,
   isPrefillOnly = false,
 }: VehicleCheckInDialogProps) {
+  const router = useRouter();
   const [formData, setFormData] = useState({
     vehicleNumber: "",
     carModel: "",
@@ -159,38 +161,36 @@ export default function VehicleCheckInDialog({
   }, [isOpen, initialData]);
 
   useEffect(() => {
+    if (!isOpen) return;
     const fetchServices = async () => {
       try {
         const data = await apiCall("/services");
-        setServices(data || []);
+        const activeServices = (data || []).filter((s: any) => (s.status || "Active") === "Active");
+        setServices(activeServices);
       } catch (err) {
-        console.error("Failed to fetch services:", err);
-        setServices([
-          { id: "1", name: "PPF Full Body" },
-          { id: "2", name: "PPF Bonnet" },
-          { id: "3", name: "C3 Coating" },
-          { id: "4", name: "Graphene Coating" },
-          { id: "5", name: "Interior Detailing" },
-        ]);
+        console.error("Failed to fetch services from database:", err);
+        setServices([]);
       }
     };
     fetchServices();
-  }, []);
+  }, [isOpen]);
 
-  // The <select> below is controlled by formData.service, but it used to
-  // default to a hardcoded "PPF Full Body" that isn't guaranteed to exist in
-  // this workshop's actual catalog. When it didn't, the browser silently fell
-  // back to displaying whatever option happened to be first in the list while
-  // formData.service (what actually gets submitted) stayed on the missing
-  // default — so the value shown on screen and the value saved to the CarIn
-  // record could silently diverge. Once the real catalog loads, snap the
-  // selection to a name that's actually in it.
+  // Keep formData.service in sync with services fetched from the database.
+  // Never default to hardcoded fake services.
   useEffect(() => {
-    if (!isOpen || (initialData && !isPrefillOnly)) return;
-    if (services.length === 0) return;
+    if (!isOpen) return;
+    if (services.length === 0) {
+      if (!initialData?.service) {
+        setFormData((prev) => ({ ...prev, service: "" }));
+      }
+      return;
+    }
     setFormData((prev) => {
       const validNames = new Set(services.map((s: any) => s.name));
       if (prev.service && validNames.has(prev.service)) return prev;
+      if (initialData?.service) {
+        return { ...prev, service: initialData.service };
+      }
       return { ...prev, service: services[0].name };
     });
   }, [services, isOpen, initialData, isPrefillOnly]);
@@ -224,7 +224,7 @@ export default function VehicleCheckInDialog({
           }
           const activeDuplicate = (allCars || []).find((c: any) => {
             const vNum = normalizeVehicleNumber(c.vehicleNo || c.vehicle || c.vehicleNumber || "");
-            const isNotDelivered = c.status !== "Delivered" && c.status !== "Out";
+            const isNotDelivered = c.status !== "Delivered" && c.status !== "Out" && !c.outTime;
             return vNum === normalized && isNotDelivered;
           });
 
@@ -276,7 +276,7 @@ export default function VehicleCheckInDialog({
 
         const activeDuplicate = (allCars || []).find((c: any) => {
           const vNum = normalizeVehicleNumber(c.vehicleNo || c.vehicle || c.vehicleNumber || "");
-          const isNotDelivered = c.status !== "Delivered" && c.status !== "Out";
+          const isNotDelivered = c.status !== "Delivered" && c.status !== "Out" && !c.outTime;
           return vNum === normalizedInput && isNotDelivered;
         });
 
@@ -300,6 +300,15 @@ export default function VehicleCheckInDialog({
       return;
     }
 
+    if (!formData.service || !formData.service.trim()) {
+      if (services.length === 0) {
+        toast.error("No services configured in database. Please add services in Service Master first.");
+      } else {
+        toast.error("Please select a service");
+      }
+      return;
+    }
+
     if (formData.phone.replace(/\D/g, "").length !== 10) {
       toast.error("Please enter a valid 10-digit phone number");
       return;
@@ -319,6 +328,9 @@ export default function VehicleCheckInDialog({
         status: initialData?.status || "Ongoing",
         notes: formData.notes,
         odometer: formData.odometer,
+        estimateId: initialData?.estimateId,
+        franchiseId: initialData?.franchiseId,
+        customerId: initialData?.customerId,
       });
     }
     onClose();
@@ -469,25 +481,31 @@ export default function VehicleCheckInDialog({
                 name="service"
                 value={formData.service}
                 onChange={handleChange}
-                disabled={isDelivered}
+                disabled={isDelivered || services.length === 0}
                 className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent bg-white disabled:bg-gray-100 disabled:text-gray-600 disabled:cursor-not-allowed disabled:border-gray-200"
+                required
               >
                 {services.length > 0 ? (
-                  services.map((svc: any) => (
-                    <option key={svc.id} value={svc.name}>
-                      {svc.name}
-                    </option>
-                  ))
-                ) : (
                   <>
-                    <option>PPF Full Body</option>
-                    <option>PPF Bonnet</option>
-                    <option>C3 Coating</option>
-                    <option>Graphene Coating</option>
-                    <option>Interior Detailing</option>
+                    {!formData.service && <option value="">-- Select Service --</option>}
+                    {services.map((svc: any) => (
+                      <option key={svc.id} value={svc.name}>
+                        {svc.name}
+                      </option>
+                    ))}
+                    {formData.service && !services.some((s: any) => s.name === formData.service) && (
+                      <option value={formData.service}>{formData.service}</option>
+                    )}
                   </>
+                ) : (
+                  <option value="">No services configured in database</option>
                 )}
               </select>
+              {services.length === 0 && (
+                <p className="mt-1 text-xs text-amber-600">
+                  No services found in database. Please configure services in Service Master (Management → Services) first.
+                </p>
+              )}
             </div>
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -573,104 +591,110 @@ export default function VehicleCheckInDialog({
 
       {/* Vehicle Already Checked In Duplicate Warning Modal */}
       {duplicateWarning && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-[70] p-4">
-          <div className="relative bg-white rounded-3xl p-6 sm:p-8 max-w-lg w-full text-center shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center z-[70] p-4">
+          <div className="relative bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full text-center shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95 duration-200 overflow-hidden">
+            {/* Top Brand Accent Stripe */}
+            <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500" />
+
             <button
               type="button"
               onClick={() => setDuplicateWarning(null)}
-              className="absolute top-5 right-5 p-1.5 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 transition-colors cursor-pointer"
+              className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full transition-colors cursor-pointer"
               title="Close"
             >
               <X className="w-5 h-5" />
             </button>
 
-            {/* Red Alert Icon Container */}
-            <div className="flex justify-center mb-4">
-              <div className="relative flex items-center justify-center">
-                {/* Subtle top sparkles/dashes matching image design */}
-                <div className="absolute -top-1.5 left-1/2 -translate-x-1/2 flex gap-1.5">
-                  <span className="w-1 h-2 bg-red-300 rounded-full rotate-[-25deg]"></span>
-                  <span className="w-1 h-2.5 bg-red-300 rounded-full"></span>
-                  <span className="w-1 h-2 bg-red-300 rounded-full rotate-[25deg]"></span>
+            {/* Alert Icon Badge */}
+            <div className="flex justify-center mb-4 mt-1">
+              <div className="relative">
+                <div className="w-16 h-16 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-center shadow-xs ring-4 ring-amber-500/10">
+                  <AlertTriangle className="w-8 h-8 text-amber-500 stroke-[2.2]" />
                 </div>
-                <div className="w-16 h-16 rounded-full bg-red-50 border-4 border-red-100 flex items-center justify-center shadow-xs">
-                  <AlertTriangle className="w-8 h-8 text-red-600 stroke-[2.2]" />
-                </div>
+                <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-amber-500 border-2 border-white"></span>
+                </span>
               </div>
             </div>
 
-            <h3 className="text-2xl font-bold text-slate-900 mb-2">
+            <h3 className="text-2xl font-bold text-slate-900 mb-1.5 tracking-tight">
               Vehicle Already Checked In
             </h3>
             <p className="text-slate-500 text-sm leading-relaxed mb-6 font-normal">
               This vehicle is already in the workshop.
               <br />
-              Duplicate check-in is not allowed.
+              <span className="text-amber-600/90 font-medium">Duplicate check-in is not allowed.</span>
             </p>
 
-            <div className="bg-[#f4f7fc] border border-slate-100 rounded-2xl p-4 sm:p-5 text-left mb-6 space-y-4">
+            <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 sm:p-5 text-left mb-6 space-y-3.5 shadow-2xs">
               {/* Row 1: Registration No. */}
-              <div className="flex items-center text-sm">
-                <div className="flex items-center gap-2.5 w-36 sm:w-40 text-slate-900 font-bold shrink-0">
-                  <Car className="w-4 h-4 text-blue-600 shrink-0" />
+              <div className="flex items-center justify-between text-sm">
+                <div className="flex items-center gap-2 text-slate-700 font-semibold">
+                  <Car className="w-4 h-4 text-amber-500 shrink-0" />
                   <span>Registration No.</span>
                 </div>
-                <span className="text-slate-300 mx-2 sm:mx-3 font-light">|</span>
-                <div className="flex-1 overflow-hidden">
-                  <span className="bg-[#e0ebff] text-[#1d4ed8] font-bold text-sm px-3 py-1 rounded-lg font-mono tracking-wide inline-block">
+                <div className="inline-flex items-center bg-white border border-slate-300 rounded-lg px-2.5 py-1 shadow-2xs">
+                  <span className="text-[9px] font-black text-blue-700 bg-blue-50 px-1 py-0.5 rounded mr-1.5 border border-blue-200/60 leading-none">
+                    IND
+                  </span>
+                  <span className="font-mono font-bold text-slate-900 text-xs tracking-wider">
                     {formatVehicleNumber(duplicateWarning.vehicleNo)}
                   </span>
                 </div>
               </div>
 
+              <div className="border-t border-slate-200/60" />
+
               {/* Row 2: Check-In Time */}
-              <div className="flex items-center text-sm">
-                <div className="flex items-center gap-2.5 w-36 sm:w-40 text-slate-900 font-bold shrink-0">
+              <div className="flex items-center justify-between text-sm">
+                <div className="flex items-center gap-2 text-slate-700 font-semibold">
                   <Calendar className="w-4 h-4 text-emerald-600 shrink-0" />
                   <span>Check-In Time</span>
                 </div>
-                <span className="text-slate-300 mx-2 sm:mx-3 font-light">|</span>
-                <div className="flex-1 text-slate-800 font-semibold text-sm">
+                <div className="text-slate-800 font-semibold text-xs sm:text-sm">
                   {duplicateWarning.inTime}
                 </div>
               </div>
 
+              <div className="border-t border-slate-200/60" />
+
               {/* Row 3: Current Status */}
-              <div className="flex items-center text-sm">
-                <div className="flex items-center gap-2.5 w-36 sm:w-40 text-slate-900 font-bold shrink-0">
-                  <Home className="w-4 h-4 text-amber-500 shrink-0" />
+              <div className="flex items-center justify-between text-sm">
+                <div className="flex items-center gap-2 text-slate-700 font-semibold">
+                  <Clock className="w-4 h-4 text-slate-500 shrink-0" />
                   <span>Current Status</span>
                 </div>
-                <span className="text-slate-300 mx-2 sm:mx-3 font-light">|</span>
-                <div className="flex-1">
-                  <span className="bg-emerald-100 text-emerald-600 font-semibold text-xs px-2.5 py-1 rounded-md inline-block">
-                    {duplicateWarning.status}
-                  </span>
-                </div>
+                <span className="inline-flex items-center gap-1.5 bg-amber-100 text-amber-800 border border-amber-200/80 font-semibold text-xs px-2.5 py-0.5 rounded-md">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                  {duplicateWarning.status}
+                </span>
               </div>
             </div>
-
-            <div className="border-t border-slate-100 mb-6" />
 
             <div className="flex items-center gap-3">
               <button
                 type="button"
                 onClick={() => {
                   const recordToView = duplicateWarning.originalRecord;
+                  const vNo = duplicateWarning.vehicleNo;
                   setDuplicateWarning(null);
+                  onClose();
                   if (onViewExistingRecord && recordToView) {
                     onViewExistingRecord(recordToView);
+                  } else {
+                    router.push(`/dashboard/carin?search=${encodeURIComponent(vNo || "")}`);
                   }
                 }}
-                className="flex-1 border border-blue-600 text-blue-600 hover:bg-blue-50 font-bold text-sm py-3 px-3.5 rounded-xl flex items-center justify-center gap-2 transition-colors cursor-pointer"
+                className="flex-1 bg-yellow-400 hover:bg-yellow-500 text-gray-950 font-bold text-sm py-3 px-3.5 rounded-xl flex items-center justify-center gap-2 transition-all shadow-sm hover:shadow cursor-pointer"
               >
-                <Eye className="w-4 h-4 text-blue-600 shrink-0" />
+                <Eye className="w-4 h-4 text-gray-950 shrink-0" />
                 <span>View Existing Record</span>
               </button>
               <button
                 type="button"
                 onClick={() => setDuplicateWarning(null)}
-                className="flex-1 bg-slate-200/80 hover:bg-slate-300/80 text-slate-800 font-bold text-sm py-3 px-4 rounded-xl text-center transition-colors cursor-pointer"
+                className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm py-3 px-4 rounded-xl transition-colors cursor-pointer"
               >
                 Close
               </button>

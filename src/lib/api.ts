@@ -136,8 +136,9 @@ export async function updateRolePermissions(role: string, permissions: string[])
 // ═══════════════════════════════════════════════════════════════
 // LEADS
 // ═══════════════════════════════════════════════════════════════
-export async function getLeads() {
-  return apiCall("/leads");
+export async function getLeads(franchiseId?: string) {
+  const query = franchiseId ? `?franchiseId=${encodeURIComponent(franchiseId)}` : "";
+  return apiCall(`/leads${query}`);
 }
 
 export async function createLead(lead: any) {
@@ -225,8 +226,9 @@ export async function getPaymentsByCustomer(customerId: string) {
 // ═══════════════════════════════════════════════════════════════
 // CUSTOMERS
 // ═══════════════════════════════════════════════════════════════
-export async function getCustomers() {
-  return apiCall("/customers");
+export async function getCustomers(franchiseId?: string) {
+  const query = franchiseId ? `?franchiseId=${encodeURIComponent(franchiseId)}` : "";
+  return apiCall(`/customers${query}`);
 }
 
 export async function createCustomer(customer: any) {

@@ -14,6 +14,7 @@ import { getInspections } from "@/modules/qc/services/qc.service";
 import { QCInspection } from "@/modules/qc/types/qc.types";
 import { getInvoices } from "@/modules/billing/services/billing.service";
 import { BillingDocument } from "@/modules/billing/types/billing.types";
+import { usePermissions } from "@/lib/permissions";
 import { READY_FOR_BILLING_STATUSES } from "../constants/job-card.constants";
 
 interface ViewJobCardDialogProps {
@@ -93,6 +94,7 @@ function formatTimeOnly(dateStr?: string) {
 
 export function ViewJobCardDialog({ isOpen, onClose, job, onEdit, onDelete, inspectionCar, stage }: ViewJobCardDialogProps) {
   const router = useRouter();
+  const { canAccess } = usePermissions();
   const [history, setHistory] = useState<any[]>([]);
   const [activeSubTab, setActiveSubTab] = useState<'details' | 'timeline'>('details');
   const [qcInspections, setQcInspections] = useState<QCInspection[]>([]);

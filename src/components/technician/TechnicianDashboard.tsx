@@ -8,8 +8,10 @@ import {
   Bell, XCircle, Briefcase, Package, TrendingUp, Info, ArrowRight
 } from "lucide-react";
 import { StatCard } from "@/components/dashboard/StatCard";
+import { usePermissions } from "@/lib/permissions";
 
 export default function TechnicianDashboard() {
+  const { canAccess } = usePermissions();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -59,44 +61,46 @@ export default function TechnicianDashboard() {
   return (
     <div className="space-y-10 p-6 max-w-7xl mx-auto">
       {/* 1. MY JOBS SUMMARY (Matching HQDashboard StatCard System) */}
-      <section>
-        <h2 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
-          <Briefcase className="w-5 h-5 text-yellow-500" />
-          <span>My Jobs Summary</span>
-        </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
-          <StatCard
-            title="Total Assigned"
-            value={jobsSummary?.totalAssigned || 0}
-            icon={Briefcase}
-            color="blue"
-          />
-          <StatCard
-            title="In Progress"
-            value={jobsSummary?.inProgress || 0}
-            icon={Clock}
-            color="yellow"
-          />
-          <StatCard
-            title="Completed Today"
-            value={jobsSummary?.completedToday || 0}
-            icon={CheckCircle2}
-            color="green"
-          />
-          <StatCard
-            title="Waiting Material"
-            value={jobsSummary?.waitingMaterial || 0}
-            icon={Package}
-            color="purple"
-          />
-          <StatCard
-            title="Waiting QC"
-            value={jobsSummary?.waitingQC || 0}
-            icon={AlertCircle}
-            color="orange"
-          />
-        </div>
-      </section>
+      {canAccess("jobs") && (
+        <section>
+          <h2 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
+            <Briefcase className="w-5 h-5 text-yellow-500" />
+            <span>My Jobs Summary</span>
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
+            <StatCard
+              title="Total Assigned"
+              value={jobsSummary?.totalAssigned || 0}
+              icon={Briefcase}
+              color="blue"
+            />
+            <StatCard
+              title="In Progress"
+              value={jobsSummary?.inProgress || 0}
+              icon={Clock}
+              color="yellow"
+            />
+            <StatCard
+              title="Completed Today"
+              value={jobsSummary?.completedToday || 0}
+              icon={CheckCircle2}
+              color="green"
+            />
+            <StatCard
+              title="Waiting Material"
+              value={jobsSummary?.waitingMaterial || 0}
+              icon={Package}
+              color="purple"
+            />
+            <StatCard
+              title="Waiting QC"
+              value={jobsSummary?.waitingQC || 0}
+              icon={AlertCircle}
+              color="orange"
+            />
+          </div>
+        </section>
+      )}
 
       {/* 2. ATTENDANCE & PERFORMANCE + NOTIFICATIONS GRID */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
@@ -104,29 +108,30 @@ export default function TechnicianDashboard() {
         <div className="lg:col-span-6 space-y-6">
           
           {/* Attendance Card */}
-          <section className="bg-white rounded-xl border border-gray-200 p-6 shadow-xs">
-            <div className="flex items-center justify-between pb-4 border-b border-gray-100 mb-4">
-              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                <Clock className="w-5 h-5 text-yellow-500" />
-                <span>Attendance Status</span>
-              </h3>
-              <div className="flex items-center gap-2.5">
-                <span className={`px-3 py-1 text-xs font-bold rounded-full ${
-                  attendance?.status === "Present" 
-                    ? "bg-emerald-50 text-emerald-700 border border-emerald-200" 
-                    : "bg-slate-100 text-slate-600 border border-slate-200"
-                }`}>
-                  {attendance?.status || "Not Checked In"}
-                </span>
-                <Link 
-                  href="/technician/attendance"
-                  className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-lg transition-colors cursor-pointer"
-                >
-                  <span>Attendance</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </Link>
+          {canAccess("attendance") && (
+            <section className="bg-white rounded-xl border border-gray-200 p-6 shadow-xs">
+              <div className="flex items-center justify-between pb-4 border-b border-gray-100 mb-4">
+                <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                  <Clock className="w-5 h-5 text-yellow-500" />
+                  <span>Attendance Status</span>
+                </h3>
+                <div className="flex items-center gap-2.5">
+                  <span className={`px-3 py-1 text-xs font-bold rounded-full ${
+                    attendance?.status === "Present" 
+                      ? "bg-emerald-50 text-emerald-700 border border-emerald-200" 
+                      : "bg-slate-100 text-slate-600 border border-slate-200"
+                  }`}>
+                    {attendance?.status || "Not Checked In"}
+                  </span>
+                  <Link 
+                    href="/technician/attendance"
+                    className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-lg transition-colors cursor-pointer"
+                  >
+                    <span>Attendance</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
+                </div>
               </div>
-            </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-slate-50 p-4 rounded-xl border border-slate-200/80 text-center">
@@ -147,6 +152,7 @@ export default function TechnicianDashboard() {
               <ArrowRight className="w-4 h-4 text-amber-600 group-hover:translate-x-0.5 transition-transform" />
             </Link>
           </section>
+          )}
 
           {/* Today's Performance Card */}
           <section className="bg-white rounded-xl border border-gray-200 p-6 shadow-xs">

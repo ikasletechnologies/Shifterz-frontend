@@ -53,6 +53,7 @@ import {
   Camera,
 } from "lucide-react";
 import { SidebarContext } from "@/lib/context/SidebarContext";
+import { usePermissions } from "@/lib/permissions";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface NavItem {
@@ -258,8 +259,8 @@ export const technicianSidebarSections: NavSection[] = [
   {
     label: "HR & STAFF",
     items: [
-      { label: "Attendance", icon: Clock, href: "/technician/attendance" },
-      { label: "My Jobs", icon: Briefcase, href: "/technician/my-jobs" },
+      { label: "Attendance", icon: Clock, href: "/technician/attendance", module: "attendance" },
+      { label: "My Jobs", icon: Briefcase, href: "/technician/my-jobs", module: "jobs" },
     ],
   },
   {
@@ -424,8 +425,8 @@ function NavLink({
       {Icon && (
         <Icon
           className={`w-5 h-5 shrink-0 transition-transform duration-250 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-110 ${isActive
-              ? "text-slate-300"
-              : "text-slate-400 group-hover:text-slate-200"
+            ? "text-slate-300"
+            : "text-slate-400 group-hover:text-slate-200"
             }`}
         />
       )}
@@ -438,32 +439,9 @@ function NavLink({
 export default function Sidebar() {
   const pathname = usePathname();
   const { toggleSidebar } = useContext(SidebarContext);
-  const [userRole, setUserRole] = useState<string | null>(null);
-  const [userPermissions, setUserPermissions] = useState<string[] | null>(null);
+  const { role, isSuperAdmin, canAccess, permissions } = usePermissions();
 
-  useEffect(() => {
-    const userStr = localStorage.getItem("user");
-    if (userStr) {
-      try {
-        const user = JSON.parse(userStr);
-        setUserRole(user.role);
-        setUserPermissions(user.permissions || null);
-      } catch (e) {
-        console.error("Failed to parse user from localStorage", e);
-      }
-    }
-  }, []);
-
-  // Filter sections dynamically based on role + optional custom modules
-  let baseRole = userRole || "";
-  let allowedModules: string[] | null = userPermissions;
-
-  // Fallback for legacy database rows without permissions column:
-  if (!allowedModules && baseRole.includes("|")) {
-    const parts = baseRole.split("|");
-    baseRole = parts[0];
-    allowedModules = parts[1].split(",").filter(Boolean);
-  }
+  const baseRole = role;
 
   // 1. Choose root list
   let rawSections =
@@ -479,14 +457,18 @@ export default function Sidebar() {
     rawSections = receptionistSidebarSections;
   }
 
-  // 2. Filter list based on custom modules (if present)
+  // 2. Filter list based on centralized permission system
   const sections = rawSections
     .map((sec) => {
       const filteredItems = sec.items.filter((item) => {
-        if (baseRole === "SUPER_ADMIN") return true;
-        if ((item.module === "outpass" || item.module === "attendance") && (baseRole === "SERVICE_ADVISOR" || baseRole.includes("SERVICE_ADVISOR"))) return true;
-        if (!item.module || !allowedModules) return true;
-        return allowedModules.includes(item.module);
+        if (isSuperAdmin) return true;
+        if (item.children && item.children.length > 0) {
+          const visibleChildren = item.children.filter(child => !child.module || canAccess(child.module));
+          item.children = visibleChildren;
+          return visibleChildren.length > 0;
+        }
+        if (!item.module) return true;
+        return canAccess(item.module);
       });
       return {
         ...sec,
@@ -533,7 +515,7 @@ export default function Sidebar() {
 
   useLayoutEffect(() => {
     syncIndicator();
-  }, [pathname, userRole, userPermissions, syncIndicator]);
+  }, [pathname, role, syncIndicator]);
 
   // Enable the transition only after the first placement, so it doesn't slide in from the top on load.
   useEffect(() => {
@@ -596,8 +578,8 @@ export default function Sidebar() {
         <div
           aria-hidden
           className={`absolute top-0 left-0 z-0 rounded-lg bg-[#182235] border border-slate-700/60 shadow-sm pointer-events-none will-change-transform ${animateIndicator
-              ? "transition-[transform,width,height,opacity] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none"
-              : ""
+            ? "transition-[transform,width,height,opacity] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none"
+            : ""
             }`}
           style={{
             transform: `translate(${indicator?.left ?? 0}px, ${indicator?.top ?? 0}px)`,
@@ -607,22 +589,22 @@ export default function Sidebar() {
           }}
         />
         <div ref={navContentRef} className="space-y-5">
-        {sections.map((section, idx) => (
-          <div key={idx} className={idx > 0 ? "pt-4 border-t border-slate-800/60" : ""}>
-            {/* Section heading */}
-            {section.label && (
-              <p className="px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">
-                {section.label}
-              </p>
-            )}
+          {sections.map((section, idx) => (
+            <div key={idx} className={idx > 0 ? "pt-4 border-t border-slate-800/60" : ""}>
+              {/* Section heading */}
+              {section.label && (
+                <p className="px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">
+                  {section.label}
+                </p>
+              )}
 
-            <div className="space-y-1">
-              {section.items.map((item) => (
-                <NavLink key={item.href} item={item} pathname={pathname} />
-              ))}
+              <div className="space-y-1">
+                {section.items.map((item) => (
+                  <NavLink key={item.href} item={item} pathname={pathname} />
+                ))}
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
         </div>
       </nav>
     </aside>

@@ -92,16 +92,15 @@ export default function Header() {
         setUserName(user.username);
         setUserRole(user.role);
 
-        let fname = user.franchiseName || user.branchName || user.branch;
-        if (!fname) {
-          if (user.franchiseId && user.franchiseId !== "HQ") {
-            fname = "Franchise Branch";
-          } else {
-            fname = "Headquarters (HQ)";
-          }
-        }
-        if (typeof fname === "object" && fname !== null) {
-          fname = (fname as any).name || (fname as any).label || "Headquarters (HQ)";
+                const normalizedRole = (user.role || "").toUpperCase().replace(/[\s_]+/g, "_");
+        const isHQUser = normalizedRole === "SUPER_ADMIN" || normalizedRole === "HQ_USER";
+        let fname = "";
+        if (isHQUser) {
+          fname = "Headquarters (HQ)";
+        } else if (user.franchiseId && user.franchiseId !== "HQ") {
+          fname = user.franchiseName || (user.branch && typeof user.branch === "object" && user.branch.name !== "Head Office" ? user.branch.name : "Franchise Branch");
+        } else {
+          fname = user.franchiseName || (user.branch && typeof user.branch === "object" && user.branch.name !== "Head Office" ? user.branch.name : "Franchise Branch");
         }
         setFranchiseName(String(fname));
       } catch (e) {}

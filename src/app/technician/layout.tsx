@@ -1,6 +1,7 @@
 import Sidebar from "@/components/layout/Sidebar";
 import Header from "@/components/layout/Header";
 import DashboardLayoutClient from "@/components/layout/DashboardLayoutClient";
+import RoutePermissionGuard from "@/components/layout/RoutePermissionGuard";
 
 export default function TechnicianLayout({
   children,
@@ -12,7 +13,9 @@ export default function TechnicianLayout({
       <Sidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header />
-        <main className="flex-1 overflow-auto">{children}</main>
+        <main className="flex-1 overflow-auto">
+          <RoutePermissionGuard>{children}</RoutePermissionGuard>
+        </main>
       </div>
     </DashboardLayoutClient>
   );

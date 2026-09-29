@@ -120,7 +120,7 @@ export async function downloadInvoicePdf(doc: BillingDocument) {
     pdf.setFontSize(9);
     pdf.setFont("helvetica", "normal");
     pdf.text(doc.id, pageWidth - margin, 19, { align: "right" });
-    if (doc.status) {
+    if (doc.status && doc.status.toLowerCase() !== "pending") {
       const statusColorMap: Record<string, [number, number, number]> = { Paid: [22, 163, 74], Overdue: [220, 38, 38], Approved: [37, 99, 235] };
       const [r, g, b] = statusColorMap[doc.status] || [217, 119, 6];
       pdf.setTextColor(r, g, b);
@@ -168,13 +168,16 @@ export async function downloadInvoicePdf(doc: BillingDocument) {
 
     // Items table
     const tableHead = [["Description", "Qty", "Unit Price", "Disc%", "Disc Amt", "GST%", "GST Amt", "Warranty", "Amount"]];
-    const tableBody: string[][] = [];
+    const tableBody: any[] = [];
     if (doc.items && doc.items.length > 0) {
-      for (const item of doc.items) {
+      const services = doc.items.filter((it: any) => it.type === "SERVICE" || (!it.type && !it.itemId));
+      const parts = doc.items.filter((it: any) => it.type === "ITEM" || Boolean(it.itemId));
+
+      const formatLine = (item: any) => {
         const itemAmt = item.amount || (item.qty * item.price) || 0;
         const discAmt = item.discountPercent ? (itemAmt * item.discountPercent / 100) : 0;
         const gstAmt = ((itemAmt - discAmt) * (item.gstPercent ?? 18)) / 100;
-        tableBody.push([
+        return [
           item.desc || "-", String(item.qty),
           `Rs.${Number(item.price || 0).toLocaleString("en-IN")}`,
           item.discountPercent ? `${item.discountPercent}%` : "-",
@@ -183,7 +186,25 @@ export async function downloadInvoicePdf(doc: BillingDocument) {
           `Rs.${Number(gstAmt).toLocaleString("en-IN")}`,
           item.warranty || "-",
           `Rs.${Number(itemAmt).toLocaleString("en-IN")}`,
+        ];
+      };
+
+      if (services.length > 0 && parts.length > 0) {
+        tableBody.push([
+          { content: "SERVICES", colSpan: 9, styles: { fillColor: [239, 246, 255], fontStyle: "bold", textColor: [30, 64, 175] } }
         ]);
+      }
+      for (const item of services) {
+        tableBody.push(formatLine(item));
+      }
+
+      if (parts.length > 0 && services.length > 0) {
+        tableBody.push([
+          { content: "ITEMS / SPARE PARTS", colSpan: 9, styles: { fillColor: [236, 253, 245], fontStyle: "bold", textColor: [6, 95, 70] } }
+        ]);
+      }
+      for (const item of parts) {
+        tableBody.push(formatLine(item));
       }
     } else {
       const gstAmt = (doc.amount || 0) * 0.18;
@@ -233,23 +254,8 @@ export async function downloadInvoicePdf(doc: BillingDocument) {
       finalY += 14;
     }
 
-    // Terms & Signatory
+    // Signatory
     const termsY = finalY;
-    pdf.setFontSize(7.5); pdf.setFont("helvetica", "normal"); pdf.setTextColor(80, 80, 80);
-    let termsLineY = termsY;
-    if (doc.paymentTerms) {
-      pdf.setFont("helvetica", "bold"); pdf.text("Payment Terms:", margin, termsLineY);
-      pdf.setFont("helvetica", "normal");
-      const lines = pdf.splitTextToSize(doc.paymentTerms, 80);
-      pdf.text(lines, margin, termsLineY + 4);
-      termsLineY += 4 + lines.length * 4;
-    }
-    if (doc.bankDetails) {
-      pdf.setFont("helvetica", "bold"); pdf.text("Bank Details:", margin, termsLineY + 2);
-      pdf.setFont("helvetica", "normal");
-      const lines = pdf.splitTextToSize(doc.bankDetails, 80);
-      pdf.text(lines, margin, termsLineY + 6);
-    }
     const signX = pageWidth - margin;
     pdf.setDrawColor(17, 24, 39);
     pdf.line(signX - 50, termsY + 24, signX, termsY + 24);

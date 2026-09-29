@@ -63,16 +63,13 @@ export default function RolesPermissionsPage() {
       try {
         const data = await getRolePermissions();
         if (Array.isArray(data) && data.length > 0) {
-          const newMatrix: Record<string, Record<string, boolean>> = {};
-          // Initialize for all roles
-          for (const r of ROLES) {
-            newMatrix[r.id] = Object.fromEntries(PERMISSIONS.map(p => [p.key, false]));
-          }
-          // Populate from server responses
+          const newMatrix = { ...DEFAULT_MATRIX };
           for (const item of data) {
-            newMatrix[item.role] = Object.fromEntries(
-              PERMISSIONS.map(p => [p.key, item.permissions.includes(p.key)])
-            );
+            if (item && item.role && Array.isArray(item.permissions)) {
+              newMatrix[item.role] = Object.fromEntries(
+                PERMISSIONS.map(p => [p.key, item.permissions.includes(p.key)])
+              );
+            }
           }
           setMatrix(newMatrix);
         }
@@ -87,6 +84,10 @@ export default function RolesPermissionsPage() {
   }, []);
 
   const toggle = (roleId: string, permKey: string) => {
+    if (roleId === "SUPER_ADMIN" && ["dashboard", "roles", "settings", "employees"].includes(permKey)) {
+      toast.error("Super Admin core administrative modules cannot be disabled to prevent system lockout.");
+      return;
+    }
     setMatrix(prev => {
       const current = prev[roleId] || {};
       return {

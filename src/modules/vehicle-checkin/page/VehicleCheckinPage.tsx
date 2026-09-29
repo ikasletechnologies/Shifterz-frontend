@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { getFranchises } from "@/lib/api";
 import { useRouter } from "next/navigation";
 import { SummaryCard } from "@/components/common/SummaryCard";
 import {
@@ -36,6 +37,22 @@ import { StatusText } from "@/components/common/StatusText";
 
 export function VehicleCheckinPage() {
   const router = useRouter();
+  const [franchiseFilter, setFranchiseFilter] = useState("All");
+  const [franchises, setFranchises] = useState<{ id: string; name: string }[]>([]);
+
+  const currentUser = typeof window !== "undefined" ? (() => {
+    try { const u = localStorage.getItem("user"); return u ? JSON.parse(u) : null; } catch { return null; }
+  })() : null;
+  const userRole = (currentUser?.role || "").toUpperCase().replace(/[\s_]+/g, "_");
+  const isHQ = userRole === "SUPER_ADMIN" || userRole === "SUPERADMIN" || userRole === "HQ" || userRole === "HQ_USER";
+
+  useEffect(() => {
+    if (!isHQ) return;
+    getFranchises()
+      .then((data: any[]) => setFranchises((data || []).map((f: any) => ({ id: f.id, name: f.name || f.franchiseName || f.id }))))
+      .catch((err: any) => console.error("Vehicle checkin: failed to load franchises", err));
+  }, [isHQ]);
+
   const {
     cars,
     isLoading,
@@ -43,7 +60,9 @@ export function VehicleCheckinPage() {
     handleUpdateVehicleCheckIn,
     handleDeleteVehicleCheckIn,
     handleVehicleCheckOut,
-  } = useVehicleCheckin();
+  } = useVehicleCheckin(franchiseFilter);
+
+  const showFranchiseColumn = isHQ || cars.some((c) => c.franchiseName || c.franchiseId);
 
   const [periodFilter, setPeriodFilter] = useState("All");
   const [customFromDate, setCustomFromDate] = useState("");
@@ -426,6 +445,7 @@ export function VehicleCheckinPage() {
   };
 
   const filteredCars = cars.filter((car) => {
+    if (isHQ && franchiseFilter !== "All" && car.franchiseId !== franchiseFilter) return false;
     const statusMatch =
       statusFilter === "All" ||
       (statusFilter === "In Workshop" && (car.status !== "Out" && car.status !== "Delivered")) ||
@@ -495,6 +515,25 @@ export function VehicleCheckinPage() {
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
+          {/* Franchise filter for Super Admin */}
+          {isHQ && (
+            <div className="flex items-center gap-1.5 bg-gray-100 rounded-lg px-2.5 py-1 text-xs">
+              <span className="text-gray-500 font-medium">Franchise:</span>
+              <select
+                value={franchiseFilter}
+                onChange={(e) => setFranchiseFilter(e.target.value)}
+                className="bg-white border border-gray-300 text-gray-800 text-xs rounded-md px-2 py-1 font-semibold focus:outline-none focus:ring-1 focus:ring-yellow-400"
+              >
+                <option value="All">All Franchises</option>
+                {franchises.map((f) => (
+                  <option key={f.id} value={f.id}>
+                    {f.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           {/* Period pill tabs */}
           <div className="flex items-center gap-0.5 bg-gray-100 rounded-lg p-1">
             {["All", "Today", "Yesterday", "Custom"].map((period) => (
@@ -616,6 +655,13 @@ export function VehicleCheckinPage() {
                     <td className="whitespace-nowrap">{entry.outTime ? formatTime(entry.outTime) : "—"}</td>
                     <td className="whitespace-nowrap">{entry.outTime ? calculateDuration(entry.inTime, entry.outTime) : "—"}</td>
                     <td className="whitespace-nowrap"><StatusText status={entry.status === "Ongoing" ? "In Workshop" : entry.status} /></td>
+                    {showFranchiseColumn && (
+                      <td className="whitespace-nowrap">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200">
+                          {entry.franchiseName || entry.franchiseId || "Head Office"}
+                        </span>
+                      </td>
+                    )}
                     <td className="whitespace-nowrap">
                       <div className="flex items-center justify-end gap-1">
                         {inWorkshop && (

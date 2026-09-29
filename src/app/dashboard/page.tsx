@@ -8,37 +8,17 @@ import EmployeeDashboard from "@/components/technician/EmployeeDashboard";
 import BillingDashboard from "@/components/dashboard/BillingDashboard";
 import { ServiceAdvisorDashboard } from "@/components/dashboard/ServiceAdvisorDashboard";
 
+import { usePermissions } from "@/lib/permissions";
+
 export default function DashboardPage() {
   const router = useRouter();
-  const [userRole, setUserRole] = useState<string | null>(null);
-  const [userPermissions, setUserPermissions] = useState<string[] | null>(null);
+  const { role, permissions, isSuperAdmin, loading } = usePermissions();
 
-  useEffect(() => {
-    const userStr = localStorage.getItem("user");
-    if (userStr) {
-      try {
-        const user = JSON.parse(userStr);
-        setUserRole(user.role);
-        setUserPermissions(user.permissions || null);
-      } catch (e) {
-        console.error("Failed to parse user role for dashboard");
-      }
-    }
-  }, []);
-
-  // Parse custom role serialization
-  let baseRole = userRole || "";
-  let allowedModules: string[] | null = userPermissions;
-
-  // Fallback for legacy database rows without permissions column:
-  if (!allowedModules && baseRole.includes("|")) {
-    const parts = baseRole.split("|");
-    baseRole = parts[0];
-    allowedModules = parts[1].split(",").filter(Boolean);
-  }
+  const baseRole = role;
+  const allowedModules: string[] | null = isSuperAdmin ? null : permissions;
 
   const isHQ = baseRole === "SUPER_ADMIN" || baseRole === "HQ_USER";
-  const isBilling = baseRole === "BILLING" || baseRole === "BILLING_EXECUTIVE";
+  const isBilling = baseRole === "BILLING_EXECUTIVE";
   const isServiceAdvisor = baseRole === "SERVICE_ADVISOR";
   const isFranchiseAdmin = baseRole === "FRANCHISE_ADMIN" || baseRole === "BRANCH_MANAGER";
   // Quality Inspectors don't get a jobs-status dashboard — their work happens
@@ -71,7 +51,7 @@ export default function DashboardPage() {
       !allowedModules.includes("billing") &&
       !allowedModules.includes("inventory"));
 
-  if (!userRole || isQualityInspector) {
+  if (loading || !baseRole || isQualityInspector) {
     return <div className="p-8 text-center text-gray-500">Loading dashboard layout...</div>;
   }
 

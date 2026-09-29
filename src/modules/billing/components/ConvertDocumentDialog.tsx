@@ -13,7 +13,7 @@ interface ConvertDocumentDialogProps {
 }
 
 const CONVERSION_FLOW: Record<string, string | null> = {
-  "Estimate": "Quotation",
+  "Estimate": "Invoice",
   "Quotation": "Invoice",
   "Invoice": null,
 };

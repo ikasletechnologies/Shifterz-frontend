@@ -18,7 +18,7 @@ import { SummaryCard } from "@/components/common/SummaryCard";
 import { ListHeader } from "@/components/common/ListHeader";
 import PrintPassDialog from "@/components/outpass/PrintPassDialog";
 import { formatOutPassId } from "@/utils/outPassFormatter";
-import { getOutPasses, createOutPass, updateOutPass, approveOutpass, rejectOutpass } from "@/lib/api";
+import { getOutPasses, createOutPass, updateOutPass, approveOutpass, rejectOutpass, getFranchises } from "@/lib/api";
 import { getScopedFranchiseId, scopeToFranchise } from "@/lib/franchise-scope";
 import { toast } from "react-hot-toast";
 import jsPDF from "jspdf";
@@ -61,6 +61,8 @@ export default function OutPassPage() {
   const [statusFilter, setStatusFilter] = useState<"All" | "Pending" | "Rejected" | "Delivered">("All");
   const [isDownloadOpen, setIsDownloadOpen] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [franchiseFilter, setFranchiseFilter] = useState("All");
+  const [franchises, setFranchises] = useState<{ id: string; name: string }[]>([]);
 
   // Custom confirmation modal state (replaces window.confirm)
   const [confirmModal, setConfirmModal] = useState<{
@@ -80,12 +82,22 @@ export default function OutPassPage() {
     }
   }, []);
 
-  const isSuperAdmin = userRole === "SUPER_ADMIN";
+  const normalizedRole = (userRole || "").toUpperCase().replace(/[\s_]+/g, "_");
+  const isHQ = normalizedRole === "SUPER_ADMIN" || normalizedRole === "SUPERADMIN" || normalizedRole === "HQ" || normalizedRole === "HQ_USER";
+  const isSuperAdmin = isHQ;
+
+  useEffect(() => {
+    if (!isHQ) return;
+    getFranchises()
+      .then((data: any[]) => setFranchises((data || []).map((f: any) => ({ id: f.id, name: f.name || f.franchiseName || f.id }))))
+      .catch((err: any) => console.error("OutPass: failed to load franchises", err));
+  }, [isHQ]);
 
   const fetchOutPasses = useCallback(async () => {
     try {
       setIsLoading(true);
-      const franchiseId = getScopedFranchiseId();
+      const scopedId = getScopedFranchiseId();
+      const franchiseId = scopedId || (franchiseFilter !== "All" ? franchiseFilter : undefined);
       const data = await getOutPasses(franchiseId);
       setOutPasses(scopeToFranchise(data || []));
     } catch (err: any) {
@@ -94,7 +106,7 @@ export default function OutPassPage() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [franchiseFilter]);
 
   useEffect(() => {
     fetchOutPasses();
@@ -483,6 +495,25 @@ export default function OutPassPage() {
           onSearchChange={setSearchQuery}
           searchPlaceholder="Search pass, vehicle, customer..."
         >
+          {/* Franchise Filter for Super Admin */}
+          {isHQ && (
+            <div className="flex items-center gap-1.5 bg-white border border-gray-300 rounded-lg px-2.5 py-1.5 shrink-0">
+              <span className="text-xs font-semibold text-gray-500 whitespace-nowrap">Franchise:</span>
+              <select
+                value={franchiseFilter}
+                onChange={(e) => setFranchiseFilter(e.target.value)}
+                className="bg-transparent border-none text-xs text-gray-800 font-semibold focus:outline-none cursor-pointer p-0"
+              >
+                <option value="All">All Franchises</option>
+                {franchises.map((f) => (
+                  <option key={f.id} value={f.id}>
+                    {f.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           {/* 2. From Date Filter */}
           <div className="flex items-center gap-1.5 bg-white border border-gray-300 rounded-lg px-2.5 py-2 shrink-0">
             <span className="text-xs font-semibold text-gray-500 whitespace-nowrap">From:</span>

@@ -7,7 +7,8 @@ import { getStatusTone, TONE_TEXT } from "@/lib/statusTone";
 import { Plus, ChevronDown, Trash2, Pencil, Search, X, CheckCircle } from "lucide-react";
 import AddLeadDialog, { LEAD_DRAFT_STORAGE_KEY } from "@/components/leads/AddLeadDialog";
 import EditLeadDialog from "@/components/leads/EditLeadDialog";
-import { getLeads, createLead, deleteLead, updateLead, getSettings } from "@/lib/api";
+import { getLeads, createLead, deleteLead, updateLead, getSettings, getFranchises } from "@/lib/api";
+import { getScopedFranchiseId, scopeToFranchise } from "@/lib/franchise-scope";
 import { toast } from "react-hot-toast";
 import { DEFAULT_LEAD_SOURCES } from "@/constants/leadSources";
 
@@ -23,6 +24,8 @@ interface Lead {
   budget: string;
   date: string;
   status: string;
+  franchiseId?: string;
+  franchiseName?: string;
 }
 
 
@@ -133,6 +136,21 @@ const StatusDropdown = ({ lead, handleStatusChange }: { lead: Lead, handleStatus
 };
 
 export default function LeadsPage() {
+  const [franchiseFilter, setFranchiseFilter] = useState("All");
+  const [franchises, setFranchises] = useState<{ id: string; name: string }[]>([]);
+
+  const currentUser = typeof window !== "undefined" ? (() => {
+    try { const u = localStorage.getItem("user"); return u ? JSON.parse(u) : null; } catch { return null; }
+  })() : null;
+  const userRole = (currentUser?.role || "").toUpperCase().replace(/[\s_]+/g, "_");
+  const isHQ = userRole === "SUPER_ADMIN" || userRole === "SUPERADMIN" || userRole === "HQ" || userRole === "HQ_USER";
+
+  useEffect(() => {
+    if (!isHQ) return;
+    getFranchises()
+      .then((data: any[]) => setFranchises((data || []).map((f: any) => ({ id: f.id, name: f.name || f.franchiseName || f.id }))))
+      .catch((err) => console.error("Leads: failed to load franchises", err));
+  }, [isHQ]);
   const [leads, setLeads] = useState<Lead[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
@@ -155,8 +173,10 @@ export default function LeadsPage() {
     async function fetchLeads() {
       try {
         setIsLoading(true);
-        const data = await getLeads();
-        setLeads(data);
+        const scopedId = getScopedFranchiseId();
+        const franchiseId = scopedId || (franchiseFilter !== "All" ? franchiseFilter : undefined);
+        const data = await getLeads(franchiseId);
+        setLeads(scopeToFranchise(data || []));
       } catch (err: any) {
         setError("Failed to load leads: " + err.message);
         console.error(err);
@@ -165,7 +185,7 @@ export default function LeadsPage() {
       }
     }
     fetchLeads();
-  }, []);
+  }, [franchiseFilter]);
 
   // Load lead sources from settings
   useEffect(() => {
@@ -300,7 +320,10 @@ export default function LeadsPage() {
     new Set([...availableSources, ...leads.map((l) => l.source).filter(Boolean)])
   );
 
+  const showFranchiseColumn = isHQ || leads.some((l) => l.franchiseName || l.franchiseId);
+
   const filteredLeads = leads.filter((lead) => {
+    if (isHQ && franchiseFilter !== "All" && lead.franchiseId !== franchiseFilter) return false;
     const statusMatch = filter === "All" || lead.status === filter;
     const sourceMatch =
       sourceFilter === "All Sources" ||

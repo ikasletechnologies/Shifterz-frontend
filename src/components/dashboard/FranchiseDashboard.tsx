@@ -65,10 +65,18 @@ export function FranchiseDashboard({ allowedModules }: { allowedModules?: string
             Customer Relationship (CRM)
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <StatCard title="Today's Appointments" value={crm?.appointmentsToday || 0} icon={Calendar} color="blue" />
-            <StatCard title="Leads Today" value={crm?.leadsToday || 0} icon={Users} color="blue" />
-            <StatCard title="New Customers" value={crm?.newCustomers || 0} icon={UserPlus} color="green" />
-            <StatCard title="Returning Customers" value={crm?.returningCustomers || 0} icon={UserCheck} color="purple" />
+            {(!allowedModules || allowedModules.includes("leads")) && (
+              <>
+                <StatCard title="Today's Appointments" value={crm?.appointmentsToday || 0} icon={Calendar} color="blue" />
+                <StatCard title="Leads Today" value={crm?.leadsToday || 0} icon={Users} color="blue" />
+              </>
+            )}
+            {(!allowedModules || allowedModules.includes("customers")) && (
+              <>
+                <StatCard title="New Customers" value={crm?.newCustomers || 0} icon={UserPlus} color="green" />
+                <StatCard title="Returning Customers" value={crm?.returningCustomers || 0} icon={UserCheck} color="purple" />
+              </>
+            )}
           </div>
         </section>
       )}
@@ -81,10 +89,18 @@ export function FranchiseDashboard({ allowedModules }: { allowedModules?: string
             Workshop Operations
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <StatCard title="Vehicles Received" value={workshop?.carsReceivedToday || 0} icon={Car} color="orange" />
-            <StatCard title="Vehicles in Progress" value={workshop?.vehiclesInProgress || 0} icon={Wrench} color="orange" />
-            <StatCard title="Pending QC" value={workshop?.pendingQC || 0} icon={Search} color="yellow" />
-            <StatCard title="Ready for Delivery" value={workshop?.vehiclesReady || 0} icon={CheckCircle} color="green" />
+            {(!allowedModules || allowedModules.includes("carin")) && (
+              <StatCard title="Vehicles Received" value={workshop?.carsReceivedToday || 0} icon={Car} color="orange" />
+            )}
+            {(!allowedModules || allowedModules.includes("jobs")) && (
+              <>
+                <StatCard title="Vehicles in Progress" value={workshop?.vehiclesInProgress || 0} icon={Wrench} color="orange" />
+                <StatCard title="Pending QC" value={workshop?.pendingQC || 0} icon={Search} color="yellow" />
+              </>
+            )}
+            {(!allowedModules || allowedModules.includes("outpass")) && (
+              <StatCard title="Ready for Delivery" value={workshop?.vehiclesReady || 0} icon={CheckCircle} color="green" />
+            )}
           </div>
         </section>
       )}
@@ -97,10 +113,18 @@ export function FranchiseDashboard({ allowedModules }: { allowedModules?: string
             Financials
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <StatCard title="Revenue Today" value={`₹${(financial?.revenueToday || 0).toLocaleString("en-IN")}`} icon={DollarSign} color="green" />
-            <StatCard title="Revenue This Month" value={`₹${(financial?.revenueThisMonth || 0).toLocaleString("en-IN")}`} icon={Receipt} color="green" />
-            <StatCard title="Outstanding Payments" value={`₹${(financial?.outstandingPayments || 0).toLocaleString("en-IN")}`} icon={CreditCard} color="red" />
-            <StatCard title="Pending Invoices" value={financial?.pendingInvoicesCount || 0} icon={FileText} color="yellow" />
+            {(!allowedModules || allowedModules.includes("billing")) && (
+              <>
+                <StatCard title="Revenue Today" value={`₹${(financial?.revenueToday || 0).toLocaleString("en-IN")}`} icon={DollarSign} color="green" />
+                <StatCard title="Revenue This Month" value={`₹${(financial?.revenueThisMonth || 0).toLocaleString("en-IN")}`} icon={Receipt} color="green" />
+              </>
+            )}
+            {(!allowedModules || allowedModules.includes("payments")) && (
+              <StatCard title="Outstanding Payments" value={`₹${(financial?.outstandingPayments || 0).toLocaleString("en-IN")}`} icon={CreditCard} color="red" />
+            )}
+            {(!allowedModules || allowedModules.includes("billing")) && (
+              <StatCard title="Pending Invoices" value={financial?.pendingInvoicesCount || 0} icon={FileText} color="yellow" />
+            )}
           </div>
         </section>
       )}
@@ -113,11 +137,19 @@ export function FranchiseDashboard({ allowedModules }: { allowedModules?: string
             Employees & Productivity
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-            <StatCard title="Present Today" value={hr?.presentToday || 0} icon={UserCheck} color="green" />
-            <StatCard title="Absent Today" value={hr?.absentToday || 0} icon={Clock} color="red" />
-            <StatCard title="Jobs Assigned" value={hr?.jobsAssigned || 0} icon={List} color="blue" />
-            <StatCard title="Jobs Completed" value={hr?.jobsCompleted || 0} icon={CheckSquare} color="green" />
-            <StatCard title="Productivity" value={`${hr?.productivity || 0}%`} icon={Percent} color="purple" />
+            {(!allowedModules || allowedModules.includes("attendance")) && (
+              <>
+                <StatCard title="Present Today" value={hr?.presentToday || 0} icon={UserCheck} color="green" />
+                <StatCard title="Absent Today" value={hr?.absentToday || 0} icon={Clock} color="red" />
+              </>
+            )}
+            {(!allowedModules || allowedModules.includes("jobs")) && (
+              <>
+                <StatCard title="Jobs Assigned" value={hr?.jobsAssigned || 0} icon={List} color="blue" />
+                <StatCard title="Jobs Completed" value={hr?.jobsCompleted || 0} icon={CheckSquare} color="green" />
+                <StatCard title="Productivity" value={`${hr?.productivity || 0}%`} icon={Percent} color="purple" />
+              </>
+            )}
           </div>
         </section>
       )}

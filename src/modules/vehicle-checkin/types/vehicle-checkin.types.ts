@@ -17,6 +17,9 @@ export interface CarEntry {
   notes?: string;
   security?: string;
   remarks?: string;
+  franchiseId?: string;
+  franchiseName?: string;
+  branchName?: string;
 
   // Checkout fields — backend's checkoutSchema (PUT /carin/:id/checkout)
   securityName?: string;

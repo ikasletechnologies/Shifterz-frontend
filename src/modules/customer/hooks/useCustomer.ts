@@ -1,20 +1,23 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { getScopedFranchiseId, scopeToFranchise } from "@/lib/franchise-scope";
 import { Customer } from "@/modules/customer/types/customer.types";
 import { getCustomers, createCustomer, deleteCustomer } from "@/modules/customer/services/customer.service";
 import toast from "react-hot-toast";
 
-export function useCustomer() {
+export function useCustomer(selectedFranchiseId?: string) {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const fetchCustomers = async () => {
+  const fetchCustomers = useCallback(async () => {
     try {
       setIsLoading(true);
-      const data = await getCustomers();
-      setCustomers(data);
+      const scopedId = getScopedFranchiseId();
+      const franchiseId = scopedId || (selectedFranchiseId && selectedFranchiseId !== "All" ? selectedFranchiseId : undefined);
+      const data = await getCustomers(franchiseId);
+      setCustomers(scopeToFranchise(data || []));
       setError("");
     } catch (err: any) {
       setError("Failed to load customers: " + err.message);
@@ -22,7 +25,7 @@ export function useCustomer() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [selectedFranchiseId]);
 
   useEffect(() => {
     fetchCustomers();

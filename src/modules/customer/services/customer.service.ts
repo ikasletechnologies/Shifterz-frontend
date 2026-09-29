@@ -1,8 +1,9 @@
 import { apiCall } from "@/services/api.client";
 import { Customer } from "@/modules/customer/types/customer.types";
 
-export async function getCustomers(): Promise<Customer[]> {
-  return apiCall("/customers");
+export async function getCustomers(franchiseId?: string): Promise<Customer[]> {
+  const query = franchiseId ? `?franchiseId=${encodeURIComponent(franchiseId)}` : "";
+  return apiCall(`/customers${query}`);
 }
 
 export async function createCustomer(customer: Partial<Customer>): Promise<Customer> {

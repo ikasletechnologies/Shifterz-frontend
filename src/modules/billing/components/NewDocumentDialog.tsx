@@ -4,10 +4,26 @@ import { PhoneInput } from "@/components/common/PhoneInput";
 import { useState, useEffect, useMemo, useRef } from "react";
 import {
   X, FileText, Plus, Trash2, Loader2, Clock, Eye,
-  MapPin, CheckCircle2, ArrowRight
+  MapPin, CheckCircle2, ArrowRight, Wrench, Package, Layers
 } from "lucide-react";
 import { toast } from "react-hot-toast";
-import { fetchVehicleDetails, getServices } from "@/lib/api";
+import { fetchVehicleDetails, getServices, getInventory } from "@/lib/api";
+import DocumentPreviewDialog from "./DocumentPreviewDialog";
+
+export interface LineItem {
+  id?: string;
+  type: "SERVICE" | "ITEM";
+  serviceId?: string;
+  itemId?: string;
+  desc: string;
+  qty: number;
+  price: number;
+  discountPercent: number;
+  gstPercent: number;
+  amount: number;
+  warranty?: string;
+  unit?: string;
+}
 import { getJobCards } from "@/modules/job-card/services/job-card.service";
 import { JobCard } from "@/modules/job-card/types/job-card.types";
 import { getVehicleType, formatVehicleNumber } from "@/utils/vehicleNumber";
@@ -36,7 +52,7 @@ function numberToWords(num: number): string {
   if (!num || num <= 0) return "Rupees Zero Only";
   const a = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
   const b = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
-  
+
   function inWords(n: number): string {
     if (n < 20) return a[n];
     if (n < 100) return b[Math.floor(n / 10)] + (n % 10 ? ' ' + a[n % 10] : '');
@@ -45,7 +61,7 @@ function numberToWords(num: number): string {
     if (n < 10000000) return inWords(Math.floor(n / 100000)) + ' Lakh' + (n % 100000 ? ' ' + inWords(n % 100000) : '');
     return inWords(Math.floor(n / 10000000)) + ' Crore' + (n % 10000000 ? ' ' + inWords(n % 10000000) : '');
   }
-  
+
   const integerPart = Math.floor(num);
   return `Rupees ${inWords(integerPart)} Only`;
 }
@@ -57,9 +73,7 @@ export default function NewDocumentDialog({
   existingDocuments = [],
   initialData = null,
 }: NewDocumentDialogProps) {
-  const [focusedItemIndex, setFocusedItemIndex] = useState<number | null>(null);
-  const [isLoadingServices, setIsLoadingServices] = useState(false);
-  const [activeTab, setActiveTab] = useState<"service" | "parts">("service");
+  const [activeItemTab, setActiveItemTab] = useState<"services" | "items" | "all">("services");
   const [currentTime, setCurrentTime] = useState("");
 
   const [formData, setFormData] = useState({
@@ -95,14 +109,27 @@ export default function NewDocumentDialog({
     discountReason: "",
   });
 
-  const [items, setItems] = useState([
-    { desc: "", qty: 1, price: 0, amount: 0, discountPercent: 0, gstPercent: 18, warranty: "" },
+  const [serviceLines, setServiceLines] = useState<LineItem[]>([
+    { type: "SERVICE", desc: "", qty: 1, price: 0, amount: 0, discountPercent: 0, gstPercent: 18, warranty: "" },
   ]);
+  const [itemLines, setItemLines] = useState<LineItem[]>([]);
+
+  const [serviceBaseAmount, setServiceBaseAmount] = useState(0);
+  const [itemBaseAmount, setItemBaseAmount] = useState(0);
   const [baseAmount, setBaseAmount] = useState(0);
   const [gstAmount, setGstAmount] = useState(0);
   const [lineDiscountAmount, setLineDiscountAmount] = useState(0);
   const [isFetchingVehicle, setIsFetchingVehicle] = useState(false);
+
   const [availableServices, setAvailableServices] = useState<any[]>([]);
+  const [isLoadingServices, setIsLoadingServices] = useState(false);
+  const [focusedServiceIndex, setFocusedServiceIndex] = useState<number | null>(null);
+
+  const [availableInventory, setAvailableInventory] = useState<any[]>([]);
+  const [isLoadingInventory, setIsLoadingInventory] = useState(false);
+  const [focusedInventoryIndex, setFocusedInventoryIndex] = useState<number | null>(null);
+
+  const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
   const [eligibleJobs, setEligibleJobs] = useState<JobCard[]>([]);
   const [isLoadingJobs, setIsLoadingJobs] = useState(false);
   const [jobId, setJobId] = useState<string>("");
@@ -225,15 +252,35 @@ export default function NewDocumentDialog({
           discountReason: initialData.discountReason || "",
         });
         if (Array.isArray(initialData.items) && initialData.items.length > 0) {
-          setItems(initialData.items);
+          const sLines: LineItem[] = [];
+          const iLines: LineItem[] = [];
+          initialData.items.forEach((it: any) => {
+            const isItem = it.type === "ITEM" || (Boolean(it.itemId) && it.type !== "SERVICE");
+            const parsedLine: LineItem = {
+              type: isItem ? "ITEM" : "SERVICE",
+              serviceId: it.serviceId,
+              itemId: it.itemId,
+              desc: it.desc || it.name || "",
+              qty: Number(it.qty) || 1,
+              price: Number(it.price ?? it.rate ?? 0),
+              discountPercent: Number(it.discountPercent || 0),
+              gstPercent: Number(it.gstPercent ?? 18),
+              amount: (Number(it.qty) || 1) * Number(it.price ?? it.rate ?? 0),
+              warranty: it.warranty || "",
+              unit: it.unit || "",
+            };
+            if (isItem) {
+              iLines.push(parsedLine);
+            } else {
+              sLines.push(parsedLine);
+            }
+          });
+          setServiceLines(sLines.length > 0 ? sLines : [{ type: "SERVICE", desc: "", qty: 1, price: 0, discountPercent: 0, gstPercent: 18, amount: 0, warranty: "" }]);
+          setItemLines(iLines);
         } else if (Array.isArray(initialData.services) && initialData.services.length > 0) {
-          // Seed directly from the Job Card's own priced line items (job.services —
-          // the Billing Services section on the Job Card, and the same data
-          // GST/invoice generation is authoritatively computed from server-side),
-          // instead of re-deriving a single guessed item from the free-text
-          // `service` label, which is what produced ₹0.00 rate/amount rows.
-          setItems(
+          setServiceLines(
             initialData.services.map((s: { name: string; price: number; qty: number }) => ({
+              type: "SERVICE",
               desc: s.name,
               qty: s.qty || 1,
               price: s.price || 0,
@@ -243,16 +290,19 @@ export default function NewDocumentDialog({
               warranty: "",
             }))
           );
+          setItemLines([]);
         } else if (initialData.service || initialData.amount) {
-          setItems([{
+          setServiceLines([{
+            type: "SERVICE",
             desc: initialData.service || "Service Charge",
             qty: 1,
-            price: initialData.amount || 0,
-            amount: initialData.amount || 0,
+            price: Number(initialData.amount || 0),
+            amount: Number(initialData.amount || 0),
             discountPercent: 0,
             gstPercent: 18,
             warranty: initialData.warranty || ""
           }]);
+          setItemLines([]);
         }
         if (initialData.jobId) {
           setJobId(initialData.jobId);
@@ -298,15 +348,16 @@ export default function NewDocumentDialog({
           warranty: "3 Months / 5,000 KM",
           discountReason: "",
         });
-        setItems([
-          { desc: "", qty: 1, price: 0, amount: 0, discountPercent: 0, gstPercent: 18, warranty: "" }
+        setServiceLines([
+          { type: "SERVICE", desc: "", qty: 1, price: 0, amount: 0, discountPercent: 0, gstPercent: 18, warranty: "" }
         ]);
+        setItemLines([]);
       }
     }
   }, [isOpen, initialData]);
 
   useEffect(() => {
-    if (isOpen && initialData && initialData.service && items.length === 1 && items[0].price === 0 && availableServices.length > 0) {
+    if (isOpen && initialData && initialData.service && serviceLines.length === 1 && serviceLines[0].price === 0 && availableServices.length > 0) {
       const jobServiceName = (initialData.service || "").trim();
       const matched = availableServices.find(
         (s) => s.name.toLowerCase() === jobServiceName.toLowerCase()
@@ -314,15 +365,15 @@ export default function NewDocumentDialog({
       if (matched) {
         const price = matched.price || 0;
         const warranty = matched.warranty || "";
-        setItems([
-          { desc: jobServiceName, qty: 1, price, amount: price, discountPercent: 0, gstPercent: 18, warranty },
+        setServiceLines([
+          { type: "SERVICE", serviceId: matched.id, desc: jobServiceName, qty: 1, price, amount: price, discountPercent: 0, gstPercent: matched.gst ?? 18, warranty },
         ]);
         if (warranty) {
           setFormData((prev) => ({ ...prev, warranty: prev.warranty || warranty }));
         }
       }
     }
-  }, [availableServices, initialData, isOpen, items]);
+  }, [availableServices, initialData, isOpen, serviceLines]);
 
   // Derive Service Category from the matched catalog entries once the catalog
   // has loaded — "Generate Invoice" fires before getServices() necessarily
@@ -426,7 +477,8 @@ export default function NewDocumentDialog({
         warranty: "3 Months / 5,000 KM",
         discountReason: "",
       });
-      setItems([{ desc: "", qty: 1, price: 0, amount: 0, discountPercent: 0, gstPercent: 18, warranty: "" }]);
+      setServiceLines([{ type: "SERVICE", desc: "", qty: 1, price: 0, amount: 0, discountPercent: 0, gstPercent: 18, warranty: "" }]);
+      setItemLines([]);
       setJobId("");
     }
   }, [isOpen]);
@@ -470,8 +522,9 @@ export default function NewDocumentDialog({
       if (Array.isArray(jobServices) && jobServices.length > 0) {
         // Same priced line items the Job Card's Billing Services section records
         // and the backend's GST resolver reads — authoritative, no re-guessing.
-        setItems(
+        setServiceLines(
           jobServices.map((s) => ({
+            type: "SERVICE",
             desc: s.name,
             qty: s.qty || 1,
             price: s.price || 0,
@@ -499,15 +552,15 @@ export default function NewDocumentDialog({
         );
         const price = matched?.price || 0;
         const warranty = matched?.warranty || "";
-        setItems([
-          { desc: jobServiceName, qty: 1, price, amount: price, discountPercent: 0, gstPercent: 18, warranty },
+        setServiceLines([
+          { type: "SERVICE", serviceId: matched?.id, desc: jobServiceName, qty: 1, price, amount: price, discountPercent: 0, gstPercent: matched?.gst ?? 18, warranty },
         ]);
         if (warranty) {
           setFormData((prev) => ({ ...prev, warranty: prev.warranty || warranty }));
         }
       } else if (jobServiceName) {
-        setItems([
-          { desc: jobServiceName, qty: 1, price: 0, amount: 0, discountPercent: 0, gstPercent: 18, warranty: "" },
+        setServiceLines([
+          { type: "SERVICE", desc: jobServiceName, qty: 1, price: 0, amount: 0, discountPercent: 0, gstPercent: 18, warranty: "" },
         ]);
       }
     }
@@ -526,43 +579,95 @@ export default function NewDocumentDialog({
           setAvailableServices([]);
           setIsLoadingServices(false);
         });
+
+      setIsLoadingInventory(true);
+      getInventory()
+        .then((data) => {
+          setAvailableInventory(Array.isArray(data) ? data : []);
+          setIsLoadingInventory(false);
+        })
+        .catch((err) => {
+          console.error("Failed to load inventory:", err);
+          setAvailableInventory([]);
+          setIsLoadingInventory(false);
+        });
     }
   }, [isOpen]);
 
   useEffect(() => {
-    let subtotal = 0;
-    let lineDiscTotal = 0;
-    let gstTotal = 0;
-    items.forEach((item) => {
-      const amt = (item.qty || 0) * (item.price || 0);
-      const lineDiscPct = item.discountPercent || 0;
+    let sSubtotal = 0;
+    let sDiscTotal = 0;
+    let sGstTotal = 0;
+    serviceLines.forEach((item) => {
+      const amt = (Number(item.qty) || 0) * (Number(item.price) || 0);
+      const lineDiscPct = Number(item.discountPercent) || 0;
       const lineDiscAmt = (amt * lineDiscPct) / 100;
       const lineGstPct = item.gstPercent ?? 18;
-      subtotal += amt;
-      lineDiscTotal += lineDiscAmt;
-      gstTotal += ((amt - lineDiscAmt) * lineGstPct) / 100;
+      sSubtotal += amt;
+      sDiscTotal += lineDiscAmt;
+      sGstTotal += ((amt - lineDiscAmt) * lineGstPct) / 100;
     });
-    setBaseAmount(subtotal);
-    setLineDiscountAmount(lineDiscTotal);
-    setGstAmount(gstTotal);
-  }, [items]);
 
-  const handleItemChange = (index: number, field: string, value: string | number) => {
-    const newItems = [...items];
-    const updatedItem = { ...newItems[index], [field]: value };
-    updatedItem.amount = (updatedItem.qty || 0) * (updatedItem.price || 0);
-    newItems[index] = updatedItem;
-    setItems(newItems);
+    let iSubtotal = 0;
+    let iDiscTotal = 0;
+    let iGstTotal = 0;
+    itemLines.forEach((item) => {
+      const amt = (Number(item.qty) || 0) * (Number(item.price) || 0);
+      const lineDiscPct = Number(item.discountPercent) || 0;
+      const lineDiscAmt = (amt * lineDiscPct) / 100;
+      const lineGstPct = item.gstPercent ?? 18;
+      iSubtotal += amt;
+      iDiscTotal += lineDiscAmt;
+      iGstTotal += ((amt - lineDiscAmt) * lineGstPct) / 100;
+    });
+
+    setServiceBaseAmount(sSubtotal);
+    setItemBaseAmount(iSubtotal);
+    setBaseAmount(sSubtotal + iSubtotal);
+    setLineDiscountAmount(sDiscTotal + iDiscTotal);
+    setGstAmount(sGstTotal + iGstTotal);
+  }, [serviceLines, itemLines]);
+
+  const handleServiceChange = (index: number, field: keyof LineItem, value: any) => {
+    const updated = [...serviceLines];
+    const item = { ...updated[index], [field]: value };
+    item.amount = (Number(item.qty) || 0) * (Number(item.price) || 0);
+    updated[index] = item;
+    setServiceLines(updated);
   };
 
-  const addItem = () => {
-    setItems([...items, { desc: "", qty: 1, price: 0, amount: 0, discountPercent: 0, gstPercent: 18, warranty: "" }]);
+  const addServiceLine = () => {
+    setServiceLines([
+      ...serviceLines,
+      { type: "SERVICE", desc: "", qty: 1, price: 0, amount: 0, discountPercent: 0, gstPercent: 18, warranty: "" },
+    ]);
   };
 
-  const removeItem = (index: number) => {
-    if (items.length > 1) {
-      setItems(items.filter((_, i) => i !== index));
+  const removeServiceLine = (index: number) => {
+    if (serviceLines.length === 1 && itemLines.length === 0) {
+      setServiceLines([{ type: "SERVICE", desc: "", qty: 1, price: 0, amount: 0, discountPercent: 0, gstPercent: 18, warranty: "" }]);
+    } else {
+      setServiceLines(serviceLines.filter((_, i) => i !== index));
     }
+  };
+
+  const handleItemLineChange = (index: number, field: keyof LineItem, value: any) => {
+    const updated = [...itemLines];
+    const item = { ...updated[index], [field]: value };
+    item.amount = (Number(item.qty) || 0) * (Number(item.price) || 0);
+    updated[index] = item;
+    setItemLines(updated);
+  };
+
+  const addItemLine = () => {
+    setItemLines([
+      ...itemLines,
+      { type: "ITEM", desc: "", qty: 1, price: 0, amount: 0, discountPercent: 0, gstPercent: 18, warranty: "" },
+    ]);
+  };
+
+  const removeItemLine = (index: number) => {
+    setItemLines(itemLines.filter((_, i) => i !== index));
   };
 
   const handleChange = (
@@ -621,25 +726,76 @@ export default function NewDocumentDialog({
       return;
     }
 
+    if (!formData.client.trim()) {
+      toast.error("Please enter or select a customer name");
+      return;
+    }
+
+    for (let i = 0; i < serviceLines.length; i++) {
+      const s = serviceLines[i];
+      if (!s.desc.trim()) {
+        if (serviceLines.length > 1 || itemLines.length > 0) {
+          toast.error(`Service line #${i + 1} has no service selected. Please select a service or remove the row.`);
+          return;
+        }
+      }
+    }
+    for (let i = 0; i < itemLines.length; i++) {
+      const it = itemLines[i];
+      if (!it.desc.trim()) {
+        toast.error(`Item line #${i + 1} has no item selected. Please select an item or remove the row.`);
+        return;
+      }
+    }
+
+    const validServices = serviceLines.filter((s) => s.desc && s.desc.trim() !== "");
+    const validItems = itemLines.filter((i) => i.desc && i.desc.trim() !== "");
+
+    if (validServices.length === 0 && validItems.length === 0) {
+      toast.error("Please add at least one Service or Item to the document");
+      return;
+    }
+
+    for (const s of validServices) {
+      if (!s.qty || s.qty <= 0) {
+        toast.error(`Service "${s.desc}": Quantity must be greater than 0`);
+        return;
+      }
+      if (s.price < 0 || isNaN(s.price)) {
+        toast.error(`Service "${s.desc}": Rate cannot be negative`);
+        return;
+      }
+    }
+    for (const it of validItems) {
+      if (!it.qty || it.qty <= 0) {
+        toast.error(`Item "${it.desc}": Quantity must be greater than 0`);
+        return;
+      }
+      if (it.price < 0 || isNaN(it.price)) {
+        toast.error(`Item "${it.desc}": Rate cannot be negative`);
+        return;
+      }
+    }
+
     if (onSubmit) {
       const overallDiscountPercent = parseFloat(formData.discount) || 0;
       const overallDiscountAmount = ((baseAmount - lineDiscountAmount) * overallDiscountPercent) / 100;
       const totalDiscount = lineDiscountAmount + overallDiscountAmount;
 
-      const validItems = items.filter((i) => i.desc && i.desc.trim() !== "");
+      const allDocItems = [...validServices, ...validItems];
+
       let computedService = "";
-      if (validItems.length > 0) {
+      if (validServices.length > 0) {
+        computedService = validServices.length > 1
+          ? `${validServices[0].desc.trim()} (+${validServices.length - 1} more)`
+          : validServices[0].desc.trim();
+        if (validItems.length > 0) {
+          computedService += ` · ${validItems.length} item(s)`;
+        }
+      } else if (validItems.length > 0) {
         computedService = validItems.length > 1
           ? `${validItems[0].desc.trim()} (+${validItems.length - 1} more)`
           : validItems[0].desc.trim();
-      } else if (items.length > 0 && items[0].desc && items[0].desc.trim() !== "") {
-        computedService = items[0].desc.trim();
-      } else if (formData.workDescription && formData.workDescription.trim() !== "") {
-        computedService = formData.workDescription.trim();
-      } else if (formData.serviceCategory && formData.serviceCategory.trim() !== "") {
-        computedService = formData.serviceCategory.trim();
-      } else if (initialData && initialData.service && initialData.service.trim() !== "" && initialData.service !== "—") {
-        computedService = initialData.service.trim();
       } else {
         computedService = "General Service";
       }
@@ -673,7 +829,7 @@ export default function NewDocumentDialog({
         status: formData.status,
         notes: formData.notes,
         gstNumber: formData.gstNumber || null,
-        items: items,
+        items: allDocItems,
         bankDetails: formData.bankDetails,
         paymentTerms: formData.paymentTerms,
         deliveryTerms: formData.deliveryTerms,
@@ -700,12 +856,12 @@ export default function NewDocumentDialog({
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-3 sm:p-6 overflow-y-auto">
       <div className="bg-slate-50/95 rounded-2xl w-full max-w-[1400px] shadow-2xl border border-slate-200/80 max-h-[92vh] flex flex-col my-auto overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-        
+
         {/* Top Header Row with Stepper Bar & Clock */}
         <div className="bg-white px-6 py-4 border-b border-slate-200 flex items-center justify-between gap-4 shrink-0">
           <div>
             <h2 className="text-xl font-black text-slate-900">{initialData ? "Edit Document" : "New Document"}</h2>
-            <p className="text-xs text-slate-500 font-medium">{initialData ? "Edit Estimate, Quotation or Invoice" : "Create Estimate, Quotation or Invoice"}</p>
+            <p className="text-xs text-slate-500 font-medium">{initialData ? "Edit Estimate or Invoice" : "Create Estimate or Invoice"}</p>
           </div>
 
           {/* Stepper Bar */}
@@ -761,18 +917,17 @@ export default function NewDocumentDialog({
         {/* Scrollable Form Body */}
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            
+
             {/* Left Column (Document Type & Customer & Vehicle) - 7 cols */}
             <div className="lg:col-span-7 space-y-6">
-              
+
               {/* Document Type Selection Cards */}
               <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs space-y-4">
                 <h3 className="text-sm font-bold text-slate-900">Document Type</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {[
                     { type: "Estimate", label: "Estimate", desc: "Prepare an estimate" },
-                    { type: "Quotation", label: "Quotation", desc: "Convert estimate to quotation" },
-                    { type: "Invoice", label: "Invoice", desc: "Convert quotation to invoice" },
+                    { type: "Invoice", label: "Invoice", desc: "Generate final invoice" },
                   ].map((item) => {
                     const isSelected = formData.type === item.type;
                     return (
@@ -780,11 +935,10 @@ export default function NewDocumentDialog({
                         type="button"
                         key={item.type}
                         onClick={() => setFormData((prev) => ({ ...prev, type: item.type }))}
-                        className={`p-4 rounded-xl border text-left transition-all flex flex-col justify-between h-24 ${
-                          isSelected
+                        className={`p-4 rounded-xl border text-left transition-all flex flex-col justify-between h-24 ${isSelected
                             ? "bg-blue-50/50 border-blue-500 ring-2 ring-blue-500/20"
                             : "bg-white border-slate-200 hover:border-slate-300"
-                        }`}
+                          }`}
                       >
                         <div className="flex items-center justify-between w-full">
                           <div className={`p-2 rounded-lg ${isSelected ? "bg-blue-100 text-blue-600" : "bg-purple-50 text-purple-600"}`}>
@@ -807,11 +961,11 @@ export default function NewDocumentDialog({
               {/* Customer & Vehicle Details Card */}
               <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs space-y-6">
                 <h3 className="text-sm font-bold text-slate-900 border-b border-slate-100 pb-3">Customer & Vehicle</h3>
-                
+
                 {/* Customer Details */}
                 <div className="space-y-4">
                   <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider">Customer Details</h4>
-                  
+
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div className="sm:col-span-2">
                       <label className="block text-[11px] font-bold text-slate-600 mb-1">
@@ -925,7 +1079,7 @@ export default function NewDocumentDialog({
                 {/* Vehicle Details */}
                 <div className="space-y-4 pt-3 border-t border-slate-100">
                   <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider">Vehicle Details</h4>
-                  
+
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <label className="block text-[11px] font-bold text-slate-600 mb-1 flex items-center justify-between">
@@ -963,7 +1117,7 @@ export default function NewDocumentDialog({
                 {/* Job / Service Details */}
                 <div className="space-y-4 pt-3 border-t border-slate-100">
                   <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider">Job / Service Details</h4>
-                  
+
                   <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                     <div>
                       <label className="block text-[11px] font-bold text-slate-600 mb-1">Job Card No.</label>
@@ -1061,7 +1215,7 @@ export default function NewDocumentDialog({
                 {/* Terms & Warranty */}
                 <div className="space-y-4 pt-3 border-t border-slate-100">
                   <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider">Terms & Warranty</h4>
-                  
+
                   <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                     <div>
                       <label className="block text-[11px] font-bold text-slate-600 mb-1">Payment Terms</label>
@@ -1121,7 +1275,7 @@ export default function NewDocumentDialog({
 
             {/* Right Column (Document Info & Items & Summary) - 5 cols */}
             <div className="lg:col-span-5 space-y-6">
-              
+
               {/* Document Info Card */}
               <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs space-y-4">
                 <h3 className="text-sm font-bold text-slate-900">Document Info</h3>
@@ -1151,7 +1305,9 @@ export default function NewDocumentDialog({
                   </div>
 
                   <div className="sm:col-span-2">
-                    <label className="block text-[11px] font-bold text-slate-600 mb-1">Valid Till (For Quotation)</label>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                      {formData.type === "Estimate" ? "Valid Till" : "Due Date"}
+                    </label>
                     <input
                       type="date"
                       name="dueDate"
@@ -1166,169 +1322,389 @@ export default function NewDocumentDialog({
 
               {/* Items & Summary Card */}
               <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs space-y-5">
-                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                  <h3 className="text-sm font-bold text-slate-900">Items & Summary</h3>
-                  
-                  {/* Tabs */}
-                  <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-3 gap-2">
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-900">Items & Summary</h3>
+                    <p className="text-[11px] text-slate-400">Add services and spare parts/products</p>
+                  </div>
+
+                  {/* Two Clear Tabs */}
+                  <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl shrink-0">
                     <button
                       type="button"
-                      onClick={() => setActiveTab("service")}
-                      className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${
-                        activeTab === "service" ? "bg-white text-blue-600 shadow-2xs" : "text-slate-500"
-                      }`}
+                      onClick={() => setActiveItemTab("services")}
+                      className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${activeItemTab === "services" ? "bg-white text-blue-600 shadow-2xs" : "text-slate-500 hover:text-slate-700"}`}
                     >
-                      Service Items
+                      <Wrench className="w-3.5 h-3.5" />
+                      Services ({serviceLines.filter(s => s.desc.trim()).length})
                     </button>
                     <button
                       type="button"
-                      onClick={() => setActiveTab("parts")}
-                      className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${
-                        activeTab === "parts" ? "bg-white text-blue-600 shadow-2xs" : "text-slate-500"
-                      }`}
+                      onClick={() => setActiveItemTab("items")}
+                      className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${activeItemTab === "items" ? "bg-white text-emerald-600 shadow-2xs" : "text-slate-500 hover:text-slate-700"}`}
                     >
-                      Parts / Items
+                      <Package className="w-3.5 h-3.5" />
+                      Items ({itemLines.filter(i => i.desc.trim()).length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveItemTab("all")}
+                      className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${activeItemTab === "all" ? "bg-white text-slate-900 shadow-2xs" : "text-slate-500 hover:text-slate-700"}`}
+                    >
+                      <Layers className="w-3.5 h-3.5" />
+                      All ({serviceLines.filter(s => s.desc.trim()).length + itemLines.filter(i => i.desc.trim()).length})
                     </button>
                   </div>
                 </div>
 
-                {/* Items Table */}
-                <div className="overflow-x-auto border border-slate-100 rounded-xl">
-                  <table className="w-full text-left text-xs">
-                    <thead className="bg-slate-50 text-[10px] uppercase tracking-wider text-slate-400 font-bold border-b border-slate-100">
-                      <tr>
-                        <th className="py-2.5 px-2 text-center w-8">#</th>
-                        <th className="py-2.5 px-2">Item Description</th>
-                        <th className="py-2.5 px-2 w-14 text-center">Qty.</th>
-                        <th className="py-2.5 px-2 w-20 text-right">Rate (₹)</th>
-                        <th className="py-2.5 px-2 w-16 text-center">Disc. (%)</th>
-                        <th className="py-2.5 px-2 w-14 text-center">GST (%)</th>
-                        <th className="py-2.5 px-2 w-24 text-right">Amount (₹)</th>
-                        <th className="py-2.5 px-2 w-8 text-center" />
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {items.map((item, index) => {
-                        const lineAmount = (item.qty || 0) * (item.price || 0);
-                        return (
-                          <tr key={index} className="hover:bg-slate-50/50">
-                            <td className="py-2 px-2 text-center font-bold text-slate-400 text-[11px]">{index + 1}</td>
-                            <td className="py-2 px-2 relative">
-                              <input
-                                type="text"
-                                value={item.desc}
-                                onChange={(e) => handleItemChange(index, "desc", e.target.value)}
-                                onFocus={() => setFocusedItemIndex(index)}
-                                onBlur={() => setTimeout(() => setFocusedItemIndex(null), 200)}
-                                placeholder="Item description"
-                                className="w-full px-2 py-1 border border-slate-200 rounded-lg text-xs font-semibold focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                                required
-                              />
-                              {focusedItemIndex === index && (
-                                <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-48 overflow-y-auto top-full left-0">
-                                  {isLoadingServices ? (
-                                    <div className="p-3 text-xs text-slate-400 text-center">
-                                      <Loader2 className="w-3.5 h-3.5 animate-spin inline mr-1" /> Loading...
-                                    </div>
-                                  ) : availableServices.length === 0 ? (
-                                    <div className="p-3 text-xs text-slate-400 text-center">No services found</div>
-                                  ) : (
-                                    availableServices
-                                      .filter(s => !item.desc || s.name.toLowerCase().includes(item.desc.toLowerCase()))
-                                      .map((service) => (
-                                        <div
-                                          key={service.id}
-                                          className="p-2.5 hover:bg-blue-50 cursor-pointer text-xs transition-colors border-b border-slate-50 last:border-0"
-                                          onMouseDown={(e) => {
-                                            e.preventDefault();
-                                            const newItems = [...items];
-                                            newItems[index].desc = service.name;
-                                            newItems[index].price = service.price || 0;
-                                            newItems[index].amount = newItems[index].qty * (service.price || 0);
-                                            newItems[index].warranty = service.warranty || "";
-                                            setItems(newItems);
-                                            setFocusedItemIndex(null);
-                                          }}
-                                        >
-                                          <p className="font-bold text-slate-900">{service.name}</p>
-                                          <p className="text-[10px] text-slate-500">₹{service.price?.toLocaleString("en-IN")}</p>
-                                        </div>
-                                      ))
-                                  )}
-                                </div>
-                              )}
-                            </td>
-                            <td className="py-2 px-2">
-                              <input
-                                type="number"
-                                value={item.qty}
-                                onChange={(e) => handleItemChange(index, "qty", parseFloat(e.target.value) || 0)}
-                                min="1"
-                                className="w-full px-1 py-1 border border-slate-200 rounded-lg text-xs text-center font-bold"
-                              />
-                            </td>
-                            <td className="py-2 px-2">
-                              <input
-                                type="number"
-                                value={item.price}
-                                onChange={(e) => handleItemChange(index, "price", parseFloat(e.target.value) || 0)}
-                                min="0"
-                                className="w-full px-1 py-1 border border-slate-200 rounded-lg text-xs text-right font-bold"
-                              />
-                            </td>
-                            <td className="py-2 px-2">
-                              <input
-                                type="number"
-                                value={item.discountPercent}
-                                onChange={(e) => handleItemChange(index, "discountPercent", parseFloat(e.target.value) || 0)}
-                                min="0"
-                                max="100"
-                                className="w-full px-1 py-1 border border-slate-200 rounded-lg text-xs text-center"
-                              />
-                            </td>
-                            <td className="py-2 px-2">
-                              <input
-                                type="number"
-                                value={item.gstPercent}
-                                onChange={(e) => handleItemChange(index, "gstPercent", parseFloat(e.target.value) || 0)}
-                                min="0"
-                                max="100"
-                                className="w-full px-1 py-1 border border-slate-200 rounded-lg text-xs text-center"
-                              />
-                            </td>
-                            <td className="py-2 px-2 text-right font-mono font-bold text-slate-900">
-                              {lineAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-                            </td>
-                            <td className="py-2 px-2 text-center">
-                              <button
-                                type="button"
-                                onClick={() => removeItem(index)}
-                                disabled={items.length === 1}
-                                className="text-red-500 hover:text-red-700 disabled:opacity-30 p-1"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+                {/* 1. SERVICES SECTION */}
+                {(activeItemTab === "services" || activeItemTab === "all") && (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5 text-xs font-bold text-blue-700 uppercase tracking-wider">
+                        <Wrench className="w-4 h-4" />
+                        <span>Services ({serviceLines.filter(s => s.desc.trim()).length})</span>
+                      </div>
+                      {serviceBaseAmount > 0 && (
+                        <span className="text-xs font-semibold text-slate-500">
+                          Subtotal: <strong className="text-slate-900 font-mono">₹{serviceBaseAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</strong>
+                        </span>
+                      )}
+                    </div>
 
-                {/* Add Item Button */}
-                <button
-                  type="button"
-                  onClick={addItem}
-                  className="px-3 py-1.5 bg-blue-50 text-blue-600 font-bold text-xs rounded-xl hover:bg-blue-100 border border-blue-100 transition-colors flex items-center gap-1"
-                >
-                  <Plus className="w-3.5 h-3.5" /> Add Item
-                </button>
+                    <div className="overflow-x-auto border border-slate-200/80 rounded-xl">
+                      <table className="w-full text-left text-xs">
+                        <thead className="bg-blue-50/50 text-[10px] uppercase tracking-wider text-slate-500 font-bold border-b border-slate-200/80">
+                          <tr>
+                            <th className="py-2 px-2 text-center w-8">#</th>
+                            <th className="py-2 px-2">Service</th>
+                            <th className="py-2 px-2 w-14 text-center">Qty</th>
+                            <th className="py-2 px-2 w-20 text-right">Rate (₹)</th>
+                            <th className="py-2 px-2 w-14 text-center">GST (%)</th>
+                            <th className="py-2 px-2 w-24 text-right">Amount (₹)</th>
+                            <th className="py-2 px-2 w-8 text-center" />
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {serviceLines.map((sLine, index) => {
+                            const lineSubtotal = (Number(sLine.qty) || 0) * (Number(sLine.price) || 0);
+                            const lineTaxable = lineSubtotal;
+                            const lineGst = (lineTaxable * (sLine.gstPercent ?? 18)) / 100;
+                            const lineTotalWithTax = lineTaxable + lineGst;
+
+                            return (
+                              <tr key={index} className="hover:bg-slate-50/50">
+                                <td className="py-2 px-2 text-center font-bold text-slate-400 text-[11px]">{index + 1}</td>
+                                <td className="py-2 px-2 relative">
+                                  <input
+                                    type="text"
+                                    value={sLine.desc}
+                                    onChange={(e) => handleServiceChange(index, "desc", e.target.value)}
+                                    onFocus={() => setFocusedServiceIndex(index)}
+                                    onBlur={() => setTimeout(() => setFocusedServiceIndex(null), 250)}
+                                    placeholder="Select or type service..."
+                                    className="w-full px-2 py-1 border border-slate-200 rounded-lg text-xs font-semibold focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                  />
+                                  {focusedServiceIndex === index && (
+                                    <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-48 overflow-y-auto top-full left-0">
+                                      {isLoadingServices ? (
+                                        <div className="p-3 text-xs text-slate-400 text-center">
+                                          <Loader2 className="w-3.5 h-3.5 animate-spin inline mr-1" /> Loading services...
+                                        </div>
+                                      ) : availableServices.length === 0 ? (
+                                        <div className="p-3 text-xs text-slate-400 text-center">No services found</div>
+                                      ) : (
+                                        availableServices
+                                          .filter(s => !sLine.desc || s.name.toLowerCase().includes(sLine.desc.toLowerCase()))
+                                          .map((service) => (
+                                            <div
+                                              key={service.id}
+                                              className="p-2.5 hover:bg-blue-50 cursor-pointer text-xs transition-colors border-b border-slate-50 last:border-0 flex items-center justify-between"
+                                              onMouseDown={(e) => {
+                                                e.preventDefault();
+                                                const updated = [...serviceLines];
+                                                updated[index] = {
+                                                  ...updated[index],
+                                                  serviceId: service.id,
+                                                  desc: service.name,
+                                                  price: Number(service.price || 0),
+                                                  gstPercent: service.gst ?? 18,
+                                                  warranty: service.warranty || "",
+                                                  amount: (Number(updated[index].qty) || 1) * Number(service.price || 0),
+                                                };
+                                                setServiceLines(updated);
+                                                setFocusedServiceIndex(null);
+                                              }}
+                                            >
+                                              <div>
+                                                <p className="font-bold text-slate-900">{service.name}</p>
+                                                {service.category && (
+                                                  <span className="text-[10px] text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded font-medium">{service.category}</span>
+                                                )}
+                                              </div>
+                                              <div className="text-right">
+                                                <p className="font-mono font-bold text-slate-900">₹{Number(service.price || 0).toLocaleString("en-IN")}</p>
+                                                <p className="text-[10px] text-slate-400">GST: {service.gst ?? 18}%</p>
+                                              </div>
+                                            </div>
+                                          ))
+                                      )}
+                                    </div>
+                                  )}
+                                </td>
+                                <td className="py-2 px-2">
+                                  <input
+                                    type="number"
+                                    value={sLine.qty}
+                                    onChange={(e) => handleServiceChange(index, "qty", parseFloat(e.target.value) || 0)}
+                                    min="1"
+                                    className="w-full px-1 py-1 border border-slate-200 rounded-lg text-xs text-center font-bold"
+                                  />
+                                </td>
+                                <td className="py-2 px-2">
+                                  <input
+                                    type="number"
+                                    value={sLine.price}
+                                    onChange={(e) => handleServiceChange(index, "price", parseFloat(e.target.value) || 0)}
+                                    min="0"
+                                    className="w-full px-1 py-1 border border-slate-200 rounded-lg text-xs text-right font-bold font-mono"
+                                  />
+                                </td>
+                                <td className="py-2 px-2">
+                                  <input
+                                    type="number"
+                                    value={sLine.gstPercent}
+                                    onChange={(e) => handleServiceChange(index, "gstPercent", parseFloat(e.target.value) || 0)}
+                                    min="0"
+                                    max="100"
+                                    className="w-full px-1 py-1 border border-slate-200 rounded-lg text-xs text-center"
+                                  />
+                                </td>
+                                <td className="py-2 px-2 text-right font-mono font-bold text-slate-900">
+                                  ₹{lineTotalWithTax.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                                </td>
+                                <td className="py-2 px-2 text-center">
+                                  <button
+                                    type="button"
+                                    onClick={() => removeServiceLine(index)}
+                                    className="text-red-500 hover:text-red-700 p-1"
+                                    title="Remove Service"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={addServiceLine}
+                      className="px-3 py-1.5 bg-blue-50 text-blue-600 font-bold text-xs rounded-xl hover:bg-blue-100 border border-blue-100 transition-colors flex items-center gap-1.5"
+                    >
+                      <Plus className="w-3.5 h-3.5" /> Add Service
+                    </button>
+                  </div>
+                )}
+
+                {/* 2. ITEMS / PRODUCTS SECTION */}
+                {(activeItemTab === "items" || activeItemTab === "all") && (
+                  <div className="space-y-3 pt-3 border-t border-slate-100">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-700 uppercase tracking-wider">
+                        <Package className="w-4 h-4" />
+                        <span>Items / Products ({itemLines.filter(i => i.desc.trim()).length})</span>
+                      </div>
+                      {itemBaseAmount > 0 && (
+                        <span className="text-xs font-semibold text-slate-500">
+                          Subtotal: <strong className="text-slate-900 font-mono">₹{itemBaseAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</strong>
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="overflow-x-auto border border-slate-200/80 rounded-xl">
+                      <table className="w-full text-left text-xs">
+                        <thead className="bg-emerald-50/50 text-[10px] uppercase tracking-wider text-slate-500 font-bold border-b border-slate-200/80">
+                          <tr>
+                            <th className="py-2 px-2 text-center w-8">#</th>
+                            <th className="py-2 px-2">Item / Product</th>
+                            <th className="py-2 px-2 w-14 text-center">Qty</th>
+                            <th className="py-2 px-2 w-20 text-right">Rate (₹)</th>
+                            <th className="py-2 px-2 w-16 text-center">Disc. (%)</th>
+                            <th className="py-2 px-2 w-14 text-center">GST (%)</th>
+                            <th className="py-2 px-2 w-24 text-right">Amount (₹)</th>
+                            <th className="py-2 px-2 w-8 text-center" />
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {itemLines.length === 0 ? (
+                            <tr>
+                              <td colSpan={8} className="py-4 text-center text-xs text-slate-400">
+                                No items added yet. Click &ldquo;+ Add Item&rdquo; below to select parts or products from inventory.
+                              </td>
+                            </tr>
+                          ) : (
+                            itemLines.map((itLine, index) => {
+                              const lineSubtotal = (Number(itLine.qty) || 0) * (Number(itLine.price) || 0);
+                              const lineDisc = (lineSubtotal * (Number(itLine.discountPercent) || 0)) / 100;
+                              const lineTaxable = lineSubtotal - lineDisc;
+                              const lineGst = (lineTaxable * (itLine.gstPercent ?? 18)) / 100;
+                              const lineTotalWithTax = lineTaxable + lineGst;
+
+                              return (
+                                <tr key={index} className="hover:bg-slate-50/50">
+                                  <td className="py-2 px-2 text-center font-bold text-slate-400 text-[11px]">{index + 1}</td>
+                                  <td className="py-2 px-2 relative">
+                                    <input
+                                      type="text"
+                                      value={itLine.desc}
+                                      onChange={(e) => handleItemLineChange(index, "desc", e.target.value)}
+                                      onFocus={() => setFocusedInventoryIndex(index)}
+                                      onBlur={() => setTimeout(() => setFocusedInventoryIndex(null), 250)}
+                                      placeholder="Select or type item / product..."
+                                      className="w-full px-2 py-1 border border-slate-200 rounded-lg text-xs font-semibold focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                                    />
+                                    {focusedInventoryIndex === index && (
+                                      <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-48 overflow-y-auto top-full left-0">
+                                        {isLoadingInventory ? (
+                                          <div className="p-3 text-xs text-slate-400 text-center">
+                                            <Loader2 className="w-3.5 h-3.5 animate-spin inline mr-1" /> Loading inventory...
+                                          </div>
+                                        ) : availableInventory.length === 0 ? (
+                                          <div className="p-3 text-xs text-slate-400 text-center">No inventory items found</div>
+                                        ) : (
+                                          availableInventory
+                                            .filter(p => !itLine.desc || p.name.toLowerCase().includes(itLine.desc.toLowerCase()))
+                                            .map((product) => (
+                                              <div
+                                                key={product.id}
+                                                className="p-2.5 hover:bg-emerald-50 cursor-pointer text-xs transition-colors border-b border-slate-50 last:border-0 flex items-center justify-between"
+                                                onMouseDown={(e) => {
+                                                  e.preventDefault();
+                                                  const updated = [...itemLines];
+                                                  updated[index] = {
+                                                    ...updated[index],
+                                                    itemId: product.id,
+                                                    desc: product.name,
+                                                    price: Number(product.cost || 0),
+                                                    unit: product.unit || "Piece",
+                                                    gstPercent: 18,
+                                                    discountPercent: 0,
+                                                    amount: (Number(updated[index].qty) || 1) * Number(product.cost || 0),
+                                                  };
+                                                  setItemLines(updated);
+                                                  setFocusedInventoryIndex(null);
+                                                }}
+                                              >
+                                                <div>
+                                                  <p className="font-bold text-slate-900">{product.name}</p>
+                                                  <div className="flex items-center gap-1.5 mt-0.5">
+                                                    {product.category && (
+                                                      <span className="text-[10px] text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded font-medium">{product.category}</span>
+                                                    )}
+                                                    <span className="text-[10px] text-slate-400">Stock: {product.stock} {product.unit || 'units'}</span>
+                                                  </div>
+                                                </div>
+                                                <div className="text-right">
+                                                  <p className="font-mono font-bold text-slate-900">₹{Number(product.cost || 0).toLocaleString("en-IN")}</p>
+                                                  <p className="text-[10px] text-slate-400">Rate</p>
+                                                </div>
+                                              </div>
+                                            ))
+                                        )}
+                                      </div>
+                                    )}
+                                  </td>
+                                  <td className="py-2 px-2">
+                                    <input
+                                      type="number"
+                                      value={itLine.qty}
+                                      onChange={(e) => handleItemLineChange(index, "qty", parseFloat(e.target.value) || 0)}
+                                      min="1"
+                                      className="w-full px-1 py-1 border border-slate-200 rounded-lg text-xs text-center font-bold"
+                                    />
+                                  </td>
+                                  <td className="py-2 px-2">
+                                    <input
+                                      type="number"
+                                      value={itLine.price}
+                                      onChange={(e) => handleItemLineChange(index, "price", parseFloat(e.target.value) || 0)}
+                                      min="0"
+                                      className="w-full px-1 py-1 border border-slate-200 rounded-lg text-xs text-right font-bold font-mono"
+                                    />
+                                  </td>
+                                  <td className="py-2 px-2">
+                                    <input
+                                      type="number"
+                                      value={itLine.discountPercent}
+                                      onChange={(e) => handleItemLineChange(index, "discountPercent", parseFloat(e.target.value) || 0)}
+                                      min="0"
+                                      max="100"
+                                      className="w-full px-1 py-1 border border-slate-200 rounded-lg text-xs text-center"
+                                    />
+                                  </td>
+                                  <td className="py-2 px-2">
+                                    <input
+                                      type="number"
+                                      value={itLine.gstPercent}
+                                      onChange={(e) => handleItemLineChange(index, "gstPercent", parseFloat(e.target.value) || 0)}
+                                      min="0"
+                                      max="100"
+                                      className="w-full px-1 py-1 border border-slate-200 rounded-lg text-xs text-center"
+                                    />
+                                  </td>
+                                  <td className="py-2 px-2 text-right font-mono font-bold text-slate-900">
+                                    ₹{lineTotalWithTax.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                                  </td>
+                                  <td className="py-2 px-2 text-center">
+                                    <button
+                                      type="button"
+                                      onClick={() => removeItemLine(index)}
+                                      className="text-red-500 hover:text-red-700 p-1"
+                                      title="Remove Item"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  </td>
+                                </tr>
+                              );
+                            })
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={addItemLine}
+                      className="px-3 py-1.5 bg-emerald-50 text-emerald-600 font-bold text-xs rounded-xl hover:bg-emerald-100 border border-emerald-100 transition-colors flex items-center gap-1.5"
+                    >
+                      <Plus className="w-3.5 h-3.5" /> Add Item
+                    </button>
+                  </div>
+                )}
 
                 {/* Calculation Summary */}
-                <div className="pt-3 border-t border-slate-100 space-y-2 text-xs">
-                  <div className="flex justify-between items-center text-slate-600">
-                    <span className="font-semibold">Sub Total</span>
+                <div className="pt-4 border-t border-slate-200/80 space-y-2.5 text-xs bg-slate-50/50 p-4 rounded-xl">
+                  {serviceBaseAmount > 0 && itemBaseAmount > 0 && (
+                    <>
+                      <div className="flex justify-between items-center text-slate-500 text-[11px]">
+                        <span>Services Subtotal ({serviceLines.filter(s => s.desc.trim()).length})</span>
+                        <span className="font-mono font-semibold text-slate-700">₹{serviceBaseAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</span>
+                      </div>
+                      <div className="flex justify-between items-center text-slate-500 text-[11px]">
+                        <span>Items / Products Subtotal ({itemLines.filter(i => i.desc.trim()).length})</span>
+                        <span className="font-mono font-semibold text-slate-700">₹{itemBaseAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</span>
+                      </div>
+                      <div className="border-b border-slate-200/50 my-1" />
+                    </>
+                  )}
+
+                  <div className="flex justify-between items-center text-slate-600 font-medium">
+                    <span className="font-semibold">Subtotal</span>
                     <span className="font-mono font-bold text-slate-900">₹{baseAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</span>
                   </div>
 
@@ -1413,7 +1789,7 @@ export default function NewDocumentDialog({
           <div className="flex items-center gap-3">
             <button
               type="button"
-              onClick={() => toast.success("Previewing document...")}
+              onClick={() => setIsPreviewModalOpen(true)}
               className="px-5 py-2.5 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-1.5 transition-colors"
             >
               <Eye className="w-4 h-4 text-slate-500" /> Preview
@@ -1435,6 +1811,36 @@ export default function NewDocumentDialog({
         isOpen={isAddCustomerOpen}
         onClose={() => setIsAddCustomerOpen(false)}
         onSubmit={handleAddCustomer}
+      />
+
+      <DocumentPreviewDialog
+        isOpen={isPreviewModalOpen}
+        onClose={() => setIsPreviewModalOpen(false)}
+        document={{
+          docNo: initialData?.id || nextDocNo,
+          type: formData.type,
+          status: formData.status,
+          client: formData.client || "Customer",
+          phone: formData.phone || "—",
+          vehicle: formData.vehicle || "—",
+          model: formData.model || "",
+          billingAddress: formData.billingAddress || "",
+          buyerState: formData.customerState || null,
+          service: serviceLines.filter(s => s.desc.trim()).map(s => s.desc).join(", ") || (itemLines.length > 0 ? itemLines[0].desc : "General Service"),
+          base: baseAmount.toString(),
+          gst: gstAmount.toString(),
+          discount: totalDiscount > 0 ? `₹${totalDiscount.toLocaleString("en-IN")}` : undefined,
+          total: grandTotal.toString(),
+          date: formData.invoiceDate,
+          due: formData.dueDate || formData.invoiceDate,
+          gstNumber: formData.gstNumber,
+          items: [...serviceLines.filter(s => s.desc.trim()), ...itemLines.filter(i => i.desc.trim())],
+          bankDetails: formData.bankDetails,
+          paymentTerms: formData.paymentTerms,
+          deliveryTerms: formData.deliveryTerms,
+          authorizedSignatory: formData.authorizedSignatory,
+          warranty: formData.warranty,
+        }}
       />
     </div>
   );

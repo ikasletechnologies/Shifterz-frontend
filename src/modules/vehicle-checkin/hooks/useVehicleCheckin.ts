@@ -13,14 +13,15 @@ import { getOutPasses } from "@/lib/api";
 import { toast } from "react-hot-toast";
 import { getScopedFranchiseId, scopeToFranchise } from "@/lib/franchise-scope";
 
-export function useVehicleCheckin() {
+export function useVehicleCheckin(selectedFranchiseId?: string) {
   const [cars, setCars] = useState<CarEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchCars = useCallback(async () => {
     try {
       setIsLoading(true);
-      const franchiseId = getScopedFranchiseId();
+      const scopedId = getScopedFranchiseId();
+      const franchiseId = scopedId || (selectedFranchiseId && selectedFranchiseId !== "All" ? selectedFranchiseId : undefined);
       const [checkinData, outpassData] = await Promise.all([
         getVehicleCheckIns(franchiseId),
         getOutPasses(franchiseId).catch(() => []),
@@ -65,7 +66,7 @@ export function useVehicleCheckin() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [selectedFranchiseId]);
 
   useEffect(() => {
     fetchCars();

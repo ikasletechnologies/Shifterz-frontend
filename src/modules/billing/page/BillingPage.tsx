@@ -6,13 +6,14 @@ import { useRouter } from "next/navigation";
 import {
   Plus, Eye, Pencil, Ban, Search, Receipt, ArrowRight, History, X,
   Printer, MoreHorizontal, Download,
-  FileText, Wallet, Clock, AlertTriangle
+  FileText, Wallet, Clock, AlertTriangle, Car, CheckCircle
 } from "lucide-react";
 import { createOutPass } from "@/lib/api";
 import { toast } from "react-hot-toast";
 import NewDocumentDialog from "../components/NewDocumentDialog";
 import DocumentPreviewDialog from "../components/DocumentPreviewDialog";
 import ConvertDocumentDialog from "../components/ConvertDocumentDialog";
+import ConvertEstimateToCarInDialog from "../components/ConvertEstimateToCarInDialog";
 import { CancelInvoiceDialog } from "../components/CancelInvoiceDialog";
 import { ShareInvoiceMenu, downloadInvoicePdf } from "../components/ShareInvoiceMenu";
 import RecordPaymentDialog from "@/modules/payment/components/RecordPaymentDialog";
@@ -23,6 +24,8 @@ import { BillingDocument } from "@/modules/billing/types/billing.types";
 import BillingJobCards from "../components/BillingJobCards";
 import { useOpenOnQuery } from "@/lib/useOpenOnQuery";
 import { StatusText } from "@/components/common/StatusText";
+import VehicleCheckInDialog from "@/modules/vehicle-checkin/components/VehicleCheckInDialog";
+import { getVehicleCheckIns, createVehicleCheckIn } from "@/modules/vehicle-checkin/services/vehicle-checkin.service";
 
 function CardMoreDropdown({
   doc,
@@ -431,7 +434,7 @@ export function BillingPage() {
 
             {/* Type Filter Pills */}
             <div className="bg-gray-100 rounded-xl p-1 flex items-center gap-1 shrink-0">
-              {["All", "Estimate", "Quotation", "Invoice"].map((tab) => (
+              {["All", "Estimate", "Invoice"].map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setFilter(tab)}

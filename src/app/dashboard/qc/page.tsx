@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useMemo, useEffect, useCallback } from "react";
-import { Search, Building2, X, Plus } from "lucide-react";
+import { Search, Building2, X, Plus, LayoutGrid, Table } from "lucide-react";
 import { useQC } from "@/modules/qc/hooks/useQC";
 import { QCTable } from "@/modules/qc/components/QCTable";
+import { QCTabsView } from "@/modules/qc/components/QCTabsView";
 import { QCChecklistDialog } from "@/modules/qc/components/QCChecklistDialog";
 import { QCPhotosDialog } from "@/modules/qc/components/QCPhotosDialog";
 import { QCRemarksDialog } from "@/modules/qc/components/QCRemarksDialog";
@@ -61,6 +62,20 @@ export default function QCInspectionPage() {
 
   const [activeTab, setActiveTab] = useState<string>("All");
   const [searchQuery, setSearchQuery] = useState("");
+  const [viewMode, setViewMode] = useState<"tabs" | "table">(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("qc_viewMode");
+      if (saved === "table" || saved === "tabs") return saved;
+    }
+    return "tabs";
+  });
+
+  const handleViewModeChange = (mode: "tabs" | "table") => {
+    setViewMode(mode);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("qc_viewMode", mode);
+    }
+  };
   const [selectedJob, setSelectedJob] = useState<QCJob | null>(null);
   const [activeDialog, setActiveDialog] = useState<DialogType>(null);
   const [qcInspectors, setQcInspectors] = useState<QCInspector[]>([]);
@@ -276,45 +291,108 @@ export default function QCInspectionPage() {
 
       {/* 2. QC Queue — the main work area */}
       <section className="space-y-3">
-        <div className="bg-white border border-slate-200 rounded-lg px-4 py-3 flex flex-col md:flex-row md:items-center justify-between gap-3">
-          <div>
-            <h2 className="text-sm font-bold text-slate-900">
-              QC Queue <span className="font-normal text-slate-500">· {activeFilterLabel} ({filteredJobs.length})</span>
-            </h2>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Pass rate{" "}
-              {totalEvaluated > 0 ? (
-                <span className={`font-semibold ${passRate >= 80 ? "text-green-700" : "text-red-600"}`}>{passRate}%</span>
-              ) : (
-                <span className="font-semibold text-slate-700">—</span>
-              )}{" "}
-              · {totalEvaluated} evaluated
-            </p>
+        <div className="bg-white border border-slate-200 rounded-xl px-4 py-3.5 space-y-3 shadow-xs">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div>
+              <h2 className="text-sm font-bold text-slate-900">
+                QC Queue <span className="font-normal text-slate-500">· {activeFilterLabel} ({filteredJobs.length})</span>
+              </h2>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Pass rate{" "}
+                {totalEvaluated > 0 ? (
+                  <span className={`font-semibold ${passRate >= 80 ? "text-green-700" : "text-red-600"}`}>{passRate}%</span>
+                ) : (
+                  <span className="font-semibold text-slate-700">—</span>
+                )}{" "}
+                · {totalEvaluated} evaluated
+              </p>
+            </div>
+
+            <div className="relative w-full md:w-80">
+              <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="Search job, vehicle, customer, service..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-9 pr-8 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
+                  title="Clear search"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
           </div>
 
-          <div className="relative w-full md:w-80">
-            <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              placeholder="Search job, vehicle, customer, service..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-8 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400"
-            />
-            {searchQuery && (
+          {/* View Switcher Row */}
+          <div className="flex items-center justify-between pt-2.5 border-t border-slate-100 flex-wrap gap-2">
+            <span className="text-xs text-slate-500 font-medium">
+              Showing <strong className="text-slate-900">{filteredJobs.length}</strong> {filteredJobs.length === 1 ? "job" : "jobs"}
+            </span>
+
+            <div className="inline-flex p-1 bg-gray-100/90 rounded-lg border border-gray-200/60" role="tablist" aria-label="QC view switcher">
               <button
-                onClick={() => setSearchQuery("")}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
-                title="Clear search"
+                type="button"
+                role="tab"
+                aria-selected={viewMode === "tabs"}
+                onClick={() => handleViewModeChange("tabs")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
+                  viewMode === "tabs"
+                    ? "bg-yellow-400 text-gray-900 shadow-xs font-bold"
+                    : "text-gray-600 hover:text-gray-900 hover:bg-gray-200/60"
+                }`}
               >
-                <X className="w-3.5 h-3.5" />
+                <LayoutGrid className="w-3.5 h-3.5" />
+                <span>Tabs</span>
               </button>
-            )}
+
+              <button
+                type="button"
+                role="tab"
+                aria-selected={viewMode === "table"}
+                onClick={() => handleViewModeChange("table")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
+                  viewMode === "table"
+                    ? "bg-yellow-400 text-gray-900 shadow-xs font-bold"
+                    : "text-gray-600 hover:text-gray-900 hover:bg-gray-200/60"
+                }`}
+              >
+                <Table className="w-3.5 h-3.5" />
+                <span>Table</span>
+              </button>
+            </div>
           </div>
         </div>
 
         {isLoading ? (
-          <div className="py-16 text-center text-slate-500 bg-white rounded-lg border border-slate-200">Loading QC queue...</div>
+          <div className="py-16 text-center text-slate-500 bg-white rounded-xl border border-slate-200 shadow-xs">Loading QC queue...</div>
+        ) : viewMode === "tabs" ? (
+          <QCTabsView
+            jobs={filteredJobs}
+            emptyMessage={
+              searchQuery
+                ? `No jobs match "${searchQuery}".`
+                : activeTab === "All"
+                ? "No jobs in the QC queue right now. Jobs appear here when a technician marks work as completed."
+                : `No jobs in "${activeFilterLabel}".`
+            }
+            hasOpenInspection={hasOpenInspection}
+            getCurrentInspection={getCurrentInspection}
+            onInspect={(job) => startInspection(job.id)}
+            onOpenChecklist={openChecklistDialog}
+            onOpenPhotos={openDialog("photos")}
+            onOpenRemarks={openDialog("remarks")}
+            onPass={openDialog("pass")}
+            onFail={openDialog("fail")}
+            canManage={canManage}
+            onAssign={openDialog("assign")}
+            activeTab={activeTab}
+          />
         ) : (
           <QCTable
             jobs={filteredJobs}

@@ -2,6 +2,7 @@ import Sidebar from "@/components/layout/Sidebar";
 import Header from "@/components/layout/Header";
 import DashboardLayoutClient from "@/components/layout/DashboardLayoutClient";
 import { SetupGate } from "@/modules/setup/components/SetupGate";
+import RoutePermissionGuard from "@/components/layout/RoutePermissionGuard";
 
 export default function DashboardLayout({
   children,
@@ -14,7 +15,9 @@ export default function DashboardLayout({
         <Sidebar />
         <div className="flex-1 flex flex-col overflow-hidden">
           <Header />
-          <main className="flex-1 overflow-auto">{children}</main>
+          <main className="flex-1 overflow-auto">
+            <RoutePermissionGuard>{children}</RoutePermissionGuard>
+          </main>
         </div>
       </DashboardLayoutClient>
     </SetupGate>
