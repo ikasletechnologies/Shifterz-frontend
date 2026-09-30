@@ -1,11 +1,18 @@
 export interface BillingLineItem {
+  id?: string;
+  type?: "SERVICE" | "ITEM";
+  serviceId?: string;
+  itemId?: string;
   desc: string;
+  category?: string;
+  categoryId?: string;
   qty: number;
   price: number;
   amount: number;
   discountPercent?: number;
   gstPercent?: number;
   warranty?: string;
+  unit?: string;
 }
 
 export interface InvoiceShareRecord {

@@ -6,6 +6,7 @@ import { getEmployees, getFranchises } from "@/lib/api";
 import { toast } from "react-hot-toast";
 import { Building2, User, Phone, Mail, ArrowLeft, ChevronLeft } from "lucide-react";
 import { StatusText } from "@/components/common/StatusText";
+import FranchiseStatusBadge from "@/components/franchise/FranchiseStatusBadge";
 
 export default function FranchiseDetailsPage() {
   const params = useParams();
@@ -69,10 +70,13 @@ export default function FranchiseDetailsPage() {
           <ChevronLeft className="w-5 h-5" />
         </button>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <Building2 className="w-6 h-6 text-yellow-500" />
-            {franchise ? `${franchise.name} Details` : "Franchise Details"}
-          </h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+              <Building2 className="w-6 h-6 text-yellow-500" />
+              {franchise ? `${franchise.name} Details` : "Franchise Details"}
+            </h1>
+            {franchise && <FranchiseStatusBadge status={franchise.status} />}
+          </div>
           <p className="text-gray-500 mt-1">View employees for this specific franchise</p>
         </div>
       </div>
@@ -97,6 +101,12 @@ export default function FranchiseDetailsPage() {
             <div className="flex items-center gap-2">
               <Mail className="w-4 h-4 text-gray-400" />
               <p className="text-sm font-medium text-gray-900">{franchise.email || "N/A"}</p>
+            </div>
+          </div>
+          <div className="flex-1 space-y-2">
+            <p className="text-sm text-gray-500 uppercase font-semibold">Franchise Status</p>
+            <div>
+              <FranchiseStatusBadge status={franchise.status} />
             </div>
           </div>
         </div>

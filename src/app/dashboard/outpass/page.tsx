@@ -14,6 +14,8 @@ import {
   ShieldAlert,
 } from "lucide-react";
 import NewOutPassDialog from "@/components/outpass/NewOutPassDialog";
+import { OutPassTabs } from "@/components/outpass/OutPassTabs";
+import { ViewSwitcher } from "@/components/common/ViewSwitcher";
 import { SummaryCard } from "@/components/common/SummaryCard";
 import { ListHeader } from "@/components/common/ListHeader";
 import PrintPassDialog from "@/components/outpass/PrintPassDialog";
@@ -55,6 +57,21 @@ export default function OutPassPage() {
   const [editingPass, setEditingPass] = useState<OutPass | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<"tabs" | "table">(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("outpass_viewMode");
+      if (saved === "table" || saved === "tabs") return saved;
+    }
+    return "tabs";
+  });
+
+  const handleViewModeChange = (mode: "tabs" | "table") => {
+    setViewMode(mode);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("outpass_viewMode", mode);
+    }
+  };
+
   const [searchQuery, setSearchQuery] = useState("");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
@@ -603,8 +620,26 @@ export default function OutPassPage() {
           </div>
         </ListHeader>
 
+      {/* View Switcher Bar */}
+      <ViewSwitcher
+        viewMode={viewMode}
+        onViewModeChange={handleViewModeChange}
+        count={filteredOutPasses.length}
+        label={filteredOutPasses.length === 1 ? "out pass" : "out passes"}
+      />
+
       {/* Out Pass Register */}
-      {filteredOutPasses.length === 0 ? (
+      {viewMode === "tabs" ? (
+        <OutPassTabs
+          outPasses={filteredOutPasses}
+          onPrint={handlePrintClick}
+          onDownloadExcel={downloadSingleOutPassExcel}
+          onDownloadPdf={downloadSingleOutPassPDF}
+          onEdit={(pass) => { setEditingPass(pass); setIsDialogOpen(true); }}
+          onApprove={triggerApproveConfirm}
+          onReject={triggerRejectConfirm}
+        />
+      ) : filteredOutPasses.length === 0 ? (
         <div className="bg-white border border-slate-200 rounded-lg p-8 text-center text-slate-500 text-sm">
           {searchQuery
             ? `No out passes match "${searchQuery}".`

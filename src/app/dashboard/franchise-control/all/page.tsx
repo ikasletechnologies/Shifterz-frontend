@@ -11,6 +11,7 @@ import { getFranchises, updateFranchise } from "@/lib/api";
 import { toast } from "react-hot-toast";
 import AddFranchiseDialog from "@/components/franchise/AddFranchiseDialog";
 import { StatusText } from "@/components/common/StatusText";
+import FranchiseStatusBadge, { normalizeFranchiseStatus } from "@/components/franchise/FranchiseStatusBadge";
 
 export default function AllFranchisesPage() {
   const router = useRouter();
@@ -66,7 +67,8 @@ export default function AllFranchisesPage() {
         safeOwner.toLowerCase().includes(query) ||
         safeCustomer.toLowerCase().includes(query);
 
-      const matchesStatus = statusFilter === "All" || f.status === statusFilter;
+      const norm = normalizeFranchiseStatus(f.status);
+      const matchesStatus = statusFilter === "All" || norm === statusFilter;
 
       return matchesSearch && matchesStatus;
     });
@@ -144,9 +146,9 @@ export default function AllFranchisesPage() {
               className="pl-9 pr-8 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500/20 focus:border-yellow-500 transition-all appearance-none"
             >
               <option value="All">All Status</option>
-              <option value="Active">Active</option>
-              <option value="Inactive">Inactive</option>
-              <option value="Pending">Pending</option>
+              <option value="ACTIVE">Active</option>
+              <option value="PENDING">Pending</option>
+              <option value="DEACTIVE">Deactive</option>
             </select>
           </div>
         </div>
@@ -182,7 +184,7 @@ export default function AllFranchisesPage() {
                   <td className="whitespace-nowrap">{f.phone || "—"}</td>
                   <td className="max-w-[200px] truncate" title={f.email}>{f.email || "—"}</td>
                   <td className="whitespace-nowrap">{f.totalEmployees !== undefined ? f.totalEmployees : "—"}</td>
-                  <td className="whitespace-nowrap"><StatusText status={f.status} /></td>
+                  <td className="whitespace-nowrap"><FranchiseStatusBadge status={f.status} /></td>
                   <td className="whitespace-nowrap">
                     <div className="flex items-center justify-end gap-1">
                       <button onClick={() => router.push(`/dashboard/franchise-control/${f.id}`)} className="px-1">

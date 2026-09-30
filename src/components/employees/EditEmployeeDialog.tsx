@@ -1,5 +1,6 @@
 import { PhoneInput } from "@/components/common/PhoneInput";
 import { useState, useEffect } from "react";
+import { normalizeFranchiseStatus } from "@/components/franchise/FranchiseStatusBadge";
 import { X, Eye, EyeOff } from "lucide-react";
 
 interface EditEmployeeDialogProps {
@@ -70,7 +71,6 @@ export default function EditEmployeeDialog({ isOpen, onClose, onEdit, employee, 
   }, [employee]);
 
   const defaultRoles = [
-    "FRANCHISE_ADMIN",
     "BRANCH_MANAGER",
     "RECEPTION_EXECUTIVE",
     "SERVICE_ADVISOR",
@@ -81,7 +81,11 @@ export default function EditEmployeeDialog({ isOpen, onClose, onEdit, employee, 
   ];
 
   const roles = (allowedRoles || defaultRoles).filter(
-    r => r !== "SUPER_ADMIN" && r !== "HQ_USER"
+    r => r !== "SUPER_ADMIN" && r !== "HQ_USER" && (r !== "FRANCHISE_ADMIN" || employee?.role === "FRANCHISE_ADMIN")
+  );
+
+    const activeFranchises = (franchises || []).filter(
+    (f) => normalizeFranchiseStatus(f.status) === "ACTIVE" || f.id === employee?.franchiseId
   );
 
   if (!isOpen) return null;
@@ -99,6 +103,9 @@ export default function EditEmployeeDialog({ isOpen, onClose, onEdit, employee, 
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (formData.role === "FRANCHISE_ADMIN" && employee?.role !== "FRANCHISE_ADMIN") {
+      return;
+    }
     onEdit(employee.id, {
       ...formData,
       permissions: selectedModules,
@@ -202,9 +209,11 @@ export default function EditEmployeeDialog({ isOpen, onClose, onEdit, employee, 
                     onChange={(e) => setFormData({ ...formData, franchiseId: e.target.value })}
                     className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all outline-none bg-white"
                   >
-                    <option value="">Select Branch (HQ)</option>
-                    {franchises.map(f => (
-                      <option key={f.id} value={f.id}>{f.name} ({f.city})</option>
+                    <option value="">SUPER ADMIN</option>
+                    {activeFranchises.map((f) => (
+                      <option key={f.id} value={f.id}>
+                        {f.name}
+                      </option>
                     ))}
                   </select>
                 </div>

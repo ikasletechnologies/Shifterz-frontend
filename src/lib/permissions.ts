@@ -98,9 +98,23 @@ export function notifyPermissionsUpdated(updatedUser?: any) {
  * Checks if a user has access to a specific ERP module.
  * Super Admin retains full, unconditional access.
  */
+export function isFranchiseOperational(user?: any): boolean {
+  const currentUser = user !== undefined ? user : getStoredUser();
+  if (!currentUser) return true;
+  const canonicalRole = normalizeRole(currentUser.role);
+  if (canonicalRole === "SUPER_ADMIN" || canonicalRole === "HQ_USER") {
+    return true;
+  }
+  const fStatus = (currentUser.franchiseStatus || currentUser.franchise?.status || "").toUpperCase();
+  if (fStatus === "PENDING" || fStatus === "DEACTIVE" || fStatus === "INACTIVE") {
+    return false;
+  }
+  return true;
+}
+
 export function canAccessModule(
   moduleKey: string,
-  user?: { role?: string; permissions?: string[] | null } | null
+  user?: { role?: string; permissions?: string[] | null; franchiseStatus?: string; franchise?: { status?: string } } | null
 ): boolean {
   const currentUser = user !== undefined ? user : getStoredUser();
   if (!currentUser) return false;
@@ -108,6 +122,11 @@ export function canAccessModule(
   const canonicalRole = normalizeRole(currentUser.role);
   if (canonicalRole === "SUPER_ADMIN") {
     return true;
+  }
+
+  // Restrict operational modules if franchise is PENDING or DEACTIVE
+  if (!isFranchiseOperational(currentUser) && moduleKey !== "dashboard") {
+    return false;
   }
 
   const perms = currentUser.permissions;

@@ -19,6 +19,8 @@ export interface LineItem {
   serviceId?: string;
   itemId?: string;
   desc: string;
+  category?: string;
+  categoryId?: string;
   qty: number;
   price: number;
   discountPercent: number;
@@ -338,11 +340,14 @@ export default function NewDocumentDialog({
     const qty = existingQty > 0 ? existingQty : 1;
     const price = Number(service.price || 0);
     const gstPercent = Number(service.gst ?? 18);
+    const category = (service.category || "").trim() || updated[index]?.category || "";
     updated[index] = {
       ...updated[index],
       type: "SERVICE",
       serviceId: service.id,
       desc: service.name,
+      category,
+      categoryId: service.id || service.category,
       qty,
       price,
       gstPercent,
@@ -512,11 +517,21 @@ export default function NewDocumentDialog({
           const iLines: LineItem[] = [];
           initialData.items.forEach((it: any) => {
             const isItem = it.type === "ITEM" || (Boolean(it.itemId) && it.type !== "SERVICE");
+            const matchedService = !isItem
+              ? availableServices.find(
+                  (s) => (it.serviceId && s.id === it.serviceId) ||
+                         (it.desc && s.name.toLowerCase() === it.desc.trim().toLowerCase())
+                )
+              : null;
+            const itemCategory = it.category || it.serviceCategory || matchedService?.category || initialData.serviceCategory || "";
+
             const parsedLine: LineItem = {
               type: isItem ? "ITEM" : "SERVICE",
               serviceId: it.serviceId,
               itemId: it.itemId,
               desc: it.desc || it.name || "",
+              category: itemCategory,
+              categoryId: it.categoryId || matchedService?.id || it.serviceId,
               qty: Number(it.qty) || 1,
               price: Number(it.price ?? it.rate ?? 0),
               discountPercent: Number(it.discountPercent || 0),
@@ -531,26 +546,38 @@ export default function NewDocumentDialog({
               sLines.push(parsedLine);
             }
           });
-          setServiceLines(sLines.length > 0 ? sLines : [{ type: "SERVICE", desc: "", qty: 1, price: 0, discountPercent: 0, gstPercent: 18, amount: 0, warranty: "" }]);
+          setServiceLines(sLines.length > 0 ? sLines : [{ type: "SERVICE", desc: "", category: "", qty: 1, price: 0, discountPercent: 0, gstPercent: 18, amount: 0, warranty: "" }]);
           setItemLines(iLines);
         } else if (Array.isArray(initialData.services) && initialData.services.length > 0) {
           setServiceLines(
-            initialData.services.map((s: { name: string; price: number; qty: number }) => ({
-              type: "SERVICE",
-              desc: s.name,
-              qty: s.qty || 1,
-              price: s.price || 0,
-              amount: (s.qty || 1) * (s.price || 0),
-              discountPercent: 0,
-              gstPercent: 18,
-              warranty: "",
-            }))
+            initialData.services.map((s: { name: string; price: number; qty: number; category?: string }) => {
+              const matchedService = availableServices.find(
+                (cs) => cs.name.toLowerCase() === s.name.trim().toLowerCase()
+              );
+              return {
+                type: "SERVICE",
+                desc: s.name,
+                category: s.category || matchedService?.category || initialData.serviceCategory || "",
+                categoryId: matchedService?.id,
+                qty: s.qty || 1,
+                price: s.price || 0,
+                amount: (s.qty || 1) * (s.price || 0),
+                discountPercent: 0,
+                gstPercent: 18,
+                warranty: "",
+              };
+            })
           );
           setItemLines([]);
         } else if (initialData.service || initialData.amount) {
+          const matchedService = availableServices.find(
+            (cs) => cs.name.toLowerCase() === (initialData.service || "").trim().toLowerCase()
+          );
           setServiceLines([{
             type: "SERVICE",
             desc: initialData.service || "Service Charge",
+            category: matchedService?.category || initialData.serviceCategory || "",
+            categoryId: matchedService?.id,
             qty: 1,
             price: Number(initialData.amount || 0),
             amount: Number(initialData.amount || 0),
@@ -605,7 +632,7 @@ export default function NewDocumentDialog({
           discountReason: "",
         });
         setServiceLines([
-          { type: "SERVICE", desc: "", qty: 1, price: 0, amount: 0, discountPercent: 0, gstPercent: 18, warranty: "" }
+          { type: "SERVICE", desc: "", category: "", qty: 1, price: 0, amount: 0, discountPercent: 0, gstPercent: 18, warranty: "" }
         ]);
         setItemLines([]);
       }
@@ -631,27 +658,26 @@ export default function NewDocumentDialog({
     }
   }, [availableServices, initialData, isOpen, serviceLines]);
 
-  // Derive Service Category from the matched catalog entries once the catalog
-  // has loaded — "Generate Invoice" fires before getServices({ status: "Active" }) necessarily
-  // resolves, so this can't be done inline in the initialData hydration above.
+  // Derive Service Category per service line once availableServices is loaded
   useEffect(() => {
-    if (
-      isOpen &&
-      initialData &&
-      Array.isArray(initialData.services) &&
-      initialData.services.length > 0 &&
-      availableServices.length > 0 &&
-      !initialData.serviceCategory
-    ) {
-      const matchedCatalog = initialData.services
-        .map((s: { name: string }) => availableServices.find((c) => c.name?.toLowerCase() === s.name.toLowerCase()))
-        .find((c: any) => c?.category);
-      const category = matchedCatalog?.category?.trim();
-      if (category) {
-        setFormData((prev) => (prev.serviceCategory === "General Service" ? { ...prev, serviceCategory: category } : prev));
-      }
+    if (isOpen && availableServices.length > 0) {
+      setServiceLines((prev) => {
+        let hasChanges = false;
+        const next = prev.map((s) => {
+          if (s.category && s.category.trim()) return s;
+          const matched = availableServices.find(
+            (c) => (s.serviceId && c.id === s.serviceId) || (s.desc && c.name?.toLowerCase() === s.desc.trim().toLowerCase())
+          );
+          if (matched?.category) {
+            hasChanges = true;
+            return { ...s, category: matched.category.trim(), categoryId: matched.id };
+          }
+          return s;
+        });
+        return hasChanges ? next : prev;
+      });
     }
-  }, [availableServices, initialData, isOpen]);
+  }, [availableServices, isOpen]);
 
   useEffect(() => {
     const updateClock = () => {
@@ -733,7 +759,7 @@ export default function NewDocumentDialog({
         warranty: "3 Months / 5,000 KM",
         discountReason: "",
       });
-      setServiceLines([{ type: "SERVICE", desc: "", qty: 1, price: 0, amount: 0, discountPercent: 0, gstPercent: 18, warranty: "" }]);
+      setServiceLines([{ type: "SERVICE", desc: "", category: "", qty: 1, price: 0, amount: 0, discountPercent: 0, gstPercent: 18, warranty: "" }]);
       setItemLines([]);
       setJobId("");
     }
@@ -896,7 +922,7 @@ export default function NewDocumentDialog({
     const newIndex = serviceLines.length;
     setServiceLines([
       ...serviceLines,
-      { type: "SERVICE", desc: "", qty: 1, price: 0, amount: 0, discountPercent: 0, gstPercent: 18, warranty: "" },
+      { type: "SERVICE", desc: "", category: "", qty: 1, price: 0, amount: 0, discountPercent: 0, gstPercent: 18, warranty: "" },
     ]);
     setActiveItemTab("services");
     setFocusedServiceIndex(newIndex);
@@ -978,10 +1004,10 @@ export default function NewDocumentDialog({
       new Set(availableServices.map((s) => (s.category || "").trim()).filter(Boolean))
     );
     const base = fromCatalog.length > 0 ? fromCatalog : SERVICE_CATEGORY_OPTIONS;
-    return formData.serviceCategory && !base.includes(formData.serviceCategory)
-      ? [...base, formData.serviceCategory]
-      : base;
-  }, [availableServices, formData.serviceCategory]);
+    const fromLines = serviceLines.map((s) => (s.category || "").trim()).filter(Boolean);
+    const fromInit = initialData?.serviceCategory ? [initialData.serviceCategory.trim()] : [];
+    return Array.from(new Set([...base, ...fromLines, ...fromInit]));
+  }, [availableServices, serviceLines, initialData]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -1116,7 +1142,10 @@ export default function NewDocumentDialog({
         billingAddress: formData.billingAddress || "",
         buyerState: formData.customerState || null,
         service: computedService,
-        serviceCategory: formData.serviceCategory || "General Service",
+        serviceCategory: (() => {
+          const uniqueCats = Array.from(new Set(validServices.map((s) => s.category?.trim()).filter(Boolean)));
+          return uniqueCats.length > 0 ? uniqueCats.join(", ") : "General Service";
+        })(),
         customerComplaint: formData.customerComplaint || "",
         workDescription: formData.workDescription || "",
         advanceAmount: formData.advanceAmount || "0.00",
@@ -1687,11 +1716,12 @@ export default function NewDocumentDialog({
                         <thead className="bg-blue-50/50 text-[10px] uppercase tracking-wider text-slate-500 font-bold border-b border-slate-200/80">
                           <tr>
                             <th className="py-2.5 px-2 text-center w-8">#</th>
-                            <th className="py-2.5 px-2">Service Description</th>
-                            <th className="py-2.5 px-2 w-16 text-center">Qty</th>
-                            <th className="py-2.5 px-2 w-24 text-right">Rate (₹)</th>
-                            <th className="py-2.5 px-2 w-16 text-center">GST (%)</th>
-                            <th className="py-2.5 px-2 w-28 text-right">Amount (₹)</th>
+                            <th className="py-2.5 px-2">Service</th>
+                            <th className="py-2.5 px-2 w-36">Category</th>
+                            <th className="py-2.5 px-2 w-14 text-center">Qty</th>
+                            <th className="py-2.5 px-2 w-20 text-right">Rate (₹)</th>
+                            <th className="py-2.5 px-2 w-14 text-center">GST (%)</th>
+                            <th className="py-2.5 px-2 w-24 text-right">Amount (₹)</th>
                             <th className="py-2.5 px-2 w-8 text-center" />
                           </tr>
                         </thead>
@@ -1829,6 +1859,18 @@ export default function NewDocumentDialog({
                                       </button>
                                     </div>
                                   </div>
+                                </td>
+                                <td className="py-2 px-2 w-36 min-w-[130px]">
+                                  <select
+                                    value={sLine.category || ""}
+                                    onChange={(e) => handleServiceChange(index, "category", e.target.value)}
+                                    className="w-full px-2 py-1.5 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                  >
+                                    <option value="">Select Category</option>
+                                    {serviceCategoryOptions.map((c) => (
+                                      <option key={c} value={c}>{c}</option>
+                                    ))}
+                                  </select>
                                 </td>
                                 <td className="py-2 px-2">
                                   <input
@@ -2192,6 +2234,11 @@ export default function NewDocumentDialog({
                                       <div className="flex items-center gap-1.5">
                                         <Wrench className="w-3.5 h-3.5 text-blue-500 shrink-0" />
                                         <span>{sLine.desc || <span className="text-slate-400 italic font-normal">Select service...</span>}</span>
+                                        {sLine.category && (
+                                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200 shrink-0">
+                                            {sLine.category}
+                                          </span>
+                                        )}
                                       </div>
                                     </td>
                                     <td className="py-2 px-2 text-center">

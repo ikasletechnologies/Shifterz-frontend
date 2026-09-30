@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Edit2, Trash2, Lock } from "lucide-react";
 import AddFranchiseDialog from "@/components/franchise/AddFranchiseDialog";
+import FranchiseStatusBadge, { normalizeFranchiseStatus } from "@/components/franchise/FranchiseStatusBadge";
 import { getFranchises, createFranchise, updateFranchise, deleteFranchise } from "@/lib/api";
 import { toast } from "react-hot-toast";
 
@@ -73,7 +74,9 @@ export default function FranchisePage() {
   };
 
   const totalFranchises = franchises.length;
-  const activeFranchises = franchises.filter(f => f.status === "Active").length;
+  const activeFranchises = franchises.filter(f => normalizeFranchiseStatus(f.status) === "ACTIVE").length;
+  const pendingFranchises = franchises.filter(f => normalizeFranchiseStatus(f.status) === "PENDING").length;
+  const deactiveFranchises = franchises.filter(f => normalizeFranchiseStatus(f.status) === "DEACTIVE").length;
   const combinedRevenue = franchises.reduce((acc, f) => acc + (f.revenue || 0), 0);
   const totalRoyalty = franchises.reduce((acc, f) => acc + (f.royaltyDue || 0), 0);
 
@@ -88,20 +91,28 @@ export default function FranchisePage() {
   return (
     <div className="p-8 space-y-6">
       {/* KPI Cards */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
         <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm flex flex-col justify-between h-24">
           <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Total Franchises</span>
           <span className="text-2xl font-bold text-gray-900">{totalFranchises}</span>
         </div>
         <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm flex flex-col justify-between h-24">
-          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Active</span>
-          <span className="text-2xl font-bold text-green-500">{activeFranchises}</span>
+          <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">Active</span>
+          <span className="text-2xl font-bold text-emerald-600">{activeFranchises}</span>
         </div>
-        <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm flex flex-col justify-between h-24 col-span-1">
+        <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm flex flex-col justify-between h-24">
+          <span className="text-[10px] font-bold text-amber-600 uppercase tracking-wider">Pending</span>
+          <span className="text-2xl font-bold text-amber-600">{pendingFranchises}</span>
+        </div>
+        <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm flex flex-col justify-between h-24">
+          <span className="text-[10px] font-bold text-rose-600 uppercase tracking-wider">Deactive</span>
+          <span className="text-2xl font-bold text-rose-600">{deactiveFranchises}</span>
+        </div>
+        <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm flex flex-col justify-between h-24">
           <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Combined Revenue</span>
           <span className="text-2xl font-bold text-yellow-500">₹{combinedRevenue.toLocaleString("en-IN")}</span>
         </div>
-        <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm flex flex-col justify-between h-24 col-span-1">
+        <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm flex flex-col justify-between h-24">
           <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Total Royalty</span>
           <span className="text-2xl font-bold text-green-500">₹{totalRoyalty.toLocaleString("en-IN")}</span>
         </div>
@@ -153,9 +164,7 @@ export default function FranchisePage() {
                   <td className="px-6 py-4 text-gray-600 text-center">{f.royalty || 0}%</td>
                   <td className="px-6 py-4 font-bold text-green-500">₹{(f.royaltyDue || 0).toLocaleString("en-IN")}</td>
                   <td className="px-6 py-4">
-                    <span className={`text-[11px] font-bold ${f.status === 'Active' ? 'text-green-500' : 'text-yellow-500'}`}>
-                      {f.status}
-                    </span>
+                    <FranchiseStatusBadge status={f.status} />
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-2">

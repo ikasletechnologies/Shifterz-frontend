@@ -1,5 +1,7 @@
 import { PhoneInput } from "@/components/common/PhoneInput";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { getFranchises } from "@/lib/api";
+import { normalizeFranchiseStatus } from "@/components/franchise/FranchiseStatusBadge";
 import { X, Eye, EyeOff } from "lucide-react";
 
 interface AddEmployeeDialogProps {
@@ -39,25 +41,50 @@ const DEFAULT_ROLE_MODULES: Record<string, string[]> = {
   INVENTORY_EXECUTIVE: ["dashboard", "inventory", "reports"],
 };
 
-export default function AddEmployeeDialog({ isOpen, onClose, onAdd, franchises, defaultRole = "TECHNICIAN", allowedRoles, lockFranchiseId }: AddEmployeeDialogProps) {
-  const defaultRoles = [
-    "FRANCHISE_ADMIN",
-    "BRANCH_MANAGER",
-    "RECEPTION_EXECUTIVE",
-    "SERVICE_ADVISOR",
-    "TECHNICIAN",
-    "QUALITY_INSPECTOR",
-    "BILLING_EXECUTIVE",
-    "INVENTORY_EXECUTIVE",
-  ];
+const DISALLOWED_EMPLOYEE_ROLES = [
+  "SUPER_ADMIN",
+  "HQ_USER",
+  "FRANCHISE_ADMIN",
+  "BRANCH_MANAGER",
+];
 
-  const roles = (allowedRoles || defaultRoles).filter(
-    r => r !== "SUPER_ADMIN" && r !== "HQ_USER"
+const DEFAULT_EMPLOYEE_ROLES = [
+  "RECEPTION_EXECUTIVE",
+  "SERVICE_ADVISOR",
+  "TECHNICIAN",
+  "QUALITY_INSPECTOR",
+  "BILLING_EXECUTIVE",
+  "INVENTORY_EXECUTIVE",
+];
+
+export default function AddEmployeeDialog({ isOpen, onClose, onAdd, franchises, defaultRole = "RECEPTION_EXECUTIVE", allowedRoles, lockFranchiseId }: AddEmployeeDialogProps) {
+  const roles = (allowedRoles || DEFAULT_EMPLOYEE_ROLES).filter(
+    r => !DISALLOWED_EMPLOYEE_ROLES.includes(r)
   );
 
-  const initialRole = (defaultRole && defaultRole !== "SUPER_ADMIN" && defaultRole !== "HQ_USER")
+  const initialRole = (defaultRole && roles.includes(defaultRole))
     ? defaultRole
     : (roles[0] || "RECEPTION_EXECUTIVE");
+
+  const [activeFranchises, setActiveFranchises] = useState<any[]>(() => {
+    return (franchises || []).filter(f => normalizeFranchiseStatus(f.status) === "ACTIVE");
+  });
+
+  useEffect(() => {
+    if (isOpen) {
+      getFranchises()
+        .then((data: any[]) => {
+          if (Array.isArray(data)) {
+            setActiveFranchises(data.filter(f => normalizeFranchiseStatus(f.status) === "ACTIVE"));
+          }
+        })
+        .catch(() => {
+          if (Array.isArray(franchises)) {
+            setActiveFranchises(franchises.filter(f => normalizeFranchiseStatus(f.status) === "ACTIVE"));
+          }
+        });
+    }
+  }, [isOpen, franchises]);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -90,20 +117,26 @@ export default function AddEmployeeDialog({ isOpen, onClose, onAdd, franchises, 
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (DISALLOWED_EMPLOYEE_ROLES.includes(formData.role)) {
+      return;
+    }
     onAdd({
       ...formData,
       permissions: selectedModules,
     });
+    const resetRole = (defaultRole && roles.includes(defaultRole))
+      ? defaultRole
+      : (roles[0] || "RECEPTION_EXECUTIVE");
     setFormData({
       name: "",
       phone: "",
       email: "",
       username: "",
       password: "",
-      role: defaultRole,
+      role: resetRole,
       franchiseId: lockFranchiseId || "",
     });
-    setSelectedModules(DEFAULT_ROLE_MODULES[defaultRole] || DEFAULT_ROLE_MODULES["TECHNICIAN"]);
+    setSelectedModules(DEFAULT_ROLE_MODULES[resetRole] || DEFAULT_ROLE_MODULES["RECEPTION_EXECUTIVE"] || []);
   };
 
   return (
@@ -209,9 +242,11 @@ export default function AddEmployeeDialog({ isOpen, onClose, onAdd, franchises, 
                     onChange={(e) => setFormData({ ...formData, franchiseId: e.target.value })}
                     className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all outline-none bg-white"
                   >
-                    <option value="">Select Branch (HQ)</option>
-                    {franchises.map(f => (
-                      <option key={f.id} value={f.id}>{f.name} ({f.city})</option>
+                    <option value="">SUPER ADMIN</option>
+                    {activeFranchises.map((f) => (
+                      <option key={f.id} value={f.id}>
+                        {f.name}
+                      </option>
                     ))}
                   </select>
                 </div>

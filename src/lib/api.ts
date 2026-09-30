@@ -516,8 +516,9 @@ export async function deleteJob(id: string) {
 // ═══════════════════════════════════════════════════════════════
 // FRANCHISE
 // ═══════════════════════════════════════════════════════════════
-export async function getFranchises() {
-  return apiCall("/hq/franchises");
+export async function getFranchises(query?: { status?: string }) {
+  const params = query?.status ? `?status=${encodeURIComponent(query.status)}` : "";
+  return apiCall(`/hq/franchises${params}`);
 }
 
 export async function createFranchise(franchise: any) {

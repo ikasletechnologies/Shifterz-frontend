@@ -8,6 +8,8 @@ import { RefreshCw } from "lucide-react";
 import { useLiveStatus } from "../hooks/useLiveStatus";
 import { LiveStatusFilters } from "../components/LiveStatusFilters";
 import { LiveStatusTable } from "../components/LiveStatusTable";
+import { LiveStatusTabs } from "../components/LiveStatusTabs";
+import { ViewSwitcher } from "@/components/common/ViewSwitcher";
 import { LiveStatusReports } from "../components/LiveStatusReports";
 import { LiveVehicleRecord, LiveStage } from "../types/live-status.types";
 import { updateJobCard } from "@/modules/job-card/services/job-card.service";
@@ -37,6 +39,21 @@ function timeAgo(date: Date | null): string {
 export function LiveStatusPage() {
   const [franchiseFilter, setFranchiseFilter] = useState("All");
   const { records, allJobCards, isLoading, error, lastUpdated, refetch } = useLiveStatus(franchiseFilter);
+
+  const [viewMode, setViewMode] = useState<"tabs" | "table">(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("livestatus_viewMode");
+      if (saved === "table" || saved === "tabs") return saved;
+    }
+    return "tabs";
+  });
+
+  const handleViewModeChange = (mode: "tabs" | "table") => {
+    setViewMode(mode);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("livestatus_viewMode", mode);
+    }
+  };
 
   const [searchQuery, setSearchQuery] = useState("");
   const [stageFilter, setStageFilter] = useState<LiveStage | "All">("All");
@@ -175,12 +192,28 @@ export function LiveStatusPage() {
         showFranchiseFilter={showFranchiseFilter}
       />
 
-      <LiveStatusTable
-        records={filteredRecords}
-        onOpenJobCard={setViewingRecord}
-        onEditJobCard={setEditingRecord}
-        onPrintJobCard={handlePrint}
+      <ViewSwitcher
+        viewMode={viewMode}
+        onViewModeChange={handleViewModeChange}
+        count={filteredRecords.length}
+        label={filteredRecords.length === 1 ? "workshop vehicle" : "workshop vehicles"}
       />
+
+      {viewMode === "tabs" ? (
+        <LiveStatusTabs
+          records={filteredRecords}
+          onOpenJobCard={setViewingRecord}
+          onEditJobCard={setEditingRecord}
+          onPrintJobCard={handlePrint}
+        />
+      ) : (
+        <LiveStatusTable
+          records={filteredRecords}
+          onOpenJobCard={setViewingRecord}
+          onEditJobCard={setEditingRecord}
+          onPrintJobCard={handlePrint}
+        />
+      )}
 
       <ViewJobCardDialog
         isOpen={!!viewingRecord}

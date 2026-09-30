@@ -29,6 +29,8 @@ import VehicleCheckInDialog from "../components/VehicleCheckInDialog";
 import VehicleDeliveryDialog from "../components/VehicleDeliveryDialog";
 import VehicleDetailsDialog from "../components/VehicleDetailsDialog";
 import VehicleInspectionDialog from "../components/VehicleInspectionDialog";
+import { VehicleCheckinTabs } from "../components/VehicleCheckinTabs";
+import { ViewSwitcher } from "@/components/common/ViewSwitcher";
 import { useVehicleCheckin } from "../hooks/useVehicleCheckin";
 import { CarEntry, hasCompletedInspection } from "../types/vehicle-checkin.types";
 import { calculateDuration, formatTime, formatDate, formatDateTime, formatCarId } from "@/lib/timeUtils";
@@ -37,6 +39,21 @@ import { StatusText } from "@/components/common/StatusText";
 
 export function VehicleCheckinPage() {
   const router = useRouter();
+  const [viewMode, setViewMode] = useState<"tabs" | "table">(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("carin_viewMode");
+      if (saved === "table" || saved === "tabs") return saved;
+    }
+    return "tabs";
+  });
+
+  const handleViewModeChange = (mode: "tabs" | "table") => {
+    setViewMode(mode);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("carin_viewMode", mode);
+    }
+  };
+
   const [franchiseFilter, setFranchiseFilter] = useState("All");
   const [franchises, setFranchises] = useState<{ id: string; name: string }[]>([]);
 
@@ -618,8 +635,28 @@ export function VehicleCheckinPage() {
         </div>
       </div>
 
+      {/* View Switcher Bar */}
+      <ViewSwitcher
+        viewMode={viewMode}
+        onViewModeChange={handleViewModeChange}
+        count={filteredCars.length}
+        label={filteredCars.length === 1 ? "vehicle check-in" : "vehicle check-ins"}
+      />
+
       {/* Vehicle Check-In Register */}
-      {filteredCars.length === 0 ? (
+      {viewMode === "tabs" ? (
+        <VehicleCheckinTabs
+          cars={filteredCars}
+          onViewDetails={handleViewDetailsClick}
+          onEdit={handleEditClick}
+          onDelivery={handleDeliveryClick}
+          onInspection={handleInspectionClick}
+          onDownloadExcel={downloadSingleCarExcel}
+          onDownloadPdf={downloadSingleCarPDF}
+          onDelete={handleDeleteClick}
+          showFranchise={showFranchiseColumn}
+        />
+      ) : filteredCars.length === 0 ? (
         <div className="bg-white border border-slate-200 rounded-lg p-10 text-center text-slate-500 text-sm">
           {searchQuery
             ? `No vehicle record matching "${searchQuery}" was found.`

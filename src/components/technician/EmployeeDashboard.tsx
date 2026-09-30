@@ -100,9 +100,21 @@ export default function EmployeeDashboard() {
     return norm === "completed" || norm === "qc passed" || norm === "delivered" || norm === "ready for billing" || norm === "out";
   };
 
+  const isAssigned = (s?: string) => {
+    if (!s) return false;
+    const norm = s.trim().toLowerCase();
+    return norm === "assigned" || norm === "pending" || norm === "job assigned";
+  };
+
+  const isInProgress = (s?: string) => {
+    if (!s) return false;
+    const norm = s.trim().toLowerCase();
+    return norm === "in progress" || norm === "ongoing" || norm === "work in progress";
+  };
+
   const myAssignedCount = jobs.length;
-  const assignedCount = jobs.filter((j) => j.status === "Assigned" || j.status === "Pending").length;
-  const inProgressCount = jobs.filter((j) => j.status === "In Progress").length;
+  const assignedCount = jobs.filter((j) => isAssigned(j.status)).length;
+  const inProgressCount = jobs.filter((j) => isInProgress(j.status)).length;
   const waitingPartsCount = jobs.filter((j) => isWaitingParts(j.status)).length;
   const completedCount = jobs.filter((j) => isCompletedJob(j.status)).length;
 
@@ -117,9 +129,9 @@ export default function EmployeeDashboard() {
     }
 
     if (activeFilter === "Assigned") {
-      if (j.status !== "Assigned" && j.status !== "Pending") return false;
+      if (!isAssigned(j.status)) return false;
     } else if (activeFilter === "In Progress") {
-      if (j.status !== "In Progress") return false;
+      if (!isInProgress(j.status)) return false;
     } else if (activeFilter === "Waiting for Parts") {
       if (!isWaitingParts(j.status)) return false;
     } else if (activeFilter === "Completed") {

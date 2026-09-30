@@ -7,6 +7,8 @@ import { getStatusTone, TONE_TEXT } from "@/lib/statusTone";
 import { Plus, ChevronDown, Trash2, Pencil, Search, X, CheckCircle } from "lucide-react";
 import AddLeadDialog, { LEAD_DRAFT_STORAGE_KEY } from "@/components/leads/AddLeadDialog";
 import EditLeadDialog from "@/components/leads/EditLeadDialog";
+import { LeadsTabs } from "@/components/leads/LeadsTabs";
+import { ViewSwitcher } from "@/components/common/ViewSwitcher";
 import { getLeads, createLead, deleteLead, updateLead, getSettings, getFranchises } from "@/lib/api";
 import { getScopedFranchiseId, scopeToFranchise } from "@/lib/franchise-scope";
 import { toast } from "react-hot-toast";
@@ -160,6 +162,21 @@ export default function LeadsPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [leadToEdit, setLeadToEdit] = useState<Lead | null>(null);
+  const [viewMode, setViewMode] = useState<"tabs" | "table">(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("leads_viewMode");
+      if (saved === "table" || saved === "tabs") return saved;
+    }
+    return "tabs";
+  });
+
+  const handleViewModeChange = (mode: "tabs" | "table") => {
+    setViewMode(mode);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("leads_viewMode", mode);
+    }
+  };
+
   const [searchQuery, setSearchQuery] = useState("");
 
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -457,8 +474,25 @@ export default function LeadsPage() {
         </div>
       </div>
 
-      {/* Leads Table */}
-      {filteredLeads.length === 0 ? (
+      {/* View Switcher Bar */}
+      <div className="mb-6">
+        <ViewSwitcher
+          viewMode={viewMode}
+          onViewModeChange={handleViewModeChange}
+          count={filteredLeads.length}
+          label={filteredLeads.length === 1 ? "lead" : "leads"}
+        />
+      </div>
+
+      {/* Leads Content */}
+      {viewMode === "tabs" ? (
+        <LeadsTabs
+          leads={filteredLeads}
+          onEdit={(lead) => { setLeadToEdit(lead); setIsEditDialogOpen(true); }}
+          onDelete={handleDeleteLead}
+          renderStatus={(lead) => <StatusDropdown lead={lead} handleStatusChange={handleStatusChange} />}
+        />
+      ) : filteredLeads.length === 0 ? (
         <div className="bg-white border border-slate-200 rounded-lg p-12 text-center text-slate-500">No leads found</div>
       ) : (
         <div className="bg-white border border-slate-200 rounded-lg overflow-x-auto">

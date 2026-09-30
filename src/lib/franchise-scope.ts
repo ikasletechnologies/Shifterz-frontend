@@ -47,7 +47,12 @@ function getRecordFranchiseId(record: object): string | undefined {
 export function scopeToFranchise<T extends object>(records: T[], user: ScopedUser | null = getCurrentUser()): T[] {
   if (!user || isHQRole(user.role)) return records;
   const franchiseId = user.franchiseId;
-  if (!franchiseId) return [];
+  if (!franchiseId) {
+    return records.filter((r) => {
+      const rid = getRecordFranchiseId(r);
+      return !rid;
+    });
+  }
   return records.filter((r) => {
     const rid = getRecordFranchiseId(r);
     return rid === franchiseId;

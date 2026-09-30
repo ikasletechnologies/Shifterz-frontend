@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { Plus, Trash2, Search, Download, X, Pencil, Car } from "lucide-react";
 import AddCustomerDialog from "../components/AddCustomerDialog";
 import EditCustomerDialog from "../components/EditCustomerDialog";
+import { CustomerTabs } from "../components/CustomerTabs";
+import { ViewSwitcher } from "@/components/common/ViewSwitcher";
 import VehicleCheckInDialog from "@/modules/vehicle-checkin/components/VehicleCheckInDialog";
 import { createVehicleCheckIn } from "@/modules/vehicle-checkin/services/vehicle-checkin.service";
 import { useCustomer } from "@/modules/customer/hooks/useCustomer";
@@ -34,6 +36,21 @@ export function CustomerPage() {
   const { customers, isLoading, error, handleAddCustomer, handleDeleteCustomer, fetchCustomers } = useCustomer(franchiseFilter);
 
   const showFranchiseColumn = isHQ || customers.some((c) => c.franchiseName || c.franchiseId);
+  const [viewMode, setViewMode] = useState<"tabs" | "table">(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("customers_viewMode");
+      if (saved === "table" || saved === "tabs") return saved;
+    }
+    return "tabs";
+  });
+
+  const handleViewModeChange = (mode: "tabs" | "table") => {
+    setViewMode(mode);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("customers_viewMode", mode);
+    }
+  };
+
   const [searchQuery, setSearchQuery] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -425,8 +442,26 @@ export function CustomerPage() {
         </div>
       </div>
 
+      {/* View Switcher Bar */}
+      <ViewSwitcher
+        viewMode={viewMode}
+        onViewModeChange={handleViewModeChange}
+        count={filteredCustomers.length}
+        label={filteredCustomers.length === 1 ? "customer" : "customers"}
+      />
+
       {/* Customer List */}
-      {filteredCustomers.length === 0 ? (
+      {viewMode === "tabs" ? (
+        <CustomerTabs
+          customers={filteredCustomers}
+          onOpenCheckIn={handleOpenCheckIn}
+          onEdit={(customer) => {
+            setCustomerToEdit(customer);
+            setIsEditOpen(true);
+          }}
+          onDelete={confirmDelete}
+        />
+      ) : filteredCustomers.length === 0 ? (
         <div className="bg-white border border-slate-200 rounded-lg p-12 text-center text-slate-500">No customers found</div>
       ) : (
         <div className="bg-white border border-slate-200 rounded-lg overflow-x-auto">

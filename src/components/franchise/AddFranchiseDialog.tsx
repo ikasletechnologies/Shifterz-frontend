@@ -6,6 +6,7 @@ import { useEffect, useState, useRef } from "react";
 import { toast } from "react-hot-toast";
 import { isValidGST, formatGSTInput } from "@/lib/validation";
 import { lookupGstin } from "@/lib/api";
+import { normalizeFranchiseStatus } from "./FranchiseStatusBadge";
 
 interface FranchiseData {
   id?: string;
@@ -45,7 +46,7 @@ export default function AddFranchiseDialog({ isOpen, onClose, franchiseData, onS
     phone: "",
     startDate: new Date().toISOString().split("T")[0],
     royalty: "5",
-    status: "Active",
+    status: "PENDING",
     adminUsername: "",
     adminPassword: "",
     businessName: "",
@@ -62,7 +63,10 @@ export default function AddFranchiseDialog({ isOpen, onClose, franchiseData, onS
 
   useEffect(() => {
     if (franchiseData) {
-      setFormData(franchiseData);
+      setFormData({
+        ...franchiseData,
+        status: normalizeFranchiseStatus(franchiseData.status),
+      });
       lastFetchedGstRef.current = franchiseData.gstNumber ? franchiseData.gstNumber.trim().toUpperCase() : "";
     } else {
       setFormData({
@@ -72,7 +76,7 @@ export default function AddFranchiseDialog({ isOpen, onClose, franchiseData, onS
         phone: "",
         startDate: new Date().toISOString().split("T")[0],
         royalty: "5",
-        status: "Active",
+        status: "PENDING",
         adminUsername: "",
         adminPassword: "",
         businessName: "",
@@ -262,6 +266,19 @@ export default function AddFranchiseDialog({ isOpen, onClose, franchiseData, onS
                   />
                 </div>
 
+                <div className="col-span-2 sm:col-span-1 space-y-1.5">
+                  <label className="text-[11px] font-bold text-[#64748b] uppercase tracking-wider">Status</label>
+                  <select 
+                    value={formData.status || "PENDING"}
+                    onChange={e => setFormData({...formData, status: e.target.value})}
+                    className="w-full px-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm text-[#334155] focus:outline-none focus:ring-2 focus:ring-[#f59e0b] focus:bg-white transition-colors font-medium"
+                  >
+                    <option value="PENDING">PENDING</option>
+                    <option value="ACTIVE">ACTIVE</option>
+                    <option value="DEACTIVE">DEACTIVE</option>
+                  </select>
+                </div>
+
                 {/* Auto-License notice — replaces the old manual License Status dropdown */}
                 {!isEditing && (
                   <div className="col-span-2">
@@ -270,8 +287,7 @@ export default function AddFranchiseDialog({ isOpen, onClose, franchiseData, onS
                       <div>
                         <p className="text-xs font-bold text-blue-700">License auto-generated on submission</p>
                         <p className="text-[11px] text-blue-600 mt-0.5 leading-relaxed">
-                          A unique License Key will be automatically generated and linked to this franchise.
-                          Both the franchise and license will become <strong>Active</strong> immediately upon creation.
+                          A unique License Key will be automatically generated and linked to this franchise with the selected status.
                         </p>
                       </div>
                     </div>

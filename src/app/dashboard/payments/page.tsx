@@ -11,6 +11,8 @@ import PaymentReceiptDialog from "@/modules/payment/components/PaymentReceiptDia
 import RecordPaymentDialog from "@/modules/payment/components/RecordPaymentDialog";
 import PaymentHistoryDialog from "@/modules/payment/components/PaymentHistoryDialog";
 import { getPayments, createPayment, getInvoices } from "@/lib/api";
+import { ViewSwitcher } from "@/components/common/ViewSwitcher";
+import { PaymentsTabs } from "@/components/payment/PaymentsTabs";
 
 interface Payment {
   id: string;
@@ -48,6 +50,20 @@ export default function PaymentsPage() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [viewMode, setViewMode] = useState<"tabs" | "table">(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("payments_viewMode");
+      if (saved === "table" || saved === "tabs") return saved;
+    }
+    return "tabs";
+  });
+
+  const handleViewModeChange = (mode: "tabs" | "table") => {
+    setViewMode(mode);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("payments_viewMode", mode);
+    }
+  };
   const itemsPerPage = 7;
 
   const getTodayISO = () => {
@@ -343,7 +359,35 @@ export default function PaymentsPage() {
         </div>
       </div>
 
-      {/* Payments Data Table */}
+      {/* View Switcher */}
+      <ViewSwitcher
+        viewMode={viewMode}
+        onViewModeChange={handleViewModeChange}
+        count={filteredPayments.length}
+        label="payments"
+      />
+
+      {viewMode === "tabs" ? (
+        <PaymentsTabs
+          payments={filteredPayments}
+          onViewReceipt={(p) => {
+            setSelectedPayment(p);
+            setIsReceiptOpen(true);
+          }}
+          onPrintReceipt={(p) => {
+            setSelectedPayment(p);
+            setIsReceiptOpen(true);
+          }}
+          onShareWhatsApp={(p) => {
+            const phone = (p.phone || "").replace(/\D/g, "");
+            const msg = `Payment Receipt ${p.id} received for Invoice ${p.invoiceId} — Amount ₹${p.amount.toLocaleString("en-IN")} via ${p.mode}. Thank you!`;
+            window.open(`https://wa.me/${phone ? `91${phone}` : ""}?text=${encodeURIComponent(msg)}`, "_blank");
+          }}
+          renderModeBadge={renderModeBadge}
+          formatDate={formatDate}
+        />
+      ) : (
+      /* Payments Data Table */
       <div className="bg-white rounded-2xl border border-gray-200/90 overflow-hidden shadow-xs">
         <div className="overflow-x-auto">
           <table className="data-table w-full text-left text-xs">
@@ -480,6 +524,8 @@ export default function PaymentsPage() {
           </table>
         </div>
       </div>
+
+      )}
 
       {/* Dialogs */}
       <RecordPaymentDialog

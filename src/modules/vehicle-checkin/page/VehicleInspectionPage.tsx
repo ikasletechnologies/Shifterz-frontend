@@ -6,6 +6,8 @@ import { ListHeader } from "@/components/common/ListHeader";
 import { useVehicleCheckin } from "../hooks/useVehicleCheckin";
 import { CarEntry, hasCompletedInspection } from "../types/vehicle-checkin.types";
 import VehicleInspectionDialog from "../components/VehicleInspectionDialog";
+import { VehicleInspectionTabs } from "../components/VehicleInspectionTabs";
+import { ViewSwitcher } from "@/components/common/ViewSwitcher";
 import { formatDate, formatTime } from "@/lib/timeUtils";
 import { StatusText } from "@/components/common/StatusText";
 
@@ -13,6 +15,21 @@ export function VehicleInspectionPage() {
   const { cars, isLoading, handleUpdateVehicleCheckIn } = useVehicleCheckin();
   const [selectedCar, setSelectedCar] = useState<CarEntry | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<"tabs" | "table">(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("inspection_viewMode");
+      if (saved === "table" || saved === "tabs") return saved;
+    }
+    return "tabs";
+  });
+
+  const handleViewModeChange = (mode: "tabs" | "table") => {
+    setViewMode(mode);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("inspection_viewMode", mode);
+    }
+  };
+
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"All" | "Pending" | "Complete">("Pending");
 
@@ -77,7 +94,19 @@ export function VehicleInspectionPage() {
           searchPlaceholder="Search vehicle, customer, phone..."
         />
 
-        {filtered.length === 0 ? (
+        <ViewSwitcher
+          viewMode={viewMode}
+          onViewModeChange={handleViewModeChange}
+          count={filtered.length}
+          label={filtered.length === 1 ? "inspection" : "inspections"}
+        />
+
+        {viewMode === "tabs" ? (
+          <VehicleInspectionTabs
+            cars={filtered}
+            onOpenInspection={openInspection}
+          />
+        ) : filtered.length === 0 ? (
           <div className="bg-white border border-slate-200 rounded-lg p-10 text-center text-slate-500 text-sm">
             {query
               ? `No vehicles match "${searchQuery}".`

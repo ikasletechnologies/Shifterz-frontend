@@ -14,6 +14,7 @@ import {
   Percent, X
 } from "lucide-react";
 import AddFranchiseDialog from "@/components/franchise/AddFranchiseDialog";
+import FranchiseStatusBadge, { normalizeFranchiseStatus } from "@/components/franchise/FranchiseStatusBadge";
 import { getFranchises, createFranchise, updateFranchise, deleteFranchise } from "@/lib/api";
 import { toast } from "react-hot-toast";
 import { SummaryCard } from "@/components/common/SummaryCard";
@@ -87,13 +88,15 @@ export default function FranchiseManagementPage() {
       (f.name || "").toLowerCase().includes(search.toLowerCase()) ||
       (f.city || "").toLowerCase().includes(search.toLowerCase()) ||
       (f.owner || "").toLowerCase().includes(search.toLowerCase());
-    const matchStatus = statusFilter === "ALL" || f.status === statusFilter;
+    const norm = normalizeFranchiseStatus(f.status);
+    const matchStatus = statusFilter === "ALL" || norm === statusFilter;
     return matchSearch && matchStatus;
   });
 
   const totalCount = franchises.length;
-  const activeCount = franchises.filter((f) => f.status === "Active").length;
-  const inactiveCount = franchises.filter((f) => f.status === "Inactive" || f.status === "Pending").length;
+  const activeCount = franchises.filter((f) => normalizeFranchiseStatus(f.status) === "ACTIVE").length;
+  const pendingCount = franchises.filter((f) => normalizeFranchiseStatus(f.status) === "PENDING").length;
+  const deactiveCount = franchises.filter((f) => normalizeFranchiseStatus(f.status) === "DEACTIVE").length;
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
@@ -118,10 +121,11 @@ export default function FranchiseManagementPage() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <SummaryCard label="Total Franchises" value={totalCount} active={statusFilter === "ALL"} onClick={() => setStatusFilter("ALL")} />
-        <SummaryCard tone="good" label="Active Franchises" value={activeCount} active={statusFilter === "Active"} onClick={() => setStatusFilter("Active")} />
-        <SummaryCard tone="bad" label="Inactive/Pending Franchises" value={inactiveCount} active={statusFilter === "Inactive"} onClick={() => setStatusFilter("Inactive")} />
+        <SummaryCard tone="good" label="Active Franchises" value={activeCount} active={statusFilter === "ACTIVE"} onClick={() => setStatusFilter("ACTIVE")} />
+        <SummaryCard label="Pending Franchises" value={pendingCount} active={statusFilter === "PENDING"} onClick={() => setStatusFilter("PENDING")} />
+        <SummaryCard tone="bad" label="Deactive Franchises" value={deactiveCount} active={statusFilter === "DEACTIVE"} onClick={() => setStatusFilter("DEACTIVE")} />
       </div>
 
       {/* Search + filter bar */}
@@ -150,8 +154,9 @@ export default function FranchiseManagementPage() {
           className="px-4 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-yellow-400 bg-white"
         >
           <option value="ALL">All Statuses</option>
-          <option value="Active">Active</option>
-          <option value="Inactive">Inactive</option>
+          <option value="ACTIVE">Active</option>
+          <option value="PENDING">Pending</option>
+          <option value="DEACTIVE">Deactive</option>
         </select>
       </div>
 
@@ -191,12 +196,7 @@ export default function FranchiseManagementPage() {
                     <td className="px-6 py-4 text-gray-500 text-xs">{f.startDate}</td>
                     <td className="px-6 py-4 text-gray-600 text-center font-bold">{f.royalty || 0}%</td>
                     <td className="px-6 py-4">
-                      <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${f.status === "Active" ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"
-                          }`}
-                      >
-                        {f.status}
-                      </span>
+                      <FranchiseStatusBadge status={f.status} />
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">

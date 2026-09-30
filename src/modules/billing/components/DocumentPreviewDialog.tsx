@@ -72,7 +72,7 @@ export default function DocumentPreviewDialog({
         const lineGstAmt = ((itemAmount - lineDiscAmt) * (item.gstPercent ?? 18)) / 100;
         return `
         <tr>
-          <td>${item.desc || '-'}</td>
+          <td>${item.desc || '-'}${item.category ? ` <span style="font-size:11px;color:#64748b;font-weight:normal;">(${item.category})</span>` : ''}</td>
           <td style="text-align:center">${item.qty}</td>
           <td style="text-align:right">₹${Number(item.price || 0).toLocaleString("en-IN")}</td>
           <td style="text-align:center">${item.discountPercent ? `${item.discountPercent}%` : '-'}</td>
@@ -579,6 +579,11 @@ export default function DocumentPreviewDialog({
                                     {item.type === "ITEM" || item.itemId ? "ITEM" : "SERVICE"}
                                   </span>
                                   <span className="truncate">{item.desc}</span>
+                                  {item.category && (
+                                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200 shrink-0">
+                                      {item.category}
+                                    </span>
+                                  )}
                                 </div>
                               </td>
                               <td className="px-2 sm:px-4 md:px-6 py-2 sm:py-3 text-center text-gray-600">{item.qty}</td>

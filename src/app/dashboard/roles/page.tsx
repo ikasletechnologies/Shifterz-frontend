@@ -9,7 +9,6 @@ import { toast } from "react-hot-toast";
 const ROLES = [
   { id: "SUPER_ADMIN", label: "Super Admin", color: "#ef4444", badge: "bg-red-100 text-red-700" },
   { id: "HQ_USER", label: "HQ User", color: "#f59e0b", badge: "bg-amber-100 text-amber-700" },
-  { id: "FRANCHISE_ADMIN", label: "Franchise Admin", color: "#3b82f6", badge: "bg-blue-100 text-blue-700" },
   { id: "BRANCH_MANAGER", label: "Branch Manager", color: "#8b5cf6", badge: "bg-violet-100 text-violet-700" },
   { id: "RECEPTION_EXECUTIVE", label: "Reception Executive", color: "#06b6d4", badge: "bg-cyan-100 text-cyan-700" },
   { id: "SERVICE_ADVISOR", label: "Service Advisor", color: "#3b82f6", badge: "bg-blue-100 text-blue-700" },
@@ -41,7 +40,6 @@ const PERMISSIONS = [
 const DEFAULT_MATRIX: Record<string, Record<string, boolean>> = {
   SUPER_ADMIN: Object.fromEntries(PERMISSIONS.map(p => [p.key, true])),
   HQ_USER: Object.fromEntries(PERMISSIONS.map(p => [p.key, !["roles"].includes(p.key)])),
-  FRANCHISE_ADMIN: Object.fromEntries(PERMISSIONS.map(p => [p.key, !["settings", "roles"].includes(p.key)])),
   BRANCH_MANAGER: Object.fromEntries(PERMISSIONS.map(p => [p.key, !["settings", "roles", "employees"].includes(p.key)])),
   RECEPTION_EXECUTIVE: Object.fromEntries(PERMISSIONS.map(p => [p.key, ["dashboard", "carin", "outpass", "customers", "leads"].includes(p.key)])),
   SERVICE_ADVISOR: Object.fromEntries(PERMISSIONS.map(p => [p.key, ["dashboard", "carin", "jobs", "outpass", "customers", "leads"].includes(p.key)])),
@@ -52,7 +50,7 @@ const DEFAULT_MATRIX: Record<string, Record<string, boolean>> = {
 };
 
 export default function RolesPermissionsPage() {
-  const [selected, setSelected] = useState("FRANCHISE_ADMIN");
+  const [selected, setSelected] = useState("BRANCH_MANAGER");
   const [matrix, setMatrix] = useState(DEFAULT_MATRIX);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);

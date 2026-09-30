@@ -399,7 +399,7 @@ export default function EmployeesPage() {
                         </span>
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-600">
-                        {emp.franchise ? `${emp.franchise.name} (${emp.franchise.city})` : "HQ"}
+                        {emp.franchise ? `${emp.franchise.name} (${emp.franchise.city})` : "SUPER ADMIN"}
                       </td>
                       <td className="px-6 py-4 text-sm">
                         <span className={`px-2.5 py-1 rounded-md text-xs font-medium ${emp.status === "Active" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
@@ -516,7 +516,7 @@ export default function EmployeesPage() {
         onClose={() => setIsAddOpen(false)}
         onAdd={handleAdd}
         franchises={franchises}
-        allowedRoles={isFranchiseAdmin ? FRANCHISE_ASSIGNABLE_ROLES : undefined}
+        allowedRoles={FRANCHISE_ASSIGNABLE_ROLES}
         lockFranchiseId={isFranchiseAdmin ? currentUser?.franchiseId : undefined}
       />
 
@@ -611,7 +611,6 @@ export default function EmployeesPage() {
                       className="w-full px-4 py-2 bg-gray-50/50 border border-gray-200 rounded-lg text-sm text-[#334155] focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:bg-white transition-colors"
                     >
                       <option value="TECHNICIAN">Technician</option>
-                      <option value="FRANCHISE_ADMIN">Franchise Admin</option>
                       <option value="RECEPTIONIST">Receptionist</option>
                       <option value="SERVICE_ADVISOR">Service Advisor</option>
                       <option value="BILLING">Billing</option>

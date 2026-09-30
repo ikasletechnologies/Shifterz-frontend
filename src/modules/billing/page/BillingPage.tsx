@@ -22,6 +22,8 @@ import PaymentHistoryDialog from "@/modules/payment/components/PaymentHistoryDia
 import { useBilling } from "@/modules/billing/hooks/useBilling";
 import { BillingDocument } from "@/modules/billing/types/billing.types";
 import BillingJobCards from "../components/BillingJobCards";
+import { BillingTabs } from "../components/BillingTabs";
+import { ViewSwitcher } from "@/components/common/ViewSwitcher";
 import { useOpenOnQuery } from "@/lib/useOpenOnQuery";
 import { StatusText } from "@/components/common/StatusText";
 import VehicleCheckInDialog from "@/modules/vehicle-checkin/components/VehicleCheckInDialog";
@@ -231,6 +233,21 @@ export function BillingPage() {
   const [isConvertCarInOpen, setIsConvertCarInOpen] = useState(false);
   const [documentToConvertCarIn, setDocumentToConvertCarIn] = useState<BillingDocument | null>(null);
 
+  const [viewMode, setViewMode] = useState<"tabs" | "table">(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("billing_viewMode");
+      if (saved === "table" || saved === "tabs") return saved;
+    }
+    return "tabs";
+  });
+
+  const handleViewModeChange = (mode: "tabs" | "table") => {
+    setViewMode(mode);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("billing_viewMode", mode);
+    }
+  };
+
   const [searchTerm, setSearchTerm] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -282,7 +299,12 @@ export function BillingPage() {
         (doc.vehicle && doc.vehicle.toLowerCase().includes(q)) ||
         (doc.id && doc.id.toLowerCase().includes(q)) ||
         (doc.phone && doc.phone.includes(q)) ||
-        (doc.service && doc.service.toLowerCase().includes(q))
+        (doc.service && doc.service.toLowerCase().includes(q)) ||
+        (doc.serviceCategory && doc.serviceCategory.toLowerCase().includes(q)) ||
+        (Array.isArray(doc.items) && doc.items.some((it: any) =>
+          (it.category && String(it.category).toLowerCase().includes(q)) ||
+          (it.desc && String(it.desc).toLowerCase().includes(q))
+        ))
       );
 
     const matchesDate = (() => {
@@ -531,8 +553,51 @@ export function BillingPage() {
         </div>
       </div>
 
-          {/* Documents Table */}
-          {filteredDocs.length === 0 ? (
+          {/* View Switcher Bar */}
+          <ViewSwitcher
+            viewMode={viewMode}
+            onViewModeChange={handleViewModeChange}
+            count={filteredDocs.length}
+            label={filteredDocs.length === 1 ? "document" : "documents"}
+          />
+
+          {/* Documents Content */}
+          {viewMode === "tabs" ? (
+            <BillingTabs
+              docs={filteredDocs}
+              hasOutPass={hasOutPass}
+              onGenerateOutPass={handleGenerateOutPass}
+              onMarkAsPaid={handleMarkAsPaid}
+              onPreview={(doc) => { setSelectedDocument(doc); setIsPreviewOpen(true); }}
+              onEdit={(doc) => { setEditingDocument(doc); setIsDialogOpen(true); }}
+              onConvertToCarIn={(doc) => { setDocumentToConvertCarIn(doc); setIsConvertCarInOpen(true); }}
+              onLogShare={handleShareDocument}
+              renderMoreMenu={(doc) => {
+                const isEstimate = doc.type === "Estimate";
+                const isCarInCreated = Boolean(doc.status === "Converted to Car In" || doc.jobId);
+                const canConvertToCarIn = Boolean(
+                  isEstimate &&
+                  doc.client && doc.client.trim() &&
+                  doc.vehicle && doc.vehicle.trim() &&
+                  doc.status !== "Cancelled" &&
+                  !isCarInCreated
+                );
+                return (
+                  <CardMoreDropdown
+                    doc={doc}
+                    onViewHistory={() => { setDocumentForPaymentHistory(doc); setIsPaymentHistoryOpen(true); }}
+                    onViewReceipt={() => { setSelectedPaymentDocument(doc); setIsPaymentReceiptOpen(true); }}
+                    onCancel={() => { setDocumentToCancel(doc); setIsCancelOpen(true); }}
+                    onConvert={(doc.type === "Estimate" || doc.type === "Quotation") && doc.status !== "Paid" && doc.status !== "Converted" ? () => { setDocumentToConvert(doc); setIsConvertOpen(true); } : undefined}
+                    onConvertToCarIn={canConvertToCarIn ? () => { setDocumentToConvertCarIn(doc); setIsConvertCarInOpen(true); } : undefined}
+                    onViewCarIn={isEstimate && isCarInCreated ? () => router.push("/dashboard/carin") : undefined}
+                    onPrint={() => { setSelectedDocument(doc); setIsPreviewOpen(true); }}
+                    onDownload={() => downloadInvoicePdf(doc)}
+                  />
+                );
+              }}
+            />
+          ) : filteredDocs.length === 0 ? (
             <div className="bg-white border border-slate-200 rounded-lg p-12 text-center text-slate-500">No documents found</div>
           ) : (
             <div className="bg-white border border-slate-200 rounded-lg overflow-x-auto">

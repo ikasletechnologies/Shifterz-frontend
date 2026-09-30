@@ -342,6 +342,10 @@ export default function UserManagementPage() {
       toast.error("Name and role are required.");
       return;
     }
+    if (modalMode === "create" && form.role === "FRANCHISE_ADMIN") {
+      toast.error("Franchise Admin cannot be created as a new user.");
+      return;
+    }
     if (form.username && modalMode === "create" && !form.password) {
       toast.error("Password is required when a username is specified.");
       return;
@@ -692,7 +696,7 @@ export default function UserManagementPage() {
                       }}
                       className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400 bg-gray-50"
                     >
-                      {ROLES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
+                      {ROLES.filter(r => modalMode === "edit" || r.value !== "FRANCHISE_ADMIN").map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
                     </select>
                   </div>
 
