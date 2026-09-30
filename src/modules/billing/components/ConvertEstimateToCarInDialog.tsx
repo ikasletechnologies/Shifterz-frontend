@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { X, Car, CheckCircle2, AlertTriangle, Loader2, ArrowRight } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { BillingDocument } from "../types/billing.types";
 import { createVehicleCheckIn } from "@/modules/vehicle-checkin/services/vehicle-checkin.service";
+import { apiCall } from "@/services/api.client";
+import { normalizeVehicleNumber } from "@/utils/vehicleNumber";
 
 interface ConvertEstimateToCarInDialogProps {
   isOpen: boolean;
@@ -24,6 +26,30 @@ export default function ConvertEstimateToCarInDialog({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [resolvedModel, setResolvedModel] = useState<string>("");
+  const [resolvedCustomerId, setResolvedCustomerId] = useState<string>("");
+
+  useEffect(() => {
+    if (isOpen && document?.vehicle) {
+      setResolvedModel(document.model || "");
+      const norm = normalizeVehicleNumber(document.vehicle);
+      if (norm) {
+        apiCall(`/vehicle/${norm}`)
+          .then((details: any) => {
+            if (details) {
+              if (details.model && !document.model) setResolvedModel(details.model);
+              if (details.customerId) setResolvedCustomerId(details.customerId);
+            }
+          })
+          .catch(() => {});
+      }
+    } else {
+      setResolvedModel("");
+      setResolvedCustomerId("");
+      setError(null);
+      setIsSuccess(false);
+    }
+  }, [isOpen, document]);
 
   if (!isOpen || !document) return null;
 
@@ -38,25 +64,31 @@ export default function ConvertEstimateToCarInDialog({
       setIsSubmitting(true);
       setError(null);
 
+      const serviceNames = (document.items || [])
+        .map((i: any) => i.desc || i.name)
+        .filter(Boolean);
+
       const primaryService =
-        document.service && document.service !== "—"
+        document.service && document.service !== "-" && document.service.trim() !== ""
           ? document.service
-          : (document.items && document.items.length > 0 && document.items[0].desc
-              ? document.items[0].desc
-              : "General Service");
+          : (serviceNames.length > 0 ? serviceNames.join(", ") : "General Service");
+
+      const notes = document.notes && document.notes.trim()
+        ? `${document.notes.trim()} (Converted from Estimate ${document.id})`
+        : `Converted from Estimate ${document.id}`;
 
       const payload = {
         vehicle: document.vehicle,
-        model: document.model || "",
+        model: resolvedModel || document.model || "Unknown",
         customer: document.client,
         phone: document.phone || "",
         service: primaryService,
-        odometer: "0",
-        notes: `Converted from Estimate ${document.id}`,
+        odometer: (document as any).odometer || "0",
+        notes,
         inTime: new Date().toISOString(),
         estimateId: document.id,
         franchiseId: document.franchiseId || undefined,
-        customerId: (document as any).customerId,
+        customerId: resolvedCustomerId || (document as any).customerId,
       };
 
       const result = await createVehicleCheckIn(payload);
@@ -67,7 +99,7 @@ export default function ConvertEstimateToCarInDialog({
       }
     } catch (err: any) {
       console.error("Failed to convert Estimate to Car In:", err);
-      const errMsg = err.message || "Failed to convert Estimate to Car In. Please try again.";
+      const errMsg = err?.message || err?.error || "Failed to convert Estimate to Car In. Please try again.";
       setError(errMsg);
       toast.error(errMsg);
     } finally {
@@ -77,8 +109,17 @@ export default function ConvertEstimateToCarInDialog({
 
   const handleViewCarIn = () => {
     handleClose();
-    router.push("/dashboard/car-in");
+    router.push("/dashboard/carin");
   };
+
+  const formattedDate = document.date
+    ? (() => {
+        const d = new Date(document.date);
+        return isNaN(d.getTime())
+          ? document.date
+          : d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+      })()
+    : "—";
 
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
@@ -129,14 +170,20 @@ export default function ConvertEstimateToCarInDialog({
                     <span className="text-slate-900 font-bold text-sm uppercase block font-mono">
                       {document.vehicle}
                     </span>
-                    {document.model && <span className="text-slate-600 text-[11px] block">{document.model}</span>}
+                    {(resolvedModel || document.model) && (
+                      <span className="text-slate-600 text-[11px] block">{resolvedModel || document.model}</span>
+                    )}
                   </div>
                 </div>
 
-                <div className="pt-2 border-t border-slate-200/60 grid grid-cols-2 gap-3 text-xs">
+                <div className="pt-2 border-t border-slate-200/60 grid grid-cols-3 gap-3 text-xs">
                   <div>
                     <span className="text-slate-500 font-medium block">Estimate:</span>
                     <span className="font-mono font-semibold text-slate-800">{document.id}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 font-medium block">Date:</span>
+                    <span className="font-medium text-slate-700">{formattedDate}</span>
                   </div>
                   <div>
                     <span className="text-slate-500 font-medium block">Amount:</span>
@@ -145,6 +192,13 @@ export default function ConvertEstimateToCarInDialog({
                     </span>
                   </div>
                 </div>
+
+                {document.notes && (
+                  <div className="pt-2 border-t border-slate-200/60 text-xs">
+                    <span className="text-slate-500 font-medium block">Notes:</span>
+                    <span className="text-slate-700 italic">{document.notes}</span>
+                  </div>
+                )}
               </div>
 
               {/* Items & Services preview */}
@@ -159,7 +213,7 @@ export default function ConvertEstimateToCarInDialog({
                         key={idx}
                         className="flex items-center justify-between text-xs px-3 py-2 bg-slate-100/70 rounded-lg border border-slate-200/60"
                       >
-                        <span className="text-slate-800 font-medium truncate">{item.desc || "Item"}</span>
+                        <span className="text-slate-800 font-medium truncate">{item.desc || item.name || "Item"}</span>
                         <span className="font-semibold text-slate-700 shrink-0 ml-2">
                           ₹{Number(item.price || item.amount || 0).toLocaleString("en-IN")}
                         </span>

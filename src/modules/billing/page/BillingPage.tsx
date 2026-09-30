@@ -33,6 +33,8 @@ function CardMoreDropdown({
   onViewReceipt,
   onCancel,
   onConvert,
+  onConvertToCarIn,
+  onViewCarIn,
   onPrint,
   onDownload,
 }: {
@@ -41,6 +43,8 @@ function CardMoreDropdown({
   onViewReceipt: () => void;
   onCancel?: () => void;
   onConvert?: () => void;
+  onConvertToCarIn?: () => void;
+  onViewCarIn?: () => void;
   onPrint?: () => void;
   onDownload?: () => void;
 }) {
@@ -102,6 +106,22 @@ function CardMoreDropdown({
               className="w-full text-left px-3 py-2 text-xs font-medium hover:bg-blue-50 text-blue-600 flex items-center gap-2 transition-colors"
             >
               <ArrowRight className="w-3.5 h-3.5" /> Convert Document
+            </button>
+          )}
+          {onConvertToCarIn && (
+            <button
+              onClick={() => { setIsOpen(false); onConvertToCarIn(); }}
+              className="w-full text-left px-3 py-2 text-xs font-medium hover:bg-amber-50 text-amber-800 flex items-center gap-2 transition-colors"
+            >
+              <Car className="w-3.5 h-3.5" /> Convert to Car In
+            </button>
+          )}
+          {onViewCarIn && (
+            <button
+              onClick={() => { setIsOpen(false); onViewCarIn(); }}
+              className="w-full text-left px-3 py-2 text-xs font-medium hover:bg-emerald-50 text-emerald-800 flex items-center gap-2 transition-colors"
+            >
+              <Car className="w-3.5 h-3.5" /> View Car In
             </button>
           )}
           {onPrint && (
@@ -208,6 +228,8 @@ export function BillingPage() {
   const [documentToMarkPaid, setDocumentToMarkPaid] = useState<BillingDocument | null>(null);
   const [selectedPaymentDocument, setSelectedPaymentDocument] = useState<BillingDocument | null>(null);
   const [documentForPaymentHistory, setDocumentForPaymentHistory] = useState<BillingDocument | null>(null);
+  const [isConvertCarInOpen, setIsConvertCarInOpen] = useState(false);
+  const [documentToConvertCarIn, setDocumentToConvertCarIn] = useState<BillingDocument | null>(null);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [startDate, setStartDate] = useState("");
@@ -553,6 +575,15 @@ export function BillingPage() {
 
                     const awaitingConversion =
                       (doc.type === "Estimate" || doc.type === "Quotation") && doc.status !== "Converted" && doc.status !== "Cancelled";
+                    const isEstimate = doc.type === "Estimate";
+                    const isCarInCreated = Boolean(doc.status === "Converted to Car In" || doc.jobId);
+                    const canConvertToCarIn = Boolean(
+                      isEstimate &&
+                      doc.client && doc.client.trim() &&
+                      doc.vehicle && doc.vehicle.trim() &&
+                      doc.status !== "Cancelled" &&
+                      !isCarInCreated
+                    );
 
                     return (
                       <tr key={doc.id}>
@@ -580,6 +611,34 @@ export function BillingPage() {
                                 Convert to invoice to accept payment
                               </span>
                             )}
+                            {isEstimate && (
+                              isCarInCreated ? (
+                                <button
+                                  type="button"
+                                  onClick={() => router.push("/dashboard/carin")}
+                                  className="px-2.5 py-1 text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition-colors inline-flex items-center gap-1 shrink-0"
+                                  title="View Car In"
+                                >
+                                  <Car className="w-3.5 h-3.5 text-emerald-600" />
+                                  View Car In
+                                </button>
+                              ) : (
+                                canConvertToCarIn && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setDocumentToConvertCarIn(doc);
+                                      setIsConvertCarInOpen(true);
+                                    }}
+                                    className="px-2.5 py-1 text-xs font-bold text-slate-900 bg-amber-400 hover:bg-amber-500 active:bg-amber-600 rounded-lg transition-all shadow-xs inline-flex items-center gap-1 shrink-0"
+                                    title="Convert to Car In"
+                                  >
+                                    <Car className="w-3.5 h-3.5 text-slate-900" />
+                                    Convert to Car In
+                                  </button>
+                                )
+                              )
+                            )}
                             <button
                               onClick={() => { setSelectedDocument(doc); setIsPreviewOpen(true); }}
                               className="p-1.5"
@@ -606,6 +665,8 @@ export function BillingPage() {
                               onViewReceipt={() => { setSelectedPaymentDocument(doc); setIsPaymentReceiptOpen(true); }}
                               onCancel={() => { setDocumentToCancel(doc); setIsCancelOpen(true); }}
                               onConvert={(doc.type === "Estimate" || doc.type === "Quotation") && doc.status !== "Paid" && doc.status !== "Converted" ? () => { setDocumentToConvert(doc); setIsConvertOpen(true); } : undefined}
+                              onConvertToCarIn={canConvertToCarIn ? () => { setDocumentToConvertCarIn(doc); setIsConvertCarInOpen(true); } : undefined}
+                              onViewCarIn={isEstimate && isCarInCreated ? () => router.push("/dashboard/carin") : undefined}
                               onPrint={() => { setSelectedDocument(doc); setIsPreviewOpen(true); }}
                               onDownload={() => downloadInvoicePdf(doc)}
                             />
@@ -757,6 +818,17 @@ export function BillingPage() {
           gst: documentForPaymentHistory.gst || 0,
           discount: documentForPaymentHistory.discount || 0,
         } : undefined}
+      />
+      <ConvertEstimateToCarInDialog
+        isOpen={isConvertCarInOpen}
+        onClose={() => {
+          setIsConvertCarInOpen(false);
+          setDocumentToConvertCarIn(null);
+        }}
+        document={documentToConvertCarIn}
+        onSuccess={async () => {
+          await fetchInvoices();
+        }}
       />
     </div>
   );

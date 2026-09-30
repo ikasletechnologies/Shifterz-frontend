@@ -443,8 +443,9 @@ export async function downloadReportCsv(category: string, type: string, from?: s
 // ═══════════════════════════════════════════════════════════════
 // SERVICES
 // ═══════════════════════════════════════════════════════════════
-export async function getServices() {
-  return apiCall("/services");
+export async function getServices(params?: { status?: string }) {
+  const query = params?.status ? `?status=${encodeURIComponent(params.status)}` : "";
+  return apiCall(`/services${query}`);
 }
 
 export async function createService(service: any) {

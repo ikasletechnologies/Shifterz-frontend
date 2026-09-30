@@ -7,7 +7,7 @@ import { toast } from "react-hot-toast";
 import { JobCard } from "../types/job-card.types";
 import { JobTracking, useJobTracking } from "../hooks/useJobTracking";
 import { STAGE_FILTERS, hasTechnician } from "../lib/jobStage";
-import { StatusText } from "@/components/common/StatusText";
+import { JobStatusBadge } from "./JobStatusBadge";
 import { PriorityBadge } from "./PriorityBadge";
 
 interface JobCardTabsProps {
@@ -142,7 +142,7 @@ export function JobCardTabs({
                           <button
                             type="button"
                             onClick={(e) => handleCopyId(j.id, e)}
-                            className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-gray-100 hover:bg-yellow-100 text-gray-800 text-xs font-mono font-bold transition-colors cursor-pointer group"
+                            className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-gray-100 hover:bg-yellow-100 text-gray-800 text-xs font-mono font-bold transition-colors cursor-pointer group shrink-0"
                             title="Click to copy Job ID"
                           >
                             <span>{j.id}</span>
@@ -150,8 +150,8 @@ export function JobCardTabs({
                           </button>
 
                           <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                            {j.status && <JobStatusBadge status={j.status} />}
                             {j.priority && <PriorityBadge priority={j.priority} />}
-                            <StatusText status={stage.label} tone={stage.tone} />
                           </div>
                         </div>
 

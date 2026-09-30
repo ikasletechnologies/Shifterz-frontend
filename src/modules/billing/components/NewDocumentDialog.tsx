@@ -1,10 +1,13 @@
 "use client";
 
+import { createPortal } from "react-dom";
+
 import { PhoneInput } from "@/components/common/PhoneInput";
 import { useState, useEffect, useMemo, useRef } from "react";
 import {
   X, FileText, Plus, Trash2, Loader2, Clock, Eye,
-  MapPin, CheckCircle2, ArrowRight, Wrench, Package, Layers
+  MapPin, CheckCircle2, ArrowRight, Wrench, Package, Layers,
+  Search, ChevronDown, Check
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { fetchVehicleDetails, getServices, getInventory } from "@/lib/api";
@@ -39,6 +42,63 @@ const BILLING_ELIGIBLE_JOB_STATUSES = ["Ready For Billing", "QC Passed", "Delive
 // its own default is "PPF"), so these are never assumed to be the only valid
 // values — see serviceCategoryOptions below, which is catalog-driven.
 const SERVICE_CATEGORY_OPTIONS = ["General Service", "Bodywork & Paint", "PPF & Coating", "Electrical & Diagnostics", "AC Repair"];
+
+
+interface DropdownPosition {
+  top?: number;
+  bottom?: number;
+  left: number;
+  width: number;
+  maxHeight: number;
+  openUpward: boolean;
+}
+
+const calculateDropdownPosition = (inputEl: HTMLElement): DropdownPosition => {
+  const rect = inputEl.getBoundingClientRect();
+  const viewportHeight = window.innerHeight;
+  const viewportWidth = window.innerWidth;
+
+  const spaceBelow = viewportHeight - rect.bottom - 12;
+  const spaceAbove = rect.top - 12;
+
+  // Open upward if not enough space below (< 220px) and more space above
+  const openUpward = spaceBelow < 220 && spaceAbove > spaceBelow;
+  const desiredHeight = 280;
+
+  const maxHeight = openUpward
+    ? Math.min(desiredHeight, Math.max(140, spaceAbove - 10))
+    : Math.min(desiredHeight, Math.max(140, spaceBelow - 10));
+
+  // Minimum width 360px or input width, clamped to viewport
+  const targetWidth = Math.max(rect.width, 360);
+  const width = Math.min(targetWidth, viewportWidth - 24);
+
+  let left = rect.left;
+  if (left + width > viewportWidth - 12) {
+    left = Math.max(12, viewportWidth - width - 12);
+  }
+  if (left < 12) {
+    left = 12;
+  }
+
+  if (openUpward) {
+    return {
+      bottom: viewportHeight - rect.top + 4,
+      left,
+      width,
+      maxHeight,
+      openUpward: true,
+    };
+  } else {
+    return {
+      top: rect.bottom + 4,
+      left,
+      width,
+      maxHeight,
+      openUpward: false,
+    };
+  }
+};
 
 interface NewDocumentDialogProps {
   isOpen: boolean;
@@ -124,10 +184,206 @@ export default function NewDocumentDialog({
   const [availableServices, setAvailableServices] = useState<any[]>([]);
   const [isLoadingServices, setIsLoadingServices] = useState(false);
   const [focusedServiceIndex, setFocusedServiceIndex] = useState<number | null>(null);
+  const [serviceSearchText, setServiceSearchText] = useState<{ [key: number]: string }>({});
+  const [highlightedServiceIndex, setHighlightedServiceIndex] = useState<number | null>(null);
+  const serviceInputRefs = useRef<{ [key: number]: HTMLInputElement | null }>({});
+  const [serviceDropdownPos, setServiceDropdownPos] = useState<DropdownPosition | null>(null);
+  const serviceDropdownPortalRef = useRef<HTMLDivElement | null>(null);
 
   const [availableInventory, setAvailableInventory] = useState<any[]>([]);
   const [isLoadingInventory, setIsLoadingInventory] = useState(false);
   const [focusedInventoryIndex, setFocusedInventoryIndex] = useState<number | null>(null);
+  const [inventorySearchText, setInventorySearchText] = useState<{ [key: number]: string }>({});
+  const [highlightedInventoryIndex, setHighlightedInventoryIndex] = useState<number | null>(null);
+  const inventoryInputRefs = useRef<{ [key: number]: HTMLInputElement | null }>({});
+  const [inventoryDropdownPos, setInventoryDropdownPos] = useState<DropdownPosition | null>(null);
+  const inventoryDropdownPortalRef = useRef<HTMLDivElement | null>(null);
+
+  const activeServices = useMemo(() => {
+    return availableServices.filter((s) => !s.isDeleted && s.status !== "Inactive");
+  }, [availableServices]);
+
+  // Dynamic position tracking for Service Dropdown Portal
+  useEffect(() => {
+    if (focusedServiceIndex !== null && serviceInputRefs.current[focusedServiceIndex]) {
+      const el = serviceInputRefs.current[focusedServiceIndex]!;
+      setServiceDropdownPos(calculateDropdownPosition(el));
+
+      const handleUpdate = () => {
+        const rect = el.getBoundingClientRect();
+        if (rect.bottom < 0 || rect.top > window.innerHeight) {
+          setFocusedServiceIndex(null);
+          setHighlightedServiceIndex(null);
+        } else {
+          setServiceDropdownPos(calculateDropdownPosition(el));
+        }
+      };
+
+      window.addEventListener("scroll", handleUpdate, true);
+      window.addEventListener("resize", handleUpdate);
+      return () => {
+        window.removeEventListener("scroll", handleUpdate, true);
+        window.removeEventListener("resize", handleUpdate);
+      };
+    } else {
+      setServiceDropdownPos(null);
+    }
+  }, [focusedServiceIndex]);
+
+  // Dynamic position tracking for Inventory Dropdown Portal
+  useEffect(() => {
+    if (focusedInventoryIndex !== null && inventoryInputRefs.current[focusedInventoryIndex]) {
+      const el = inventoryInputRefs.current[focusedInventoryIndex]!;
+      setInventoryDropdownPos(calculateDropdownPosition(el));
+
+      const handleUpdate = () => {
+        const rect = el.getBoundingClientRect();
+        if (rect.bottom < 0 || rect.top > window.innerHeight) {
+          setFocusedInventoryIndex(null);
+          setHighlightedInventoryIndex(null);
+        } else {
+          setInventoryDropdownPos(calculateDropdownPosition(el));
+        }
+      };
+
+      window.addEventListener("scroll", handleUpdate, true);
+      window.addEventListener("resize", handleUpdate);
+      return () => {
+        window.removeEventListener("scroll", handleUpdate, true);
+        window.removeEventListener("resize", handleUpdate);
+      };
+    } else {
+      setInventoryDropdownPos(null);
+    }
+  }, [focusedInventoryIndex]);
+
+  // Global Outside Click Listener for Portals
+  useEffect(() => {
+    const handleMouseDown = (e: MouseEvent) => {
+      const target = e.target as Node;
+
+      // Handle Service Dropdown outside click
+      if (focusedServiceIndex !== null) {
+        const inputEl = serviceInputRefs.current[focusedServiceIndex];
+        const portalEl = serviceDropdownPortalRef.current;
+        const isInsideInput = inputEl && inputEl.contains(target);
+        const isInsidePortal = portalEl && portalEl.contains(target);
+
+        if (!isInsideInput && !isInsidePortal) {
+          const typed = (serviceSearchText[focusedServiceIndex] ?? "").trim();
+          if (typed) {
+            const exact = activeServices.find(
+              (s) => s.name.toLowerCase() === typed.toLowerCase() || (s.code && s.code.toLowerCase() === typed.toLowerCase())
+            );
+            if (exact) {
+              selectService(focusedServiceIndex, exact);
+            } else if (!serviceLines[focusedServiceIndex]?.serviceId) {
+              handleServiceChange(focusedServiceIndex, "desc", "");
+            }
+          } else if (!serviceLines[focusedServiceIndex]?.serviceId) {
+            handleServiceChange(focusedServiceIndex, "desc", "");
+          }
+          setServiceSearchText((prev) => {
+            const next = { ...prev };
+            delete next[focusedServiceIndex];
+            return next;
+          });
+          setFocusedServiceIndex(null);
+          setHighlightedServiceIndex(null);
+        }
+      }
+
+      // Handle Inventory Dropdown outside click
+      if (focusedInventoryIndex !== null) {
+        const inputEl = inventoryInputRefs.current[focusedInventoryIndex];
+        const portalEl = inventoryDropdownPortalRef.current;
+        const isInsideInput = inputEl && inputEl.contains(target);
+        const isInsidePortal = portalEl && portalEl.contains(target);
+
+        if (!isInsideInput && !isInsidePortal) {
+          const typed = (inventorySearchText[focusedInventoryIndex] ?? "").trim();
+          if (typed) {
+            const exact = availableInventory.find(
+              (p) => p.name.toLowerCase() === typed.toLowerCase() || (p.id && p.id.toLowerCase() === typed.toLowerCase())
+            );
+            if (exact) {
+              selectInventoryItem(focusedInventoryIndex, exact);
+            } else if (!itemLines[focusedInventoryIndex]?.itemId) {
+              handleItemLineChange(focusedInventoryIndex, "desc", "");
+            }
+          } else if (!itemLines[focusedInventoryIndex]?.itemId) {
+            handleItemLineChange(focusedInventoryIndex, "desc", "");
+          }
+          setInventorySearchText((prev) => {
+            const next = { ...prev };
+            delete next[focusedInventoryIndex];
+            return next;
+          });
+          setFocusedInventoryIndex(null);
+          setHighlightedInventoryIndex(null);
+        }
+      }
+    };
+
+    document.addEventListener("mousedown", handleMouseDown);
+    return () => {
+      document.removeEventListener("mousedown", handleMouseDown);
+    };
+  }, [focusedServiceIndex, focusedInventoryIndex, activeServices, availableInventory, serviceLines, itemLines, serviceSearchText, inventorySearchText]);
+
+
+  const selectService = (index: number, service: any) => {
+    const updated = [...serviceLines];
+    const existingQty = Number(updated[index]?.qty);
+    const qty = existingQty > 0 ? existingQty : 1;
+    const price = Number(service.price || 0);
+    const gstPercent = Number(service.gst ?? 18);
+    updated[index] = {
+      ...updated[index],
+      type: "SERVICE",
+      serviceId: service.id,
+      desc: service.name,
+      qty,
+      price,
+      gstPercent,
+      warranty: service.warranty || "",
+      amount: qty * price,
+    };
+    setServiceLines(updated);
+    setServiceSearchText((prev) => {
+      const next = { ...prev };
+      delete next[index];
+      return next;
+    });
+    setFocusedServiceIndex(null);
+    setHighlightedServiceIndex(null);
+    setServiceDropdownPos(null);
+  };
+
+  const selectInventoryItem = (index: number, product: any) => {
+    const updated = [...itemLines];
+    const qty = Number(updated[index]?.qty) || 1;
+    const price = Number(product.cost ?? product.price ?? 0);
+    updated[index] = {
+      ...updated[index],
+      itemId: product.id,
+      desc: product.name,
+      price,
+      unit: product.unit || "Piece",
+      gstPercent: 18,
+      discountPercent: Number(updated[index]?.discountPercent) || 0,
+      amount: qty * price,
+    };
+    setItemLines(updated);
+    setInventorySearchText((prev) => {
+      const next = { ...prev };
+      delete next[index];
+      return next;
+    });
+    setFocusedInventoryIndex(null);
+    setHighlightedInventoryIndex(null);
+    setInventoryDropdownPos(null);
+  };
 
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
   const [eligibleJobs, setEligibleJobs] = useState<JobCard[]>([]);
@@ -376,7 +632,7 @@ export default function NewDocumentDialog({
   }, [availableServices, initialData, isOpen, serviceLines]);
 
   // Derive Service Category from the matched catalog entries once the catalog
-  // has loaded — "Generate Invoice" fires before getServices() necessarily
+  // has loaded — "Generate Invoice" fires before getServices({ status: "Active" }) necessarily
   // resolves, so this can't be done inline in the initialData hydration above.
   useEffect(() => {
     if (
@@ -569,7 +825,7 @@ export default function NewDocumentDialog({
   useEffect(() => {
     if (isOpen) {
       setIsLoadingServices(true);
-      getServices()
+      getServices({ status: "Active" })
         .then((data) => {
           setAvailableServices(Array.isArray(data) ? data : []);
           setIsLoadingServices(false);
@@ -637,13 +893,25 @@ export default function NewDocumentDialog({
   };
 
   const addServiceLine = () => {
+    const newIndex = serviceLines.length;
     setServiceLines([
       ...serviceLines,
       { type: "SERVICE", desc: "", qty: 1, price: 0, amount: 0, discountPercent: 0, gstPercent: 18, warranty: "" },
     ]);
+    setActiveItemTab("services");
+    setFocusedServiceIndex(newIndex);
+    setHighlightedServiceIndex(0);
+    setTimeout(() => {
+      serviceInputRefs.current[newIndex]?.focus();
+    }, 60);
   };
 
   const removeServiceLine = (index: number) => {
+    setServiceSearchText((prev) => {
+      const next = { ...prev };
+      delete next[index];
+      return next;
+    });
     if (serviceLines.length === 1 && itemLines.length === 0) {
       setServiceLines([{ type: "SERVICE", desc: "", qty: 1, price: 0, amount: 0, discountPercent: 0, gstPercent: 18, warranty: "" }]);
     } else {
@@ -660,13 +928,25 @@ export default function NewDocumentDialog({
   };
 
   const addItemLine = () => {
+    const newIndex = itemLines.length;
     setItemLines([
       ...itemLines,
       { type: "ITEM", desc: "", qty: 1, price: 0, amount: 0, discountPercent: 0, gstPercent: 18, warranty: "" },
     ]);
+    setActiveItemTab("items");
+    setFocusedInventoryIndex(newIndex);
+    setHighlightedInventoryIndex(0);
+    setTimeout(() => {
+      inventoryInputRefs.current[newIndex]?.focus();
+    }, 60);
   };
 
   const removeItemLine = (index: number) => {
+    setInventorySearchText((prev) => {
+      const next = { ...prev };
+      delete next[index];
+      return next;
+    });
     setItemLines(itemLines.filter((_, i) => i !== index));
   };
 
@@ -738,6 +1018,17 @@ export default function NewDocumentDialog({
           toast.error(`Service line #${i + 1} has no service selected. Please select a service or remove the row.`);
           return;
         }
+      } else {
+        const matchingService = activeServices.find(
+          (cs) => (s.serviceId && cs.id === s.serviceId) || cs.name.toLowerCase() === s.desc.trim().toLowerCase()
+        );
+        if (!matchingService) {
+          toast.error(`Service line #${i + 1} ("${s.desc}") is not a valid service from the Services master. Please select a valid service.`);
+          return;
+        }
+        if (!s.serviceId) {
+          s.serviceId = matchingService.id;
+        }
       }
     }
     for (let i = 0; i < itemLines.length; i++) {
@@ -745,6 +1036,17 @@ export default function NewDocumentDialog({
       if (!it.desc.trim()) {
         toast.error(`Item line #${i + 1} has no item selected. Please select an item or remove the row.`);
         return;
+      } else {
+        const matchingItem = availableInventory.find(
+          (ci) => (it.itemId && ci.id === it.itemId) || ci.name.toLowerCase() === it.desc.trim().toLowerCase()
+        );
+        if (!matchingItem) {
+          toast.error(`Item line #${i + 1} ("${it.desc}") is not a valid item from the Items master. Please select a valid item.`);
+          return;
+        }
+        if (!it.itemId) {
+          it.itemId = matchingItem.id;
+        }
       }
     }
 
@@ -915,16 +1217,14 @@ export default function NewDocumentDialog({
         </div>
 
         {/* Scrollable Form Body */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-
-            {/* Left Column (Document Type & Customer & Vehicle) - 7 cols */}
-            <div className="lg:col-span-7 space-y-6">
-
-              {/* Document Type Selection Cards */}
-              <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs space-y-4">
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 pb-8 space-y-6">
+          {/* Top Row: Document Type & Document Info */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
+            {/* Document Type Selection Cards */}
+            <div className="min-w-0 h-full flex flex-col">
+              <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs space-y-4 h-full flex-1 flex flex-col justify-between">
                 <h3 className="text-sm font-bold text-slate-900">Document Type</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 flex-1">
                   {[
                     { type: "Estimate", label: "Estimate", desc: "Prepare an estimate" },
                     { type: "Invoice", label: "Invoice", desc: "Generate final invoice" },
@@ -935,9 +1235,9 @@ export default function NewDocumentDialog({
                         type="button"
                         key={item.type}
                         onClick={() => setFormData((prev) => ({ ...prev, type: item.type }))}
-                        className={`p-4 rounded-xl border text-left transition-all flex flex-col justify-between h-24 ${isSelected
-                            ? "bg-blue-50/50 border-blue-500 ring-2 ring-blue-500/20"
-                            : "bg-white border-slate-200 hover:border-slate-300"
+                        className={`p-4 rounded-xl border text-left transition-all flex flex-col justify-between min-h-24 h-full ${isSelected
+                          ? "bg-blue-50/50 border-blue-500 ring-2 ring-blue-500/20"
+                          : "bg-white border-slate-200 hover:border-slate-300"
                           }`}
                       >
                         <div className="flex items-center justify-between w-full">
@@ -957,9 +1257,63 @@ export default function NewDocumentDialog({
                   })}
                 </div>
               </div>
+            </div>
+
+            {/* Document Info Card */}
+            <div className="min-w-0 h-full flex flex-col">
+              <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs space-y-4 h-full flex-1 flex flex-col justify-between">
+                <h3 className="text-sm font-bold text-slate-900">Document Info</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">Document No.</label>
+                    <input
+                      type="text"
+                      value={nextDocNo}
+                      readOnly
+                      className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl bg-slate-50 font-mono font-bold text-slate-800 cursor-not-allowed"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                      Document Date <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="date"
+                      name="invoiceDate"
+                      value={formData.invoiceDate}
+                      onChange={handleChange}
+                      className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      required
+                    />
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                      {formData.type === "Estimate" ? "Valid Till" : "Due Date"}
+                    </label>
+                    <input
+                      type="date"
+                      name="dueDate"
+                      value={formData.dueDate}
+                      onChange={handleChange}
+                      min={formData.invoiceDate}
+                      className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Main Row: Customer & Vehicle & Items & Summary (Equal Height) */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
+
+            {/* Left Column (Customer & Vehicle) */}
+            <div className="min-w-0 h-full flex flex-col">
 
               {/* Customer & Vehicle Details Card */}
-              <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs space-y-6">
+              <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs space-y-6 h-full flex-1 flex flex-col">
                 <h3 className="text-sm font-bold text-slate-900 border-b border-slate-100 pb-3">Customer & Vehicle</h3>
 
                 {/* Customer Details */}
@@ -1273,59 +1627,15 @@ export default function NewDocumentDialog({
               </div>
             </div>
 
-            {/* Right Column (Document Info & Items & Summary) - 5 cols */}
-            <div className="lg:col-span-5 space-y-6">
-
-              {/* Document Info Card */}
-              <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs space-y-4">
-                <h3 className="text-sm font-bold text-slate-900">Document Info</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-600 mb-1">Document No.</label>
-                    <input
-                      type="text"
-                      value={nextDocNo}
-                      readOnly
-                      className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl bg-slate-50 font-mono font-bold text-slate-800 cursor-not-allowed"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-600 mb-1">
-                      Document Date <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="date"
-                      name="invoiceDate"
-                      value={formData.invoiceDate}
-                      onChange={handleChange}
-                      className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      required
-                    />
-                  </div>
-
-                  <div className="sm:col-span-2">
-                    <label className="block text-[11px] font-bold text-slate-600 mb-1">
-                      {formData.type === "Estimate" ? "Valid Till" : "Due Date"}
-                    </label>
-                    <input
-                      type="date"
-                      name="dueDate"
-                      value={formData.dueDate}
-                      onChange={handleChange}
-                      min={formData.invoiceDate}
-                      className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                </div>
-              </div>
+            {/* Right Column (Items & Summary) */}
+            <div className="min-w-0 h-full flex flex-col">
 
               {/* Items & Summary Card */}
-              <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs space-y-5">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-3 gap-2">
+              <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs h-full flex-1 flex flex-col space-y-5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-3 gap-2 shrink-0">
                   <div>
                     <h3 className="text-sm font-bold text-slate-900">Items & Summary</h3>
-                    <p className="text-[11px] text-slate-400">Add services and spare parts/products</p>
+
                   </div>
 
                   {/* Two Clear Tabs */}
@@ -1358,9 +1668,9 @@ export default function NewDocumentDialog({
                 </div>
 
                 {/* 1. SERVICES SECTION */}
-                {(activeItemTab === "services" || activeItemTab === "all") && (
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
+                {activeItemTab === "services" && (
+                  <div className="space-y-3 flex-1 flex flex-col min-h-0">
+                    <div className="flex items-center justify-between shrink-0">
                       <div className="flex items-center gap-1.5 text-xs font-bold text-blue-700 uppercase tracking-wider">
                         <Wrench className="w-4 h-4" />
                         <span>Services ({serviceLines.filter(s => s.desc.trim()).length})</span>
@@ -1372,17 +1682,17 @@ export default function NewDocumentDialog({
                       )}
                     </div>
 
-                    <div className="overflow-x-auto border border-slate-200/80 rounded-xl">
+                    <div className="overflow-x-auto overflow-y-auto max-h-[340px] border border-slate-200/80 rounded-xl">
                       <table className="w-full text-left text-xs">
                         <thead className="bg-blue-50/50 text-[10px] uppercase tracking-wider text-slate-500 font-bold border-b border-slate-200/80">
                           <tr>
-                            <th className="py-2 px-2 text-center w-8">#</th>
-                            <th className="py-2 px-2">Service</th>
-                            <th className="py-2 px-2 w-14 text-center">Qty</th>
-                            <th className="py-2 px-2 w-20 text-right">Rate (₹)</th>
-                            <th className="py-2 px-2 w-14 text-center">GST (%)</th>
-                            <th className="py-2 px-2 w-24 text-right">Amount (₹)</th>
-                            <th className="py-2 px-2 w-8 text-center" />
+                            <th className="py-2.5 px-2 text-center w-8">#</th>
+                            <th className="py-2.5 px-2">Service Description</th>
+                            <th className="py-2.5 px-2 w-16 text-center">Qty</th>
+                            <th className="py-2.5 px-2 w-24 text-right">Rate (₹)</th>
+                            <th className="py-2.5 px-2 w-16 text-center">GST (%)</th>
+                            <th className="py-2.5 px-2 w-28 text-right">Amount (₹)</th>
+                            <th className="py-2.5 px-2 w-8 text-center" />
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
@@ -1395,68 +1705,137 @@ export default function NewDocumentDialog({
                             return (
                               <tr key={index} className="hover:bg-slate-50/50">
                                 <td className="py-2 px-2 text-center font-bold text-slate-400 text-[11px]">{index + 1}</td>
-                                <td className="py-2 px-2 relative">
-                                  <input
-                                    type="text"
-                                    value={sLine.desc}
-                                    onChange={(e) => handleServiceChange(index, "desc", e.target.value)}
-                                    onFocus={() => setFocusedServiceIndex(index)}
-                                    onBlur={() => setTimeout(() => setFocusedServiceIndex(null), 250)}
-                                    placeholder="Select or type service..."
-                                    className="w-full px-2 py-1 border border-slate-200 rounded-lg text-xs font-semibold focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                                  />
-                                  {focusedServiceIndex === index && (
-                                    <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-48 overflow-y-auto top-full left-0">
-                                      {isLoadingServices ? (
-                                        <div className="p-3 text-xs text-slate-400 text-center">
-                                          <Loader2 className="w-3.5 h-3.5 animate-spin inline mr-1" /> Loading services...
-                                        </div>
-                                      ) : availableServices.length === 0 ? (
-                                        <div className="p-3 text-xs text-slate-400 text-center">No services found</div>
-                                      ) : (
-                                        availableServices
-                                          .filter(s => !sLine.desc || s.name.toLowerCase().includes(sLine.desc.toLowerCase()))
-                                          .map((service) => (
-                                            <div
-                                              key={service.id}
-                                              className="p-2.5 hover:bg-blue-50 cursor-pointer text-xs transition-colors border-b border-slate-50 last:border-0 flex items-center justify-between"
-                                              onMouseDown={(e) => {
-                                                e.preventDefault();
-                                                const updated = [...serviceLines];
-                                                updated[index] = {
-                                                  ...updated[index],
-                                                  serviceId: service.id,
-                                                  desc: service.name,
-                                                  price: Number(service.price || 0),
-                                                  gstPercent: service.gst ?? 18,
-                                                  warranty: service.warranty || "",
-                                                  amount: (Number(updated[index].qty) || 1) * Number(service.price || 0),
-                                                };
-                                                setServiceLines(updated);
-                                                setFocusedServiceIndex(null);
-                                              }}
-                                            >
-                                              <div>
-                                                <p className="font-bold text-slate-900">{service.name}</p>
-                                                {service.category && (
-                                                  <span className="text-[10px] text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded font-medium">{service.category}</span>
-                                                )}
-                                              </div>
-                                              <div className="text-right">
-                                                <p className="font-mono font-bold text-slate-900">₹{Number(service.price || 0).toLocaleString("en-IN")}</p>
-                                                <p className="text-[10px] text-slate-400">GST: {service.gst ?? 18}%</p>
-                                              </div>
-                                            </div>
-                                          ))
+                                <td className="py-2 px-2 min-w-[220px]">
+                                  <div className="relative flex items-center">
+                                    <Wrench className={`w-3.5 h-3.5 absolute left-2.5 transition-colors pointer-events-none ${focusedServiceIndex === index ? "text-blue-600" : "text-slate-400"
+                                      }`} />
+                                    <input
+                                      ref={(el) => { serviceInputRefs.current[index] = el; }}
+                                      type="text"
+                                      value={serviceSearchText[index] !== undefined ? serviceSearchText[index] : sLine.desc}
+                                      onChange={(e) => {
+                                        const val = e.target.value;
+                                        setServiceSearchText((prev) => ({ ...prev, [index]: val }));
+                                        if (focusedServiceIndex !== index) {
+                                          setFocusedServiceIndex(index);
+                                        }
+                                        setHighlightedServiceIndex(0);
+                                      }}
+                                      onFocus={(e) => {
+                                        setFocusedServiceIndex(index);
+                                        setHighlightedServiceIndex(0);
+                                        e.target.select();
+                                      }}
+                                      onKeyDown={(e) => {
+                                        const query = (serviceSearchText[index] !== undefined ? serviceSearchText[index] : "").toLowerCase().trim();
+                                        const filtered = activeServices.filter((s) => {
+                                          if (!query) return true;
+                                          return (
+                                            (s.name || "").toLowerCase().includes(query) ||
+                                            (s.code || s.id || "").toLowerCase().includes(query) ||
+                                            (s.category || "").toLowerCase().includes(query)
+                                          );
+                                        });
+
+                                        if (focusedServiceIndex !== index) {
+                                          if (e.key === "ArrowDown" || e.key === "Enter") {
+                                            setFocusedServiceIndex(index);
+                                            setHighlightedServiceIndex(0);
+                                          }
+                                          return;
+                                        }
+
+                                        if (e.key === "ArrowDown") {
+                                          e.preventDefault();
+                                          if (filtered.length > 0) {
+                                            setHighlightedServiceIndex((prev) => (prev === null || prev >= filtered.length - 1 ? 0 : prev + 1));
+                                          }
+                                        } else if (e.key === "ArrowUp") {
+                                          e.preventDefault();
+                                          if (filtered.length > 0) {
+                                            setHighlightedServiceIndex((prev) => (prev === null || prev <= 0 ? filtered.length - 1 : prev - 1));
+                                          }
+                                        } else if (e.key === "Enter") {
+                                          e.preventDefault();
+                                          if (highlightedServiceIndex !== null && filtered[highlightedServiceIndex]) {
+                                            selectService(index, filtered[highlightedServiceIndex]);
+                                          } else if (filtered.length === 1) {
+                                            selectService(index, filtered[0]);
+                                          }
+                                        } else if (e.key === "Escape") {
+                                          e.preventDefault();
+                                          setFocusedServiceIndex(null);
+                                          setHighlightedServiceIndex(null);
+                                        } else if (e.key === "Tab") {
+                                          const typed = (serviceSearchText[index] ?? "").trim();
+                                          if (typed) {
+                                            const exact = activeServices.find(
+                                              (s) => s.name.toLowerCase() === typed.toLowerCase() || (s.code && s.code.toLowerCase() === typed.toLowerCase())
+                                            );
+                                            if (exact) {
+                                              selectService(index, exact);
+                                            } else if (!sLine.serviceId) {
+                                              handleServiceChange(index, "desc", "");
+                                            }
+                                          } else if (!sLine.serviceId) {
+                                            handleServiceChange(index, "desc", "");
+                                          }
+                                          setFocusedServiceIndex(null);
+                                          setHighlightedServiceIndex(null);
+                                        }
+                                      }}
+                                      placeholder="Select or search service..."
+                                      className="w-full pl-8 pr-12 py-1.5 border border-slate-200 rounded-lg text-xs font-semibold focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-all placeholder:text-slate-400"
+                                    />
+                                    <div className="absolute right-1.5 flex items-center gap-0.5">
+                                      {(sLine.desc || serviceSearchText[index]) && (
+                                        <button
+                                          type="button"
+                                          tabIndex={-1}
+                                          onMouseDown={(e) => {
+                                            e.preventDefault();
+                                            handleServiceChange(index, "desc", "");
+                                            handleServiceChange(index, "serviceId", undefined);
+                                            handleServiceChange(index, "price", 0);
+                                            handleServiceChange(index, "amount", 0);
+                                            setServiceSearchText((prev) => ({ ...prev, [index]: "" }));
+                                            setFocusedServiceIndex(index);
+                                            setHighlightedServiceIndex(0);
+                                            serviceInputRefs.current[index]?.focus();
+                                          }}
+                                          className="p-1 text-slate-400 hover:text-red-500 rounded-full hover:bg-slate-100 transition-colors"
+                                          title="Clear service"
+                                        >
+                                          <X className="w-3.5 h-3.5" />
+                                        </button>
                                       )}
+                                      <button
+                                        type="button"
+                                        tabIndex={-1}
+                                        onMouseDown={(e) => {
+                                          e.preventDefault();
+                                          if (focusedServiceIndex === index) {
+                                            setFocusedServiceIndex(null);
+                                          } else {
+                                            setFocusedServiceIndex(index);
+                                            setHighlightedServiceIndex(0);
+                                            serviceInputRefs.current[index]?.focus();
+                                          }
+                                        }}
+                                        className="p-1 text-slate-400 hover:text-slate-600 rounded"
+                                      >
+                                        <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${focusedServiceIndex === index ? "rotate-180 text-blue-600" : ""
+                                          }`} />
+                                      </button>
                                     </div>
-                                  )}
+                                  </div>
                                 </td>
                                 <td className="py-2 px-2">
                                   <input
                                     type="number"
                                     value={sLine.qty}
                                     onChange={(e) => handleServiceChange(index, "qty", parseFloat(e.target.value) || 0)}
+                                    onFocus={(e) => e.target.select()}
                                     min="1"
                                     className="w-full px-1 py-1 border border-slate-200 rounded-lg text-xs text-center font-bold"
                                   />
@@ -1466,6 +1845,7 @@ export default function NewDocumentDialog({
                                     type="number"
                                     value={sLine.price}
                                     onChange={(e) => handleServiceChange(index, "price", parseFloat(e.target.value) || 0)}
+                                    onFocus={(e) => e.target.select()}
                                     min="0"
                                     className="w-full px-1 py-1 border border-slate-200 rounded-lg text-xs text-right font-bold font-mono"
                                   />
@@ -1475,9 +1855,10 @@ export default function NewDocumentDialog({
                                     type="number"
                                     value={sLine.gstPercent}
                                     onChange={(e) => handleServiceChange(index, "gstPercent", parseFloat(e.target.value) || 0)}
+                                    onFocus={(e) => e.target.select()}
                                     min="0"
                                     max="100"
-                                    className="w-full px-1 py-1 border border-slate-200 rounded-lg text-xs text-center"
+                                    className="w-full px-1 py-1 border border-slate-200 rounded-lg text-xs text-center font-medium"
                                   />
                                 </td>
                                 <td className="py-2 px-2 text-right font-mono font-bold text-slate-900">
@@ -1511,9 +1892,9 @@ export default function NewDocumentDialog({
                 )}
 
                 {/* 2. ITEMS / PRODUCTS SECTION */}
-                {(activeItemTab === "items" || activeItemTab === "all") && (
-                  <div className="space-y-3 pt-3 border-t border-slate-100">
-                    <div className="flex items-center justify-between">
+                {activeItemTab === "items" && (
+                  <div className="space-y-3 flex-1 flex flex-col min-h-0">
+                    <div className="flex items-center justify-between shrink-0">
                       <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-700 uppercase tracking-wider">
                         <Package className="w-4 h-4" />
                         <span>Items / Products ({itemLines.filter(i => i.desc.trim()).length})</span>
@@ -1525,24 +1906,24 @@ export default function NewDocumentDialog({
                       )}
                     </div>
 
-                    <div className="overflow-x-auto border border-slate-200/80 rounded-xl">
+                    <div className="overflow-x-auto overflow-y-auto max-h-[340px] border border-slate-200/80 rounded-xl">
                       <table className="w-full text-left text-xs">
                         <thead className="bg-emerald-50/50 text-[10px] uppercase tracking-wider text-slate-500 font-bold border-b border-slate-200/80">
                           <tr>
-                            <th className="py-2 px-2 text-center w-8">#</th>
-                            <th className="py-2 px-2">Item / Product</th>
-                            <th className="py-2 px-2 w-14 text-center">Qty</th>
-                            <th className="py-2 px-2 w-20 text-right">Rate (₹)</th>
-                            <th className="py-2 px-2 w-16 text-center">Disc. (%)</th>
-                            <th className="py-2 px-2 w-14 text-center">GST (%)</th>
-                            <th className="py-2 px-2 w-24 text-right">Amount (₹)</th>
-                            <th className="py-2 px-2 w-8 text-center" />
+                            <th className="py-2.5 px-2 text-center w-8">#</th>
+                            <th className="py-2.5 px-2">Item / Product</th>
+                            <th className="py-2.5 px-2 w-16 text-center">Qty</th>
+                            <th className="py-2.5 px-2 w-24 text-right">Rate (₹)</th>
+                            <th className="py-2.5 px-2 w-16 text-center">Disc. (%)</th>
+                            <th className="py-2.5 px-2 w-16 text-center">GST (%)</th>
+                            <th className="py-2.5 px-2 w-28 text-right">Amount (₹)</th>
+                            <th className="py-2.5 px-2 w-8 text-center" />
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
                           {itemLines.length === 0 ? (
                             <tr>
-                              <td colSpan={8} className="py-4 text-center text-xs text-slate-400">
+                              <td colSpan={8} className="py-6 text-center text-xs text-slate-400">
                                 No items added yet. Click &ldquo;+ Add Item&rdquo; below to select parts or products from inventory.
                               </td>
                             </tr>
@@ -1557,72 +1938,137 @@ export default function NewDocumentDialog({
                               return (
                                 <tr key={index} className="hover:bg-slate-50/50">
                                   <td className="py-2 px-2 text-center font-bold text-slate-400 text-[11px]">{index + 1}</td>
-                                  <td className="py-2 px-2 relative">
-                                    <input
-                                      type="text"
-                                      value={itLine.desc}
-                                      onChange={(e) => handleItemLineChange(index, "desc", e.target.value)}
-                                      onFocus={() => setFocusedInventoryIndex(index)}
-                                      onBlur={() => setTimeout(() => setFocusedInventoryIndex(null), 250)}
-                                      placeholder="Select or type item / product..."
-                                      className="w-full px-2 py-1 border border-slate-200 rounded-lg text-xs font-semibold focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                                    />
-                                    {focusedInventoryIndex === index && (
-                                      <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-48 overflow-y-auto top-full left-0">
-                                        {isLoadingInventory ? (
-                                          <div className="p-3 text-xs text-slate-400 text-center">
-                                            <Loader2 className="w-3.5 h-3.5 animate-spin inline mr-1" /> Loading inventory...
-                                          </div>
-                                        ) : availableInventory.length === 0 ? (
-                                          <div className="p-3 text-xs text-slate-400 text-center">No inventory items found</div>
-                                        ) : (
-                                          availableInventory
-                                            .filter(p => !itLine.desc || p.name.toLowerCase().includes(itLine.desc.toLowerCase()))
-                                            .map((product) => (
-                                              <div
-                                                key={product.id}
-                                                className="p-2.5 hover:bg-emerald-50 cursor-pointer text-xs transition-colors border-b border-slate-50 last:border-0 flex items-center justify-between"
-                                                onMouseDown={(e) => {
-                                                  e.preventDefault();
-                                                  const updated = [...itemLines];
-                                                  updated[index] = {
-                                                    ...updated[index],
-                                                    itemId: product.id,
-                                                    desc: product.name,
-                                                    price: Number(product.cost || 0),
-                                                    unit: product.unit || "Piece",
-                                                    gstPercent: 18,
-                                                    discountPercent: 0,
-                                                    amount: (Number(updated[index].qty) || 1) * Number(product.cost || 0),
-                                                  };
-                                                  setItemLines(updated);
-                                                  setFocusedInventoryIndex(null);
-                                                }}
-                                              >
-                                                <div>
-                                                  <p className="font-bold text-slate-900">{product.name}</p>
-                                                  <div className="flex items-center gap-1.5 mt-0.5">
-                                                    {product.category && (
-                                                      <span className="text-[10px] text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded font-medium">{product.category}</span>
-                                                    )}
-                                                    <span className="text-[10px] text-slate-400">Stock: {product.stock} {product.unit || 'units'}</span>
-                                                  </div>
-                                                </div>
-                                                <div className="text-right">
-                                                  <p className="font-mono font-bold text-slate-900">₹{Number(product.cost || 0).toLocaleString("en-IN")}</p>
-                                                  <p className="text-[10px] text-slate-400">Rate</p>
-                                                </div>
-                                              </div>
-                                            ))
+                                  <td className="py-2 px-2 min-w-[220px]">
+                                    <div className="relative flex items-center">
+                                      <Package className={`w-3.5 h-3.5 absolute left-2.5 transition-colors pointer-events-none ${focusedInventoryIndex === index ? "text-emerald-600" : "text-slate-400"
+                                        }`} />
+                                      <input
+                                        ref={(el) => { inventoryInputRefs.current[index] = el; }}
+                                        type="text"
+                                        value={inventorySearchText[index] !== undefined ? inventorySearchText[index] : itLine.desc}
+                                        onChange={(e) => {
+                                          const val = e.target.value;
+                                          setInventorySearchText((prev) => ({ ...prev, [index]: val }));
+                                          if (focusedInventoryIndex !== index) {
+                                            setFocusedInventoryIndex(index);
+                                          }
+                                          setHighlightedInventoryIndex(0);
+                                        }}
+                                        onFocus={(e) => {
+                                          setFocusedInventoryIndex(index);
+                                          setHighlightedInventoryIndex(0);
+                                          e.target.select();
+                                        }}
+                                        onKeyDown={(e) => {
+                                          const query = (inventorySearchText[index] !== undefined ? inventorySearchText[index] : "").toLowerCase().trim();
+                                          const filtered = availableInventory.filter((p) => {
+                                            if (!query) return true;
+                                            return (
+                                              (p.name || "").toLowerCase().includes(query) ||
+                                              (p.id || "").toLowerCase().includes(query) ||
+                                              (p.category || "").toLowerCase().includes(query)
+                                            );
+                                          });
+
+                                          if (focusedInventoryIndex !== index) {
+                                            if (e.key === "ArrowDown" || e.key === "Enter") {
+                                              setFocusedInventoryIndex(index);
+                                              setHighlightedInventoryIndex(0);
+                                            }
+                                            return;
+                                          }
+
+                                          if (e.key === "ArrowDown") {
+                                            e.preventDefault();
+                                            if (filtered.length > 0) {
+                                              setHighlightedInventoryIndex((prev) => (prev === null || prev >= filtered.length - 1 ? 0 : prev + 1));
+                                            }
+                                          } else if (e.key === "ArrowUp") {
+                                            e.preventDefault();
+                                            if (filtered.length > 0) {
+                                              setHighlightedInventoryIndex((prev) => (prev === null || prev <= 0 ? filtered.length - 1 : prev - 1));
+                                            }
+                                          } else if (e.key === "Enter") {
+                                            e.preventDefault();
+                                            if (highlightedInventoryIndex !== null && filtered[highlightedInventoryIndex]) {
+                                              selectInventoryItem(index, filtered[highlightedInventoryIndex]);
+                                            } else if (filtered.length === 1) {
+                                              selectInventoryItem(index, filtered[0]);
+                                            }
+                                          } else if (e.key === "Escape") {
+                                            e.preventDefault();
+                                            setFocusedInventoryIndex(null);
+                                            setHighlightedInventoryIndex(null);
+                                          } else if (e.key === "Tab") {
+                                            const typed = (inventorySearchText[index] ?? "").trim();
+                                            if (typed) {
+                                              const exact = availableInventory.find(
+                                                (p) => p.name.toLowerCase() === typed.toLowerCase() || (p.id && p.id.toLowerCase() === typed.toLowerCase())
+                                              );
+                                              if (exact) {
+                                                selectInventoryItem(index, exact);
+                                              } else if (!itLine.itemId) {
+                                                handleItemLineChange(index, "desc", "");
+                                              }
+                                            } else if (!itLine.itemId) {
+                                              handleItemLineChange(index, "desc", "");
+                                            }
+                                            setFocusedInventoryIndex(null);
+                                            setHighlightedInventoryIndex(null);
+                                          }
+                                        }}
+                                        placeholder="Select or search item..."
+                                        className="w-full pl-8 pr-12 py-1.5 border border-slate-200 rounded-lg text-xs font-semibold focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:outline-none transition-all placeholder:text-slate-400"
+                                      />
+                                      <div className="absolute right-1.5 flex items-center gap-0.5">
+                                        {(itLine.desc || inventorySearchText[index]) && (
+                                          <button
+                                            type="button"
+                                            tabIndex={-1}
+                                            onMouseDown={(e) => {
+                                              e.preventDefault();
+                                              handleItemLineChange(index, "desc", "");
+                                              handleItemLineChange(index, "itemId", undefined);
+                                              handleItemLineChange(index, "price", 0);
+                                              handleItemLineChange(index, "amount", 0);
+                                              setInventorySearchText((prev) => ({ ...prev, [index]: "" }));
+                                              setFocusedInventoryIndex(index);
+                                              setHighlightedInventoryIndex(0);
+                                              inventoryInputRefs.current[index]?.focus();
+                                            }}
+                                            className="p-1 text-slate-400 hover:text-red-500 rounded-full hover:bg-slate-100 transition-colors"
+                                            title="Clear item"
+                                          >
+                                            <X className="w-3.5 h-3.5" />
+                                          </button>
                                         )}
+                                        <button
+                                          type="button"
+                                          tabIndex={-1}
+                                          onMouseDown={(e) => {
+                                            e.preventDefault();
+                                            if (focusedInventoryIndex === index) {
+                                              setFocusedInventoryIndex(null);
+                                            } else {
+                                              setFocusedInventoryIndex(index);
+                                              setHighlightedInventoryIndex(0);
+                                              inventoryInputRefs.current[index]?.focus();
+                                            }
+                                          }}
+                                          className="p-1 text-slate-400 hover:text-slate-600 rounded"
+                                        >
+                                          <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${focusedInventoryIndex === index ? "rotate-180 text-emerald-600" : ""
+                                            }`} />
+                                        </button>
                                       </div>
-                                    )}
+                                    </div>
                                   </td>
                                   <td className="py-2 px-2">
                                     <input
                                       type="number"
                                       value={itLine.qty}
                                       onChange={(e) => handleItemLineChange(index, "qty", parseFloat(e.target.value) || 0)}
+                                      onFocus={(e) => e.target.select()}
                                       min="1"
                                       className="w-full px-1 py-1 border border-slate-200 rounded-lg text-xs text-center font-bold"
                                     />
@@ -1632,6 +2078,7 @@ export default function NewDocumentDialog({
                                       type="number"
                                       value={itLine.price}
                                       onChange={(e) => handleItemLineChange(index, "price", parseFloat(e.target.value) || 0)}
+                                      onFocus={(e) => e.target.select()}
                                       min="0"
                                       className="w-full px-1 py-1 border border-slate-200 rounded-lg text-xs text-right font-bold font-mono"
                                     />
@@ -1641,6 +2088,7 @@ export default function NewDocumentDialog({
                                       type="number"
                                       value={itLine.discountPercent}
                                       onChange={(e) => handleItemLineChange(index, "discountPercent", parseFloat(e.target.value) || 0)}
+                                      onFocus={(e) => e.target.select()}
                                       min="0"
                                       max="100"
                                       className="w-full px-1 py-1 border border-slate-200 rounded-lg text-xs text-center"
@@ -1651,9 +2099,10 @@ export default function NewDocumentDialog({
                                       type="number"
                                       value={itLine.gstPercent}
                                       onChange={(e) => handleItemLineChange(index, "gstPercent", parseFloat(e.target.value) || 0)}
+                                      onFocus={(e) => e.target.select()}
                                       min="0"
                                       max="100"
-                                      className="w-full px-1 py-1 border border-slate-200 rounded-lg text-xs text-center"
+                                      className="w-full px-1 py-1 border border-slate-200 rounded-lg text-xs text-center font-medium"
                                     />
                                   </td>
                                   <td className="py-2 px-2 text-right font-mono font-bold text-slate-900">
@@ -1687,8 +2136,207 @@ export default function NewDocumentDialog({
                   </div>
                 )}
 
+                {/* 3. ALL TAB (Unified View with Clear Type Identification) */}
+                {activeItemTab === "all" && (
+                  <div className="space-y-3 flex-1 flex flex-col min-h-0">
+                    <div className="flex items-center justify-between shrink-0">
+                      <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800 uppercase tracking-wider">
+                        <Layers className="w-4 h-4 text-blue-600" />
+                        <span>All Items & Services ({serviceLines.filter(s => s.desc.trim()).length + itemLines.filter(i => i.desc.trim()).length})</span>
+                      </div>
+                      <div className="flex items-center gap-3 text-xs font-semibold text-slate-500">
+                        {serviceBaseAmount > 0 && (
+                          <span>Services: <strong className="text-blue-600 font-mono">₹{serviceBaseAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</strong></span>
+                        )}
+                        {itemBaseAmount > 0 && (
+                          <span>Items: <strong className="text-emerald-600 font-mono">₹{itemBaseAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</strong></span>
+                        )}
+                        <span className="text-slate-900">Total: <strong className="font-mono">₹{baseAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</strong></span>
+                      </div>
+                    </div>
+
+                    <div className="overflow-x-auto overflow-y-auto max-h-[340px] border border-slate-200/80 rounded-xl">
+                      <table className="w-full text-left text-xs">
+                        <thead className="bg-slate-100/80 text-[10px] uppercase tracking-wider text-slate-600 font-bold border-b border-slate-200/80">
+                          <tr>
+                            <th className="py-2.5 px-2 text-center w-8">#</th>
+                            <th className="py-2.5 px-2">Item / Service</th>
+                            <th className="py-2.5 px-2 w-20 text-center">Type</th>
+                            <th className="py-2.5 px-2 w-14 text-center">Qty</th>
+                            <th className="py-2.5 px-2 w-20 text-right">Rate (₹)</th>
+                            <th className="py-2.5 px-2 w-14 text-center">GST (%)</th>
+                            <th className="py-2.5 px-2 w-24 text-right">Amount (₹)</th>
+                            <th className="py-2.5 px-2 w-8 text-center" />
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {serviceLines.filter(s => s.desc.trim()).length === 0 && itemLines.filter(i => i.desc.trim()).length === 0 ? (
+                            <tr>
+                              <td colSpan={8} className="py-6 text-center text-xs text-slate-400">
+                                No services or items added yet. Click &ldquo;+ Add Service&rdquo; or &ldquo;+ Add Item&rdquo; below.
+                              </td>
+                            </tr>
+                          ) : (
+                            <>
+                              {/* 1. Services in All view */}
+                              {serviceLines.map((sLine, index) => {
+                                const lineSubtotal = (Number(sLine.qty) || 0) * (Number(sLine.price) || 0);
+                                const lineTaxable = lineSubtotal;
+                                const lineGst = (lineTaxable * (sLine.gstPercent ?? 18)) / 100;
+                                const lineTotalWithTax = lineTaxable + lineGst;
+
+                                return (
+                                  <tr key={`all-srv-${index}`} className="hover:bg-blue-50/20">
+                                    <td className="py-2 px-2 text-center font-bold text-slate-400 text-[11px]">{index + 1}</td>
+                                    <td className="py-2 px-2 font-semibold text-slate-900">
+                                      <div className="flex items-center gap-1.5">
+                                        <Wrench className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                                        <span>{sLine.desc || <span className="text-slate-400 italic font-normal">Select service...</span>}</span>
+                                      </div>
+                                    </td>
+                                    <td className="py-2 px-2 text-center">
+                                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                                        Service
+                                      </span>
+                                    </td>
+                                    <td className="py-2 px-2">
+                                      <input
+                                        type="number"
+                                        value={sLine.qty}
+                                        onChange={(e) => handleServiceChange(index, "qty", parseFloat(e.target.value) || 0)}
+                                        min="1"
+                                        className="w-full px-1 py-1 border border-slate-200 rounded-lg text-xs text-center font-bold"
+                                      />
+                                    </td>
+                                    <td className="py-2 px-2">
+                                      <input
+                                        type="number"
+                                        value={sLine.price}
+                                        onChange={(e) => handleServiceChange(index, "price", parseFloat(e.target.value) || 0)}
+                                        min="0"
+                                        className="w-full px-1 py-1 border border-slate-200 rounded-lg text-xs text-right font-bold font-mono"
+                                      />
+                                    </td>
+                                    <td className="py-2 px-2">
+                                      <input
+                                        type="number"
+                                        value={sLine.gstPercent}
+                                        onChange={(e) => handleServiceChange(index, "gstPercent", parseFloat(e.target.value) || 0)}
+                                        min="0"
+                                        max="100"
+                                        className="w-full px-1 py-1 border border-slate-200 rounded-lg text-xs text-center"
+                                      />
+                                    </td>
+                                    <td className="py-2 px-2 text-right font-mono font-bold text-slate-900">
+                                      ₹{lineTotalWithTax.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                                    </td>
+                                    <td className="py-2 px-2 text-center">
+                                      <button
+                                        type="button"
+                                        onClick={() => removeServiceLine(index)}
+                                        className="text-red-500 hover:text-red-700 p-1"
+                                        title="Remove Service"
+                                      >
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                      </button>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+
+                              {/* 2. Items in All view */}
+                              {itemLines.map((itLine, index) => {
+                                const lineSubtotal = (Number(itLine.qty) || 0) * (Number(itLine.price) || 0);
+                                const lineDisc = (lineSubtotal * (Number(itLine.discountPercent) || 0)) / 100;
+                                const lineTaxable = lineSubtotal - lineDisc;
+                                const lineGst = (lineTaxable * (itLine.gstPercent ?? 18)) / 100;
+                                const lineTotalWithTax = lineTaxable + lineGst;
+
+                                return (
+                                  <tr key={`all-itm-${index}`} className="hover:bg-emerald-50/20">
+                                    <td className="py-2 px-2 text-center font-bold text-slate-400 text-[11px]">{serviceLines.length + index + 1}</td>
+                                    <td className="py-2 px-2 font-semibold text-slate-900">
+                                      <div className="flex items-center gap-1.5">
+                                        <Package className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                                        <span>{itLine.desc || <span className="text-slate-400 italic font-normal">Select item...</span>}</span>
+                                      </div>
+                                    </td>
+                                    <td className="py-2 px-2 text-center">
+                                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                        Item
+                                      </span>
+                                    </td>
+                                    <td className="py-2 px-2">
+                                      <input
+                                        type="number"
+                                        value={itLine.qty}
+                                        onChange={(e) => handleItemLineChange(index, "qty", parseFloat(e.target.value) || 0)}
+                                        min="1"
+                                        className="w-full px-1 py-1 border border-slate-200 rounded-lg text-xs text-center font-bold"
+                                      />
+                                    </td>
+                                    <td className="py-2 px-2">
+                                      <input
+                                        type="number"
+                                        value={itLine.price}
+                                        onChange={(e) => handleItemLineChange(index, "price", parseFloat(e.target.value) || 0)}
+                                        min="0"
+                                        className="w-full px-1 py-1 border border-slate-200 rounded-lg text-xs text-right font-bold font-mono"
+                                      />
+                                    </td>
+                                    <td className="py-2 px-2">
+                                      <input
+                                        type="number"
+                                        value={itLine.gstPercent}
+                                        onChange={(e) => handleItemLineChange(index, "gstPercent", parseFloat(e.target.value) || 0)}
+                                        min="0"
+                                        max="100"
+                                        className="w-full px-1 py-1 border border-slate-200 rounded-lg text-xs text-center"
+                                      />
+                                    </td>
+                                    <td className="py-2 px-2 text-right font-mono font-bold text-slate-900">
+                                      ₹{lineTotalWithTax.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                                    </td>
+                                    <td className="py-2 px-2 text-center">
+                                      <button
+                                        type="button"
+                                        onClick={() => removeItemLine(index)}
+                                        className="text-red-500 hover:text-red-700 p-1"
+                                        title="Remove Item"
+                                      >
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                      </button>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={addServiceLine}
+                        className="px-3 py-1.5 bg-blue-50 text-blue-600 font-bold text-xs rounded-xl hover:bg-blue-100 border border-blue-100 transition-colors flex items-center gap-1.5"
+                      >
+                        <Plus className="w-3.5 h-3.5" /> Add Service
+                      </button>
+                      <button
+                        type="button"
+                        onClick={addItemLine}
+                        className="px-3 py-1.5 bg-emerald-50 text-emerald-600 font-bold text-xs rounded-xl hover:bg-emerald-100 border border-emerald-100 transition-colors flex items-center gap-1.5"
+                      >
+                        <Plus className="w-3.5 h-3.5" /> Add Item
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 {/* Calculation Summary */}
-                <div className="pt-4 border-t border-slate-200/80 space-y-2.5 text-xs bg-slate-50/50 p-4 rounded-xl">
+                <div className="pt-4 border-t border-slate-200/80 space-y-2.5 text-xs bg-slate-50/50 p-4 rounded-xl mt-auto shrink-0">
                   {serviceBaseAmount > 0 && itemBaseAmount > 0 && (
                     <>
                       <div className="flex justify-between items-center text-slate-500 text-[11px]">
@@ -1842,6 +2490,269 @@ export default function NewDocumentDialog({
           warranty: formData.warranty,
         }}
       />
+
+      {/* ─── FLOATING SERVICE DROPDOWN PORTAL ─── */}
+      {typeof document !== "undefined" && focusedServiceIndex !== null && serviceDropdownPos && createPortal(
+        <div
+          ref={serviceDropdownPortalRef}
+          style={{
+            position: "fixed",
+            top: serviceDropdownPos.top !== undefined ? `${serviceDropdownPos.top}px` : undefined,
+            bottom: serviceDropdownPos.bottom !== undefined ? `${serviceDropdownPos.bottom}px` : undefined,
+            left: `${serviceDropdownPos.left}px`,
+            width: `${serviceDropdownPos.width}px`,
+            maxHeight: `${serviceDropdownPos.maxHeight}px`,
+            zIndex: 99999,
+          }}
+          className="bg-white border border-slate-200/90 rounded-2xl shadow-2xl overflow-hidden flex flex-col ring-1 ring-black/5 animate-in fade-in zoom-in-95 duration-100"
+        >
+          {/* Header */}
+          <div className="px-3.5 py-2.5 bg-gradient-to-r from-blue-50/80 to-slate-50 border-b border-slate-100 flex items-center justify-between shrink-0">
+            <div className="flex items-center gap-2">
+              <Wrench className="w-3.5 h-3.5 text-blue-600" />
+              <span className="text-xs font-bold text-slate-800">Select Service</span>
+            </div>
+            <span className="text-[10px] text-blue-700 bg-blue-100/70 px-2 py-0.5 rounded-full font-bold">
+              Services Master
+            </span>
+          </div>
+
+          {/* Body */}
+          <div className="overflow-y-auto flex-1 divide-y divide-slate-100">
+            {isLoadingServices ? (
+              <div className="p-6 text-xs text-slate-400 text-center flex flex-col items-center justify-center gap-2">
+                <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
+                <span>Loading services from master...</span>
+              </div>
+            ) : activeServices.length === 0 ? (
+              <div className="p-6 text-xs text-slate-400 text-center font-medium">
+                No active services found in master
+              </div>
+            ) : (
+              (() => {
+                const query = (serviceSearchText[focusedServiceIndex] !== undefined ? serviceSearchText[focusedServiceIndex] : "").toLowerCase().trim();
+                const filtered = activeServices.filter((s) => {
+                  if (!query) return true;
+                  return (
+                    (s.name || "").toLowerCase().includes(query) ||
+                    (s.code || s.id || "").toLowerCase().includes(query) ||
+                    (s.category || "").toLowerCase().includes(query)
+                  );
+                });
+
+                if (filtered.length === 0) {
+                  return (
+                    <div className="p-6 text-center space-y-1">
+                      <p className="text-xs font-semibold text-slate-700">No matching service found</p>
+                      <p className="text-[11px] text-slate-400">
+                        {query ? `No active service matches "${query}".` : "Please create services in the Service Master."}
+                      </p>
+                    </div>
+                  );
+                }
+
+                const currentLine = serviceLines[focusedServiceIndex];
+
+                return filtered.map((service, sIdx) => {
+                  const isHighlighted = highlightedServiceIndex === sIdx;
+                  const isSelected = currentLine?.serviceId === service.id || (currentLine?.desc && currentLine.desc.toLowerCase() === service.name.toLowerCase());
+
+                  return (
+                    <div
+                      key={service.id}
+                      ref={(el) => {
+                        if (isHighlighted && el) {
+                          el.scrollIntoView({ block: "nearest" });
+                        }
+                      }}
+                      className={`p-3 cursor-pointer text-xs transition-colors flex items-center justify-between gap-3 ${isSelected
+                        ? "bg-blue-50/90 font-medium"
+                        : isHighlighted
+                          ? "bg-blue-50/50"
+                          : "hover:bg-slate-50"
+                        }`}
+                      onMouseEnter={() => setHighlightedServiceIndex(sIdx)}
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        selectService(focusedServiceIndex, service);
+                      }}
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0 pr-2">
+                        <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${isSelected ? "bg-blue-600 text-white" : "bg-blue-50 text-blue-600"
+                          }`}>
+                          {isSelected ? <Check className="w-4 h-4" /> : <Wrench className="w-3.5 h-3.5" />}
+                        </div>
+                        <div className="min-w-0">
+                          <p className={`font-bold truncate text-xs ${isSelected ? "text-blue-900" : "text-slate-900"}`}>
+                            {service.name}
+                          </p>
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            {service.category && (
+                              <span className="text-[10px] text-blue-700 bg-blue-100/60 px-1.5 py-0.2 rounded font-semibold">
+                                {service.category}
+                              </span>
+                            )}
+                            {service.code && (
+                              <span className="text-[10px] text-slate-400 font-mono">
+                                {service.code}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="text-right shrink-0">
+                        <p className="font-mono font-bold text-slate-900 text-xs">
+                          ₹{Number(service.price || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                        </p>
+                        <p className="text-[10px] text-slate-400">
+                          GST: {service.gst ?? 18}%
+                        </p>
+                      </div>
+                    </div>
+                  );
+                });
+              })()
+            )}
+          </div>
+
+          {/* Footer Hints */}
+
+        </div>,
+        document.body
+      )}
+
+      {/* ─── FLOATING INVENTORY DROPDOWN PORTAL ─── */}
+      {typeof document !== "undefined" && focusedInventoryIndex !== null && inventoryDropdownPos && createPortal(
+        <div
+          ref={inventoryDropdownPortalRef}
+          style={{
+            position: "fixed",
+            top: inventoryDropdownPos.top !== undefined ? `${inventoryDropdownPos.top}px` : undefined,
+            bottom: inventoryDropdownPos.bottom !== undefined ? `${inventoryDropdownPos.bottom}px` : undefined,
+            left: `${inventoryDropdownPos.left}px`,
+            width: `${inventoryDropdownPos.width}px`,
+            maxHeight: `${inventoryDropdownPos.maxHeight}px`,
+            zIndex: 99999,
+          }}
+          className="bg-white border border-slate-200/90 rounded-2xl shadow-2xl overflow-hidden flex flex-col ring-1 ring-black/5 animate-in fade-in zoom-in-95 duration-100"
+        >
+          {/* Header */}
+          <div className="px-3.5 py-2.5 bg-gradient-to-r from-emerald-50/80 to-slate-50 border-b border-slate-100 flex items-center justify-between shrink-0">
+            <div className="flex items-center gap-2">
+              <Package className="w-3.5 h-3.5 text-emerald-600" />
+              <span className="text-xs font-bold text-slate-800">Select Item</span>
+            </div>
+            <span className="text-[10px] text-emerald-700 bg-emerald-100/70 px-2 py-0.5 rounded-full font-bold">
+              Inventory Master
+            </span>
+          </div>
+
+          {/* Body */}
+          <div className="overflow-y-auto flex-1 divide-y divide-slate-100">
+            {isLoadingInventory ? (
+              <div className="p-6 text-xs text-slate-400 text-center flex flex-col items-center justify-center gap-2">
+                <Loader2 className="w-4 h-4 animate-spin text-emerald-600" />
+                <span>Loading inventory from master...</span>
+              </div>
+            ) : availableInventory.length === 0 ? (
+              <div className="p-6 text-xs text-slate-400 text-center font-medium">
+                No inventory items found in master
+              </div>
+            ) : (
+              (() => {
+                const query = (inventorySearchText[focusedInventoryIndex] !== undefined ? inventorySearchText[focusedInventoryIndex] : "").toLowerCase().trim();
+                const filtered = availableInventory.filter((p) => {
+                  if (!query) return true;
+                  return (
+                    (p.name || "").toLowerCase().includes(query) ||
+                    (p.id || "").toLowerCase().includes(query) ||
+                    (p.category || "").toLowerCase().includes(query)
+                  );
+                });
+
+                if (filtered.length === 0) {
+                  return (
+                    <div className="p-6 text-center space-y-1">
+                      <p className="text-xs font-semibold text-slate-700">No matching item found</p>
+                      <p className="text-[11px] text-slate-400">
+                        {query ? `No inventory item matches "${query}".` : "Please create items in the Inventory section."}
+                      </p>
+                    </div>
+                  );
+                }
+
+                const currentLine = itemLines[focusedInventoryIndex];
+
+                return filtered.map((product, pIdx) => {
+                  const isHighlighted = highlightedInventoryIndex === pIdx;
+                  const isSelected = currentLine?.itemId === product.id || (currentLine?.desc && currentLine.desc.toLowerCase() === product.name.toLowerCase());
+                  const stock = Number(product.stock ?? 0);
+
+                  return (
+                    <div
+                      key={product.id}
+                      ref={(el) => {
+                        if (isHighlighted && el) {
+                          el.scrollIntoView({ block: "nearest" });
+                        }
+                      }}
+                      className={`p-3 cursor-pointer text-xs transition-colors flex items-center justify-between gap-3 ${isSelected
+                        ? "bg-emerald-50/90 font-medium"
+                        : isHighlighted
+                          ? "bg-emerald-50/50"
+                          : "hover:bg-slate-50"
+                        }`}
+                      onMouseEnter={() => setHighlightedInventoryIndex(pIdx)}
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        selectInventoryItem(focusedInventoryIndex, product);
+                      }}
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0 pr-2">
+                        <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${isSelected ? "bg-emerald-600 text-white" : "bg-emerald-50 text-emerald-600"
+                          }`}>
+                          {isSelected ? <Check className="w-4 h-4" /> : <Package className="w-3.5 h-3.5" />}
+                        </div>
+                        <div className="min-w-0">
+                          <p className={`font-bold truncate text-xs ${isSelected ? "text-emerald-900" : "text-slate-900"}`}>
+                            {product.name}
+                          </p>
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            {product.category && (
+                              <span className="text-[10px] text-emerald-700 bg-emerald-100/60 px-1.5 py-0.2 rounded font-semibold">
+                                {product.category}
+                              </span>
+                            )}
+                            <span className={`text-[10px] px-1.5 py-0.2 rounded font-medium ${stock > 5 ? "bg-emerald-50 text-emerald-700" : stock > 0 ? "bg-amber-50 text-amber-700" : "bg-red-50 text-red-700"
+                              }`}>
+                              {stock > 0 ? `Stock: ${stock} ${product.unit || 'units'}` : "Out of stock"}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="text-right shrink-0">
+                        <p className="font-mono font-bold text-slate-900 text-xs">
+                          ₹{Number(product.cost ?? product.price ?? 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                        </p>
+                        <p className="text-[10px] text-slate-400">
+                          Rate
+                        </p>
+                      </div>
+                    </div>
+                  );
+                });
+              })()
+            )}
+          </div>
+
+          {/* Footer Hints */}
+
+        </div>,
+        document.body
+      )}
+
     </div>
   );
 }

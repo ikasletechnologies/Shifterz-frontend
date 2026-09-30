@@ -18,6 +18,7 @@ const GOOD = [
   "delivered",
   "out",
   "converted",
+  "converted to car in",
   "resolved",
   "ready for billing",
   "ready for delivery",
