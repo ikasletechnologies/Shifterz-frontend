@@ -5,7 +5,6 @@ import { Copy, User, Phone, CheckCircle2, XCircle, UserCheck, Play, Camera, List
 import { toast } from "react-hot-toast";
 import { QCJob, QCInspection } from "../types/qc.types";
 import { getCurrentUser, isHQRole } from "@/lib/franchise-scope";
-import { StatusText } from "@/components/common/StatusText";
 
 interface QCTabsViewProps {
   jobs: QCJob[];
@@ -90,6 +89,23 @@ export function QCTabsView({
     return "bg-blue-100 text-blue-700";
   };
 
+  const getQCStatusBadge = (status?: string) => {
+    const s = (status || "").toLowerCase().trim();
+    if (s.includes("rework") || s.includes("fail")) {
+      return { label: "Rework Required", className: "bg-rose-100 text-rose-700 border border-rose-200/60" };
+    }
+    if (s.includes("inspect") || s === "in qc") {
+      return { label: "Inspecting", className: "bg-blue-100 text-blue-700 border border-blue-200/60" };
+    }
+    if (s.includes("billing") || s.includes("pass")) {
+      return {
+        label: s.includes("billing") ? "Ready For Billing" : "QC Passed",
+        className: s.includes("billing") ? "bg-teal-100 text-teal-800 border border-teal-200/60" : "bg-emerald-100 text-emerald-800 border border-emerald-200/60",
+      };
+    }
+    return { label: "Waiting QC", className: "bg-yellow-100 text-yellow-800 border border-yellow-200/60" };
+  };
+
   // Group jobs by canonical QC statuses:
   // 1. Awaiting Review
   // 2. Inspecting
@@ -170,37 +186,48 @@ export function QCTabsView({
               return (
                 <div
                   key={job.id}
-                  className="bg-white rounded-xl border border-gray-200/90 shadow-xs hover:shadow-md hover:border-yellow-400 transition-all p-4 flex flex-col justify-between gap-3"
+                  className="bg-white rounded-xl border border-gray-200/90 shadow-xs hover:shadow-md hover:border-yellow-400 transition-all p-4 flex flex-col justify-between gap-3 overflow-hidden"
                 >
                   <div className="space-y-2">
-                    {/* Header: ID + Priority + Status */}
-                    <div className="flex items-start justify-between gap-2">
+                    {/* Header: ID + Priority */}
+                    <div className="flex items-center justify-between gap-2 min-w-0">
                       <button
                         type="button"
                         onClick={(e) => handleCopyId(job.id, e)}
-                        className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-gray-100 hover:bg-yellow-100 text-gray-800 text-xs font-mono font-bold transition-colors cursor-pointer group"
+                        className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-gray-100 hover:bg-yellow-100 text-gray-800 text-xs font-mono font-bold transition-colors cursor-pointer group shrink-0"
                         title="Click to copy Job ID"
                       >
                         <span>{job.id}</span>
                         <Copy className="w-3 h-3 text-gray-400 group-hover:text-gray-700 transition-colors" />
                       </button>
 
-                      <div className="flex items-center gap-1.5 flex-wrap justify-end">
-                        {job.priority && (
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${getPriorityBadgeClass(job.priority)}`}>
-                            {job.priority}
-                          </span>
-                        )}
-                        <StatusText status={job.status} />
-                      </div>
+                      {job.priority && (
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 ${getPriorityBadgeClass(job.priority)}`}>
+                          {job.priority}
+                        </span>
+                      )}
                     </div>
 
-                    {/* Vehicle & Fault */}
+                    {/* Vehicle & Status */}
                     <div className="space-y-1.5 pt-1">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="font-bold text-xs uppercase tracking-wider text-gray-900 bg-slate-50 border border-slate-200/80 px-2 py-0.5 rounded">
+                      <div className="flex items-center justify-between gap-2 min-w-0">
+                        <span
+                          className="font-bold text-xs uppercase tracking-wider text-gray-900 bg-slate-50 border border-slate-200/80 px-2 py-0.5 rounded truncate min-w-0"
+                          title={job.vehicle}
+                        >
                           {job.vehicle}
                         </span>
+                        {(() => {
+                          const statusInfo = getQCStatusBadge(job.status);
+                          return (
+                            <span
+                              className={`px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap shrink-0 ${statusInfo.className}`}
+                              title={job.status || statusInfo.label}
+                            >
+                              {statusInfo.label}
+                            </span>
+                          );
+                        })()}
                       </div>
 
                       {job.service && (

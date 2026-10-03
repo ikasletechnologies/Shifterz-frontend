@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { useCallback, useContext, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   Car,
   Ticket,
@@ -61,6 +61,7 @@ interface NavItem {
   icon: React.ElementType;
   href: string;
   module?: string;
+  superAdminOnly?: boolean;
   children?: Omit<NavItem, "children">[];
 }
 interface NavSection {
@@ -90,8 +91,8 @@ export const hqSidebarSections: NavSection[] = [
     items: [
       { label: "Car In", icon: Car, href: "/dashboard/carin", module: "carin" },
       { label: "Job Cards", icon: Briefcase, href: "/dashboard/jobs", module: "jobs" },
-      { label: "Vehicle Inspection", icon: Camera, href: "/dashboard/vehicle-inspection", module: "carin" },
-      { label: "QC", icon: ShieldCheck, href: "/dashboard/qc", module: "jobs" },
+      { label: "Vehicle Inspection", icon: Camera, href: "/dashboard/vehicle-inspection", module: "vehicle-inspection" },
+      { label: "QC", icon: ShieldCheck, href: "/dashboard/qc", module: "qc" },
       { label: "Out Pass", icon: Ticket, href: "/dashboard/outpass", module: "outpass" },
       { label: "Workshop", icon: Hammer, href: "/dashboard/workshop", module: "jobs" },
       { label: "Live Status", icon: ActivitySquare, href: "/dashboard/live-status", module: "jobs" },
@@ -135,8 +136,9 @@ export const hqSidebarSections: NavSection[] = [
   {
     label: "MANAGEMENT",
     items: [
+      { label: "Vendor Management", icon: Building2, href: "/dashboard/management/vendors", module: "inventory", superAdminOnly: true },
+      { label: "Purchase Orders", icon: ShoppingCart, href: "/dashboard/franchise-control/purchases", module: "inventory" },
       { label: "Services", icon: Wrench, href: "/dashboard/services", module: "services" },
-      { label: "Vendor & Purchase Management", icon: ShoppingCart, href: "/dashboard/franchise-control/purchases", module: "inventory" },
       { label: "Masters & Config", icon: Database, href: "/dashboard/masters", module: "settings" },
       { label: "User Management", icon: UserRoundCog, href: "/dashboard/franchise-control/users", module: "employees" },
     ],
@@ -189,7 +191,10 @@ export const franchiseSidebarSections: NavSection[] = [
   },
   {
     label: "INVENTORY",
-    items: [{ label: "Inventory", icon: Package, href: "/dashboard/inventory", module: "inventory" }],
+    items: [
+      { label: "Inventory", icon: Package, href: "/dashboard/inventory", module: "inventory" },
+      { label: "Purchases", icon: ShoppingCart, href: "/dashboard/franchise-control/purchases", module: "inventory" },
+    ],
   },
   {
     label: "ANALYTICS",
@@ -200,7 +205,7 @@ export const franchiseSidebarSections: NavSection[] = [
     items: [
       { label: "Employees", icon: UserCheck, href: "/dashboard/employees", module: "employees" },
       { label: "Technicians", icon: HardHat, href: "/dashboard/technicians", module: "employees" },
-      { label: "QC", icon: ShieldCheck, href: "/dashboard/qc", module: "jobs" },
+      { label: "QC", icon: ShieldCheck, href: "/dashboard/qc", module: "qc" },
       { label: "Service Advisors", icon: Headset, href: "/dashboard/service-advisors", module: "employees" },
       { label: "Billing Staff", icon: Receipt, href: "/dashboard/billing-staff", module: "employees" },
       { label: "Receptionists", icon: ConciergeBell, href: "/dashboard/receptionists", module: "employees" },
@@ -241,6 +246,111 @@ export const billingSidebarSections: NavSection[] = [
     ],
   },
   {
+    label: "HR & STAFF",
+    items: [
+      { label: "Attendance", icon: Clock, href: "/dashboard/attendance", module: "attendance" },
+    ],
+  },
+  {
+    label: "SETTINGS",
+    items: [
+      { label: "Profile", icon: User, href: "/dashboard/profile" },
+    ],
+  },
+];
+
+// ── Service Advisor role sidebar ─────────────────────────────────────────────
+// Default shows 3 core SA modules (Dashboard, Car In, Live Status).
+// Extra modules appear automatically as Super Admin grants additional permissions.
+export const serviceAdvisorSidebarSections: NavSection[] = [
+  {
+    label: "OVERVIEW",
+    items: [{ label: "Dashboard", icon: Grid3x3, href: "/dashboard", module: "dashboard" }],
+  },
+  {
+    label: "WORKSHOP",
+    items: [
+      { label: "Car In", icon: Car, href: "/dashboard/carin", module: "carin" },
+      { label: "Live Status", icon: ActivitySquare, href: "/dashboard/live-status", module: "jobs" },
+      { label: "Job Cards", icon: Briefcase, href: "/dashboard/jobs", module: "jobs" },
+      { label: "Vehicle Inspection", icon: Camera, href: "/dashboard/vehicle-inspection", module: "vehicle-inspection" },
+      { label: "Out Pass", icon: Ticket, href: "/dashboard/outpass", module: "outpass" },
+    ],
+  },
+  {
+    label: "CRM",
+    items: [
+      { label: "Leads", icon: Users, href: "/dashboard/leads", module: "leads" },
+      { label: "Customers", icon: Users2, href: "/dashboard/customers", module: "customers" },
+    ],
+  },
+  {
+    label: "HR & STAFF",
+    items: [
+      { label: "Attendance", icon: Clock, href: "/dashboard/attendance", module: "attendance" },
+    ],
+  },
+  {
+    label: "SETTINGS",
+    items: [
+      { label: "Profile", icon: User, href: "/dashboard/profile" },
+    ],
+  },
+];
+
+// ── Quality Inspector role sidebar ──────────────────────────────────────────
+// Default shows 3 core QI modules (Dashboard, Vehicle Inspection, QC) and Profile.
+// Extra modules appear automatically if Super Admin grants additional permissions.
+export const qualityInspectorSidebarSections: NavSection[] = [
+  {
+    label: "OVERVIEW",
+    items: [
+      { label: "Dashboard", icon: Grid3x3, href: "/dashboard", module: "dashboard" },
+    ],
+  },
+  {
+    label: "WORKSHOP / INSPECTION",
+    items: [
+      { label: "Vehicle Inspection", icon: Camera, href: "/dashboard/vehicle-inspection", module: "vehicle-inspection" },
+      { label: "QC", icon: ShieldCheck, href: "/dashboard/qc", module: "qc" },
+      { label: "Car In", icon: Car, href: "/dashboard/carin", module: "carin" },
+      { label: "Job Cards", icon: Briefcase, href: "/dashboard/jobs", module: "jobs" },
+      { label: "Out Pass", icon: Ticket, href: "/dashboard/outpass", module: "outpass" },
+    ],
+  },
+  {
+    label: "CRM",
+    items: [
+      { label: "Leads", icon: Users, href: "/dashboard/leads", module: "leads" },
+      { label: "Customers", icon: Users2, href: "/dashboard/customers", module: "customers" },
+    ],
+  },
+  {
+    label: "SALES & BILLING",
+    items: [
+      { label: "Billing", icon: FileText, href: "/dashboard/billing", module: "billing" },
+      { label: "Payments", icon: CreditCard, href: "/dashboard/payments", module: "payments" },
+    ],
+  },
+  {
+    label: "INVENTORY",
+    items: [
+      { label: "Inventory", icon: Package, href: "/dashboard/inventory", module: "inventory" },
+    ],
+  },
+  {
+    label: "ANALYTICS",
+    items: [
+      { label: "Reports", icon: PieChart, href: "/dashboard/reports", module: "reports" },
+    ],
+  },
+  {
+    label: "HR & STAFF",
+    items: [
+      { label: "Attendance", icon: Clock, href: "/dashboard/attendance", module: "attendance" },
+    ],
+  },
+  {
     label: "SETTINGS",
     items: [
       { label: "Profile", icon: User, href: "/dashboard/profile" },
@@ -264,12 +374,53 @@ export const technicianSidebarSections: NavSection[] = [
     ],
   },
   {
+    label: "WORKSHOP",
+    items: [
+      { label: "Workshop", icon: Hammer, href: "/dashboard/workshop", module: "jobs" },
+    ],
+  },
+  {
     label: "SETTINGS",
     items: [
       { label: "Profile", icon: User, href: "/technician/profile" },
     ],
   },
 ];
+// ── Inventory Executive role sidebar ──────────────────────────────────────────
+export const inventoryExecutiveSidebarSections: NavSection[] = [
+  {
+    label: "OVERVIEW",
+    items: [
+      { label: "Dashboard", icon: Grid3x3, href: "/dashboard", module: "dashboard" },
+    ],
+  },
+  {
+    label: "INVENTORY",
+    items: [
+      { label: "Inventory", icon: Package, href: "/dashboard/inventory", module: "inventory" },
+      { label: "Purchase Orders", icon: ShoppingCart, href: "/dashboard/purchases", module: "inventory" },
+    ],
+  },
+  {
+    label: "ANALYTICS",
+    items: [
+      { label: "Reports", icon: PieChart, href: "/dashboard/reports", module: "reports" },
+    ],
+  },
+  {
+    label: "HR & STAFF",
+    items: [
+      { label: "Attendance", icon: Clock, href: "/dashboard/attendance", module: "attendance" },
+    ],
+  },
+  {
+    label: "SETTINGS",
+    items: [
+      { label: "Profile", icon: User, href: "/dashboard/profile" },
+    ],
+  },
+];
+
 // ── Receptionist role sidebar ───────────────────────────────────────────
 export const receptionistSidebarSections: NavSection[] = [
   {
@@ -293,6 +444,12 @@ export const receptionistSidebarSections: NavSection[] = [
     ],
   },
   {
+    label: "HR & STAFF",
+    items: [
+      { label: "Attendance", icon: Clock, href: "/dashboard/attendance", module: "attendance" },
+    ],
+  },
+  {
     label: "SETTINGS",
     items: [
       { label: "Profile", icon: User, href: "/dashboard/profile" },
@@ -306,6 +463,18 @@ export const receptionistSidebarSections: NavSection[] = [
 function isPathActive(pathname: string, href: string) {
   if (href === "/dashboard" || href === "/technician") {
     return pathname === href;
+  }
+  if (
+    (href === "/dashboard/purchases" || href === "/dashboard/franchise-control/purchases") &&
+    (pathname === "/dashboard/purchases" || pathname === "/dashboard/franchise-control/purchases")
+  ) {
+    return true;
+  }
+  if (href === "/dashboard/workshop" && (pathname === "/dashboard/workshop" || pathname === "/technician/workshop")) {
+    return true;
+  }
+  if (href === "/technician/workshop" && (pathname === "/dashboard/workshop" || pathname === "/technician/workshop")) {
+    return true;
   }
   return pathname === href || pathname.startsWith(href + "/");
 }
@@ -453,29 +622,51 @@ export default function Sidebar() {
     rawSections = technicianSidebarSections;
   } else if (baseRole === "BILLING" || baseRole === "BILLING_EXECUTIVE") {
     rawSections = billingSidebarSections;
+  } else if (baseRole === "INVENTORY" || baseRole === "INVENTORY_EXECUTIVE") {
+    rawSections = inventoryExecutiveSidebarSections;
   } else if (baseRole === "RECEPTIONIST" || baseRole === "RECEPTION_EXECUTIVE") {
     rawSections = receptionistSidebarSections;
+  } else if (baseRole === "QUALITY_INSPECTOR" || baseRole === "QC") {
+    rawSections = qualityInspectorSidebarSections;
+  } else if (baseRole === "SERVICE_ADVISOR") {
+    rawSections = serviceAdvisorSidebarSections;
   }
 
   // 2. Filter list based on centralized permission system
-  const sections = rawSections
-    .map((sec) => {
-      const filteredItems = sec.items.filter((item) => {
-        if (isSuperAdmin) return true;
-        if (item.children && item.children.length > 0) {
-          const visibleChildren = item.children.filter(child => !child.module || canAccess(child.module));
-          item.children = visibleChildren;
-          return visibleChildren.length > 0;
-        }
-        if (!item.module) return true;
-        return canAccess(item.module);
-      });
-      return {
-        ...sec,
-        items: filteredItems,
-      };
-    })
-    .filter((sec) => sec.items.length > 0);
+  const sections = useMemo<NavSection[]>(() => {
+    return rawSections
+      .map((sec) => {
+        const filteredItems = sec.items
+          .filter((item) => {
+            if (item.superAdminOnly && !isSuperAdmin) return false;
+            if (isSuperAdmin) return true;
+            if (item.children && item.children.length > 0) {
+              const visibleChildren = item.children.filter(
+                (child) => !child.module || canAccess(child.module)
+              );
+              return visibleChildren.length > 0;
+            }
+            if (!item.module) return true;
+            return canAccess(item.module);
+          })
+          .map((item) => {
+            if (item.children && item.children.length > 0) {
+              return {
+                ...item,
+                children: item.children.filter(
+                  (child) => !child.module || canAccess(child.module)
+                ),
+              };
+            }
+            return item;
+          });
+        return {
+          ...sec,
+          items: filteredItems,
+        };
+      })
+      .filter((sec) => sec.items.length > 0);
+  }, [rawSections, isSuperAdmin, canAccess]);
 
   // ── Sliding active indicator ──
   // One highlight pill that glides between links instead of each link
@@ -492,30 +683,39 @@ export default function Sidebar() {
 
   const moveIndicatorTo = useCallback((el: HTMLElement | null) => {
     const nav = navRef.current;
-    // Hidden (e.g. inside a collapsed group) → no indicator.
     if (!nav || !el || el.offsetHeight === 0) {
-      setIndicator(null);
+      setIndicator((prev) => (prev === null ? null : null));
       return;
     }
     const navRect = nav.getBoundingClientRect();
     const rect = el.getBoundingClientRect();
-    setIndicator({
-      top: rect.top - navRect.top + nav.scrollTop,
-      left: rect.left - navRect.left + nav.scrollLeft,
-      width: rect.width,
-      height: rect.height,
+    const nextTop = Math.round(rect.top - navRect.top + nav.scrollTop);
+    const nextLeft = Math.round(rect.left - navRect.left + nav.scrollLeft);
+    const nextWidth = Math.round(rect.width);
+    const nextHeight = Math.round(rect.height);
+
+    setIndicator((prev) => {
+      if (
+        prev &&
+        prev.top === nextTop &&
+        prev.left === nextLeft &&
+        prev.width === nextWidth &&
+        prev.height === nextHeight
+      ) {
+        return prev;
+      }
+      return { top: nextTop, left: nextLeft, width: nextWidth, height: nextHeight };
     });
   }, []);
 
   const syncIndicator = useCallback(() => {
-    moveIndicatorTo(
-      navRef.current?.querySelector<HTMLElement>('[data-nav-link][data-active="true"]') ?? null
-    );
+    const activeEl = navRef.current?.querySelector<HTMLElement>('[data-nav-link][data-active="true"]');
+    moveIndicatorTo(activeEl ?? null);
   }, [moveIndicatorTo]);
 
   useLayoutEffect(() => {
     syncIndicator();
-  }, [pathname, role, syncIndicator]);
+  }, [pathname, syncIndicator]);
 
   // Enable the transition only after the first placement, so it doesn't slide in from the top on load.
   useEffect(() => {
@@ -529,16 +729,26 @@ export default function Sidebar() {
   useEffect(() => {
     const content = navContentRef.current;
     if (!content) return;
-    const ro = new ResizeObserver(() => syncIndicator());
+    let rafId: number | null = null;
+    const ro = new ResizeObserver(() => {
+      if (rafId !== null) cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => {
+        syncIndicator();
+      });
+    });
     ro.observe(content);
-    return () => ro.disconnect();
+    return () => {
+      if (rafId !== null) cancelAnimationFrame(rafId);
+      ro.disconnect();
+    };
   }, [syncIndicator]);
 
-  // Start sliding immediately on click, without waiting for the route to load.
   const handleNavClick = (e: React.MouseEvent) => {
     if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
     const link = (e.target as HTMLElement).closest<HTMLElement>("[data-nav-link]");
-    if (link) moveIndicatorTo(link);
+    if (link && link.getAttribute("data-active") !== "true") {
+      moveIndicatorTo(link);
+    }
   };
 
   return (

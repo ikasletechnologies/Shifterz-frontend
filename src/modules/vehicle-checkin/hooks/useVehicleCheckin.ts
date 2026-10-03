@@ -12,6 +12,7 @@ import {
 import { getOutPasses } from "@/lib/api";
 import { toast } from "react-hot-toast";
 import { getScopedFranchiseId, scopeToFranchise } from "@/lib/franchise-scope";
+import { canAccessModule } from "@/lib/permissions";
 
 export function useVehicleCheckin(selectedFranchiseId?: string) {
   const [cars, setCars] = useState<CarEntry[]>([]);
@@ -24,7 +25,7 @@ export function useVehicleCheckin(selectedFranchiseId?: string) {
       const franchiseId = scopedId || (selectedFranchiseId && selectedFranchiseId !== "All" ? selectedFranchiseId : undefined);
       const [checkinData, outpassData] = await Promise.all([
         getVehicleCheckIns(franchiseId),
-        getOutPasses(franchiseId).catch(() => []),
+        canAccessModule("outpass") ? getOutPasses(franchiseId).catch(() => []) : Promise.resolve([]),
       ]);
 
       // Only an approved/issued outpass means the vehicle has actually left —

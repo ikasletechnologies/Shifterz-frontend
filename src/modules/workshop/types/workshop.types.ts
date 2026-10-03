@@ -31,11 +31,15 @@ export interface WorkshopJob {
 
 export interface MaterialRecord {
   id?: string;
-  jobId: string;
+  jobId?: string;
+  itemId?: string;
   name: string;
+  itemName?: string;
   quantity: number;
   unit: string;
-  addedAt: string;
+  status?: string;
+  addedAt?: string;
+  createdAt?: string;
 }
 
 export interface ProgressLog {
@@ -51,3 +55,4 @@ export interface WorkshopStats {
   completedToday: number;
   sentToQC: number;
 }
+

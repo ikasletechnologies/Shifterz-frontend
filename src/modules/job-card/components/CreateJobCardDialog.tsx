@@ -1,6 +1,6 @@
 "use client";
 
-import { X, Check, ClipboardList, Plus, Trash2, Receipt } from "lucide-react";
+import { X, Check, ClipboardList, Plus, Trash2, Receipt, AlertCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
@@ -22,6 +22,7 @@ interface CreateJobCardDialogProps {
   onClose: () => void;
   onSave: (data: JobCardFormData) => void;
   initialData?: JobCardFormData | null;
+  isInspectionPending?: boolean;
 }
 
 // JobCardPage reads this on mount to restore the in-progress form after the
@@ -55,7 +56,13 @@ const DEFAULT_FORM: JobCardFormData = {
   internalRemarks: "",
 };
 
-export function CreateJobCardDialog({ isOpen, onClose, onSave, initialData }: CreateJobCardDialogProps) {
+export function CreateJobCardDialog({
+  isOpen,
+  onClose,
+  onSave,
+  initialData,
+  isInspectionPending = false,
+}: CreateJobCardDialogProps) {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [technicians, setTechnicians] = useState<{ id: string; name: string }[]>([]);
@@ -181,6 +188,10 @@ export function CreateJobCardDialog({ isOpen, onClose, onSave, initialData }: Cr
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (isInspectionPending && formData.technician && formData.technician.trim().toLowerCase() !== "unassigned") {
+      toast.error("Vehicle inspection must be completed before assigning a technician.");
+      return;
+    }
     // Picking a service from the dropdown doesn't add it by itself — the "+"
     // button does. Saving with nothing added is a common silent no-op (looks
     // like it worked, but Billing still has nothing to invoice), so flag it
@@ -310,15 +321,18 @@ export function CreateJobCardDialog({ isOpen, onClose, onSave, initialData }: Cr
             <div className="col-span-2 sm:col-span-1 space-y-1.5">
               <div className="flex items-center justify-between">
                 <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Technician</label>
-                <button
-                  type="button"
-                  onClick={handleAddTechnicianClick}
-                  className="text-[11px] font-bold text-blue-600 hover:text-blue-700 flex items-center gap-0.5"
-                >
-                  <Plus className="w-3 h-3" /> Add Technician
-                </button>
+                {!isInspectionPending && (
+                  <button
+                    type="button"
+                    onClick={handleAddTechnicianClick}
+                    className="text-[11px] font-bold text-blue-600 hover:text-blue-700 flex items-center gap-0.5"
+                  >
+                    <Plus className="w-3 h-3" /> Add Technician
+                  </button>
+                )}
               </div>
               <select
+                disabled={isInspectionPending}
                 value={formData.technician}
                 onChange={(e) => {
                   const selectedName = e.target.value;
@@ -334,13 +348,22 @@ export function CreateJobCardDialog({ isOpen, onClose, onSave, initialData }: Cr
                     status: nextStatus,
                   });
                 }}
-                className="w-full px-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:bg-white"
+                className={`w-full px-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:bg-white ${
+                  isInspectionPending ? "opacity-60 cursor-not-allowed bg-gray-100" : ""
+                }`}
+                title={isInspectionPending ? "Vehicle inspection must be completed before assigning a technician" : undefined}
               >
-                <option value="">Select Technician</option>
-                {technicians.map((tech) => (
+                <option value="">{isInspectionPending ? "Inspection Pending — Cannot Assign" : "Select Technician"}</option>
+                {!isInspectionPending && technicians.map((tech) => (
                   <option key={tech.id} value={tech.name}>{tech.name}</option>
                 ))}
               </select>
+              {isInspectionPending && (
+                <div className="flex items-center gap-1.5 text-[11px] font-medium text-amber-700 mt-1">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  <span>Inspection pending. Complete inspection to enable assignment.</span>
+                </div>
+              )}
             </div>
 
             {/* Priority */}

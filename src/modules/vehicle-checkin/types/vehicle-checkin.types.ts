@@ -1,5 +1,6 @@
 export interface CarEntry {
   id: string;
+  jobCardId?: string;
   entryId: string;
   vehicleNo?: string;
   vehicle?: string;

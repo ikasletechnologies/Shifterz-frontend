@@ -14,6 +14,7 @@ import { useVehicleCheckin } from "@/modules/vehicle-checkin/hooks/useVehicleChe
 import { useJobTracking } from "../hooks/useJobTracking";
 import { STAGE_FILTERS } from "../lib/jobStage";
 import { CarEntry, hasCompletedInspection } from "@/modules/vehicle-checkin/types/vehicle-checkin.types";
+import VehicleInspectionDialog from "@/modules/vehicle-checkin/components/VehicleInspectionDialog";
 
 
 function normalizeVehicle(v?: string | null): string {
@@ -24,8 +25,10 @@ export function JobCardPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { jobCards, isLoading, error, handleSaveJobCard, handleDeleteJobCard, fetchJobCards } = useJobCards();
-  const { cars } = useVehicleCheckin();
+  const { cars, fetchCars, handleUpdateVehicleCheckIn } = useVehicleCheckin();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isInspectionDialogOpen, setIsInspectionDialogOpen] = useState(false);
+  const [inspectingCar, setInspectingCar] = useState<CarEntry | null>(null);
   const [selectedJob, setSelectedJob] = useState<JobCard | null>(null);
   const [viewingJob, setViewingJob] = useState<JobCard | null>(null);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
@@ -137,8 +140,22 @@ export function JobCardPage() {
   }, []);
 
   const findCarForJob = useCallback(
-    (job: JobCard): CarEntry | undefined => carByVehicle.get(normalizeVehicle(job.vehicle)),
-    [carByVehicle]
+    (job: JobCard): CarEntry | undefined => {
+      if (job.carInId) {
+        const match = cars.find((c) => c.id === job.carInId);
+        if (match) return match;
+      }
+      if (job.id) {
+        const match = cars.find((c) => c.jobCardId === job.id);
+        if (match) return match;
+      }
+      const vehKey = normalizeVehicle(job.vehicle);
+      if (vehKey) {
+        return cars.find((c) => normalizeVehicle(c.vehicleNo || c.vehicle || c.vehicleNumber) === vehKey);
+      }
+      return undefined;
+    },
+    [cars]
   );
 
   // Only block assignment when we can positively confirm a matched check-in's
@@ -153,6 +170,25 @@ export function JobCardPage() {
   );
 
   const { trackingFor } = useJobTracking(jobCards, isInspectionPending);
+
+  const handleInspect = (job: JobCard) => {
+    const car = findCarForJob(job);
+    if (car) {
+      setInspectingCar(car);
+      setIsInspectionDialogOpen(true);
+    } else {
+      router.push(`/dashboard/vehicle-inspection?vehicle=${encodeURIComponent(job.vehicle || "")}`);
+    }
+  };
+
+  const handleSaveInspection = async (carId: string, data: Partial<CarEntry>) => {
+    const success = await handleUpdateVehicleCheckIn(carId, data);
+    if (success) {
+      await fetchCars();
+      await fetchJobCards();
+    }
+    return success;
+  };
 
   const handleStatusSelect = (status: string) => {
     setSelectedStatus(status);
@@ -374,6 +410,7 @@ export function JobCardPage() {
           jobCards={filteredJobs}
           onView={handleView}
           onEdit={handleEdit}
+          onInspect={handleInspect}
           trackingFor={trackingFor}
           selectedStatus={selectedStatus}
           onStatusSelect={handleStatusSelect}
@@ -383,6 +420,7 @@ export function JobCardPage() {
           jobCards={filteredJobs}
           onView={handleView}
           onEdit={handleEdit}
+          onInspect={handleInspect}
           trackingFor={trackingFor}
         />
       )}
@@ -392,6 +430,17 @@ export function JobCardPage() {
         onClose={handleCloseDialog}
         onSave={handleSave}
         initialData={selectedJob}
+        isInspectionPending={selectedJob ? isInspectionPending(selectedJob) : false}
+      />
+
+      <VehicleInspectionDialog
+        isOpen={isInspectionDialogOpen}
+        onClose={() => {
+          setIsInspectionDialogOpen(false);
+          setInspectingCar(null);
+        }}
+        car={inspectingCar}
+        onSubmit={handleSaveInspection}
       />
 
       <ViewJobCardDialog

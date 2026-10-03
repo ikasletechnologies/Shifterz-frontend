@@ -7,6 +7,7 @@ import { getVehicleCheckIns } from "@/modules/vehicle-checkin/services/vehicle-c
 import { getInvoices } from "@/modules/billing/services/billing.service";
 import { getOutPasses } from "@/lib/api";
 import { getScopedFranchiseId, scopeToFranchise } from "@/lib/franchise-scope";
+import { canAccessModule } from "@/lib/permissions";
 import { LiveOutPassInput, LiveVehicleRecord } from "../types/live-status.types";
 import { deriveLiveStatus } from "../lib/deriveLiveStatus";
 import { POLL_INTERVAL_MS } from "../constants/live-status.constants";
@@ -15,8 +16,10 @@ async function safeFetch<T>(fn: () => Promise<T[]>, label: string): Promise<T[]>
   try {
     const data = await fn();
     return data || [];
-  } catch (err) {
-    console.error(`Live status: failed to load ${label}`, err);
+  } catch (err: any) {
+    if (err?.status !== 403 && !err?.message?.includes("Missing required permission")) {
+      console.error(`Live status: failed to load ${label}`, err);
+    }
     return [];
   }
 }
@@ -33,11 +36,17 @@ export function useLiveStatus(selectedFranchiseId?: string) {
     try {
       if (isFirstLoad.current) setIsLoading(true);
       const franchiseId = getScopedFranchiseId() || (selectedFranchiseId && selectedFranchiseId !== "All" ? selectedFranchiseId : undefined);
+
+      const canJobs = canAccessModule("jobs");
+      const canCarIn = canAccessModule("carin") || canAccessModule("vehicle-inspection");
+      const canOutpass = canAccessModule("outpass");
+      const canBilling = canAccessModule("billing");
+
       const [jobCards, checkIns, outPasses, invoices] = await Promise.all([
-        safeFetch(() => getJobCards(franchiseId), "job cards"),
-        safeFetch(() => getVehicleCheckIns(franchiseId), "vehicle check-ins"),
-        safeFetch<LiveOutPassInput>(() => getOutPasses(franchiseId), "outpasses"),
-        safeFetch(getInvoices, "invoices"),
+        canJobs ? safeFetch(() => getJobCards(franchiseId), "job cards") : Promise.resolve([]),
+        canCarIn ? safeFetch(() => getVehicleCheckIns(franchiseId), "vehicle check-ins") : Promise.resolve([]),
+        canOutpass ? safeFetch<LiveOutPassInput>(() => getOutPasses(franchiseId), "outpasses") : Promise.resolve([]),
+        canBilling ? safeFetch(getInvoices, "invoices") : Promise.resolve([]),
       ]);
       const scopedJobCards = scopeToFranchise(jobCards);
       const scopedCheckIns = scopeToFranchise(checkIns);

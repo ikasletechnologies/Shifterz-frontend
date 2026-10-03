@@ -70,11 +70,22 @@ export async function apiCall(
         window.location.href = "/login";
       }
     }
-
-    throw new Error(errorMessage);
+    const apiError = new Error(errorMessage) as Error & { status?: number };
+    (apiError as any).status = response.status;
+    throw apiError;
   }
 
   return response.json();
+}
+
+function syncPermissionsCookieDirect(perms?: string[] | null) {
+  if (typeof document === "undefined") return;
+  try {
+    const list = Array.isArray(perms) ? perms : [];
+    document.cookie = `shifterz_perms=${encodeURIComponent(JSON.stringify(list))}; path=/; max-age=86400; SameSite=Lax`;
+  } catch {
+    // ignore
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -90,6 +101,9 @@ export async function login(username: string, password: string) {
   // non-sensitive display data (name/role/franchise) is kept for the UI.
   if (typeof window !== "undefined") {
     localStorage.setItem("user", JSON.stringify(data.user));
+    if (data.user?.permissions) {
+      syncPermissionsCookieDirect(data.user.permissions);
+    }
   }
   return data;
 }
@@ -97,6 +111,9 @@ export async function login(username: string, password: string) {
 export async function logout() {
   // Phase 0.5 — must revoke the session server-side, not just forget the
   // token locally, otherwise a copy of it captured earlier keeps working.
+  if (typeof document !== "undefined") {
+    document.cookie = "shifterz_perms=; path=/; max-age=0; SameSite=Lax";
+  }
   try {
     await apiCall("/auth/logout", { method: "POST" });
   } catch {
@@ -518,7 +535,14 @@ export async function deleteJob(id: string) {
 // ═══════════════════════════════════════════════════════════════
 export async function getFranchises(query?: { status?: string }) {
   const params = query?.status ? `?status=${encodeURIComponent(query.status)}` : "";
-  return apiCall(`/hq/franchises${params}`);
+  try {
+    return await apiCall(`/hq/franchises${params}`);
+  } catch (err: any) {
+    if (err?.status === 403 || err?.message?.includes("Insufficient role")) {
+      return [];
+    }
+    throw err;
+  }
 }
 
 export async function createFranchise(franchise: any) {
@@ -551,8 +575,9 @@ export async function fetchVehicleDetails(vehicleNo: string) {
 // ═══════════════════════════════════════════════════════════════
 // EMPLOYEES
 // ═══════════════════════════════════════════════════════════════
-export async function getEmployees() {
-  return apiCall("/employees");
+export async function getEmployees(params?: { franchiseOnly?: boolean; franchiseId?: string }) {
+  const query = params?.franchiseId ? `?franchiseId=${encodeURIComponent(params.franchiseId)}` : "";
+  return apiCall(`/employees${query}`);
 }
 
 export async function createEmployee(employee: any) {
@@ -606,6 +631,15 @@ export async function getInventoryExecutiveManagementStats(params?: Record<strin
 // ═══════════════════════════════════════════════════════════════
 export async function getAttendance() {
   return apiCall("/attendance");
+}
+
+/**
+ * Returns today's attendance status for the authenticated user.
+ * Shape: { isCheckedIn: boolean; isCheckedOut: boolean; record: AttendanceRecord | null }
+ * Used on page-load so the UI immediately shows the correct button state.
+ */
+export async function getTodayAttendance() {
+  return apiCall("/attendance/today");
 }
 
 export async function checkIn(employeeId: string) {
@@ -757,8 +791,24 @@ export async function broadcastNotification(data: { title: string; message: stri
 // ═══════════════════════════════════════════════════════════════
 // VENDOR MASTER & PURCHASE MANAGEMENT (§Vendor & Purchase Management)
 // ═══════════════════════════════════════════════════════════════
-export async function getVendors() {
-  return apiCall("/hq/vendors");
+export async function getVendors(params?: { status?: string; search?: string }) {
+  const query = new URLSearchParams();
+  if (params?.status) query.set("status", params.status);
+  if (params?.search) query.set("search", params.search);
+  const qStr = query.toString();
+  return apiCall(`/hq/vendors${qStr ? `?${qStr}` : ""}`);
+}
+
+export async function getActiveVendors() {
+  return apiCall("/hq/vendors/active");
+}
+
+export async function getVendorStats() {
+  return apiCall("/hq/vendors/stats");
+}
+
+export async function getVendorById(id: string) {
+  return apiCall(`/hq/vendors/${id}`);
 }
 
 export async function createVendor(data: any) {
@@ -775,14 +825,65 @@ export async function updateVendor(id: string, data: any) {
   });
 }
 
+export async function patchVendorStatus(id: string, status: "Active" | "Inactive") {
+  return apiCall(`/hq/vendors/${id}/status`, {
+    method: "PATCH",
+    body: JSON.stringify({ status })
+  });
+}
+
 export async function deleteVendor(id: string) {
   return apiCall(`/hq/vendors/${id}`, {
     method: "DELETE"
   });
 }
 
-export async function getPurchases() {
-  return apiCall("/hq/purchases");
+export async function getPurchases(params?: { status?: string }) {
+  const query = new URLSearchParams();
+  if (params?.status) query.set("status", params.status);
+  const qStr = query.toString();
+  return apiCall(`/hq/purchases${qStr ? `?${qStr}` : ""}`);
+}
+
+export async function getPurchaseOrderById(id: string) {
+  return apiCall(`/hq/purchases/${id}`);
+}
+
+export async function getPurchaseInvoices(params?: { search?: string; status?: string }) {
+  const query = new URLSearchParams();
+  if (params?.search) query.set("search", params.search);
+  if (params?.status) query.set("status", params.status);
+  const qStr = query.toString();
+  return apiCall(`/hq/purchase-invoices${qStr ? `?${qStr}` : ""}`);
+}
+
+export async function getPurchaseInvoiceById(id: string) {
+  return apiCall(`/hq/purchase-invoices/${id}`);
+}
+
+export async function createPurchaseInvoice(data: any) {
+  return apiCall("/hq/purchase-invoices", {
+    method: "POST",
+    body: JSON.stringify(data)
+  });
+}
+
+export async function updatePurchaseInvoice(id: string, data: any) {
+  return apiCall(`/hq/purchase-invoices/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(data)
+  });
+}
+
+export async function payPurchaseInvoice(id: string, paidAmount: number) {
+  return apiCall(`/hq/purchase-invoices/${id}/pay`, {
+    method: "POST",
+    body: JSON.stringify({ paidAmount })
+  });
+}
+
+export async function getNextPoNumber(): Promise<{ orderNumber: string }> {
+  return apiCall("/hq/purchases/next-number");
 }
 
 export async function createPurchase(data: any) {
@@ -816,6 +917,12 @@ export async function payPurchaseOrder(id: string, paidAmount: number) {
   return apiCall(`/hq/purchases/${id}/pay`, {
     method: "POST",
     body: JSON.stringify({ paidAmount })
+  });
+}
+
+export async function confirmPoPaymentAndReceive(id: string) {
+  return apiCall(`/hq/purchases/${id}/confirm-payment-and-receive`, {
+    method: "POST"
   });
 }
 

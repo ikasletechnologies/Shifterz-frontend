@@ -252,6 +252,7 @@ export default function BillingJobCards({ onInvoiceGenerated }: { onInvoiceGener
                             // rates directly instead of re-guessing one item from the
                             // free-text `service` label, which is what produced ₹0.00 rows.
                             services: j.services || [],
+                            materials: (j as any).materialConsumptions || (j as any).materials || [],
                           };
                           setSelectedContext(initialData);
                           setIsNewDocOpen(true);

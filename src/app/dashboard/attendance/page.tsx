@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { Clock, CheckCircle2, User, Building2, Search, Filter, Calendar, Users, CheckCircle, LogOut, X } from "lucide-react";
+import { Clock, CheckCircle2, User, Building2, Search, Filter, Calendar, Users, CheckCircle, LogOut, X, TimerOff } from "lucide-react";
 import { SummaryCard } from "@/components/common/SummaryCard";
-import { getAttendance, checkIn, checkOut, getFranchises } from "@/lib/api";
+import { getAttendance, getTodayAttendance, checkIn, checkOut, getFranchises } from "@/lib/api";
 import { toast } from "react-hot-toast";
 
 interface AttendanceRecord {
@@ -13,9 +13,10 @@ interface AttendanceRecord {
   status: string;
   clockIn: string | null;
   clockOut: string | null;
+  workingHours?: number | null;
   franchiseId: string | null;
   franchise?: { id: string; name: string; city: string };
-  employee?: { id: string; name: string; role: string };
+  employee?: { id: string; name: string; employeeId?: string; role: string };
 }
 
 export default function AttendancePage() {
@@ -23,6 +24,13 @@ export default function AttendancePage() {
   const [franchises, setFranchises] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState<any>(null);
+
+  // Today's status loaded separately from /attendance/today endpoint
+  const [isCheckedIn, setIsCheckedIn] = useState(false);
+  const [isCheckedOut, setIsCheckedOut] = useState(false);
+  const [todayRecord, setTodayRecord] = useState<AttendanceRecord | null>(null);
+  const [checkInPending, setCheckInPending] = useState(false);
+  const [checkOutPending, setCheckOutPending] = useState(false);
 
   // Filters
   const [searchQuery, setSearchQuery] = useState("");
@@ -43,7 +51,6 @@ export default function AttendancePage() {
       { value: "INVENTORY_EXECUTIVE", label: "Inventory Executive" },
       { value: "FRANCHISE_ADMIN", label: "Franchise Admin" },
     ];
-    // Filter out active roles already covered by predefined list
     const predefinedKeys = [
       "BILLING_EXECUTIVE", "BILLING", "RECEPTION_EXECUTIVE", "RECEPTIONIST",
       "SERVICE_ADVISOR", "TECHNICIAN", "QUALITY_INSPECTOR", "QC",
@@ -53,7 +60,6 @@ export default function AttendancePage() {
       const norm = role.toUpperCase().replace(/[\s_]+/g, "");
       return !predefinedKeys.some(key => key.toUpperCase().replace(/[\s_]+/g, "") === norm);
     });
-    // Add other active roles in format
     otherRoles.forEach(role => {
       const label = role
         .replace(/_/g, " ")
@@ -105,11 +111,21 @@ export default function AttendancePage() {
           setCurrentUser(JSON.parse(userStr));
         }
 
+        // Fetch today's status first (fast endpoint) so buttons are accurate immediately
+        try {
+          const todayStatus = await getTodayAttendance();
+          setIsCheckedIn(todayStatus.isCheckedIn);
+          setIsCheckedOut(todayStatus.isCheckedOut);
+          setTodayRecord(todayStatus.record);
+        } catch {
+          // fallback: derive from attendance list below
+        }
+
         const attData = await getAttendance();
-        let franData = [];
+        let franData: any[] = [];
         try {
           franData = await getFranchises();
-        } catch (e) {
+        } catch {
           // Ignore 403 for non-superadmin users
         }
         setAttendance(Array.isArray(attData) ? attData : []);
@@ -124,48 +140,65 @@ export default function AttendancePage() {
   }, []);
 
   const handleCheckIn = async () => {
-    if (!currentUser) return;
+    if (!currentUser || checkInPending) return;
+    setCheckInPending(true);
     try {
       const record = await checkIn(currentUser.id);
-      setAttendance([record, ...attendance]);
+      setAttendance(prev => [record, ...prev]);
+      setIsCheckedIn(true);
+      setIsCheckedOut(false);
+      setTodayRecord(record);
       toast.success("Successfully checked in for today");
     } catch (err: any) {
       toast.error(err.message || "Failed to check in");
+    } finally {
+      setCheckInPending(false);
     }
   };
 
   const handleCheckOut = async () => {
-    if (!currentUser) return;
+    if (!currentUser || checkOutPending) return;
+    setCheckOutPending(true);
     try {
       const updated = await checkOut(currentUser.id);
-      setAttendance(attendance.map(a => a.id === updated.id ? updated : a));
+      setAttendance(prev => prev.map(a => a.id === updated.id ? updated : a));
+      setIsCheckedIn(true);
+      setIsCheckedOut(true);
+      setTodayRecord(updated);
       toast.success("Successfully checked out");
     } catch (err: any) {
       toast.error(err.message || "Failed to check out");
+    } finally {
+      setCheckOutPending(false);
     }
   };
 
   const formatTime = (isoString: string | null) => {
-    if (!isoString) return "-";
+    if (!isoString) return "–";
     try {
-      return new Date(isoString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      return new Date(isoString).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     } catch {
-      return "-";
+      return "–";
     }
   };
 
-  const calculateHours = (clockIn: string | null, clockOut: string | null) => {
-    if (!clockIn || !clockOut) return "-";
+  const formatWorkingHours = (record: AttendanceRecord) => {
+    // Prefer server-computed workingHours (after checkout)
+    if (record.workingHours != null && record.workingHours > 0) {
+      const h = Math.floor(record.workingHours);
+      const m = Math.round((record.workingHours - h) * 60);
+      return `${h}h ${m}m`;
+    }
+    // Fallback: compute from clockIn/clockOut
+    if (!record.clockIn || !record.clockOut) return "–";
     try {
-      const start = new Date(clockIn).getTime();
-      const end = new Date(clockOut).getTime();
-      const diff = end - start;
-      if (diff <= 0) return "-";
+      const diff = new Date(record.clockOut).getTime() - new Date(record.clockIn).getTime();
+      if (diff <= 0) return "–";
       const hours = Math.floor(diff / (1000 * 60 * 60));
       const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
       return `${hours}h ${mins}m`;
     } catch {
-      return "-";
+      return "–";
     }
   };
 
@@ -186,7 +219,6 @@ export default function AttendancePage() {
   // Filtered attendance list
   const filteredAttendance = useMemo(() => {
     return attendance.filter((rec) => {
-      // Search
       const empName = rec.employee?.name || "";
       const empRole = rec.employee?.role || "";
       const matchesSearch =
@@ -194,18 +226,15 @@ export default function AttendancePage() {
         empName.toLowerCase().includes(searchQuery.toLowerCase()) ||
         empRole.toLowerCase().includes(searchQuery.toLowerCase());
 
-      // Branch
       const matchesBranch =
         selectedBranch === "ALL" ||
         (selectedBranch === "HQ" && !rec.franchiseId) ||
         rec.franchiseId === selectedBranch;
 
-      // Status
       const matchesStatus =
         selectedStatus === "ALL" ||
         rec.status?.toLowerCase() === selectedStatus.toLowerCase();
 
-      // Role
       let matchesRole = true;
       if (selectedRole !== "ALL") {
         const uRole = (rec.employee?.role || "").toUpperCase().replace(/[\s_]+/g, "");
@@ -221,7 +250,6 @@ export default function AttendancePage() {
         }
       }
 
-      // Date Range (reused from Car In module)
       let matchesDateRange = true;
       const recDateRaw = rec.date || rec.clockIn;
       if (recDateRaw) {
@@ -245,22 +273,24 @@ export default function AttendancePage() {
   // KPI Metrics
   const metrics = useMemo(() => {
     const todayRecords = attendance.filter((a) => isSameDay(a.date, todayStr));
-    const presentToday = todayRecords.filter((a) => a.status === "Present").length;
+    const presentToday = todayRecords.filter((a) => a.status === "Present" || a.status === "Checked Out").length;
     const activeNow = todayRecords.filter((a) => a.clockIn && !a.clockOut).length;
     const completedToday = todayRecords.filter((a) => a.clockIn && a.clockOut).length;
     const totalRecords = attendance.length;
-
-    return {
-      presentToday,
-      activeNow,
-      completedToday,
-      totalRecords,
-    };
+    return { presentToday, activeNow, completedToday, totalRecords };
   }, [attendance, todayStr]);
 
-  const myTodayRecord = attendance.find(a => a.employeeId === currentUser?.id && isSameDay(a.date, todayStr));
-  const isCheckedIn = !!myTodayRecord;
-  const isCheckedOut = !!myTodayRecord?.clockOut;
+  // Today's card details for the current user
+  const todayCheckInTime = todayRecord?.clockIn ? formatTime(todayRecord.clockIn) : null;
+  const todayCheckOutTime = todayRecord?.clockOut ? formatTime(todayRecord.clockOut) : null;
+  const todayWorkingHours = todayRecord ? formatWorkingHours(todayRecord) : null;
+
+  const getStatusBadgeClass = (status: string) => {
+    if (status === "Present") return "bg-green-100 text-green-700";
+    if (status === "Checked Out") return "bg-blue-100 text-blue-700";
+    if (status === "Absent") return "bg-red-100 text-red-700";
+    return "bg-yellow-100 text-yellow-700";
+  };
 
   if (isLoading) {
     return (
@@ -289,18 +319,20 @@ export default function AttendancePage() {
             {!isCheckedIn ? (
               <button
                 onClick={handleCheckIn}
-                className="bg-yellow-400 hover:bg-yellow-500 text-gray-900 px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2"
+                disabled={checkInPending}
+                className="bg-yellow-400 hover:bg-yellow-500 disabled:opacity-60 text-gray-900 px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2"
               >
                 <Clock className="w-4 h-4" />
-                Check In Now
+                {checkInPending ? "Checking In..." : "Check In Now"}
               </button>
             ) : !isCheckedOut ? (
               <button
                 onClick={handleCheckOut}
-                className="bg-slate-900 hover:bg-slate-800 text-white px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2"
+                disabled={checkOutPending}
+                className="bg-slate-900 hover:bg-slate-800 disabled:opacity-60 text-white px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2"
               >
                 <LogOut className="w-4 h-4" />
-                Check Out
+                {checkOutPending ? "Checking Out..." : "Check Out"}
               </button>
             ) : (
               <div className="bg-gray-100 text-gray-700 px-5 py-2.5 rounded-xl text-sm font-medium flex items-center gap-2 border border-gray-200">
@@ -311,6 +343,39 @@ export default function AttendancePage() {
           </div>
         )}
       </div>
+
+      {/* Today's Status Card for the current user */}
+      {currentUser && (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">Today's Status</h3>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="flex flex-col gap-1">
+              <span className="text-xs text-gray-400">Status</span>
+              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold w-fit ${
+                !isCheckedIn
+                  ? "bg-gray-100 text-gray-600"
+                  : !isCheckedOut
+                  ? "bg-green-100 text-green-700"
+                  : "bg-blue-100 text-blue-700"
+              }`}>
+                {!isCheckedIn ? "Not Checked In" : !isCheckedOut ? "● On Duty" : "✓ Checked Out"}
+              </span>
+            </div>
+            <div className="flex flex-col gap-1">
+              <span className="text-xs text-gray-400">Check In</span>
+              <span className="text-sm font-semibold text-gray-900 font-mono">{todayCheckInTime ?? "–"}</span>
+            </div>
+            <div className="flex flex-col gap-1">
+              <span className="text-xs text-gray-400">Check Out</span>
+              <span className="text-sm font-semibold text-gray-900 font-mono">{todayCheckOutTime ?? "–"}</span>
+            </div>
+            <div className="flex flex-col gap-1">
+              <span className="text-xs text-gray-400">Working Hours</span>
+              <span className="text-sm font-semibold text-gray-900">{todayWorkingHours ?? "–"}</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -363,7 +428,8 @@ export default function AttendancePage() {
               className="bg-transparent border-none text-sm text-gray-700 font-medium focus:outline-none cursor-pointer"
             >
               <option value="ALL">All Statuses</option>
-              <option value="Present">Present</option>
+              <option value="Present">Present (On Duty)</option>
+              <option value="Checked Out">Checked Out</option>
               <option value="Absent">Absent</option>
             </select>
           </div>
@@ -385,7 +451,7 @@ export default function AttendancePage() {
             </select>
           </div>
 
-          {/* From Date Filter (reused from Car In module) */}
+          {/* From Date */}
           <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-xl px-3 py-1.5 text-sm shrink-0">
             <span className="text-xs font-semibold text-gray-500 whitespace-nowrap">From:</span>
             <input
@@ -403,13 +469,12 @@ export default function AttendancePage() {
                 ? "text-gray-600 hover:text-gray-900 hover:bg-gray-200 cursor-pointer"
                 : "text-gray-300 cursor-not-allowed opacity-50"
                 }`}
-              title={fromDate ? "Clear From Date" : ""}
             >
               <X className="w-3.5 h-3.5" />
             </button>
           </div>
 
-          {/* To Date Filter (reused from Car In module) */}
+          {/* To Date */}
           <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-xl px-3 py-1.5 text-sm shrink-0">
             <span className="text-xs font-semibold text-gray-500 whitespace-nowrap">To:</span>
             <input
@@ -427,7 +492,6 @@ export default function AttendancePage() {
                 ? "text-gray-600 hover:text-gray-900 hover:bg-gray-200 cursor-pointer"
                 : "text-gray-300 cursor-not-allowed opacity-50"
                 }`}
-              title={toDate ? "Clear To Date" : ""}
             >
               <X className="w-3.5 h-3.5" />
             </button>
@@ -451,43 +515,43 @@ export default function AttendancePage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {filteredAttendance.map((record) => {
-                return (
-                  <tr key={record.id} className="hover:bg-gray-50/50 transition-colors">
-                    <td className="px-6 py-4 text-sm font-medium text-gray-900">
-                      {new Date(record.date).toLocaleDateString('en-US', {
-                        weekday: 'short',
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric'
-                      })}
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm font-medium text-gray-900">{record.employee?.name || "Unknown Employee"}</div>
-                      <div className="text-xs text-gray-500 capitalize">{record.employee?.role ? record.employee.role.replace(/_/g, " ").toLowerCase() : "No Role"}</div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <Building2 className="w-4 h-4 text-gray-400 shrink-0" />
-                        {record.franchise ? record.franchise.name : "Headquarters (HQ)"}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-sm">
-                      <span className={`px-2.5 py-1 rounded-md text-xs font-semibold inline-flex items-center gap-1 ${record.status === "Present" ? "bg-green-100 text-green-700" :
-                        record.status === "Absent" ? "bg-red-100 text-red-700" :
-                          "bg-yellow-100 text-yellow-700"
-                        }`}>
-                        {record.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-600 font-mono">{formatTime(record.clockIn)}</td>
-                    <td className="px-6 py-4 text-sm text-gray-600 font-mono">{formatTime(record.clockOut)}</td>
-                    <td className="px-6 py-4 text-sm font-semibold text-gray-900">
-                      {calculateHours(record.clockIn, record.clockOut)}
-                    </td>
-                  </tr>
-                );
-              })}
+              {filteredAttendance.map((record) => (
+                <tr key={record.id} className="hover:bg-gray-50/50 transition-colors">
+                  <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                    {new Date(record.date).toLocaleDateString("en-US", {
+                      weekday: "short",
+                      year: "numeric",
+                      month: "short",
+                      day: "numeric",
+                    })}
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="text-sm font-medium text-gray-900">{record.employee?.name || "Unknown Employee"}</div>
+                    <div className="text-xs text-gray-500 capitalize">
+                      {record.employee?.role ? record.employee.role.replace(/_/g, " ").toLowerCase() : "No Role"}
+                    </div>
+                    {record.employee?.employeeId && (
+                      <div className="text-xs text-gray-400">{record.employee.employeeId}</div>
+                    )}
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <Building2 className="w-4 h-4 text-gray-400 shrink-0" />
+                      {record.franchise ? record.franchise.name : "Headquarters (HQ)"}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 text-sm">
+                    <span className={`px-2.5 py-1 rounded-md text-xs font-semibold inline-flex items-center gap-1 ${getStatusBadgeClass(record.status)}`}>
+                      {record.status}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-600 font-mono">{formatTime(record.clockIn)}</td>
+                  <td className="px-6 py-4 text-sm text-gray-600 font-mono">{formatTime(record.clockOut)}</td>
+                  <td className="px-6 py-4 text-sm font-semibold text-gray-900">
+                    {formatWorkingHours(record)}
+                  </td>
+                </tr>
+              ))}
               {filteredAttendance.length === 0 && (
                 <tr>
                   <td colSpan={7} className="px-6 py-12 text-center text-gray-500">

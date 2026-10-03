@@ -108,7 +108,7 @@ export default function VehicleInspectionDialog({ isOpen, onClose, car, onSubmit
     try {
       const success = await onSubmit(car.id, form);
       if (success) {
-        toast.success("Vehicle inspection saved");
+        toast.success(isComplete ? "Vehicle inspection completed" : "Vehicle inspection saved");
         onClose();
       }
     } finally {
@@ -301,7 +301,7 @@ export default function VehicleInspectionDialog({ isOpen, onClose, car, onSubmit
               className="px-5 py-2.5 rounded-xl text-sm font-bold bg-amber-400 hover:bg-amber-500 text-gray-900 transition-colors disabled:opacity-60 flex items-center gap-2"
             >
               {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-              Save Inspection
+              {isComplete ? "Complete Inspection" : "Save Inspection"}
             </button>
           </div>
         </div>

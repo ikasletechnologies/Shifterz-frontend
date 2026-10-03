@@ -24,7 +24,7 @@ export function AssignInspectorDialog({ isOpen, onClose, job, onAssign }: Assign
   useEffect(() => {
     const loadInspectors = async () => {
       try {
-        const emps = await apiCall("/employees");
+        const emps = await apiCall("/qc/team").catch(() => apiCall("/employees"));
         const list = (emps || [])
           .filter((emp: any) => {
             const r = (emp.role || "").toLowerCase();

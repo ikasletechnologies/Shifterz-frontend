@@ -49,6 +49,9 @@ export default function ReportsPage() {
     if (userRole === "BILLING" || userRole === "BILLING_EXECUTIVE") {
       return allTabs.filter(tab => tab.id === "financial");
     }
+    if (userRole === "INVENTORY" || userRole === "INVENTORY_EXECUTIVE") {
+      return allTabs.filter(tab => tab.id === "inventory");
+    }
     return allTabs;
   }, [userRole, isInitialized, allTabs]);
 
@@ -125,6 +128,9 @@ export default function ReportsPage() {
         if (user.role === "BILLING" || user.role === "BILLING_EXECUTIVE") {
           setActiveCategory("financial");
           setSubReport("invoices");
+        } else if (user.role === "INVENTORY" || user.role === "INVENTORY_EXECUTIVE") {
+          setActiveCategory("inventory");
+          setSubReport("register");
         }
       } catch (e) {
         console.error("Failed to parse user from localStorage", e);
@@ -502,10 +508,14 @@ export default function ReportsPage() {
       { id: "gst-report", label: "GST Report" }
     ],
     inventory: [
-      { id: "register", label: "Inventory Stock Register" },
-      { id: "valuation", label: "Valuation Report" },
-      { id: "consumption", label: "Spare Consumption" },
-      { id: "reorder", label: "Reorder / Low Stock List" }
+      { id: "register", label: "Current Inventory" },
+      { id: "low-stock", label: "Low-Stock Items" },
+      { id: "purchase-summary", label: "Purchase Order Summary" },
+      { id: "goods-received", label: "Goods Received Log" },
+      { id: "purchase-spending", label: "Purchase Spending & Totals" },
+      { id: "valuation", label: "Inventory Valuation" },
+      { id: "summary", label: "Stock Category Summary" },
+      { id: "ledger", label: "Stock Movement Ledger" },
     ]
   };
 

@@ -14,6 +14,7 @@ interface JobCardTableProps {
   trackingFor?: (job: JobCard) => JobTracking;
   onView?: (job: JobCard) => void;
   onEdit: (job: JobCard) => void;
+  onInspect?: (job: JobCard) => void;
 }
 
 function formatDateStr(input?: string): string {
@@ -32,7 +33,7 @@ const actionButton =
 
 const noInspectionCheck = () => false;
 
-export function JobCardTable({ jobCards, trackingFor, onView, onEdit }: JobCardTableProps) {
+export function JobCardTable({ jobCards, trackingFor, onView, onEdit, onInspect }: JobCardTableProps) {
   const router = useRouter();
   const own = useJobTracking(jobCards, noInspectionCheck, !trackingFor);
   const resolve = trackingFor ?? own.trackingFor;
@@ -79,6 +80,10 @@ export function JobCardTable({ jobCards, trackingFor, onView, onEdit }: JobCardT
             <span className="font-medium text-slate-800 bg-slate-50 px-2 py-0.5 rounded border border-slate-200/60" title={j.technician}>
               {j.technician}
             </span>
+          ) : stage.key === "inspection" ? (
+            <span className="text-slate-500 font-medium bg-slate-50 px-2 py-0.5 rounded border border-slate-200/60 text-[11px]">
+              Waiting for inspection
+            </span>
           ) : (
             <span className="text-amber-700 font-semibold bg-amber-50 px-2 py-0.5 rounded border border-amber-200/60 text-[11px]">
               Unassigned
@@ -102,7 +107,18 @@ export function JobCardTable({ jobCards, trackingFor, onView, onEdit }: JobCardT
               <button
                 type="button"
                 className={actionButton}
-                onClick={() => (action.edit ? onEdit(j) : action.href && router.push(action.href))}
+                onClick={() => {
+                  if (action.edit) {
+                    onEdit(j);
+                  } else if (stage.key === "inspection" && onInspect) {
+                    onInspect(j);
+                  } else if (action.href) {
+                    const targetHref = stage.key === "inspection" && j.vehicle
+                      ? `${action.href}?vehicle=${encodeURIComponent(j.vehicle)}`
+                      : action.href;
+                    router.push(targetHref);
+                  }
+                }}
               >
                 <span>{action.label}</span>
                 <ArrowRight className="w-3.5 h-3.5" />

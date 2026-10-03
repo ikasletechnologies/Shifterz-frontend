@@ -75,7 +75,7 @@ export default function Header() {
   const pathname = usePathname();
   const sidebarContext = useContext(SidebarContext);
   const toggleSidebar = sidebarContext?.toggleSidebar || (() => {});
-  const [currentTime, setCurrentTime] = useState<string>("");
+  const [currentTime, setCurrentTime] = useState<string>(() => getCurrentTime());
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [companyInitials, setCompanyInitials] = useState("AD");
   const [userName, setUserName] = useState<string>("");
@@ -85,14 +85,22 @@ export default function Header() {
   const [isNotifOpen, setIsNotifOpen] = useState(false);
 
   useEffect(() => {
-    const userStr = localStorage.getItem("user");
+    const timer = setInterval(() => {
+      const nextTime = getCurrentTime();
+      setCurrentTime((prev) => (prev === nextTime ? prev : nextTime));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    const userStr = typeof window !== "undefined" ? localStorage.getItem("user") : null;
     if (userStr) {
       try {
         const user = JSON.parse(userStr);
-        setUserName(user.username);
-        setUserRole(user.role);
+        setUserName(user.username || "");
+        setUserRole(user.role || "");
 
-                const normalizedRole = (user.role || "").toUpperCase().replace(/[\s_]+/g, "_");
+        const normalizedRole = (user.role || "").toUpperCase().replace(/[\s_]+/g, "_");
         const isHQUser = normalizedRole === "SUPER_ADMIN" || normalizedRole === "HQ_USER";
         let fname = "";
         if (isHQUser) {
@@ -106,15 +114,7 @@ export default function Header() {
       } catch (e) {}
     }
 
-    setCurrentTime(getCurrentTime());
-    const timer = setInterval(() => {
-      setCurrentTime(getCurrentTime());
-    }, 1000);
-
     async function loadCompany() {
-      // Phase 0.10 — the token itself is no longer readable client-side
-      // (httpOnly cookie); "user" is still kept locally for display and
-      // doubles as the "am I logged in" signal here.
       const hasUser = typeof window !== "undefined" ? localStorage.getItem("user") : null;
       if (!hasUser) return;
 
@@ -148,8 +148,6 @@ export default function Header() {
       }
     }
     loadNotifs();
-
-    return () => clearInterval(timer);
   }, []);
 
   const pageTitle = getPageHeaderTitle(pathname);

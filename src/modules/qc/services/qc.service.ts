@@ -160,3 +160,10 @@ export async function addRemarks(jobId: string, notes: string): Promise<QCJob> {
     body: JSON.stringify({ qcNotes: notes }),
   });
 }
+
+/**
+ * Fetch the QC Team (inspectors) — scoped to the caller's franchise, or HQ.
+ */
+export async function getQCTeam(): Promise<any[]> {
+  return apiCall("/qc/team");
+}

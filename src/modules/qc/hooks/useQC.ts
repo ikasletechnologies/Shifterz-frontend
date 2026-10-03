@@ -180,16 +180,20 @@ export function useQC() {
 
   const today = new Date().toISOString().slice(0, 10);
 
-  const stats: QCStats = useMemo(() => {
-    const openCount = jobs.filter((j) => hasOpenInspection(j.id)).length;
+    const stats: QCStats = useMemo(() => {
+    const openCount = jobs.filter((j) => hasOpenInspection(j.id) || j.status === "Inspecting" || j.status === "In QC").length;
+    const awaitingStatuses = ["Completed", "Work Completed", "Waiting for Quality Check", "Waiting QC", "QC Pending", "Review for QC"];
+    const passedStatuses = ["Ready For Billing", "QC Passed"];
+    const reworkStatuses = ["Rework Required", "Rework", "QC Failed"];
+
     return {
-      waitingQC: jobs.filter((j) => ["Completed", "Work Completed", "Waiting for Quality Check"].includes(j.status) && !hasOpenInspection(j.id)).length,
+      waitingQC: jobs.filter((j) => awaitingStatuses.includes(j.status) && !hasOpenInspection(j.id) && j.status !== "Inspecting" && j.status !== "In QC").length,
       inspecting: openCount,
-      readyForBilling: jobs.filter((j) => j.status === "Ready For Billing").length,
-      rework: jobs.filter((j) => j.status === "Rework Required").length,
-      passedToday: jobs.filter((j) => j.status === "Ready For Billing" && (j.passedAt || "").startsWith(today)).length,
-      failedToday: jobs.filter((j) => j.status === "Rework Required" && (j.failedAt || "").startsWith(today)).length,
-      reworkPending: jobs.filter((j) => j.status === "Rework Required").length,
+      readyForBilling: jobs.filter((j) => passedStatuses.includes(j.status)).length,
+      rework: jobs.filter((j) => reworkStatuses.includes(j.status)).length,
+      passedToday: jobs.filter((j) => passedStatuses.includes(j.status) && (j.passedAt || "").startsWith(today)).length,
+      failedToday: jobs.filter((j) => reworkStatuses.includes(j.status) && (j.failedAt || "").startsWith(today)).length,
+      reworkPending: jobs.filter((j) => reworkStatuses.includes(j.status)).length,
     };
   }, [jobs, hasOpenInspection, today]);
 

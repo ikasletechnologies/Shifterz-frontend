@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect, useCallback } from "react";
-import { Search, Building2, X, Plus, LayoutGrid, Table } from "lucide-react";
+import { Search, Building2, X, Plus, LayoutGrid, Table, Pencil, Trash2 } from "lucide-react";
 import { useQC } from "@/modules/qc/hooks/useQC";
 import { QCTable } from "@/modules/qc/components/QCTable";
 import { QCTabsView } from "@/modules/qc/components/QCTabsView";
@@ -12,9 +12,11 @@ import { PassDialog } from "@/modules/qc/components/PassDialog";
 import { FailDialog } from "@/modules/qc/components/FailDialog";
 import { AssignInspectorDialog } from "@/modules/qc/components/AssignInspectorDialog";
 import AddEmployeeDialog from "@/components/employees/AddEmployeeDialog";
-import { getCurrentUser } from "@/lib/franchise-scope";
+import EditEmployeeDialog from "@/components/employees/EditEmployeeDialog";
+import { getCurrentUser, isSuperAdminRole } from "@/lib/franchise-scope";
 import { QCJob } from "@/modules/qc/types/qc.types";
-import { getEmployees, getFranchises, createEmployee } from "@/lib/api";
+import { getEmployees, getFranchises, createEmployee, updateEmployee, deleteEmployee } from "@/lib/api";
+import { getQCTeam } from "@/modules/qc/services/qc.service";
 import { toast } from "react-hot-toast";
 import { StatusText } from "@/components/common/StatusText";
 import { SummaryCard } from "@/components/common/SummaryCard";
@@ -54,9 +56,15 @@ export default function QCInspectionPage() {
     assignInspector,
   } = useQC();
 
+    const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [canManage, setCanManage] = useState(false);
+  const [selectedInspector, setSelectedInspector] = useState<any | null>(null);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+
   useEffect(() => {
-    const role = (getCurrentUser()?.role || "").toUpperCase().replace(/[s_]+/g, "_");
+    const rawRole = getCurrentUser()?.role || "";
+    const role = rawRole.toUpperCase().replace(/[\s_]+/g, "_");
+    setIsSuperAdmin(isSuperAdminRole(rawRole));
     setCanManage(MANAGEMENT_ROLES.includes(role));
   }, []);
 
@@ -90,7 +98,7 @@ export default function QCInspectionPage() {
     try {
       setLoadingInspectors(true);
       const [allEmps, franData] = await Promise.all([
-        getEmployees(),
+        getQCTeam().catch(() => getEmployees().catch(() => [])),
         getFranchises().catch(() => []),
       ]);
 
@@ -108,7 +116,7 @@ export default function QCInspectionPage() {
         });
 
         const formatted = qcEmps.map((e: any) => {
-          const b = typeof e.branch === "string" ? e.branch : e.branch?.name || (e.franchiseId ? "Franchise Branch" : "Headquarters (HQ)");
+          const b = typeof e.branch === "string" ? e.branch : e.branch?.name || e.franchise?.name || (e.franchiseId ? "Franchise Branch" : "Headquarters (HQ)");
           return {
             id: e.id,
             name: e.name || e.username || "QC Staff",
@@ -137,6 +145,10 @@ export default function QCInspectionPage() {
   }, [loadPersonnel]);
 
   const handleAdd = async (employeeData: any) => {
+    if (!isSuperAdmin) {
+      toast.error("Only Super Admin can add a QC inspector.");
+      return;
+    }
     try {
       await createEmployee({
         ...employeeData,
@@ -148,6 +160,37 @@ export default function QCInspectionPage() {
       loadPersonnel();
     } catch (err: any) {
       toast.error("Failed to add QC inspector: " + err.message);
+    }
+  };
+
+  const handleEditInspector = async (id: string, data: any) => {
+    if (!isSuperAdmin) {
+      toast.error("Only Super Admin can edit a QC inspector.");
+      return;
+    }
+    try {
+      await updateEmployee(id, data);
+      toast.success("QC inspector updated successfully");
+      setIsEditOpen(false);
+      setSelectedInspector(null);
+      loadPersonnel();
+    } catch (err: any) {
+      toast.error("Failed to update QC inspector: " + err.message);
+    }
+  };
+
+  const handleDeleteInspector = async (id: string) => {
+    if (!isSuperAdmin) {
+      toast.error("Only Super Admin can delete a QC inspector.");
+      return;
+    }
+    if (!confirm("Are you sure you want to remove this QC inspector?")) return;
+    try {
+      await deleteEmployee(id);
+      toast.success("QC inspector removed successfully");
+      loadPersonnel();
+    } catch (err: any) {
+      toast.error("Failed to delete QC inspector: " + err.message);
     }
   };
 
@@ -197,15 +240,15 @@ export default function QCInspectionPage() {
 
   // Performance Summary calculations
   const awaitingCount = useMemo(() => {
-    return jobs.filter((j) => !hasOpenInspection(j.id) && j.status !== "Ready For Billing").length;
+    return jobs.filter((j) => !hasOpenInspection(j.id) && j.status !== "Ready For Billing" && j.status !== "QC Passed").length;
   }, [jobs, hasOpenInspection]);
 
   const passedCount = useMemo(() => {
-    return jobs.filter((j) => j.status === "Ready For Billing").length;
+    return jobs.filter((j) => j.status === "Ready For Billing" || j.status === "QC Passed").length;
   }, [jobs]);
 
   const failedCount = useMemo(() => {
-    return jobs.filter((j) => j.status === "Rework Required").length;
+    return jobs.filter((j) => j.status === "Rework Required" || j.status === "QC Failed" || j.status === "Rework").length;
   }, [jobs]);
 
   const totalEvaluated = passedCount + failedCount;
@@ -218,13 +261,13 @@ export default function QCInspectionPage() {
       let matchesTab = true;
 
       if (activeTab === "Passed") {
-        matchesTab = j.status === "Ready For Billing";
+        matchesTab = j.status === "Ready For Billing" || j.status === "QC Passed";
       } else if (activeTab === "Rework") {
-        matchesTab = j.status === "Rework Required";
+        matchesTab = j.status === "Rework Required" || j.status === "QC Failed" || j.status === "Rework";
       } else if (activeTab === "Inspecting") {
-        matchesTab = hasOpenInspection(j.id);
+        matchesTab = hasOpenInspection(j.id) || j.status === "Inspecting" || j.status === "In QC";
       } else if (activeTab === "Awaiting") {
-        matchesTab = !hasOpenInspection(j.id) && j.status !== "Ready For Billing";
+        matchesTab = !hasOpenInspection(j.id) && j.status !== "Ready For Billing" && j.status !== "QC Passed" && j.status !== "Inspecting" && j.status !== "In QC";
       }
 
       const matchesSearch =
@@ -446,32 +489,36 @@ export default function QCInspectionPage() {
               )}
             </div>
 
-            <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm">
-              <Building2 className="w-4 h-4 text-gray-400 shrink-0" />
-              <select
-                value={selectedQcBranch}
-                onChange={(e) => setSelectedQcBranch(e.target.value)}
-                className="bg-transparent border-none text-sm text-gray-800 focus:outline-none cursor-pointer"
-                aria-label="Branch"
-              >
-                <option value="ALL">All Branches</option>
-                <option value="HQ">Headquarters (HQ)</option>
-                {franchises.map((f) => (
-                  <option key={f.id} value={f.id}>
-                    {f.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {isSuperAdmin && (
+              <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm">
+                <Building2 className="w-4 h-4 text-gray-400 shrink-0" />
+                <select
+                  value={selectedQcBranch}
+                  onChange={(e) => setSelectedQcBranch(e.target.value)}
+                  className="bg-transparent border-none text-sm text-gray-800 focus:outline-none cursor-pointer"
+                  aria-label="Branch"
+                >
+                  <option value="ALL">All Branches</option>
+                  <option value="HQ">Headquarters (HQ)</option>
+                  {franchises.map((f) => (
+                    <option key={f.id} value={f.id}>
+                      {f.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
 
-            <button
-              type="button"
-              onClick={() => setIsAddOpen(true)}
-              className="bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-semibold px-3.5 py-2 rounded-lg flex items-center gap-1.5 transition-colors text-sm whitespace-nowrap cursor-pointer"
-            >
-              <Plus className="w-4 h-4" />
-              Add QC Inspector
-            </button>
+                        {isSuperAdmin && (
+              <button
+                type="button"
+                onClick={() => setIsAddOpen(true)}
+                className="bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-semibold px-3.5 py-2 rounded-lg flex items-center gap-1.5 transition-colors text-sm whitespace-nowrap cursor-pointer"
+              >
+                <Plus className="w-4 h-4" />
+                Add QC Inspector
+              </button>
+            )}
           </div>
         </div>
 
@@ -480,7 +527,7 @@ export default function QCInspectionPage() {
         ) : filteredQcInspectors.length === 0 ? (
           <div className="p-8 text-center text-sm text-slate-500">
             {qcInspectors.length === 0
-              ? "No QC inspectors yet. Use “Add QC Inspector” to add someone who can pass or fail jobs."
+              ? (isSuperAdmin ? "No QC inspectors yet. Use “Add QC Inspector” to add someone who can pass or fail jobs." : "No QC inspectors yet.")
               : `No QC inspectors in ${selectedQcBranchName}${inspectorSearch ? ` matching "${inspectorSearch}"` : ""}.`}
           </div>
         ) : (
@@ -493,6 +540,7 @@ export default function QCInspectionPage() {
                   <th>Phone</th>
                   <th>Branch</th>
                   <th>Status</th>
+                  {isSuperAdmin && <th className="text-right">Actions</th>}
                 </tr>
               </thead>
               <tbody>
@@ -503,6 +551,29 @@ export default function QCInspectionPage() {
                     <td className="whitespace-nowrap">{inspector.phone}</td>
                     <td className="max-w-[200px] truncate">{inspector.branch}</td>
                     <td className="whitespace-nowrap"><StatusText status={inspector.status} /></td>
+                    {isSuperAdmin && (
+                      <td className="whitespace-nowrap text-right space-x-1">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedInspector(inspector);
+                            setIsEditOpen(true);
+                          }}
+                          className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
+                          title="Edit QC Inspector"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteInspector(inspector.id)}
+                          className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                          title="Delete QC Inspector"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
@@ -555,13 +626,27 @@ export default function QCInspectionPage() {
         onAssign={(inspector) => assignInspector(selectedJob!.id, inspector)}
       />
 
-      {isAddOpen && (
+            {isAddOpen && isSuperAdmin && (
         <AddEmployeeDialog
           isOpen={isAddOpen}
           onClose={() => setIsAddOpen(false)}
           onAdd={handleAdd}
           franchises={franchises}
           defaultRole="QUALITY_INSPECTOR"
+        />
+      )}
+
+      {isEditOpen && isSuperAdmin && selectedInspector && (
+        <EditEmployeeDialog
+          isOpen={isEditOpen}
+          onClose={() => {
+            setIsEditOpen(false);
+            setSelectedInspector(null);
+          }}
+          employee={selectedInspector}
+          onEdit={handleEditInspector}
+          franchises={franchises}
+          allowedRoles={["QUALITY_INSPECTOR"]}
         />
       )}
     </div>

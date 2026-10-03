@@ -68,10 +68,8 @@ export function LiveStatusPage() {
 
   const currentUser = getCurrentUser();
   const userRole = (currentUser?.role || "").toUpperCase().replace(/[\s_]+/g, "_");
-  const isHQ = userRole === "SUPER_ADMIN" || userRole === "SUPERADMIN" || userRole === "HQ" || userRole === "HQ_USER";
-
-  const hasFranchiseData = useMemo(() => records.some((r) => r.franchiseId || r.franchiseName), [records]);
-  const showFranchiseFilter = isHQ;
+  const isHQ = userRole === "SUPER_ADMIN" || userRole === "SUPERADMIN" || userRole === "HQ" || userRole === "HQ_USER" || (currentUser?.hqControlled === true && !currentUser?.franchiseId);
+  const showFranchiseFilter = userRole === "SUPER_ADMIN" || userRole === "SUPERADMIN" || userRole === "HQ" || userRole === "HQ_USER";
 
   useEffect(() => {
     if (!showFranchiseFilter) return;

@@ -7,6 +7,7 @@ import { HQDashboard } from "@/components/dashboard/HQDashboard";
 import EmployeeDashboard from "@/components/technician/EmployeeDashboard";
 import BillingDashboard from "@/components/dashboard/BillingDashboard";
 import { ServiceAdvisorDashboard } from "@/components/dashboard/ServiceAdvisorDashboard";
+import { QualityInspectorDashboard } from "@/components/dashboard/QualityInspectorDashboard";
 
 import { usePermissions } from "@/lib/permissions";
 
@@ -21,21 +22,12 @@ export default function DashboardPage() {
   const isBilling = baseRole === "BILLING_EXECUTIVE";
   const isServiceAdvisor = baseRole === "SERVICE_ADVISOR";
   const isFranchiseAdmin = baseRole === "FRANCHISE_ADMIN" || baseRole === "BRANCH_MANAGER";
-  // Quality Inspectors don't get a jobs-status dashboard — their work happens
-  // in the real QC Inspection module (checklist + Pass/Fail), not through a
-  // plain status dropdown. Send them straight there instead of EmployeeDashboard.
   const isQualityInspector =
     baseRole === "QUALITY_INSPECTOR" ||
     baseRole === "QUALITY_INSPECTION" ||
     baseRole === "QC_INSPECTOR" ||
     baseRole === "QC" ||
     baseRole === "QUALITY_ASSURANCE";
-
-  useEffect(() => {
-    if (isQualityInspector) {
-      router.replace("/dashboard/qc");
-    }
-  }, [isQualityInspector, router]);
 
   // Decide if they should see the detailed Technician Dashboard (assigned jobs list)
   // If the user's base role is TECHNICIAN, OR if their allowedModules only
@@ -51,7 +43,7 @@ export default function DashboardPage() {
       !allowedModules.includes("billing") &&
       !allowedModules.includes("inventory"));
 
-  if (loading || !baseRole || isQualityInspector) {
+  if (loading || !baseRole) {
     return <div className="p-8 text-center text-gray-500">Loading dashboard layout...</div>;
   }
 
@@ -63,6 +55,8 @@ export default function DashboardPage() {
         <BillingDashboard />
       ) : isServiceAdvisor ? (
         <ServiceAdvisorDashboard />
+      ) : isQualityInspector ? (
+        <QualityInspectorDashboard />
       ) : onlyJobsDashboard ? (
         <EmployeeDashboard />
       ) : (

@@ -1,7 +1,7 @@
 "use client";
 
-import PurchaseManagementPage from "../purchases/page";
+import VendorManagementPage from "../../management/vendors/page";
 
 export default function VendorsPage() {
-  return <PurchaseManagementPage />;
+  return <VendorManagementPage />;
 }

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { getInvoices, getOutPasses } from "@/lib/api";
+import { canAccessModule } from "@/lib/permissions";
 import { JobCard } from "../types/job-card.types";
 import { getJobStage, matchInvoice, matchOutPass, JobStageDef } from "../lib/jobStage";
 
@@ -25,8 +26,8 @@ export function useJobTracking(
   const refresh = useCallback(async () => {
     if (!enabled) return;
     const [invData, opData] = await Promise.all([
-      getInvoices().catch(() => []),
-      getOutPasses().catch(() => []),
+      canAccessModule("billing") ? getInvoices().catch(() => []) : Promise.resolve([]),
+      canAccessModule("outpass") ? getOutPasses().catch(() => []) : Promise.resolve([]),
     ]);
     setInvoices(invData || []);
     setOutPasses(opData || []);

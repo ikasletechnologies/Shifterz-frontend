@@ -1,5 +1,64 @@
 import { NextRequest, NextResponse } from "next/server";
 
+export const PERMISSION_MODULES = [
+  "dashboard",
+  "carin",
+  "jobs",
+  "vehicle-inspection",
+  "qc",
+  "outpass",
+  "leads",
+  "customers",
+  "billing",
+  "payments",
+  "inventory",
+  "reports",
+  "employees",
+  "attendance",
+  "settings",
+  "roles",
+] as const;
+
+export const DEFAULT_ROLE_MATRIX: Record<string, string[]> = {
+  SUPER_ADMIN: [
+    "dashboard", "carin", "jobs", "vehicle-inspection", "qc", "outpass", "leads", "customers",
+    "billing", "payments", "inventory", "reports", "employees",
+    "attendance", "settings", "roles"
+  ],
+  HQ_USER: [
+    "dashboard", "carin", "jobs", "vehicle-inspection", "qc", "outpass", "leads", "customers",
+    "billing", "payments", "inventory", "reports", "employees",
+    "attendance", "settings"
+  ],
+  FRANCHISE_ADMIN: [
+    "dashboard", "carin", "jobs", "vehicle-inspection", "qc", "outpass", "leads", "customers",
+    "billing", "payments", "inventory", "reports", "employees",
+    "attendance"
+  ],
+  BRANCH_MANAGER: [
+    "dashboard", "carin", "jobs", "vehicle-inspection", "qc", "outpass", "leads", "customers",
+    "billing", "payments", "inventory", "reports", "attendance"
+  ],
+  RECEPTION_EXECUTIVE: [
+    "dashboard", "carin", "outpass", "customers", "leads", "attendance"
+  ],
+  SERVICE_ADVISOR: [
+    "dashboard", "carin", "jobs", "attendance"
+  ],
+  TECHNICIAN: [
+    "dashboard", "jobs", "attendance"
+  ],
+  QUALITY_INSPECTOR: [
+    "dashboard", "vehicle-inspection", "qc", "attendance"
+  ],
+  BILLING_EXECUTIVE: [
+    "dashboard", "billing", "payments", "reports", "attendance"
+  ],
+  INVENTORY_EXECUTIVE: [
+    "dashboard", "inventory", "reports", "attendance"
+  ],
+};
+
 function normalizeRole(role?: string | null): string {
   if (!role) return "";
   const base = role.split("|")[0].trim().toUpperCase();
@@ -12,6 +71,27 @@ function normalizeRole(role?: string | null): string {
     INVENTORY: "INVENTORY_EXECUTIVE",
   };
   return aliasMap[base] || base;
+}
+
+export function canonicalizePermission(perm?: string | null): string {
+  if (!perm) return "";
+  const normalized = perm.trim().toLowerCase();
+  if (normalized === "vehicle_inspection" || normalized === "vehicleinspection" || normalized === "vehicle-inspection") {
+    return "vehicle-inspection";
+  }
+  if (normalized === "quality_control" || normalized === "quality-control" || normalized === "qc") {
+    return "qc";
+  }
+  if (normalized === "car_in" || normalized === "car-in" || normalized === "carin") {
+    return "carin";
+  }
+  if (normalized === "job_cards" || normalized === "job-cards" || normalized === "jobs") {
+    return "jobs";
+  }
+  if (normalized === "out_pass" || normalized === "out-pass" || normalized === "outpass") {
+    return "outpass";
+  }
+  return normalized;
 }
 
 function resolveModuleForPath(pathname: string): string | null {
@@ -34,16 +114,18 @@ function resolveModuleForPath(pathname: string): string | null {
 
   if (path.startsWith("/technician/my-jobs")) return "jobs";
   if (path.startsWith("/technician/attendance")) return "attendance";
+  if (path.startsWith("/vehicle-inspection") || path.startsWith("/dashboard/vehicle-inspection")) return "vehicle-inspection";
+  if (path.startsWith("/qc") || path.startsWith("/dashboard/qc")) return "qc";
 
   const sub = path.replace(/^\/dashboard\/?/, "");
   const firstSegment = sub.split("/")[0];
 
   const directMap: Record<string, string> = {
     carin: "carin",
-    "vehicle-inspection": "carin",
+    "vehicle-inspection": "vehicle-inspection",
     jobs: "jobs",
     workshop: "jobs",
-    qc: "jobs",
+    qc: "qc",
     "live-status": "jobs",
     outpass: "outpass",
     leads: "leads",
@@ -52,6 +134,7 @@ function resolveModuleForPath(pathname: string): string | null {
     warranties: "billing",
     payments: "payments",
     inventory: "inventory",
+    purchases: "inventory",
     reports: "reports",
     employees: "employees",
     technicians: "employees",
@@ -90,6 +173,7 @@ function resolveModuleForPath(pathname: string): string | null {
 export function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const token = request.cookies.get("token")?.value;
+  const permsCookie = request.cookies.get("shifterz_perms")?.value;
 
   let userRole: string | null = null;
   let userPermissions: string[] = [];
@@ -105,9 +189,23 @@ export function proxy(request: NextRequest) {
       const decodedJson = atob(base64);
       const payload = JSON.parse(decodedJson);
       userRole = payload.role || null;
-      userPermissions = Array.isArray(payload.permissions) ? payload.permissions : [];
+      if (Array.isArray(payload.permissions)) {
+        userPermissions = payload.permissions;
+      }
     } catch (e) {
       console.error("Token decode error in proxy:", e);
+    }
+  }
+
+  // Live client-synced cookie takes precedence if available
+  if (permsCookie) {
+    try {
+      const decodedPerms = JSON.parse(decodeURIComponent(permsCookie));
+      if (Array.isArray(decodedPerms) && decodedPerms.length > 0) {
+        userPermissions = decodedPerms;
+      }
+    } catch (e) {
+      // ignore
     }
   }
 
@@ -115,6 +213,8 @@ export function proxy(request: NextRequest) {
   const isProtectedRoute =
     pathname.startsWith("/dashboard") ||
     pathname.startsWith("/technician") ||
+    pathname.startsWith("/vehicle-inspection") ||
+    pathname.startsWith("/qc") ||
     pathname === "/access-denied";
 
   if (isProtectedRoute && !token) {
@@ -124,6 +224,11 @@ export function proxy(request: NextRequest) {
   const canonicalRole = normalizeRole(userRole);
   const isSuperAdmin = canonicalRole === "SUPER_ADMIN";
   const isTech = canonicalRole === "TECHNICIAN";
+
+  // Fallback to default matrix for role if permissions array is empty
+  if (!isSuperAdmin && userPermissions.length === 0 && canonicalRole && DEFAULT_ROLE_MATRIX[canonicalRole]) {
+    userPermissions = DEFAULT_ROLE_MATRIX[canonicalRole];
+  }
 
   // 2. Already logged in -> redirect from login to appropriate dashboard
   if (pathname === "/login" && token) {
@@ -139,7 +244,7 @@ export function proxy(request: NextRequest) {
   }
 
   // 4. Module-level route protection
-  if ((pathname.startsWith("/dashboard") || pathname.startsWith("/technician")) && userRole) {
+  if ((pathname.startsWith("/dashboard") || pathname.startsWith("/technician") || pathname.startsWith("/vehicle-inspection") || pathname.startsWith("/qc")) && userRole) {
     const requiredModule = resolveModuleForPath(pathname);
 
     if (requiredModule) {
@@ -154,7 +259,10 @@ export function proxy(request: NextRequest) {
       }
 
       // Check if user's role has permission for this module
-      if (!userPermissions.includes(requiredModule)) {
+      const targetModule = canonicalizePermission(requiredModule);
+      const canonicalUserPerms = userPermissions.map(canonicalizePermission);
+
+      if (!canonicalUserPerms.includes(targetModule)) {
         return NextResponse.redirect(new URL("/access-denied", request.url));
       }
     }
@@ -164,5 +272,14 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/technician/:path*", "/login", "/access-denied"],
+  matcher: [
+    "/dashboard/:path*",
+    "/technician/:path*",
+    "/login",
+    "/access-denied",
+    "/vehicle-inspection",
+    "/vehicle-inspection/:path*",
+    "/qc",
+    "/qc/:path*",
+  ],
 };

@@ -40,10 +40,12 @@ function vehicleOf(entry: CarEntry): string {
 // ("YYYY-MM-DD") and sometimes full ISO datetimes (see workshop.service.ts's
 // completeWork fallback). A date-only ETA is treated as due at end-of-day so a
 // job isn't flagged delayed the moment its due date begins.
-function parseEtaEndOfDay(eta?: string | null): Date | null {
+function parseEtaEndOfDay(eta?: string | Date | null): Date | null {
   if (!eta) return null;
-  const isDateOnly = /^\d{4}-\d{2}-\d{2}$/.test(eta.trim());
-  const parsed = new Date(isDateOnly ? `${eta.trim()}T23:59:59` : eta);
+  if (eta instanceof Date) return isNaN(eta.getTime()) ? null : eta;
+  const str = String(eta).trim();
+  const isDateOnly = /^\d{4}-\d{2}-\d{2}$/.test(str);
+  const parsed = new Date(isDateOnly ? `${str}T23:59:59` : str);
   return isNaN(parsed.getTime()) ? null : parsed;
 }
 

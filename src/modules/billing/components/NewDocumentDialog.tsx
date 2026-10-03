@@ -10,13 +10,15 @@ import {
   Search, ChevronDown, Check
 } from "lucide-react";
 import { toast } from "react-hot-toast";
-import { fetchVehicleDetails, getServices, getInventory } from "@/lib/api";
+import { fetchVehicleDetails, getServices, getInventory, apiCall } from "@/lib/api";
 import DocumentPreviewDialog from "./DocumentPreviewDialog";
 
 export interface LineItem {
   id?: string;
   type: "SERVICE" | "ITEM";
   serviceId?: string;
+  serviceCode?: string;
+  serviceName?: string;
   itemId?: string;
   desc: string;
   category?: string;
@@ -29,6 +31,42 @@ export interface LineItem {
   warranty?: string;
   unit?: string;
 }
+
+export const mapMaterialsToLineItems = (
+  materials: any[],
+  inventoryList: any[]
+): LineItem[] => {
+  if (!Array.isArray(materials) || materials.length === 0) return [];
+  return materials.map((m) => {
+    const rawName = (m.itemName || m.name || m.desc || "").trim();
+    const itemId = m.itemId || undefined;
+    const qty = Number(m.quantity ?? m.qty) || 1;
+
+    const matched = inventoryList.find(
+      (inv) =>
+        (itemId && inv.id === itemId) ||
+        (inv.name && inv.name.trim().toLowerCase() === rawName.toLowerCase())
+    );
+
+    const price = Number(matched?.cost ?? matched?.price ?? m.price ?? 0);
+    const unit = m.unit || matched?.unit || "Piece";
+    const category = matched?.category || m.category || "";
+
+    return {
+      type: "ITEM",
+      itemId: matched?.id || itemId,
+      desc: matched?.name || rawName || "Workshop Part",
+      category,
+      qty,
+      price,
+      discountPercent: 0,
+      gstPercent: 18,
+      amount: qty * price,
+      warranty: "",
+      unit,
+    };
+  });
+};
 import { getJobCards } from "@/modules/job-card/services/job-card.service";
 import { JobCard } from "@/modules/job-card/types/job-card.types";
 import { getVehicleType, formatVehicleNumber } from "@/utils/vehicleNumber";
@@ -44,6 +82,10 @@ const BILLING_ELIGIBLE_JOB_STATUSES = ["Ready For Billing", "QC Passed", "Delive
 // its own default is "PPF"), so these are never assumed to be the only valid
 // values — see serviceCategoryOptions below, which is catalog-driven.
 const SERVICE_CATEGORY_OPTIONS = ["General Service", "Bodywork & Paint", "PPF & Coating", "Electrical & Diagnostics", "AC Repair"];
+
+export const normalizeServiceName = (str?: string | null): string => {
+  return (str || "").trim().replace(/\s+/g, " ").toLowerCase();
+};
 
 
 interface DropdownPosition {
@@ -259,6 +301,47 @@ export default function NewDocumentDialog({
     }
   }, [focusedInventoryIndex]);
 
+  const findMatchingService = (queryOrLine: { serviceId?: string; serviceCode?: string; desc?: string; name?: string } | string | null | undefined) => {
+    if (!queryOrLine) return undefined;
+    const targetId = typeof queryOrLine === "object" ? queryOrLine.serviceId : undefined;
+    const targetCode = typeof queryOrLine === "object" ? queryOrLine.serviceCode : undefined;
+    const rawText = typeof queryOrLine === "string" ? queryOrLine : (queryOrLine.desc || queryOrLine.name || "");
+    const normalizedText = normalizeServiceName(rawText);
+
+    // 1. Primary: Match by canonical service ID
+    if (targetId) {
+      const matchById = availableServices.find((cs) => cs.id === targetId && !cs.isDeleted && cs.status !== "Inactive");
+      if (matchById) return matchById;
+    }
+
+    // 2. Match by service code (e.g. SER-HQ-01)
+    if (targetCode) {
+      const matchByCode = availableServices.find(
+        (cs) => cs.code && cs.code.trim().toLowerCase() === targetCode.trim().toLowerCase() && !cs.isDeleted && cs.status !== "Inactive"
+      );
+      if (matchByCode) return matchByCode;
+    }
+
+    if (!normalizedText) return undefined;
+
+    // 3. Match if user typed service ID directly
+    const matchByTypedId = availableServices.find(
+      (cs) => cs.id && cs.id.toLowerCase() === normalizedText && !cs.isDeleted && cs.status !== "Inactive"
+    );
+    if (matchByTypedId) return matchByTypedId;
+
+    // 4. Match if user typed service code directly (e.g. SER-HQ-01)
+    const matchByTypedCode = availableServices.find(
+      (cs) => cs.code && cs.code.trim().toLowerCase() === normalizedText && !cs.isDeleted && cs.status !== "Inactive"
+    );
+    if (matchByTypedCode) return matchByTypedCode;
+
+    // 5. Match by normalized service name (whitespace-safe, case-insensitive)
+    return availableServices.find(
+      (cs) => normalizeServiceName(cs.name) === normalizedText && !cs.isDeleted && cs.status !== "Inactive"
+    );
+  };
+
   // Global Outside Click Listener for Portals
   useEffect(() => {
     const handleMouseDown = (e: MouseEvent) => {
@@ -272,11 +355,14 @@ export default function NewDocumentDialog({
         const isInsidePortal = portalEl && portalEl.contains(target);
 
         if (!isInsideInput && !isInsidePortal) {
-          const typed = (serviceSearchText[focusedServiceIndex] ?? "").trim();
-          if (typed) {
-            const exact = activeServices.find(
-              (s) => s.name.toLowerCase() === typed.toLowerCase() || (s.code && s.code.toLowerCase() === typed.toLowerCase())
-            );
+          const typed = serviceSearchText[focusedServiceIndex];
+          const query = typed !== undefined ? typed : (serviceLines[focusedServiceIndex]?.desc ?? "");
+          if (query && query.trim()) {
+            const exact = findMatchingService({
+              serviceId: serviceLines[focusedServiceIndex]?.serviceId,
+              serviceCode: serviceLines[focusedServiceIndex]?.serviceCode,
+              desc: query,
+            });
             if (exact) {
               selectService(focusedServiceIndex, exact);
             } else if (!serviceLines[focusedServiceIndex]?.serviceId) {
@@ -322,7 +408,7 @@ export default function NewDocumentDialog({
             return next;
           });
           setFocusedInventoryIndex(null);
-          setHighlightedInventoryIndex(null);
+          setHighlightedServiceIndex(null);
         }
       }
     };
@@ -333,26 +419,26 @@ export default function NewDocumentDialog({
     };
   }, [focusedServiceIndex, focusedInventoryIndex, activeServices, availableInventory, serviceLines, itemLines, serviceSearchText, inventorySearchText]);
 
-
   const selectService = (index: number, service: any) => {
     const updated = [...serviceLines];
-    const existingQty = Number(updated[index]?.qty);
-    const qty = existingQty > 0 ? existingQty : 1;
     const price = Number(service.price || 0);
     const gstPercent = Number(service.gst ?? 18);
     const category = (service.category || "").trim() || updated[index]?.category || "";
+    const cleanServiceName = (service.name || "").trim().replace(/\s+/g, " ");
     updated[index] = {
       ...updated[index],
       type: "SERVICE",
       serviceId: service.id,
-      desc: service.name,
+      serviceCode: service.code || "",
+      serviceName: cleanServiceName || service.name,
+      desc: cleanServiceName || service.name,
       category,
-      categoryId: service.id || service.category,
-      qty,
+      categoryId: service.categoryId || service.id || service.category,
+      qty: 1,
       price,
       gstPercent,
       warranty: service.warranty || "",
-      amount: qty * price,
+      amount: price,
     };
     setServiceLines(updated);
     setServiceSearchText((prev) => {
@@ -461,13 +547,62 @@ export default function NewDocumentDialog({
     setIsFetchingVehicle(true);
     try {
       const data = await fetchVehicleDetails(vNo);
-      if (data && (data.name || data.model)) {
+      if (data && (data.name || data.model || data.jobId)) {
         setFormData((prev) => ({
           ...prev,
           client: prev.client || data.name || prev.client,
           phone: prev.phone || data.phone || prev.phone,
           model: prev.model || data.model || prev.model,
+          jobCardNo: prev.jobCardNo || data.jobId || prev.jobCardNo,
+          serviceAdvisor: prev.serviceAdvisor || data.serviceAdvisor || prev.serviceAdvisor,
+          technician: prev.technician || data.technician || prev.technician,
         }));
+
+        if (data.jobId) {
+          setJobId(data.jobId);
+        }
+
+        if (Array.isArray(data.services) && data.services.length > 0) {
+          setServiceLines((prev) => {
+            const isDefault = prev.length <= 1 && (!prev[0]?.desc || prev[0]?.desc === "Service Charge" || prev[0]?.price === 0);
+            if (isDefault) {
+              return data.services.map((s: any) => {
+                const matched = availableServices.find(
+                  (cs) => (s.serviceId && cs.id === s.serviceId) ||
+                         (s.serviceCode && cs.code && cs.code.trim().toLowerCase() === s.serviceCode.trim().toLowerCase()) ||
+                         normalizeServiceName(cs.name) === normalizeServiceName(s.name)
+                );
+                const cleanName = (s.name || matched?.name || "").trim().replace(/\s+/g, " ");
+                return {
+                  type: "SERVICE",
+                  serviceId: s.serviceId || matched?.id,
+                  serviceCode: s.serviceCode || matched?.code,
+                  serviceName: cleanName,
+                  desc: cleanName,
+                  category: s.category || matched?.category || "",
+                  categoryId: matched?.id,
+                  qty: 1,
+                  price: s.price || matched?.price || 0,
+                  amount: s.price || matched?.price || 0,
+                  discountPercent: 0,
+                  gstPercent: matched?.gst ?? 18,
+                  warranty: matched?.warranty || "",
+                };
+              });
+            }
+            return prev;
+          });
+        }
+
+        if (Array.isArray(data.materials) && data.materials.length > 0) {
+          setItemLines((prev) => {
+            const isEmpty = prev.length === 0 || prev.every((it) => !it.desc && !it.itemId);
+            if (isEmpty) {
+              return mapMaterialsToLineItems(data.materials, availableInventory);
+            }
+            return prev;
+          });
+        }
       }
       return data;
     } catch {
@@ -518,25 +653,29 @@ export default function NewDocumentDialog({
           initialData.items.forEach((it: any) => {
             const isItem = it.type === "ITEM" || (Boolean(it.itemId) && it.type !== "SERVICE");
             const matchedService = !isItem
-              ? availableServices.find(
-                  (s) => (it.serviceId && s.id === it.serviceId) ||
-                         (it.desc && s.name.toLowerCase() === it.desc.trim().toLowerCase())
-                )
+              ? findMatchingService({
+                  serviceId: it.serviceId,
+                  serviceCode: it.serviceCode,
+                  desc: it.desc || it.name,
+                })
               : null;
             const itemCategory = it.category || it.serviceCategory || matchedService?.category || initialData.serviceCategory || "";
+            const cleanServiceName = matchedService ? normalizeServiceName(matchedService.name) : (it.serviceName || it.desc || it.name || "").trim().replace(/\s+/g, " ");
 
             const parsedLine: LineItem = {
               type: isItem ? "ITEM" : "SERVICE",
-              serviceId: it.serviceId,
+              serviceId: matchedService?.id || it.serviceId,
+              serviceCode: matchedService?.code || it.serviceCode,
+              serviceName: isItem ? undefined : cleanServiceName,
               itemId: it.itemId,
-              desc: it.desc || it.name || "",
+              desc: isItem ? (it.desc || it.name || "") : (cleanServiceName || it.desc || it.name || ""),
               category: itemCategory,
-              categoryId: it.categoryId || matchedService?.id || it.serviceId,
-              qty: Number(it.qty) || 1,
+              categoryId: it.categoryId || matchedService?.categoryId || matchedService?.id || it.serviceId,
+              qty: isItem ? (Number(it.qty) || 1) : 1,
               price: Number(it.price ?? it.rate ?? 0),
               discountPercent: Number(it.discountPercent || 0),
               gstPercent: Number(it.gstPercent ?? 18),
-              amount: (Number(it.qty) || 1) * Number(it.price ?? it.rate ?? 0),
+              amount: isItem ? (Number(it.qty) || 1) * Number(it.price ?? it.rate ?? 0) : Number(it.price ?? it.rate ?? 0),
               warranty: it.warranty || "",
               unit: it.unit || "",
             };
@@ -550,34 +689,56 @@ export default function NewDocumentDialog({
           setItemLines(iLines);
         } else if (Array.isArray(initialData.services) && initialData.services.length > 0) {
           setServiceLines(
-            initialData.services.map((s: { name: string; price: number; qty: number; category?: string }) => {
-              const matchedService = availableServices.find(
-                (cs) => cs.name.toLowerCase() === s.name.trim().toLowerCase()
-              );
+            initialData.services.map((s: { name: string; price: number; qty: number; category?: string; serviceId?: string; serviceCode?: string; id?: string; code?: string }) => {
+              const matchedService = findMatchingService({
+                serviceId: s.serviceId || s.id,
+                serviceCode: s.serviceCode || s.code,
+                desc: s.name,
+              });
+              const cleanServiceName = matchedService ? normalizeServiceName(matchedService.name) : (s.name || "").trim().replace(/\s+/g, " ");
               return {
                 type: "SERVICE",
-                desc: s.name,
+                serviceId: matchedService?.id || s.serviceId || s.id,
+                serviceCode: matchedService?.code || s.serviceCode || s.code,
+                serviceName: cleanServiceName,
+                desc: cleanServiceName || s.name,
                 category: s.category || matchedService?.category || initialData.serviceCategory || "",
-                categoryId: matchedService?.id,
-                qty: s.qty || 1,
+                categoryId: matchedService?.categoryId || matchedService?.id,
+                qty: 1,
                 price: s.price || 0,
-                amount: (s.qty || 1) * (s.price || 0),
+                amount: s.price || 0,
                 discountPercent: 0,
                 gstPercent: 18,
                 warranty: "",
               };
             })
           );
-          setItemLines([]);
+          if (Array.isArray(initialData.materials) && initialData.materials.length > 0) {
+            setItemLines(mapMaterialsToLineItems(initialData.materials, availableInventory));
+          } else {
+            setItemLines([]);
+            const jId = initialData.jobId || initialData.jobCardNo;
+            if (jId) {
+              apiCall(`/jobs/${jId}/materials`)
+                .then((mats) => {
+                  if (Array.isArray(mats) && mats.length > 0) {
+                    setItemLines(mapMaterialsToLineItems(mats, availableInventory));
+                  }
+                })
+                .catch(() => {});
+            }
+          }
         } else if (initialData.service || initialData.amount) {
-          const matchedService = availableServices.find(
-            (cs) => cs.name.toLowerCase() === (initialData.service || "").trim().toLowerCase()
-          );
+          const matchedService = findMatchingService(initialData.service);
+          const cleanServiceName = matchedService ? normalizeServiceName(matchedService.name) : (initialData.service || "Service Charge").trim().replace(/\s+/g, " ");
           setServiceLines([{
             type: "SERVICE",
-            desc: initialData.service || "Service Charge",
+            serviceId: matchedService?.id,
+            serviceCode: matchedService?.code,
+            serviceName: cleanServiceName,
+            desc: cleanServiceName || "Service Charge",
             category: matchedService?.category || initialData.serviceCategory || "",
-            categoryId: matchedService?.id,
+            categoryId: matchedService?.categoryId || matchedService?.id,
             qty: 1,
             price: Number(initialData.amount || 0),
             amount: Number(initialData.amount || 0),
@@ -642,14 +803,27 @@ export default function NewDocumentDialog({
   useEffect(() => {
     if (isOpen && initialData && initialData.service && serviceLines.length === 1 && serviceLines[0].price === 0 && availableServices.length > 0) {
       const jobServiceName = (initialData.service || "").trim();
-      const matched = availableServices.find(
-        (s) => s.name.toLowerCase() === jobServiceName.toLowerCase()
-      );
+      const matched = findMatchingService(jobServiceName);
       if (matched) {
         const price = matched.price || 0;
         const warranty = matched.warranty || "";
+        const cleanName = (matched.name || "").trim().replace(/\s+/g, " ");
         setServiceLines([
-          { type: "SERVICE", serviceId: matched.id, desc: jobServiceName, qty: 1, price, amount: price, discountPercent: 0, gstPercent: matched.gst ?? 18, warranty },
+          {
+            type: "SERVICE",
+            serviceId: matched.id,
+            serviceCode: matched.code || "",
+            serviceName: cleanName || jobServiceName,
+            desc: cleanName || jobServiceName,
+            category: (matched.category || initialData.serviceCategory || "General Service").trim(),
+            categoryId: matched.id,
+            qty: 1,
+            price,
+            amount: price,
+            discountPercent: 0,
+            gstPercent: matched.gst ?? 18,
+            warranty,
+          },
         ]);
         if (warranty) {
           setFormData((prev) => ({ ...prev, warranty: prev.warranty || warranty }));
@@ -658,19 +832,36 @@ export default function NewDocumentDialog({
     }
   }, [availableServices, initialData, isOpen, serviceLines]);
 
-  // Derive Service Category per service line once availableServices is loaded
+  // Enrich and sync Service lines with canonical Service Master data once availableServices is loaded
   useEffect(() => {
     if (isOpen && availableServices.length > 0) {
       setServiceLines((prev) => {
         let hasChanges = false;
         const next = prev.map((s) => {
-          if (s.category && s.category.trim()) return s;
-          const matched = availableServices.find(
-            (c) => (s.serviceId && c.id === s.serviceId) || (s.desc && c.name?.toLowerCase() === s.desc.trim().toLowerCase())
-          );
-          if (matched?.category) {
-            hasChanges = true;
-            return { ...s, category: matched.category.trim(), categoryId: matched.id };
+          const matched = findMatchingService(s);
+          if (matched) {
+            const cleanName = (matched.name || "").trim().replace(/\s+/g, " ");
+            const needsUpdate =
+              !s.serviceId ||
+              s.serviceId !== matched.id ||
+              !s.serviceCode ||
+              s.serviceCode !== (matched.code || "") ||
+              !s.category ||
+              (s.desc && s.desc !== cleanName);
+
+            if (needsUpdate) {
+              hasChanges = true;
+              return {
+                ...s,
+                serviceId: matched.id,
+                serviceCode: matched.code || s.serviceCode || "",
+                serviceName: cleanName,
+                desc: cleanName || s.desc,
+                category: s.category?.trim() || matched.category?.trim() || "General Service",
+                categoryId: matched.categoryId || matched.id,
+                gstPercent: s.gstPercent !== undefined ? s.gstPercent : (matched.gst ?? 18),
+              };
+            }
           }
           return s;
         });
@@ -766,11 +957,16 @@ export default function NewDocumentDialog({
   }, [isOpen]);
 
   useEffect(() => {
-    if (isOpen && formData.type === "Invoice") {
+    if (isOpen) {
       setIsLoadingJobs(true);
       getJobCards()
         .then((jobs) => {
-          setEligibleJobs((jobs || []).filter((j) => BILLING_ELIGIBLE_JOB_STATUSES.includes(j.status)));
+          const list = jobs || [];
+          setEligibleJobs(
+            formData.type === "Invoice"
+              ? list.filter((j) => BILLING_ELIGIBLE_JOB_STATUSES.includes(j.status) || ["In Progress", "Completed", "Waiting QC"].includes(j.status))
+              : list.filter((j) => !["Cancelled"].includes(j.status))
+          );
         })
         .catch((err) => {
           console.error("Failed to load job cards:", err);
@@ -780,7 +976,40 @@ export default function NewDocumentDialog({
     }
   }, [isOpen, formData.type]);
 
-  const handleJobSelect = (selectedJobId: string) => {
+  // Reconcile itemLine prices once availableInventory master finishes loading
+  useEffect(() => {
+    if (availableInventory.length > 0 && itemLines.length > 0) {
+      setItemLines((prev) => {
+        let changed = false;
+        const updated = prev.map((line) => {
+          if (line.type === "ITEM" && (!line.price || line.price === 0)) {
+            const matched = availableInventory.find(
+              (inv) =>
+                (line.itemId && inv.id === line.itemId) ||
+                (inv.name && inv.name.trim().toLowerCase() === line.desc.trim().toLowerCase())
+            );
+            if (matched && (matched.cost || matched.price)) {
+              changed = true;
+              const p = Number(matched.cost ?? matched.price ?? 0);
+              return {
+                ...line,
+                itemId: line.itemId || matched.id,
+                desc: line.desc || matched.name,
+                category: line.category || matched.category || "",
+                price: p,
+                amount: (line.qty || 1) * p,
+                unit: line.unit || matched.unit || "Piece",
+              };
+            }
+          }
+          return line;
+        });
+        return changed ? updated : prev;
+      });
+    }
+  }, [availableInventory]);
+
+  const handleJobSelect = async (selectedJobId: string) => {
     setJobId(selectedJobId);
     const job = eligibleJobs.find((j) => j.id === selectedJobId);
     if (job) {
@@ -800,25 +1029,50 @@ export default function NewDocumentDialog({
         applyVehicleLookup(job.vehicle.trim().toUpperCase());
       }
 
-      const jobServices = (job as any).services as { name: string; price: number; qty: number }[] | undefined;
+      // Populate workshop materials / items recorded in workshop
+      try {
+        let mats = (job as any).materialConsumptions || (job as any).materials;
+        if (!Array.isArray(mats) || mats.length === 0) {
+          mats = await apiCall(`/jobs/${selectedJobId}/materials`);
+        }
+        if (Array.isArray(mats) && mats.length > 0) {
+          const items = mapMaterialsToLineItems(mats, availableInventory);
+          setItemLines(items);
+        }
+      } catch (err) {
+        console.warn("Could not load job materials:", err);
+      }
+
+      const jobServices = (job as any).services as { name: string; price: number; qty: number; serviceId?: string; serviceCode?: string; category?: string }[] | undefined;
       if (Array.isArray(jobServices) && jobServices.length > 0) {
-        // Same priced line items the Job Card's Billing Services section records
-        // and the backend's GST resolver reads — authoritative, no re-guessing.
         setServiceLines(
-          jobServices.map((s) => ({
-            type: "SERVICE",
-            desc: s.name,
-            qty: s.qty || 1,
-            price: s.price || 0,
-            amount: (s.qty || 1) * (s.price || 0),
-            discountPercent: 0,
-            gstPercent: 18,
-            warranty: "",
-          }))
+          jobServices.map((s) => {
+            const matched = availableServices.find(
+              (cs) => (s.serviceId && cs.id === s.serviceId) ||
+                     (s.serviceCode && cs.code && cs.code.trim().toLowerCase() === s.serviceCode.trim().toLowerCase()) ||
+                     normalizeServiceName(cs.name) === normalizeServiceName(s.name)
+            );
+            const cleanName = (s.name || matched?.name || "").trim().replace(/\s+/g, " ");
+            return {
+              type: "SERVICE",
+              serviceId: s.serviceId || matched?.id,
+              serviceCode: s.serviceCode || matched?.code,
+              serviceName: cleanName,
+              desc: cleanName,
+              category: s.category || matched?.category || "",
+              categoryId: matched?.id,
+              qty: 1,
+              price: s.price || matched?.price || 0,
+              amount: s.price || matched?.price || 0,
+              discountPercent: 0,
+              gstPercent: matched?.gst ?? 18,
+              warranty: matched?.warranty || "",
+            };
+          })
         );
 
         const matchedCatalog = jobServices
-          .map((s) => availableServices.find((c) => c.name?.toLowerCase() === s.name.toLowerCase()))
+          .map((s) => availableServices.find((c) => normalizeServiceName(c.name) === normalizeServiceName(s.name)))
           .find((c) => c?.category);
         const category = matchedCatalog?.category?.trim();
         if (category) {
@@ -829,13 +1083,26 @@ export default function NewDocumentDialog({
 
       const jobServiceName = (job.service || "").trim();
       if (jobServiceName && availableServices.length > 0) {
-        const matched = availableServices.find(
-          (s) => s.name.toLowerCase() === jobServiceName.toLowerCase()
-        );
+        const matched = findMatchingService(jobServiceName);
         const price = matched?.price || 0;
         const warranty = matched?.warranty || "";
+        const cleanName = (matched?.name || jobServiceName).trim().replace(/\s+/g, " ");
         setServiceLines([
-          { type: "SERVICE", serviceId: matched?.id, desc: jobServiceName, qty: 1, price, amount: price, discountPercent: 0, gstPercent: matched?.gst ?? 18, warranty },
+          {
+            type: "SERVICE",
+            serviceId: matched?.id,
+            serviceCode: matched?.code,
+            serviceName: cleanName,
+            desc: cleanName,
+            category: matched?.category || "",
+            categoryId: matched?.id,
+            qty: 1,
+            price,
+            amount: price,
+            discountPercent: 0,
+            gstPercent: matched?.gst ?? 18,
+            warranty,
+          },
         ]);
         if (warranty) {
           setFormData((prev) => ({ ...prev, warranty: prev.warranty || warranty }));
@@ -881,7 +1148,7 @@ export default function NewDocumentDialog({
     let sDiscTotal = 0;
     let sGstTotal = 0;
     serviceLines.forEach((item) => {
-      const amt = (Number(item.qty) || 0) * (Number(item.price) || 0);
+      const amt = Number(item.price) || 0;
       const lineDiscPct = Number(item.discountPercent) || 0;
       const lineDiscAmt = (amt * lineDiscPct) / 100;
       const lineGstPct = item.gstPercent ?? 18;
@@ -913,7 +1180,7 @@ export default function NewDocumentDialog({
   const handleServiceChange = (index: number, field: keyof LineItem, value: any) => {
     const updated = [...serviceLines];
     const item = { ...updated[index], [field]: value };
-    item.amount = (Number(item.qty) || 0) * (Number(item.price) || 0);
+    item.amount = Number(item.price) || 0;
     updated[index] = item;
     setServiceLines(updated);
   };
@@ -1037,23 +1304,59 @@ export default function NewDocumentDialog({
       return;
     }
 
-    for (let i = 0; i < serviceLines.length; i++) {
-      const s = serviceLines[i];
-      if (!s.desc.trim()) {
-        if (serviceLines.length > 1 || itemLines.length > 0) {
+    if (isLoadingServices && availableServices.length === 0) {
+      toast.error("Services are still loading from Services master. Please wait a moment and try again.");
+      return;
+    }
+
+    // Sync active search text into service lines and resolve matching service
+    const resolvedServiceLines: LineItem[] = serviceLines.map((s, idx) => {
+      const typed = serviceSearchText[idx];
+      const desc = typed !== undefined && typed.trim() ? typed.trim().replace(/\s+/g, " ") : (s.desc || "").trim().replace(/\s+/g, " ");
+      const updatedLine = { ...s, desc };
+
+      // Resolve matching service using canonical ID, code, or whitespace-normalized name
+      const matched = findMatchingService({
+        serviceId: s.serviceId,
+        serviceCode: s.serviceCode,
+        desc: desc || s.desc,
+      });
+
+      if (matched) {
+        const cleanName = (matched.name || "").trim().replace(/\s+/g, " ");
+        updatedLine.serviceId = matched.id;
+        updatedLine.serviceCode = matched.code || updatedLine.serviceCode;
+        updatedLine.serviceName = cleanName;
+        updatedLine.desc = cleanName || desc;
+        if (!updatedLine.category) {
+          updatedLine.category = (matched.category || "General Service").trim();
+        }
+        if (!updatedLine.categoryId) {
+          updatedLine.categoryId = matched.categoryId || matched.id;
+        }
+        if (updatedLine.price === 0 && Number(matched.price || 0) > 0) {
+          updatedLine.price = Number(matched.price || 0);
+          updatedLine.amount = Number(matched.price || 0);
+        }
+        if (matched.gst !== undefined && matched.gst !== null) {
+          updatedLine.gstPercent = Number(matched.gst);
+        }
+      }
+      return updatedLine;
+    });
+
+    for (let i = 0; i < resolvedServiceLines.length; i++) {
+      const s = resolvedServiceLines[i];
+      if (!s.desc) {
+        if (resolvedServiceLines.length > 1 || itemLines.length > 0) {
           toast.error(`Service line #${i + 1} has no service selected. Please select a service or remove the row.`);
           return;
         }
       } else {
-        const matchingService = activeServices.find(
-          (cs) => (s.serviceId && cs.id === s.serviceId) || cs.name.toLowerCase() === s.desc.trim().toLowerCase()
-        );
+        const matchingService = findMatchingService(s);
         if (!matchingService) {
           toast.error(`Service line #${i + 1} ("${s.desc}") is not a valid service from the Services master. Please select a valid service.`);
           return;
-        }
-        if (!s.serviceId) {
-          s.serviceId = matchingService.id;
         }
       }
     }
@@ -1076,7 +1379,7 @@ export default function NewDocumentDialog({
       }
     }
 
-    const validServices = serviceLines.filter((s) => s.desc && s.desc.trim() !== "");
+    const validServices = resolvedServiceLines.filter((s) => s.desc && s.desc.trim() !== "");
     const validItems = itemLines.filter((i) => i.desc && i.desc.trim() !== "");
 
     if (validServices.length === 0 && validItems.length === 0) {
@@ -1084,11 +1387,9 @@ export default function NewDocumentDialog({
       return;
     }
 
+    setServiceLines(resolvedServiceLines);
+
     for (const s of validServices) {
-      if (!s.qty || s.qty <= 0) {
-        toast.error(`Service "${s.desc}": Quantity must be greater than 0`);
-        return;
-      }
       if (s.price < 0 || isNaN(s.price)) {
         toast.error(`Service "${s.desc}": Rate cannot be negative`);
         return;
@@ -1504,7 +1805,7 @@ export default function NewDocumentDialog({
                   <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                     <div>
                       <label className="block text-[11px] font-bold text-slate-600 mb-1">Job Card No.</label>
-                      {formData.type === "Invoice" && eligibleJobs.length > 0 ? (
+                      {eligibleJobs.length > 0 ? (
                         <select
                           value={jobId}
                           onChange={(e) => handleJobSelect(e.target.value)}
@@ -1712,30 +2013,29 @@ export default function NewDocumentDialog({
                     </div>
 
                     <div className="overflow-x-auto overflow-y-auto max-h-[340px] border border-slate-200/80 rounded-xl">
-                      <table className="w-full text-left text-xs">
+                      <table className="w-full text-left text-xs min-w-[760px]">
                         <thead className="bg-blue-50/50 text-[10px] uppercase tracking-wider text-slate-500 font-bold border-b border-slate-200/80">
                           <tr>
-                            <th className="py-2.5 px-2 text-center w-8">#</th>
-                            <th className="py-2.5 px-2">Service</th>
-                            <th className="py-2.5 px-2 w-36">Category</th>
-                            <th className="py-2.5 px-2 w-14 text-center">Qty</th>
-                            <th className="py-2.5 px-2 w-20 text-right">Rate (₹)</th>
-                            <th className="py-2.5 px-2 w-14 text-center">GST (%)</th>
-                            <th className="py-2.5 px-2 w-24 text-right">Amount (₹)</th>
-                            <th className="py-2.5 px-2 w-8 text-center" />
+                            <th className="py-2.5 px-2 text-center w-[35px] min-w-[35px]">#</th>
+                            <th className="py-2.5 px-2 w-[250px] min-w-[250px]">Service</th>
+                            <th className="py-2.5 px-2 w-[170px] min-w-[170px]">Category</th>
+                            <th className="py-2.5 px-2 w-[85px] min-w-[85px] text-right">Rate (₹)</th>
+                            <th className="py-2.5 px-2 w-[70px] min-w-[70px] text-center">GST (%)</th>
+                            <th className="py-2.5 px-2 w-[110px] min-w-[110px] text-right">Amount (₹)</th>
+                            <th className="py-2.5 px-2 w-[40px] min-w-[40px] text-center" />
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
                           {serviceLines.map((sLine, index) => {
-                            const lineSubtotal = (Number(sLine.qty) || 0) * (Number(sLine.price) || 0);
+                            const lineSubtotal = Number(sLine.price) || 0;
                             const lineTaxable = lineSubtotal;
                             const lineGst = (lineTaxable * (sLine.gstPercent ?? 18)) / 100;
                             const lineTotalWithTax = lineTaxable + lineGst;
 
                             return (
                               <tr key={index} className="hover:bg-slate-50/50">
-                                <td className="py-2 px-2 text-center font-bold text-slate-400 text-[11px]">{index + 1}</td>
-                                <td className="py-2 px-2 min-w-[220px]">
+                                <td className="py-2 px-2 text-center font-bold text-slate-400 text-[11px] w-[35px] min-w-[35px]">{index + 1}</td>
+                                <td className="py-2 px-2 w-[250px] min-w-[250px]">
                                   <div className="relative flex items-center">
                                     <Wrench className={`w-3.5 h-3.5 absolute left-2.5 transition-colors pointer-events-none ${focusedServiceIndex === index ? "text-blue-600" : "text-slate-400"
                                       }`} />
@@ -1757,11 +2057,11 @@ export default function NewDocumentDialog({
                                         e.target.select();
                                       }}
                                       onKeyDown={(e) => {
-                                        const query = (serviceSearchText[index] !== undefined ? serviceSearchText[index] : "").toLowerCase().trim();
+                                        const query = normalizeServiceName(serviceSearchText[index] !== undefined ? serviceSearchText[index] : "");
                                         const filtered = activeServices.filter((s) => {
                                           if (!query) return true;
                                           return (
-                                            (s.name || "").toLowerCase().includes(query) ||
+                                            normalizeServiceName(s.name).includes(query) ||
                                             (s.code || s.id || "").toLowerCase().includes(query) ||
                                             (s.category || "").toLowerCase().includes(query)
                                           );
@@ -1791,17 +2091,21 @@ export default function NewDocumentDialog({
                                             selectService(index, filtered[highlightedServiceIndex]);
                                           } else if (filtered.length === 1) {
                                             selectService(index, filtered[0]);
+                                          } else {
+                                            const typed = serviceSearchText[index] !== undefined ? serviceSearchText[index] : (sLine.desc ?? "");
+                                            const exact = findMatchingService(typed);
+                                            if (exact) {
+                                              selectService(index, exact);
+                                            }
                                           }
                                         } else if (e.key === "Escape") {
                                           e.preventDefault();
                                           setFocusedServiceIndex(null);
                                           setHighlightedServiceIndex(null);
                                         } else if (e.key === "Tab") {
-                                          const typed = (serviceSearchText[index] ?? "").trim();
-                                          if (typed) {
-                                            const exact = activeServices.find(
-                                              (s) => s.name.toLowerCase() === typed.toLowerCase() || (s.code && s.code.toLowerCase() === typed.toLowerCase())
-                                            );
+                                          const typed = serviceSearchText[index] !== undefined ? serviceSearchText[index] : (sLine.desc ?? "");
+                                          if (typed && typed.trim()) {
+                                            const exact = findMatchingService(typed);
                                             if (exact) {
                                               selectService(index, exact);
                                             } else if (!sLine.serviceId) {
@@ -1860,11 +2164,11 @@ export default function NewDocumentDialog({
                                     </div>
                                   </div>
                                 </td>
-                                <td className="py-2 px-2 w-36 min-w-[130px]">
+                                <td className="py-2 px-2 w-[170px] min-w-[170px]">
                                   <select
                                     value={sLine.category || ""}
                                     onChange={(e) => handleServiceChange(index, "category", e.target.value)}
-                                    className="w-full px-2 py-1.5 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                    className="w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
                                   >
                                     <option value="">Select Category</option>
                                     {serviceCategoryOptions.map((c) => (
@@ -1872,27 +2176,17 @@ export default function NewDocumentDialog({
                                     ))}
                                   </select>
                                 </td>
-                                <td className="py-2 px-2">
-                                  <input
-                                    type="number"
-                                    value={sLine.qty}
-                                    onChange={(e) => handleServiceChange(index, "qty", parseFloat(e.target.value) || 0)}
-                                    onFocus={(e) => e.target.select()}
-                                    min="1"
-                                    className="w-full px-1 py-1 border border-slate-200 rounded-lg text-xs text-center font-bold"
-                                  />
-                                </td>
-                                <td className="py-2 px-2">
+                                <td className="py-2 px-2 w-[85px] min-w-[85px]">
                                   <input
                                     type="number"
                                     value={sLine.price}
                                     onChange={(e) => handleServiceChange(index, "price", parseFloat(e.target.value) || 0)}
                                     onFocus={(e) => e.target.select()}
                                     min="0"
-                                    className="w-full px-1 py-1 border border-slate-200 rounded-lg text-xs text-right font-bold font-mono"
+                                    className="w-full px-2 py-1.5 border border-slate-200 rounded-lg text-xs text-right font-bold font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none"
                                   />
                                 </td>
-                                <td className="py-2 px-2">
+                                <td className="py-2 px-2 w-[70px] min-w-[70px]">
                                   <input
                                     type="number"
                                     value={sLine.gstPercent}
@@ -1900,20 +2194,20 @@ export default function NewDocumentDialog({
                                     onFocus={(e) => e.target.select()}
                                     min="0"
                                     max="100"
-                                    className="w-full px-1 py-1 border border-slate-200 rounded-lg text-xs text-center font-medium"
+                                    className="w-full px-2 py-1.5 border border-slate-200 rounded-lg text-xs text-center font-medium focus:ring-2 focus:ring-blue-500 focus:outline-none"
                                   />
                                 </td>
-                                <td className="py-2 px-2 text-right font-mono font-bold text-slate-900">
+                                <td className="py-2 px-2 w-[110px] min-w-[110px] text-right font-mono font-bold text-slate-900 whitespace-nowrap">
                                   ₹{lineTotalWithTax.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                                 </td>
-                                <td className="py-2 px-2 text-center">
+                                <td className="py-2 px-2 w-[40px] min-w-[40px] text-center">
                                   <button
                                     type="button"
                                     onClick={() => removeServiceLine(index)}
                                     className="text-red-500 hover:text-red-700 p-1"
                                     title="Remove Service"
                                   >
-                                    <Trash2 className="w-3.5 h-3.5" />
+                                    <Trash2 className="w-3.5 h-3.5 mx-auto" />
                                   </button>
                                 </td>
                               </tr>
@@ -2222,7 +2516,7 @@ export default function NewDocumentDialog({
                             <>
                               {/* 1. Services in All view */}
                               {serviceLines.map((sLine, index) => {
-                                const lineSubtotal = (Number(sLine.qty) || 0) * (Number(sLine.price) || 0);
+                                const lineSubtotal = Number(sLine.price) || 0;
                                 const lineTaxable = lineSubtotal;
                                 const lineGst = (lineTaxable * (sLine.gstPercent ?? 18)) / 100;
                                 const lineTotalWithTax = lineTaxable + lineGst;
@@ -2246,15 +2540,7 @@ export default function NewDocumentDialog({
                                         Service
                                       </span>
                                     </td>
-                                    <td className="py-2 px-2">
-                                      <input
-                                        type="number"
-                                        value={sLine.qty}
-                                        onChange={(e) => handleServiceChange(index, "qty", parseFloat(e.target.value) || 0)}
-                                        min="1"
-                                        className="w-full px-1 py-1 border border-slate-200 rounded-lg text-xs text-center font-bold"
-                                      />
-                                    </td>
+                                    <td className="py-2 px-2 text-center text-slate-400 font-semibold">—</td>
                                     <td className="py-2 px-2">
                                       <input
                                         type="number"
@@ -2577,11 +2863,11 @@ export default function NewDocumentDialog({
               </div>
             ) : (
               (() => {
-                const query = (serviceSearchText[focusedServiceIndex] !== undefined ? serviceSearchText[focusedServiceIndex] : "").toLowerCase().trim();
+                const query = normalizeServiceName(serviceSearchText[focusedServiceIndex] !== undefined ? serviceSearchText[focusedServiceIndex] : "");
                 const filtered = activeServices.filter((s) => {
                   if (!query) return true;
                   return (
-                    (s.name || "").toLowerCase().includes(query) ||
+                    normalizeServiceName(s.name).includes(query) ||
                     (s.code || s.id || "").toLowerCase().includes(query) ||
                     (s.category || "").toLowerCase().includes(query)
                   );
@@ -2602,7 +2888,9 @@ export default function NewDocumentDialog({
 
                 return filtered.map((service, sIdx) => {
                   const isHighlighted = highlightedServiceIndex === sIdx;
-                  const isSelected = currentLine?.serviceId === service.id || (currentLine?.desc && currentLine.desc.toLowerCase() === service.name.toLowerCase());
+                  const isSelected = currentLine?.serviceId === service.id ||
+                    (currentLine?.serviceCode && service.code && currentLine.serviceCode.toLowerCase() === service.code.toLowerCase()) ||
+                    (currentLine?.desc && normalizeServiceName(currentLine.desc) === normalizeServiceName(service.name));
 
                   return (
                     <div

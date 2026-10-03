@@ -2,6 +2,8 @@ import { PhoneInput } from "@/components/common/PhoneInput";
 import { useState, useEffect } from "react";
 import { normalizeFranchiseStatus } from "@/components/franchise/FranchiseStatusBadge";
 import { X, Eye, EyeOff } from "lucide-react";
+import { getCurrentUser, isSuperAdminRole } from "@/lib/franchise-scope";
+import { toast } from "react-hot-toast";
 
 interface EditEmployeeDialogProps {
   isOpen: boolean;
@@ -17,6 +19,8 @@ const MODULE_OPTIONS = [
   { value: "dashboard", label: "Dashboard" },
   { value: "carin", label: "Car In" },
   { value: "jobs", label: "Job Cards" },
+  { value: "vehicle-inspection", label: "Vehicle Inspection" },
+  { value: "qc", label: "QC" },
   { value: "leads", label: "Leads" },
   { value: "customers", label: "Customers" },
   { value: "billing", label: "Billing" },
@@ -28,14 +32,15 @@ const MODULE_OPTIONS = [
 ];
 
 const DEFAULT_ROLE_MODULES: Record<string, string[]> = {
-  SUPER_ADMIN: ["dashboard", "carin", "jobs", "leads", "customers", "billing", "payments", "inventory", "reports", "employees", "attendance"],
+  SUPER_ADMIN: ["dashboard", "carin", "jobs", "vehicle-inspection", "qc", "leads", "customers", "billing", "payments", "inventory", "reports", "employees", "attendance"],
   HQ_USER: ["dashboard", "carin", "jobs", "leads", "customers", "billing", "payments", "inventory", "reports", "employees", "attendance"],
   FRANCHISE_ADMIN: ["dashboard", "carin", "jobs", "leads", "customers", "billing", "payments", "inventory", "reports", "employees", "attendance"],
   MANAGER: ["dashboard", "carin", "jobs", "leads", "customers", "billing", "payments", "inventory", "reports", "employees", "attendance"],
   SERVICE_ADVISOR: ["dashboard", "carin", "jobs", "outpass", "leads", "customers", "billing"],
   TECHNICIAN: ["dashboard", "jobs"],
   BILLING_EXECUTIVE: ["dashboard", "billing", "payments", "reports"],
-  QC_INSPECTOR: ["dashboard", "jobs"],
+  QUALITY_INSPECTOR: ["dashboard", "vehicle-inspection", "qc"],
+  QC_INSPECTOR: ["dashboard", "vehicle-inspection", "qc"],
 };
 
 export default function EditEmployeeDialog({ isOpen, onClose, onEdit, employee, franchises, allowedRoles, lockFranchiseId }: EditEmployeeDialogProps) {
@@ -80,8 +85,11 @@ export default function EditEmployeeDialog({ isOpen, onClose, onEdit, employee, 
     "INVENTORY_EXECUTIVE",
   ];
 
+  const user = getCurrentUser();
+  const isSuperAdmin = isSuperAdminRole(user?.role);
+
   const roles = (allowedRoles || defaultRoles).filter(
-    r => r !== "SUPER_ADMIN" && r !== "HQ_USER" && (r !== "FRANCHISE_ADMIN" || employee?.role === "FRANCHISE_ADMIN")
+    r => r !== "SUPER_ADMIN" && r !== "HQ_USER" && (r !== "BRANCH_MANAGER" || employee?.role === "BRANCH_MANAGER") && (r !== "FRANCHISE_ADMIN" || employee?.role === "FRANCHISE_ADMIN") && (isSuperAdmin || r !== "QUALITY_INSPECTOR")
   );
 
     const activeFranchises = (franchises || []).filter(
@@ -104,6 +112,15 @@ export default function EditEmployeeDialog({ isOpen, onClose, onEdit, employee, 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (formData.role === "FRANCHISE_ADMIN" && employee?.role !== "FRANCHISE_ADMIN") {
+      return;
+    }
+    const isTargetQI = employee?.role === "QUALITY_INSPECTOR";
+    if (isTargetQI && !isSuperAdmin) {
+      toast.error("Only Super Admin can manage Quality Inspectors.");
+      return;
+    }
+    if (formData.role === "QUALITY_INSPECTOR" && !isSuperAdmin) {
+      toast.error("Only Super Admin can assign Quality Inspector role.");
       return;
     }
     onEdit(employee.id, {

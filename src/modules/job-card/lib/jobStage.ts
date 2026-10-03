@@ -45,7 +45,7 @@ export const LIFECYCLE_STEPS = [
 ] as const;
 
 export const JOB_STAGES: Record<JobStageKey, JobStageDef> = {
-  inspection: { key: "inspection", label: "Waiting for Vehicle Inspection", tone: "neutral", step: 1, action: { label: "Inspect Vehicle", href: "/dashboard/vehicle-inspection" } },
+  inspection: { key: "inspection", label: "Waiting for Vehicle Inspection", tone: "neutral", step: 1, action: { label: "View Inspection", href: "/dashboard/vehicle-inspection" } },
   technician: { key: "technician", label: "Waiting for Technician", tone: "neutral", step: 2, action: { label: "Assign Technician", edit: true } },
   startWork: { key: "startWork", label: "Waiting to Start Work", tone: "neutral", step: 3, action: { label: "Go to Workshop", href: "/dashboard/workshop" } },
   inWork: { key: "inWork", label: "Work In Progress", tone: "neutral", step: 3, action: { label: "Go to Workshop", href: "/dashboard/workshop" } },

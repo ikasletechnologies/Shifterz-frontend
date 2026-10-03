@@ -31,7 +31,7 @@ interface VehicleCheckinTabsProps {
   onInspection: (car: CarEntry) => void;
   onDownloadExcel: (car: CarEntry) => void;
   onDownloadPdf: (car: CarEntry) => void;
-  onDelete: (car: CarEntry) => void;
+  onDelete?: (car: CarEntry) => void;
   showFranchise?: boolean;
 }
 
@@ -294,14 +294,16 @@ export function VehicleCheckinTabs({
                     >
                       <FileText className="w-3.5 h-3.5" />
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => onDelete(entry)}
-                      className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
-                      title="Delete"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
+                    {onDelete && (
+                      <button
+                        type="button"
+                        onClick={() => onDelete(entry)}
+                        className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                        title="Delete"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>

@@ -2,7 +2,9 @@
 
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { SimplePurchaseInvoiceDialog } from "../components/SimplePurchaseInvoiceDialog";
+import { PurchaseOrderFlowSection } from "../components/PurchaseOrderFlowSection";
 import {
   Plus, Eye, Pencil, Ban, Search, Receipt, ArrowRight, History, X,
   Printer, MoreHorizontal, Download,
@@ -176,6 +178,32 @@ function CardMoreDropdown({
 
 export function BillingPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // Purchase Order Invoice Flow States
+  const [isPoInvoiceModalOpen, setIsPoInvoiceModalOpen] = useState(false);
+  const [selectedPoId, setSelectedPoId] = useState<string | null>(null);
+  const [selectedPoInvoiceId, setSelectedPoInvoiceId] = useState<string | null>(null);
+  const [poInvoiceModalMode, setPoInvoiceModalMode] = useState<"create" | "view">("view");
+  const [poRefreshKey, setPoRefreshKey] = useState(0);
+
+  useEffect(() => {
+    const poId = searchParams.get("purchaseOrderId");
+    const invId = searchParams.get("viewPurchaseInvoice");
+    if (poId) {
+      setActiveSubTab("documents");
+      setSelectedPoId(poId);
+      setSelectedPoInvoiceId(null);
+      setPoInvoiceModalMode("create");
+      setIsPoInvoiceModalOpen(true);
+    } else if (invId) {
+      setActiveSubTab("documents");
+      setSelectedPoId(null);
+      setSelectedPoInvoiceId(invId);
+      setPoInvoiceModalMode("view");
+      setIsPoInvoiceModalOpen(true);
+    }
+  }, [searchParams]);
   const {
     documents,
     isLoading,
@@ -744,6 +772,20 @@ export function BillingPage() {
               </table>
             </div>
           )}
+
+          {/* Purchase Order Invoices & Documents Flow */}
+          <div className="pt-4">
+            <PurchaseOrderFlowSection
+              highlightPo={searchParams.get("highlightPo")}
+              onOpenInvoiceModal={(poId, invId, mode) => {
+                setSelectedPoId(poId);
+                setSelectedPoInvoiceId(invId || null);
+                setPoInvoiceModalMode(mode || "view");
+                setIsPoInvoiceModalOpen(true);
+              }}
+              refreshKey={poRefreshKey}
+            />
+          </div>
         </>
       )}
 
@@ -893,6 +935,21 @@ export function BillingPage() {
         document={documentToConvertCarIn}
         onSuccess={async () => {
           await fetchInvoices();
+        }}
+      />
+      <SimplePurchaseInvoiceDialog
+        isOpen={isPoInvoiceModalOpen}
+        onClose={() => {
+          setIsPoInvoiceModalOpen(false);
+          setSelectedPoId(null);
+          setSelectedPoInvoiceId(null);
+        }}
+        purchaseOrderId={selectedPoId}
+        invoiceId={selectedPoInvoiceId}
+        mode={poInvoiceModalMode}
+        onSuccess={() => {
+          setPoRefreshKey((k) => k + 1);
+          fetchInvoices();
         }}
       />
     </div>

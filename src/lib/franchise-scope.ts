@@ -16,9 +16,21 @@ export function getCurrentUser(): ScopedUser | null {
   }
 }
 
-export function isHQRole(role?: string | null): boolean {
+export function isSuperAdminRole(role?: string | null): boolean {
   const normalized = (role || "").split("|")[0].toUpperCase().replace(/[\s_]+/g, "_");
-  return normalized === "SUPER_ADMIN" || normalized === "SUPERADMIN" || normalized === "HQ_USER" || normalized === "HQ";
+  return normalized === "SUPER_ADMIN" || normalized === "SUPERADMIN";
+}
+
+export function isHQRole(role?: string | null, user?: ScopedUser | null): boolean {
+  const normalized = (role || "").split("|")[0].toUpperCase().replace(/[\s_]+/g, "_");
+  if (normalized === "SUPER_ADMIN" || normalized === "SUPERADMIN" || normalized === "HQ_USER" || normalized === "HQ") {
+    return true;
+  }
+  const u = user !== undefined ? user : getCurrentUser();
+  if (u && (u as any).hqControlled === true && !u.franchiseId) {
+    return true;
+  }
+  return false;
 }
 
 /**
@@ -27,7 +39,7 @@ export function isHQRole(role?: string | null): boolean {
  * (who are allowed to see everything).
  */
 export function getScopedFranchiseId(user: ScopedUser | null = getCurrentUser()): string | undefined {
-  if (!user || isHQRole(user.role)) return undefined;
+  if (!user || isHQRole(user.role, user)) return undefined;
   return user.franchiseId || undefined;
 }
 
@@ -45,7 +57,7 @@ function getRecordFranchiseId(record: object): string | undefined {
  * a branch admin never sees another branch's — or HQ's — records.
  */
 export function scopeToFranchise<T extends object>(records: T[], user: ScopedUser | null = getCurrentUser()): T[] {
-  if (!user || isHQRole(user.role)) return records;
+  if (!user || isHQRole(user.role, user)) return records;
   const franchiseId = user.franchiseId;
   if (!franchiseId) {
     return records.filter((r) => {

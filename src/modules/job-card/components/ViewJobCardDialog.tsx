@@ -95,6 +95,9 @@ function formatTimeOnly(dateStr?: string) {
 export function ViewJobCardDialog({ isOpen, onClose, job, onEdit, onDelete, inspectionCar, stage }: ViewJobCardDialogProps) {
   const router = useRouter();
   const { canAccess } = usePermissions();
+  const canAccessQC = canAccess("qc");
+  const canAccessBilling = canAccess("billing");
+
   const [history, setHistory] = useState<any[]>([]);
   const [activeSubTab, setActiveSubTab] = useState<'details' | 'timeline'>('details');
   const [qcInspections, setQcInspections] = useState<QCInspection[]>([]);
@@ -102,37 +105,73 @@ export function ViewJobCardDialog({ isOpen, onClose, job, onEdit, onDelete, insp
 
   // Load chronological timeline history from backend
   useEffect(() => {
-    if (isOpen && job?.id) {
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
-      // Phase 0.10 — auth travels via httpOnly cookie now; credentials:
-      // "include" is required for the browser to attach it cross-origin.
-      fetch(`${apiBase}/jobs/${job.id}/history`, { credentials: "include" })
-        .then(res => res.json())
-        .then(data => {
-          if (Array.isArray(data)) setHistory(data);
-        })
-        .catch(console.error);
+    if (!isOpen || !job?.id) {
+      setHistory((prev) => (prev.length === 0 ? prev : []));
+      return;
     }
+    const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+    let isCancelled = false;
+    fetch(`${apiBase}/jobs/${job.id}/history`, { credentials: "include" })
+      .then(res => res.json())
+      .then(data => {
+        if (!isCancelled && Array.isArray(data)) setHistory(data);
+      })
+      .catch(console.error);
+    return () => {
+      isCancelled = true;
+    };
   }, [isOpen, job?.id]);
 
   // QC attempts for this job — newest first, per getInspections' contract.
   useEffect(() => {
-    if (isOpen && job?.id) {
-      getInspections(job.id).then(setQcInspections).catch(console.error);
-    } else {
-      setQcInspections([]);
+    if (!isOpen || !job?.id) {
+      setQcInspections((prev) => (prev.length === 0 ? prev : []));
+      return;
     }
-  }, [isOpen, job?.id]);
+    if (!canAccessQC) {
+      setQcInspections((prev) => (prev.length === 0 ? prev : []));
+      return;
+    }
+    let isCancelled = false;
+    getInspections(job.id)
+      .then((data) => {
+        if (!isCancelled && Array.isArray(data)) {
+          setQcInspections(data);
+        }
+      })
+      .catch((err: any) => {
+        if (err?.status !== 403) console.error("Failed to load QC inspections:", err);
+      });
+    return () => {
+      isCancelled = true;
+    };
+  }, [isOpen, job?.id, canAccessQC]);
 
   // Billing has no per-vehicle/job endpoint — fetch all and match client-side by
   // vehicle number, mirroring the convention in live-status/deriveLiveStatus.ts.
   useEffect(() => {
-    if (isOpen) {
-      getInvoices().then(setInvoices).catch(console.error);
-    } else {
-      setInvoices([]);
+    if (!isOpen) {
+      setInvoices((prev) => (prev.length === 0 ? prev : []));
+      return;
     }
-  }, [isOpen]);
+    if (!canAccessBilling) {
+      setInvoices((prev) => (prev.length === 0 ? prev : []));
+      return;
+    }
+    let isCancelled = false;
+    getInvoices()
+      .then((data) => {
+        if (!isCancelled && Array.isArray(data)) {
+          setInvoices(data);
+        }
+      })
+      .catch((err: any) => {
+        if (err?.status !== 403) console.error("Failed to load invoices:", err);
+      });
+    return () => {
+      isCancelled = true;
+    };
+  }, [isOpen, canAccessBilling]);
 
   const vehicleInvoices = useMemo(() => {
     if (!job) return [];

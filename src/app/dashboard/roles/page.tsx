@@ -3,13 +3,12 @@
 import { useState, useEffect } from "react";
 import { ShieldCheck, Shield, Users, Lock, Check, X } from "lucide-react";
 import { getRolePermissions, updateRolePermissions } from "@/lib/api";
+import { canonicalizePermission, getStoredUser, normalizeRole, notifyPermissionsUpdated } from "@/lib/permissions";
 import { toast } from "react-hot-toast";
 
 // ── Role definitions ─────────────────────────────────────────────────────────
 const ROLES = [
   { id: "SUPER_ADMIN", label: "Super Admin", color: "#ef4444", badge: "bg-red-100 text-red-700" },
-  { id: "HQ_USER", label: "HQ User", color: "#f59e0b", badge: "bg-amber-100 text-amber-700" },
-  { id: "BRANCH_MANAGER", label: "Branch Manager", color: "#8b5cf6", badge: "bg-violet-100 text-violet-700" },
   { id: "RECEPTION_EXECUTIVE", label: "Reception Executive", color: "#06b6d4", badge: "bg-cyan-100 text-cyan-700" },
   { id: "SERVICE_ADVISOR", label: "Service Advisor", color: "#3b82f6", badge: "bg-blue-100 text-blue-700" },
   { id: "TECHNICIAN", label: "Technician", color: "#10b981", badge: "bg-emerald-100 text-emerald-700" },
@@ -23,6 +22,8 @@ const PERMISSIONS = [
   { module: "Dashboard", key: "dashboard" },
   { module: "Car In", key: "carin" },
   { module: "Job Cards", key: "jobs" },
+  { module: "Vehicle Inspection", key: "vehicle-inspection" },
+  { module: "QC", key: "qc" },
   { module: "Out Pass", key: "outpass" },
   { module: "Leads", key: "leads" },
   { module: "Customers", key: "customers" },
@@ -42,15 +43,15 @@ const DEFAULT_MATRIX: Record<string, Record<string, boolean>> = {
   HQ_USER: Object.fromEntries(PERMISSIONS.map(p => [p.key, !["roles"].includes(p.key)])),
   BRANCH_MANAGER: Object.fromEntries(PERMISSIONS.map(p => [p.key, !["settings", "roles", "employees"].includes(p.key)])),
   RECEPTION_EXECUTIVE: Object.fromEntries(PERMISSIONS.map(p => [p.key, ["dashboard", "carin", "outpass", "customers", "leads"].includes(p.key)])),
-  SERVICE_ADVISOR: Object.fromEntries(PERMISSIONS.map(p => [p.key, ["dashboard", "carin", "jobs", "outpass", "customers", "leads"].includes(p.key)])),
+  SERVICE_ADVISOR: Object.fromEntries(PERMISSIONS.map(p => [p.key, ["dashboard", "carin", "jobs"].includes(p.key)])),
   TECHNICIAN: Object.fromEntries(PERMISSIONS.map(p => [p.key, ["dashboard", "jobs", "attendance"].includes(p.key)])),
-  QUALITY_INSPECTOR: Object.fromEntries(PERMISSIONS.map(p => [p.key, ["dashboard", "jobs", "carin"].includes(p.key)])),
+  QUALITY_INSPECTOR: Object.fromEntries(PERMISSIONS.map(p => [p.key, ["dashboard", "vehicle-inspection", "qc"].includes(p.key)])),
   BILLING_EXECUTIVE: Object.fromEntries(PERMISSIONS.map(p => [p.key, ["dashboard", "billing", "payments", "reports"].includes(p.key)])),
   INVENTORY_EXECUTIVE: Object.fromEntries(PERMISSIONS.map(p => [p.key, ["dashboard", "inventory", "reports"].includes(p.key)])),
 };
 
 export default function RolesPermissionsPage() {
-  const [selected, setSelected] = useState("BRANCH_MANAGER");
+  const [selected, setSelected] = useState("RECEPTION_EXECUTIVE");
   const [matrix, setMatrix] = useState(DEFAULT_MATRIX);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -59,15 +60,20 @@ export default function RolesPermissionsPage() {
     async function fetchPermissions() {
       setIsLoading(true);
       try {
-        const data = await getRolePermissions();
-        if (Array.isArray(data) && data.length > 0) {
+        const res = await getRolePermissions();
+        const items = Array.isArray(res) ? res : (Array.isArray(res?.data) ? res.data : []);
+        if (Array.isArray(items) && items.length > 0) {
           const newMatrix = { ...DEFAULT_MATRIX };
-          for (const item of data) {
+          for (const item of items) {
             if (item && item.role && Array.isArray(item.permissions)) {
+              const canonicalDbPerms = item.permissions.map(canonicalizePermission);
               newMatrix[item.role] = Object.fromEntries(
-                PERMISSIONS.map(p => [p.key, item.permissions.includes(p.key)])
+                PERMISSIONS.map(p => [p.key, canonicalDbPerms.includes(canonicalizePermission(p.key))])
               );
             }
+          }
+          if (!newMatrix.SUPER_ADMIN) {
+            newMatrix.SUPER_ADMIN = Object.fromEntries(PERMISSIONS.map(p => [p.key, true]));
           }
           setMatrix(newMatrix);
         }
@@ -104,6 +110,12 @@ export default function RolesPermissionsPage() {
 
       await updateRolePermissions(selected, currentRolePerms);
       toast.success(`Successfully saved permissions for ${activeRole.label}`);
+
+      const stored = getStoredUser();
+      if (stored && normalizeRole(stored.role) === selected) {
+        const updated = { ...stored, permissions: currentRolePerms };
+        notifyPermissionsUpdated(updated);
+      }
     } catch (err: any) {
       console.error(err);
       toast.error("Failed to save permissions: " + err.message);

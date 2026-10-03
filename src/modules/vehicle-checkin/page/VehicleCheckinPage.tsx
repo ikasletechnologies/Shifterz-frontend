@@ -61,14 +61,21 @@ export function VehicleCheckinPage() {
     try { const u = localStorage.getItem("user"); return u ? JSON.parse(u) : null; } catch { return null; }
   })() : null;
   const userRole = (currentUser?.role || "").toUpperCase().replace(/[\s_]+/g, "_");
-  const isHQ = userRole === "SUPER_ADMIN" || userRole === "SUPERADMIN" || userRole === "HQ" || userRole === "HQ_USER";
+  const isHQ = userRole === "SUPER_ADMIN" || userRole === "SUPERADMIN" || userRole === "HQ" || userRole === "HQ_USER" || (currentUser?.hqControlled === true && !currentUser?.franchiseId);
+  const isSuperAdminOrHQ = userRole === "SUPER_ADMIN" || userRole === "SUPERADMIN" || userRole === "HQ" || userRole === "HQ_USER";
+  const canDelete =
+    userRole === "SUPER_ADMIN" ||
+    userRole === "SUPERADMIN" ||
+    userRole === "HQ_USER" ||
+    userRole === "FRANCHISE_ADMIN" ||
+    userRole === "BRANCH_MANAGER";
 
   useEffect(() => {
-    if (!isHQ) return;
+    if (!isSuperAdminOrHQ) return;
     getFranchises()
       .then((data: any[]) => setFranchises((data || []).map((f: any) => ({ id: f.id, name: f.name || f.franchiseName || f.id }))))
       .catch((err: any) => console.error("Vehicle checkin: failed to load franchises", err));
-  }, [isHQ]);
+  }, [isSuperAdminOrHQ]);
 
   const {
     cars,
@@ -161,7 +168,8 @@ export function VehicleCheckinPage() {
     setIsDialogOpen(true);
   };
 
-  const handleDeleteClick = async (car: CarEntry) => {
+    const handleDeleteClick = async (car: CarEntry) => {
+    if (!canDelete) return;
     if (!confirm(`Are you sure you want to delete entry for ${car.vehicleNo || car.vehicle || "this car"}?`)) return;
     await handleDeleteVehicleCheckIn(car);
   };
@@ -653,7 +661,7 @@ export function VehicleCheckinPage() {
           onInspection={handleInspectionClick}
           onDownloadExcel={downloadSingleCarExcel}
           onDownloadPdf={downloadSingleCarPDF}
-          onDelete={handleDeleteClick}
+          onDelete={canDelete ? handleDeleteClick : undefined}
           showFranchise={showFranchiseColumn}
         />
       ) : filteredCars.length === 0 ? (
@@ -733,9 +741,11 @@ export function VehicleCheckinPage() {
                         <button onClick={() => downloadSingleCarPDF(entry)} className="p-1.5" title="Download as PDF">
                           <FileText className="w-4 h-4" />
                         </button>
-                        <button onClick={() => handleDeleteClick(entry)} className="p-1.5" title="Delete">
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        {canDelete && (
+                          <button onClick={() => handleDeleteClick(entry)} className="p-1.5" title="Delete">
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -761,7 +771,7 @@ export function VehicleCheckinPage() {
           setSelectedCar(null);
           toast.success("Vehicle status updated to Delivered!");
         }}
-        onDelete={handleDeleteClick}
+        onDelete={canDelete ? handleDeleteClick : undefined}
         onViewExistingRecord={(car) => {
           setIsDialogOpen(false);
           setSelectedCar(car);
@@ -804,12 +814,12 @@ export function VehicleCheckinPage() {
             handleDeliveryClick(target);
           }
         }}
-        onDelete={(carData) => {
+        onDelete={canDelete ? (carData) => {
           const target = cars.find((c) => c.id === carData.id || (carData.vehicleNo && c.vehicleNo === carData.vehicleNo)) || selectedCar;
           if (target) {
             handleDeleteClick(target);
           }
-        }}
+        } : undefined}
       />
 
       {/* Success Popup */}

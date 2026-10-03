@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { apiCall } from "@/lib/api";
 
 export const PERMISSION_MODULES = [
   "dashboard",
   "carin",
   "jobs",
+  "vehicle-inspection",
+  "qc",
   "outpass",
   "leads",
   "customers",
@@ -24,41 +26,41 @@ export type PermissionModule = (typeof PERMISSION_MODULES)[number];
 
 export const DEFAULT_ROLE_MATRIX: Record<string, string[]> = {
   SUPER_ADMIN: [
-    "dashboard", "carin", "jobs", "outpass", "leads", "customers",
+    "dashboard", "carin", "jobs", "vehicle-inspection", "qc", "outpass", "leads", "customers",
     "billing", "payments", "inventory", "reports", "employees",
     "attendance", "settings", "roles"
   ],
   HQ_USER: [
-    "dashboard", "carin", "jobs", "outpass", "leads", "customers",
+    "dashboard", "carin", "jobs", "vehicle-inspection", "qc", "outpass", "leads", "customers",
     "billing", "payments", "inventory", "reports", "employees",
     "attendance", "settings"
   ],
   FRANCHISE_ADMIN: [
-    "dashboard", "carin", "jobs", "outpass", "leads", "customers",
+    "dashboard", "carin", "jobs", "vehicle-inspection", "qc", "outpass", "leads", "customers",
     "billing", "payments", "inventory", "reports", "employees",
     "attendance"
   ],
   BRANCH_MANAGER: [
-    "dashboard", "carin", "jobs", "outpass", "leads", "customers",
+    "dashboard", "carin", "jobs", "vehicle-inspection", "qc", "outpass", "leads", "customers",
     "billing", "payments", "inventory", "reports", "attendance"
   ],
   RECEPTION_EXECUTIVE: [
     "dashboard", "carin", "outpass", "customers", "leads", "attendance"
   ],
   SERVICE_ADVISOR: [
-    "dashboard", "carin", "jobs", "outpass", "customers", "leads", "attendance"
+    "dashboard", "carin", "jobs", "attendance"
   ],
   TECHNICIAN: [
-    "dashboard", "jobs", "attendance"
+    "dashboard", "jobs", "workshop", "attendance"
   ],
   QUALITY_INSPECTOR: [
-    "dashboard", "jobs", "carin"
+    "dashboard", "vehicle-inspection", "qc", "attendance"
   ],
   BILLING_EXECUTIVE: [
-    "dashboard", "billing", "payments", "reports"
+    "dashboard", "billing", "payments", "reports", "attendance"
   ],
   INVENTORY_EXECUTIVE: [
-    "dashboard", "inventory", "reports"
+    "dashboard", "inventory", "reports", "attendance"
   ],
 };
 
@@ -76,6 +78,37 @@ export function normalizeRole(role?: string | null): string {
   return aliasMap[base] || base;
 }
 
+export function canonicalizePermission(perm?: string | null): string {
+  if (!perm) return "";
+  const normalized = perm.trim().toLowerCase();
+  if (normalized === "vehicle_inspection" || normalized === "vehicleinspection" || normalized === "vehicle-inspection") {
+    return "vehicle-inspection";
+  }
+  if (normalized === "quality_control" || normalized === "quality-control" || normalized === "qc") {
+    return "qc";
+  }
+  if (normalized === "car_in" || normalized === "car-in" || normalized === "carin") {
+    return "carin";
+  }
+  if (normalized === "job_cards" || normalized === "job-cards" || normalized === "jobs" || normalized === "workshop") {
+    return "jobs";
+  }
+  if (normalized === "out_pass" || normalized === "out-pass" || normalized === "outpass") {
+    return "outpass";
+  }
+  return normalized;
+}
+
+export function syncPermissionsCookie(perms?: string[] | null) {
+  if (typeof document === "undefined") return;
+  try {
+    const list = Array.isArray(perms) ? perms.map(canonicalizePermission) : [];
+    document.cookie = `shifterz_perms=${encodeURIComponent(JSON.stringify(list))}; path=/; max-age=86400; SameSite=Lax`;
+  } catch (e) {
+    // ignore
+  }
+}
+
 export function getStoredUser(): any | null {
   if (typeof window === "undefined") return null;
   try {
@@ -90,6 +123,9 @@ export function notifyPermissionsUpdated(updatedUser?: any) {
   if (typeof window === "undefined") return;
   if (updatedUser) {
     localStorage.setItem("user", JSON.stringify(updatedUser));
+    if (Array.isArray(updatedUser.permissions)) {
+      syncPermissionsCookie(updatedUser.permissions);
+    }
   }
   window.dispatchEvent(new CustomEvent("shifterz-permissions-updated", { detail: updatedUser }));
 }
@@ -124,19 +160,21 @@ export function canAccessModule(
     return true;
   }
 
+  const targetKey = canonicalizePermission(moduleKey);
+
   // Restrict operational modules if franchise is PENDING or DEACTIVE
-  if (!isFranchiseOperational(currentUser) && moduleKey !== "dashboard") {
+  if (!isFranchiseOperational(currentUser) && targetKey !== "dashboard") {
     return false;
   }
 
   const perms = currentUser.permissions;
   if (Array.isArray(perms)) {
-    return perms.includes(moduleKey);
+    return perms.map(canonicalizePermission).includes(targetKey);
   }
 
   // Fallback to default matrix for this role if permissions array is missing
-  const roleDefaults = DEFAULT_ROLE_MATRIX[canonicalRole];
-  return roleDefaults ? roleDefaults.includes(moduleKey) : false;
+  const roleDefaults = DEFAULT_ROLE_MATRIX[canonicalRole] || [];
+  return roleDefaults.map(canonicalizePermission).includes(targetKey);
 }
 
 /**
@@ -165,6 +203,9 @@ export function getModuleForRoute(pathname: string): string | null {
   // Specific route mapping
   if (path.startsWith("/technician/my-jobs")) return "jobs";
   if (path.startsWith("/technician/attendance")) return "attendance";
+  if (path.startsWith("/technician/workshop")) return "jobs";
+  if (path.startsWith("/vehicle-inspection")) return "vehicle-inspection";
+  if (path.startsWith("/qc")) return "qc";
 
   // Sub-routes under dashboard
   const sub = path.replace(/^\/dashboard\/?/, "");
@@ -172,10 +213,10 @@ export function getModuleForRoute(pathname: string): string | null {
 
   const directMap: Record<string, string> = {
     carin: "carin",
-    "vehicle-inspection": "carin",
+    "vehicle-inspection": "vehicle-inspection",
     jobs: "jobs",
     workshop: "jobs",
-    qc: "jobs",
+    qc: "qc",
     "live-status": "jobs",
     outpass: "outpass",
     leads: "leads",
@@ -184,6 +225,7 @@ export function getModuleForRoute(pathname: string): string | null {
     warranties: "billing",
     payments: "payments",
     inventory: "inventory",
+    purchases: "inventory",
     reports: "reports",
     employees: "employees",
     technicians: "employees",
@@ -240,7 +282,14 @@ export function usePermissions() {
   const [loading, setLoading] = useState(true);
 
   const syncUser = useCallback((userData: any) => {
-    setUser(userData);
+    if (!userData) return;
+    setUser((prev: any) => {
+      if (prev && JSON.stringify(prev) === JSON.stringify(userData)) return prev;
+      return userData;
+    });
+    if (Array.isArray(userData.permissions)) {
+      syncPermissionsCookie(userData.permissions);
+    }
     setLoading(false);
   }, []);
 
@@ -248,11 +297,18 @@ export function usePermissions() {
     try {
       const res = await apiCall("/auth/me");
       if (res && res.user) {
-        localStorage.setItem("user", JSON.stringify(res.user));
-        setUser(res.user);
-        window.dispatchEvent(
-          new CustomEvent("shifterz-permissions-updated", { detail: res.user })
-        );
+        const storedStr = localStorage.getItem("user");
+        const newStr = JSON.stringify(res.user);
+        if (storedStr !== newStr) {
+          localStorage.setItem("user", newStr);
+          if (Array.isArray(res.user.permissions)) {
+            syncPermissionsCookie(res.user.permissions);
+          }
+          setUser(res.user);
+          window.dispatchEvent(
+            new CustomEvent("shifterz-permissions-updated", { detail: res.user })
+          );
+        }
       }
     } catch (e) {
       // User may not be logged in yet
@@ -265,6 +321,9 @@ export function usePermissions() {
     const initial = getStoredUser();
     if (initial) {
       setUser(initial);
+      if (Array.isArray(initial.permissions)) {
+        syncPermissionsCookie(initial.permissions);
+      }
       setLoading(false);
     }
 
@@ -285,27 +344,45 @@ export function usePermissions() {
       }
     };
 
+    const handleVisibilityOrFocus = () => {
+      if (typeof document !== "undefined" && document.visibilityState === "visible") {
+        refreshPermissions();
+      }
+    };
+
     window.addEventListener("shifterz-permissions-updated", handleCustomUpdate);
     window.addEventListener("storage", handleStorage);
+    window.addEventListener("focus", handleVisibilityOrFocus);
+    document.addEventListener("visibilitychange", handleVisibilityOrFocus);
 
     return () => {
       window.removeEventListener("shifterz-permissions-updated", handleCustomUpdate);
       window.removeEventListener("storage", handleStorage);
+      window.removeEventListener("focus", handleVisibilityOrFocus);
+      document.removeEventListener("visibilitychange", handleVisibilityOrFocus);
     };
   }, [refreshPermissions, syncUser]);
 
   const role = normalizeRole(user?.role);
   const isSuperAdmin = role === "SUPER_ADMIN";
-  const permissions: string[] = isSuperAdmin
-    ? [...PERMISSION_MODULES]
-    : Array.isArray(user?.permissions)
-    ? user.permissions
-    : DEFAULT_ROLE_MATRIX[role] || [];
+  const permissionsKey = Array.isArray(user?.permissions)
+    ? user.permissions.join(",")
+    : (DEFAULT_ROLE_MATRIX[role] || []).join(",");
+
+  const permissions = useMemo(() => {
+    const rawPermissions: string[] = isSuperAdmin
+      ? [...PERMISSION_MODULES]
+      : Array.isArray(user?.permissions)
+      ? user.permissions
+      : DEFAULT_ROLE_MATRIX[role] || [];
+    return rawPermissions.map(canonicalizePermission);
+  }, [isSuperAdmin, permissionsKey, role]);
 
   const canAccess = useCallback(
     (moduleKey: string) => {
       if (isSuperAdmin) return true;
-      return permissions.includes(moduleKey);
+      const target = canonicalizePermission(moduleKey);
+      return permissions.includes(target);
     },
     [isSuperAdmin, permissions]
   );

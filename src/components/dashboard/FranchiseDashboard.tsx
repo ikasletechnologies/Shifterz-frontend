@@ -38,8 +38,8 @@ export function FranchiseDashboard({ allowedModules }: { allowedModules?: string
 
   // Check section visibility based on whitelist
   const showCRM = !allowedModules || allowedModules.includes("leads") || allowedModules.includes("customers");
-  const showWorkshop = !allowedModules || allowedModules.includes("carin") || allowedModules.includes("jobs") || allowedModules.includes("outpass");
-  const showFinancial = !allowedModules || allowedModules.includes("billing") || allowedModules.includes("payments") || allowedModules.includes("reports");
+  const showWorkshop = !allowedModules || allowedModules.includes("carin") || allowedModules.includes("jobs") || allowedModules.includes("outpass") || allowedModules.includes("vehicle-inspection") || allowedModules.includes("qc");
+  const showFinancial = !allowedModules || allowedModules.includes("billing") || allowedModules.includes("payments");
   const showHR = !allowedModules || allowedModules.includes("employees") || allowedModules.includes("attendance");
   const showInventory = !allowedModules || allowedModules.includes("inventory");
 

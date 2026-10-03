@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { SummaryCard } from "@/components/common/SummaryCard";
 import { ListHeader } from "@/components/common/ListHeader";
 import { useVehicleCheckin } from "../hooks/useVehicleCheckin";
@@ -12,6 +13,8 @@ import { formatDate, formatTime } from "@/lib/timeUtils";
 import { StatusText } from "@/components/common/StatusText";
 
 export function VehicleInspectionPage() {
+  const searchParams = useSearchParams();
+  const vehicleParam = searchParams.get("vehicle");
   const { cars, isLoading, handleUpdateVehicleCheckIn } = useVehicleCheckin();
   const [selectedCar, setSelectedCar] = useState<CarEntry | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -32,6 +35,26 @@ export function VehicleInspectionPage() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"All" | "Pending" | "Complete">("Pending");
+
+  useEffect(() => {
+    if (vehicleParam && cars.length > 0) {
+      setSearchQuery(vehicleParam);
+      const cleanParam = vehicleParam.replace(/[^A-Z0-9]/gi, "").toLowerCase();
+      const matched = cars.find((c) => {
+        const v = (c.vehicleNo || c.vehicle || c.vehicleNumber || "").replace(/[^A-Z0-9]/gi, "").toLowerCase();
+        return v === cleanParam || (cleanParam.length > 3 && v.includes(cleanParam));
+      });
+      if (matched) {
+        setSelectedCar(matched);
+        setIsDialogOpen(true);
+      }
+    }
+  }, [vehicleParam, cars]);
+
+
+
+
+
 
   const openInspection = (car: CarEntry) => {
     setSelectedCar(car);

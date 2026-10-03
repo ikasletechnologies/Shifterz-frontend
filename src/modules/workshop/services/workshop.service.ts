@@ -79,12 +79,20 @@ export async function uploadPhotos(jobId: string, files: File[]): Promise<{ phot
 
 export async function recordMaterial(
   jobId: string,
-  material: Omit<MaterialRecord, "jobId" | "addedAt">
+  material: { itemId?: string; name: string; quantity: number; unit: string }
 ): Promise<MaterialRecord> {
   return apiCall(`/jobs/${jobId}/materials`, {
     method: "POST",
-    body: JSON.stringify(material),
+    body: JSON.stringify({
+      itemId: material.itemId || material.name,
+      quantity: material.quantity,
+      unit: material.unit,
+    }),
   });
+}
+
+export async function getJobMaterials(jobId: string): Promise<MaterialRecord[]> {
+  return apiCall(`/jobs/${jobId}/materials`);
 }
 
 export async function sendToQC(jobId: string, notes?: string): Promise<WorkshopJob> {

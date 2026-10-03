@@ -15,6 +15,7 @@ interface JobCardTabsProps {
   trackingFor?: (job: JobCard) => JobTracking;
   onView?: (job: JobCard) => void;
   onEdit: (job: JobCard) => void;
+  onInspect?: (job: JobCard) => void;
   selectedStatus?: string;
   onStatusSelect?: (status: string) => void;
 }
@@ -37,6 +38,7 @@ export function JobCardTabs({
   trackingFor,
   onView,
   onEdit,
+  onInspect,
   selectedStatus = "All",
 }: JobCardTabsProps) {
   const router = useRouter();
@@ -184,19 +186,36 @@ export function JobCardTabs({
                           )}
                         </div>
 
-                        {/* Technician */}
-                        <div className="flex items-center justify-between text-xs gap-2 pt-1 border-t border-gray-100">
-                          <span className="text-gray-500 text-[11px] font-medium">Technician:</span>
-                          {hasTechnician(j) ? (
-                            <span className="font-medium text-gray-800 bg-gray-50 px-2 py-0.5 rounded border border-gray-200/60 truncate max-w-[130px]" title={j.technician}>
-                              {j.technician}
-                            </span>
-                          ) : (
-                            <span className="text-amber-700 font-semibold bg-amber-50 px-2 py-0.5 rounded border border-amber-200/60 text-[11px]">
-                              Unassigned
-                            </span>
-                          )}
-                        </div>
+                        {/* Technician & Inspection Status */}
+                        {stage.key === "inspection" ? (
+                          <>
+                            <div className="flex items-center justify-between text-xs gap-2 pt-1 border-t border-gray-100">
+                              <span className="text-gray-500 text-[11px] font-medium">Inspection:</span>
+                              <span className="text-amber-700 font-semibold bg-amber-50 px-2 py-0.5 rounded border border-amber-200/60 text-[11px]">
+                                Pending
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between text-xs gap-2 pt-1 border-t border-gray-100">
+                              <span className="text-gray-500 text-[11px] font-medium">Technician:</span>
+                              <span className="text-slate-500 font-medium bg-slate-50 px-2 py-0.5 rounded border border-slate-200/60 text-[11px]">
+                                Waiting for inspection
+                              </span>
+                            </div>
+                          </>
+                        ) : (
+                          <div className="flex items-center justify-between text-xs gap-2 pt-1 border-t border-gray-100">
+                            <span className="text-gray-500 text-[11px] font-medium">Technician:</span>
+                            {hasTechnician(j) ? (
+                              <span className="font-medium text-gray-800 bg-gray-50 px-2 py-0.5 rounded border border-gray-200/60 truncate max-w-[130px]" title={j.technician}>
+                                {j.technician}
+                              </span>
+                            ) : (
+                              <span className="text-amber-700 font-semibold bg-amber-50 px-2 py-0.5 rounded border border-amber-200/60 text-[11px]">
+                                Unassigned
+                              </span>
+                            )}
+                          </div>
+                        )}
 
                         {/* Timeline */}
                         <div className="text-[11px] text-gray-500 flex items-center justify-between gap-1 pt-0.5">
@@ -218,7 +237,18 @@ export function JobCardTabs({
                           <button
                             type="button"
                             className="keep-color inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-800 shadow-xs hover:bg-yellow-400 hover:border-yellow-400 hover:text-gray-900 transition-colors cursor-pointer flex-1"
-                            onClick={() => (action.edit ? onEdit(j) : action.href && router.push(action.href))}
+                            onClick={() => {
+                              if (action.edit) {
+                                onEdit(j);
+                              } else if (stage.key === "inspection" && onInspect) {
+                                onInspect(j);
+                              } else if (action.href) {
+                                const targetHref = stage.key === "inspection" && j.vehicle
+                                  ? `${action.href}?vehicle=${encodeURIComponent(j.vehicle)}`
+                                  : action.href;
+                                router.push(targetHref);
+                              }
+                            }}
                           >
                             <span>{action.label}</span>
                             <ArrowRight className="w-3.5 h-3.5" />

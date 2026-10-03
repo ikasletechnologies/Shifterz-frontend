@@ -85,11 +85,10 @@ export function BillingTabs({
         <button
           type="button"
           onClick={() => setActiveTab("All")}
-          className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-            activeTab === "All"
+          className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${activeTab === "All"
               ? "bg-slate-900 text-white shadow-xs"
               : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-          }`}
+            }`}
         >
           <span>All Documents</span>
           <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-white/20">{docs.length}</span>
@@ -98,11 +97,10 @@ export function BillingTabs({
         <button
           type="button"
           onClick={() => setActiveTab("Invoices")}
-          className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-            activeTab === "Invoices"
+          className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${activeTab === "Invoices"
               ? "bg-blue-600 text-white shadow-xs"
               : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-          }`}
+            }`}
         >
           <span>Invoices</span>
           <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-white/20">{invoiceDocs.length}</span>
@@ -111,24 +109,22 @@ export function BillingTabs({
         <button
           type="button"
           onClick={() => setActiveTab("Estimates")}
-          className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-            activeTab === "Estimates"
+          className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${activeTab === "Estimates"
               ? "bg-purple-600 text-white shadow-xs"
               : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-          }`}
+            }`}
         >
-          <span>Estimates / Quotes</span>
+          <span>Estimates </span>
           <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-white/20">{estimateDocs.length}</span>
         </button>
 
         <button
           type="button"
           onClick={() => setActiveTab("Pending")}
-          className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-            activeTab === "Pending"
+          className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${activeTab === "Pending"
               ? "bg-amber-500 text-white shadow-xs"
               : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-          }`}
+            }`}
         >
           <Clock className="w-3.5 h-3.5" />
           <span>Pending Payment</span>
@@ -138,11 +134,10 @@ export function BillingTabs({
         <button
           type="button"
           onClick={() => setActiveTab("Paid")}
-          className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-            activeTab === "Paid"
+          className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${activeTab === "Paid"
               ? "bg-emerald-600 text-white shadow-xs"
               : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-          }`}
+            }`}
         >
           <CheckCircle className="w-3.5 h-3.5" />
           <span>Paid</span>
@@ -167,9 +162,9 @@ export function BillingTabs({
 
             const formattedDate = doc.date
               ? (() => {
-                  const d = new Date(doc.date);
-                  return isNaN(d.getTime()) ? doc.date : d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
-                })()
+                const d = new Date(doc.date);
+                return isNaN(d.getTime()) ? doc.date : d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+              })()
               : "—";
 
             const serviceLabel = doc.service && doc.service !== "—" && doc.service !== "-"
@@ -337,7 +332,7 @@ export function BillingTabs({
                       </button>
                     )}
 
-                    <ShareInvoiceMenu doc={doc} onLogShare={onLogShare || (() => {})} />
+                    <ShareInvoiceMenu doc={doc} onLogShare={onLogShare || (() => { })} />
 
                     {renderMoreMenu && renderMoreMenu(doc)}
                   </div>

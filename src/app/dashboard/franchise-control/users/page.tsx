@@ -36,11 +36,10 @@ import {
 } from "lucide-react";
 import { getEmployees, createEmployee, updateEmployee, deleteEmployee, getFranchises } from "@/lib/api";
 import { toast } from "react-hot-toast";
+import { isSuperAdminRole } from "@/lib/franchise-scope";
 
 // ── Role config ───────────────────────────────────────────────────────────────
 const ROLES = [
-  { value: "SUPER_ADMIN", label: "Super Admin", color: "#ef4444", bg: "bg-red-100 text-red-700" },
-  { value: "HQ_USER", label: "HQ User", color: "#f59e0b", bg: "bg-amber-100 text-amber-700" },
   { value: "FRANCHISE_ADMIN", label: "Franchise Admin", color: "#3b82f6", bg: "bg-blue-100 text-blue-700" },
   { value: "BRANCH_MANAGER", label: "Branch Manager", color: "#8b5cf6", bg: "bg-violet-100 text-violet-700" },
   { value: "RECEPTION_EXECUTIVE", label: "Reception Executive", color: "#06b6d4", bg: "bg-cyan-100 text-cyan-700" },
@@ -56,6 +55,8 @@ const MODULE_OPTIONS = [
   { value: "dashboard", label: "Dashboard", icon: Grid3x3 },
   { value: "carin", label: "Car In", icon: Car },
   { value: "jobs", label: "Job Cards", icon: Briefcase },
+  { value: "vehicle-inspection", label: "Vehicle Inspection", icon: Car },
+  { value: "qc", label: "QC", icon: Shield },
   { value: "outpass", label: "Out Pass", icon: Ticket },
   { value: "leads", label: "Leads", icon: Users },
   { value: "customers", label: "Customers", icon: Users },
@@ -69,14 +70,14 @@ const MODULE_OPTIONS = [
 
 // ── Default dashboard modules per role ─────────────────────────────────────────
 const DEFAULT_ROLE_MODULES: Record<string, string[]> = {
-  SUPER_ADMIN: ["dashboard", "carin", "jobs", "outpass", "leads", "customers", "billing", "payments", "inventory", "reports", "employees", "attendance"],
+  SUPER_ADMIN: ["dashboard", "carin", "jobs", "vehicle-inspection", "qc", "outpass", "leads", "customers", "billing", "payments", "inventory", "reports", "employees", "attendance"],
   HQ_USER: ["dashboard", "carin", "jobs", "outpass", "leads", "customers", "billing", "payments", "inventory", "reports", "employees", "attendance"],
   FRANCHISE_ADMIN: ["dashboard", "carin", "jobs", "outpass", "leads", "customers", "billing", "payments", "inventory", "employees", "attendance"],
   BRANCH_MANAGER: ["dashboard", "carin", "jobs", "outpass", "customers", "billing", "payments", "inventory"],
   RECEPTION_EXECUTIVE: ["dashboard", "carin", "outpass", "customers", "leads"],
   SERVICE_ADVISOR: ["dashboard", "carin", "jobs", "outpass", "customers", "leads"],
   TECHNICIAN: ["dashboard", "jobs", "attendance"],
-  QUALITY_INSPECTOR: ["dashboard", "jobs", "carin"],
+  QUALITY_INSPECTOR: ["dashboard", "vehicle-inspection", "qc"],
   BILLING_EXECUTIVE: ["dashboard", "billing", "payments", "reports"],
   INVENTORY_EXECUTIVE: ["dashboard", "inventory", "reports"],
 };
@@ -211,6 +212,7 @@ export default function UserManagementPage() {
 
   // Role guard
   const [authorized, setAuthorized] = useState<boolean | null>(null); // null = loading
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
 
   // Modal state
   const [modalMode, setModalMode] = useState<"create" | "edit" | "view" | null>(null);
@@ -234,6 +236,7 @@ export default function UserManagementPage() {
         const u = JSON.parse(userStr);
         const allowed = u.role === "SUPER_ADMIN" || u.role === "HQ_USER";
         setAuthorized(allowed);
+        setIsSuperAdmin(isSuperAdminRole(u.role));
       } catch {
         setAuthorized(false);
       }
@@ -244,10 +247,21 @@ export default function UserManagementPage() {
     (async () => {
       try {
         const [empData, franData] = await Promise.allSettled([
-          getEmployees(),
+          getEmployees({ franchiseOnly: true }),
           getFranchises(),
         ]);
-        if (empData.status === "fulfilled") setUsers(empData.value);
+        if (empData.status === "fulfilled") {
+          // Strictly display only franchise employees (exclude Super Admin, HQ users, and HQ staff)
+          const franchiseEmployees = (empData.value || []).filter(
+            (u: any) =>
+              u.franchiseId !== null &&
+              u.franchiseId !== "HQ" &&
+              !u.hqControlled &&
+              u.role !== "SUPER_ADMIN" &&
+              u.role !== "HQ_USER"
+          );
+          setUsers(franchiseEmployees);
+        }
         if (franData.status === "fulfilled") setFranchises(franData.value);
       } catch (e: any) {
         toast.error("Failed to load users");
@@ -297,6 +311,7 @@ export default function UserManagementPage() {
   const openCreate = () => {
     setForm({
       ...EMPTY_FORM,
+      franchiseId: franchises.length > 0 ? franchises[0].id : "",
       selectedModules: [...DEFAULT_ROLE_MODULES["TECHNICIAN"]],
     });
     setSelected(null);
@@ -338,6 +353,10 @@ export default function UserManagementPage() {
   const closeModal = () => { setModalMode(null); setSelected(null); setShowFormPassword(false); };
 
   const handleSave = async () => {
+    if ((form.role === "QUALITY_INSPECTOR" || selected?.role === "QUALITY_INSPECTOR") && !isSuperAdmin) {
+      toast.error("Only Super Admin can manage Quality Inspectors.");
+      return;
+    }
     if (!form.name || !form.role) {
       toast.error("Name and role are required.");
       return;
@@ -364,8 +383,15 @@ export default function UserManagementPage() {
       };
 
       if (modalMode === "create") {
+        if (!form.franchiseId && franchises.length > 0) {
+          toast.error("Please assign a franchise for this employee.");
+          setSaving(false);
+          return;
+        }
         const created = await createEmployee(payload);
-        setUsers((prev) => [created, ...prev]);
+        if (created.franchiseId && !created.hqControlled && created.role !== "SUPER_ADMIN" && created.role !== "HQ_USER") {
+          setUsers((prev) => [created, ...prev]);
+        }
         toast.success("User created successfully!");
       } else if (modalMode === "edit" && selected) {
         const body: any = { ...payload };
@@ -431,7 +457,7 @@ export default function UserManagementPage() {
       </div>
 
       {/* Role summary cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-9 gap-3 mb-6">
         <button
           onClick={() => setRoleFilter("ALL")}
           className={`p-3 rounded-xl border text-left transition-all ${roleFilter === "ALL" ? "border-yellow-400 shadow-md bg-white" : "border-gray-100 bg-white hover:border-gray-200"}`}
@@ -552,17 +578,23 @@ export default function UserManagementPage() {
                         >
                           <Lock className="w-4 h-4" />
                         </button>
-                        <button onClick={() => openEdit(u)} className="p-1.5 rounded-lg hover:bg-yellow-50 text-gray-400 hover:text-yellow-600 transition-colors" title="Edit user">
-                          <Pencil className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(u.id)}
-                          disabled={deleting === u.id}
-                          className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors disabled:opacity-40"
-                          title="Delete user"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        {(isSuperAdmin || u.role !== "QUALITY_INSPECTOR") ? (
+                          <>
+                            <button onClick={() => openEdit(u)} className="p-1.5 rounded-lg hover:bg-yellow-50 text-gray-400 hover:text-yellow-600 transition-colors" title="Edit user">
+                              <Pencil className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(u.id)}
+                              disabled={deleting === u.id}
+                              className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors disabled:opacity-40"
+                              title="Delete user"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </>
+                        ) : (
+                          <span className="text-[10px] text-gray-400 italic">Super Admin only</span>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -700,10 +732,10 @@ export default function UserManagementPage() {
                     </select>
                   </div>
 
-                  {/* Franchise (only for non-HQ roles) */}
-                  {!["SUPER_ADMIN", "HQ_USER"].includes(form.role) && franchises.length > 0 && (
+                  {/* Franchise (required for franchise employees) */}
+                  {franchises.length > 0 && (
                     <div>
-                      <label className="block text-xs font-semibold text-gray-500 mb-1.5">Assign Franchise</label>
+                      <label className="block text-xs font-semibold text-gray-500 mb-1.5">Assign Franchise *</label>
                       <div className="relative">
                         <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                         <select
@@ -711,7 +743,7 @@ export default function UserManagementPage() {
                           onChange={(e) => setForm((p) => ({ ...p, franchiseId: e.target.value }))}
                           className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400 bg-gray-50"
                         >
-                          <option value="">— No franchise —</option>
+                          <option value="">Select a franchise…</option>
                           {franchises.map((f: any) => <option key={f.id} value={f.id}>{f.name}</option>)}
                         </select>
                       </div>

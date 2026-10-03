@@ -9,12 +9,12 @@ import { getEmployees, createEmployee, updateEmployee, deleteEmployee, getFranch
 import { toast } from "react-hot-toast";
 import { useOpenOnQuery } from "@/lib/useOpenOnQuery";
 import { SummaryCard } from "@/components/common/SummaryCard";
+import { isSuperAdminRole } from "@/lib/franchise-scope";
 
 const FRANCHISE_ASSIGNABLE_ROLES = [
   "RECEPTION_EXECUTIVE",
   "SERVICE_ADVISOR",
   "TECHNICIAN",
-  "QUALITY_INSPECTOR",
   "BILLING_EXECUTIVE",
   "INVENTORY_EXECUTIVE",
 ];
@@ -41,6 +41,7 @@ export default function EmployeesPage() {
   const [isTransferOpen, setIsTransferOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const isSuperAdmin = isSuperAdminRole(currentUser?.role);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"All" | "Active" | "Inactive">("All");
@@ -115,6 +116,11 @@ export default function EmployeesPage() {
   };
 
   const handleEdit = async (id: string, data: any) => {
+    const target = employees.find(e => e.id === id);
+    if (target?.role === "QUALITY_INSPECTOR" && !isSuperAdmin) {
+      toast.error("Only Super Admin can manage Quality Inspectors.");
+      return;
+    }
     try {
       const result = await updateEmployee(id, data);
       setEmployees(employees.map(emp => emp.id === id ? result : emp));
@@ -236,6 +242,11 @@ export default function EmployeesPage() {
   };
 
   const handleDelete = async (id: string) => {
+    const target = employees.find(e => e.id === id);
+    if (target?.role === "QUALITY_INSPECTOR" && !isSuperAdmin) {
+      toast.error("Only Super Admin can delete Quality Inspectors.");
+      return;
+    }
     if (!confirm("Are you sure you want to delete this employee?")) return;
     try {
       await deleteEmployee(id);
@@ -406,24 +417,30 @@ export default function EmployeesPage() {
                           {emp.status}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-right space-x-2">
-                        <button
-                          onClick={() => {
-                            setSelectedEmployee(emp);
-                            setIsEditOpen(true);
-                          }}
-                          className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                          title="Edit"
-                        >
-                          <Pencil className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(emp.id)}
-                          className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                          title="Delete"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                                            <td className="px-6 py-4 text-right space-x-2">
+                        {(isSuperAdmin || emp.role !== "QUALITY_INSPECTOR") ? (
+                          <>
+                            <button
+                              onClick={() => {
+                                setSelectedEmployee(emp);
+                                setIsEditOpen(true);
+                              }}
+                              className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                              title="Edit"
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(emp.id)}
+                              className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                              title="Delete"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </>
+                        ) : (
+                          <span className="text-xs text-gray-400 italic">Managed by Super Admin</span>
+                        )}
                       </td>
                     </tr>
                   );
@@ -516,7 +533,7 @@ export default function EmployeesPage() {
         onClose={() => setIsAddOpen(false)}
         onAdd={handleAdd}
         franchises={franchises}
-        allowedRoles={FRANCHISE_ASSIGNABLE_ROLES}
+        allowedRoles={isSuperAdmin ? undefined : FRANCHISE_ASSIGNABLE_ROLES}
         lockFranchiseId={isFranchiseAdmin ? currentUser?.franchiseId : undefined}
       />
 
@@ -527,7 +544,7 @@ export default function EmployeesPage() {
           onEdit={handleEdit}
           employee={selectedEmployee}
           franchises={franchises}
-          allowedRoles={isFranchiseAdmin ? FRANCHISE_ASSIGNABLE_ROLES : undefined}
+          allowedRoles={isSuperAdmin ? undefined : FRANCHISE_ASSIGNABLE_ROLES}
           lockFranchiseId={isFranchiseAdmin ? currentUser?.franchiseId : undefined}
         />
       )}
